@@ -406,6 +406,7 @@ pub extern "C" fn dora_boots_compiler_main(
     argv: *const *const c_char,
     compile_address: *const u8,
 ) -> i32 {
+    eprintln!("Boots startup trace: wrapper entry argc={argc} compile_address={compile_address:p}");
     boots::dora_boots_compiler_main(argc, argv, compile_address)
 }
 

@@ -2,7 +2,7 @@ use std::ffi::OsStr;
 use std::fs;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, ExitStatus};
 use std::time::{Duration, Instant};
 
 use crate::driver::append_exe_suffix;
@@ -253,7 +253,7 @@ fn compile_package_using_compiler_binary(
         eprintln!("External compiler spawned: pid={}", child.id());
     }
 
-    let status = child.wait()?;
+    let status = wait_for_external_compiler(&mut child, trace_external_compiler)?;
     if trace_external_compiler {
         eprintln!("External compiler done: status={status}");
     }
@@ -262,6 +262,70 @@ fn compile_package_using_compiler_binary(
     }
 
     Ok(())
+}
+
+fn wait_for_external_compiler(
+    child: &mut std::process::Child,
+    trace_external_compiler: bool,
+) -> Result<ExitStatus> {
+    if !trace_external_compiler {
+        return Ok(child.wait()?);
+    }
+
+    let start = Instant::now();
+    let mut dumped_diagnostics = false;
+
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(status);
+        }
+
+        if !dumped_diagnostics && start.elapsed() >= Duration::from_secs(20) {
+            eprintln!(
+                "External compiler still running after {:?}: pid={}",
+                start.elapsed(),
+                child.id()
+            );
+            dump_external_compiler_diagnostics(child.id());
+            dumped_diagnostics = true;
+        }
+
+        std::thread::sleep(Duration::from_secs(1));
+    }
+}
+
+fn dump_external_compiler_diagnostics(pid: u32) {
+    run_diagnostic_command("where", &["cdb"]);
+    run_diagnostic_command("where", &["ntsd"]);
+    run_diagnostic_command(
+        "powershell",
+        &[
+            "-NoProfile",
+            "-Command",
+            &format!(
+                "Get-Process -Id {pid} | Format-List Id,ProcessName,Path,Responding,CPU,StartTime,Threads"
+            ),
+        ],
+    );
+    run_diagnostic_command(
+        "powershell",
+        &[
+            "-NoProfile",
+            "-Command",
+            &format!(
+                "Get-CimInstance Win32_Thread -Filter \"ProcessHandle='{pid}'\" | Select-Object Handle,ThreadState,ThreadWaitReason,UserModeTime,KernelModeTime | Format-Table -AutoSize"
+            ),
+        ],
+    );
+    run_diagnostic_command("cdb", &["-pv", "-p", &pid.to_string(), "-c", "~* kb; q"]);
+}
+
+fn run_diagnostic_command(program: &str, args: &[&str]) {
+    eprintln!("Diagnostic command: {program} {}", args.join(" "));
+    match Command::new(program).args(args).status() {
+        Ok(status) => eprintln!("Diagnostic command status: {status}"),
+        Err(err) => eprintln!("Diagnostic command failed: {err}"),
+    }
 }
 
 fn compiler_binary_path(args: &CompileArgs) -> Result<PathBuf> {
