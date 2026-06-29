@@ -350,7 +350,21 @@ fn compile_fct_to_descriptor(
         emit_html,
     };
 
+    let trace_name = if std::env::var("DORA_AOT_TRACE_COMPILE").as_deref() == Ok("1") {
+        Some(display_fct_specialized(ctx.program, fct_id, type_params))
+    } else {
+        None
+    };
+
+    if let Some(name) = trace_name.as_ref() {
+        eprintln!("AOT compile start: {name}");
+    }
+
     let code = ctx.compiler_invocation.compile(compilation_data, ctx);
+
+    if let Some(name) = trace_name.as_ref() {
+        eprintln!("AOT compile done: {name}");
+    }
 
     (code, CompiledCodeKind::OptimizedFct)
 }
