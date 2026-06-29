@@ -392,18 +392,19 @@ impl AssemblySyntax {
 
     fn write_quad_symbol(&mut self, symbol: &str) {
         let symbol = self.symbol_ref(symbol);
-        self.write_quad(symbol);
-        self.write_armasm64_reloc(IMAGE_REL_ARM64_ADDR64);
+        self.write_quad(&symbol);
+        self.write_armasm64_reloc(IMAGE_REL_ARM64_ADDR64, &symbol);
     }
 
     fn write_quad_symbol_offset(&mut self, symbol: &str, offset: usize) {
         let symbol = self.symbol_ref(symbol);
-        if offset == 0 {
-            self.write_quad(symbol)
+        let value = if offset == 0 {
+            symbol
         } else {
-            self.write_quad(format_args!("{symbol}+{offset}"))
-        }
-        self.write_armasm64_reloc(IMAGE_REL_ARM64_ADDR64);
+            format!("{symbol}+{offset}")
+        };
+        self.write_quad(&value);
+        self.write_armasm64_reloc(IMAGE_REL_ARM64_ADDR64, &value);
     }
 
     fn write_quad_bits(&mut self, value: u64) {
@@ -438,9 +439,9 @@ impl AssemblySyntax {
         }
     }
 
-    fn write_armasm64_reloc(&mut self, reloc: u16) {
+    fn write_armasm64_reloc(&mut self, reloc: u16, symbol: &str) {
         if self.is_armasm() {
-            self.write_indented_line(format_args!("RELOC {reloc}"));
+            self.write_indented_line(format_args!("RELOC {reloc}, {symbol}"));
         }
     }
 
