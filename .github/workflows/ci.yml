@@ -12,7 +12,16 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macOS-latest]
+        include:
+          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
+          - os: windows-latest
+            msvc_arch: x64
+            msvc_assembler: ml64
+          - os: windows-11-arm
+            msvc_arch: arm64
+            msvc_assembler: armasm64
+          - os: macOS-latest
 
     steps:
       - name: Prepare git
@@ -36,29 +45,29 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: x64
+          arch: ${{ matrix.msvc_arch }}
 
       - name: Verify MSVC toolchain
         if: runner.os == 'Windows'
         run: |
-          where.exe ml64
+          where.exe ${{ matrix.msvc_assembler }}
           where.exe link
 
       - name: Increase Stack Size
         run: echo "RUST_MIN_STACK=16777216" >> $GITHUB_ENV
 
       - name: Test Release
-        if: matrix.os != 'windows-latest'
+        if: runner.os != 'Windows'
         run: tools/test -r -- --config all
 
       - name: Test Release (Windows)
-        if: matrix.os == 'windows-latest'
+        if: runner.os == 'Windows'
         run: .\tools\test -r -- --config all
 
       - name: Test
-        if: matrix.os != 'windows-latest'
+        if: runner.os != 'Windows'
         run: tools/test -- --config all
 
       - name: Test (Windows)
-        if: matrix.os == 'windows-latest'
+        if: runner.os == 'Windows'
         run: .\tools\test -- --config all
