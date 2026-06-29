@@ -85,6 +85,10 @@ pub(super) fn link_object(
         .arg("dbghelp.lib")
         .arg("/defaultlib:msvcrt");
 
+    if target_arch.is_arm64() {
+        linker_command.arg("/INCLUDE:main");
+    }
+
     maybe_print_subcommand(&linker_command, verbose);
     let status = linker_command.status()?;
 
