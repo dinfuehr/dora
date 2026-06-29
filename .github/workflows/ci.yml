@@ -28,7 +28,6 @@ jobs:
             timeout_minutes: "180"
             test_config: all
             msvc_arch: arm64
-            aot_trace_compile: "1"
           - os: macOS-latest
             timeout_minutes: "90"
             test_config: all
@@ -73,11 +72,6 @@ jobs:
       - name: Increase Stack Size
         shell: bash
         run: echo "RUST_MIN_STACK=16777216" >> "$GITHUB_ENV"
-
-      - name: Enable AOT compile trace
-        if: matrix.aot_trace_compile == '1'
-        shell: bash
-        run: echo "DORA_AOT_TRACE_COMPILE=1" >> "$GITHUB_ENV"
 
       - name: Test Release
         if: runner.os != 'Windows'
