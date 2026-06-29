@@ -98,18 +98,7 @@ fn trace_arm64_object(target_arch: TargetArch, obj_path: &Path) {
         return;
     }
 
-    dumpbin_filtered(
-        "object symbols",
-        &["/nologo", "/symbols"],
-        obj_path,
-        &["main", "dora_boots_compiler_main", "interface"],
-        80,
-    );
-    dumpbin_disasm_windows(
-        "object disasm",
-        obj_path,
-        &["main", "dora_boots_compiler_main"],
-    );
+    trace_arm64_object_entry(obj_path);
 }
 
 fn trace_arm64_binary(target_arch: TargetArch, output: &str) {
@@ -134,6 +123,136 @@ fn trace_arm64_binary(target_arch: TargetArch, output: &str) {
 
 fn trace_arm64_enabled(target_arch: TargetArch) -> bool {
     target_arch.is_arm64() && std::env::var("DORA_AOT_TRACE_COMPILE").as_deref() == Ok("1")
+}
+
+fn trace_arm64_object_entry(obj_path: &Path) {
+    let symbols = match dumpbin_output("object symbols", &["/nologo", "/symbols"], obj_path) {
+        Some(output) => output,
+        None => return,
+    };
+
+    let entries = [
+        "main",
+        "dora_boots_compiler_main",
+        "dora_interface_3A_3Acompile",
+    ];
+    for entry in entries {
+        match find_dumpbin_symbol(&symbols, entry) {
+            Some(symbol) => eprintln!("dumpbin object symbol: {}", symbol.line),
+            None => eprintln!("dumpbin object symbol: {entry}: <not found>"),
+        }
+    }
+
+    let Some(main_symbol) = find_dumpbin_symbol(&symbols, "main") else {
+        return;
+    };
+
+    let Some(disasm) = dumpbin_output("object disasm", &["/nologo", "/disasm"], obj_path) else {
+        return;
+    };
+    dump_object_address_window("object disasm", &disasm, main_symbol.offset, 4, 24);
+
+    let Some(relocs) = dumpbin_output("object relocations", &["/nologo", "/relocations"], obj_path)
+    else {
+        return;
+    };
+    dump_relocations_for_range(
+        "object relocations",
+        &relocs,
+        main_symbol.offset,
+        main_symbol.offset + 0x40,
+    );
+}
+
+struct DumpbinSymbol<'a> {
+    line: &'a str,
+    offset: u64,
+}
+
+fn find_dumpbin_symbol<'a>(symbols: &'a str, name: &str) -> Option<DumpbinSymbol<'a>> {
+    let suffix = format!("| {name}");
+    for line in symbols.lines() {
+        if !line.trim_end().ends_with(&suffix) {
+            continue;
+        }
+
+        let mut parts = line.split_whitespace();
+        parts.next()?;
+        let offset = u64::from_str_radix(parts.next()?, 16).ok()?;
+        return Some(DumpbinSymbol { line, offset });
+    }
+
+    None
+}
+
+fn dump_object_address_window(
+    label: &str,
+    output: &str,
+    address: u64,
+    before: usize,
+    after: usize,
+) {
+    let needle = format!("{address:016X}:");
+    let lines = output.lines().collect::<Vec<_>>();
+    for (idx, line) in lines.iter().enumerate() {
+        if !line.contains(&needle) {
+            continue;
+        }
+
+        let start = idx.saturating_sub(before);
+        let end = usize::min(idx + after, lines.len());
+        eprintln!("dumpbin {label} window for {needle}");
+        for line in &lines[start..end] {
+            eprintln!("{line}");
+        }
+        return;
+    }
+
+    eprintln!("dumpbin {label}: <no window for {needle}>");
+}
+
+fn dump_relocations_for_range(label: &str, output: &str, start: u64, end: u64) {
+    eprintln!("dumpbin {label} entries for {start:08X}..{end:08X}:");
+    let mut printed = 0;
+    for line in output.lines() {
+        let Some(first) = line.split_whitespace().next() else {
+            continue;
+        };
+        let Ok(offset) = u64::from_str_radix(first, 16) else {
+            continue;
+        };
+        if start <= offset && offset < end {
+            eprintln!("{line}");
+            printed += 1;
+        }
+    }
+
+    if printed == 0 {
+        eprintln!("dumpbin {label}: <no entries in range>");
+    }
+}
+
+fn dumpbin_output(label: &str, args: &[&str], path: &Path) -> Option<String> {
+    eprintln!(
+        "Diagnostic command: dumpbin {} {}",
+        args.join(" "),
+        path.display()
+    );
+    let output = match Command::new("dumpbin").args(args).arg(path).output() {
+        Ok(output) => output,
+        Err(err) => {
+            eprintln!("Diagnostic command failed: {err}");
+            return None;
+        }
+    };
+    eprintln!("Diagnostic command status: {}", output.status);
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !stderr.trim().is_empty() {
+        eprintln!("dumpbin {label} stderr:\n{stderr}");
+    }
+
+    Some(String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
 fn dumpbin_filtered(label: &str, args: &[&str], path: &Path, needles: &[&str], limit: usize) {
