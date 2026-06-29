@@ -199,7 +199,7 @@ impl AssemblySyntax {
 
     fn write_text(&mut self) {
         if self.is_armasm() {
-            self.write_indented_line(format_args!("AREA |.text|, CODE, ARM64, ALIGN=4"))
+            self.write_indented_line(format_args!("AREA |.text|, CODE, ARM64, ALIGN=16"))
         } else if self.is_coff() {
             self.write_line(format_args!(".code"))
         } else {
@@ -212,7 +212,7 @@ impl AssemblySyntax {
             ObjectFormat::Elf => self.write_line(format_args!(".section .rodata")),
             ObjectFormat::MachO => self.write_line(format_args!(".section __TEXT,__const")),
             ObjectFormat::Coff if self.is_armasm() => {
-                self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=3"))
+                self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=8"))
             }
             ObjectFormat::Coff => self.write_line(format_args!(".const")),
         }
@@ -240,10 +240,10 @@ impl AssemblySyntax {
             }
             ObjectFormat::Coff if self.is_armasm() => match kind {
                 SectionKind::ReadOnly => {
-                    self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=3"))
+                    self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=8"))
                 }
                 SectionKind::Writable => {
-                    self.write_indented_line(format_args!("AREA |.data|, DATA, READWRITE, ALIGN=3"))
+                    self.write_indented_line(format_args!("AREA |.data|, DATA, READWRITE, ALIGN=8"))
                 }
             },
             ObjectFormat::Coff => match kind {
@@ -258,7 +258,7 @@ impl AssemblySyntax {
             ObjectFormat::Elf => self.write_line(format_args!(".bss")),
             ObjectFormat::MachO => self.write_line(format_args!(".section __DATA,__bss")),
             ObjectFormat::Coff if self.is_armasm() => self.write_indented_line(format_args!(
-                "AREA |.bss|, DATA, READWRITE, NOINIT, ALIGN=3"
+                "AREA |.bss|, DATA, READWRITE, NOINIT, ALIGN=8"
             )),
             ObjectFormat::Coff => self.write_line(format_args!(".data?")),
         }
@@ -310,7 +310,7 @@ impl AssemblySyntax {
 
     fn write_p2_align(&mut self, alignment: u32) {
         if self.is_armasm() {
-            self.write_indented_line(format_args!("ALIGN {alignment}"))
+            self.write_indented_line(format_args!("ALIGN {}", 1_u32 << alignment))
         } else if self.is_coff() {
             self.write_indented_line(format_args!("ALIGN {}", 1_u32 << alignment))
         } else {
