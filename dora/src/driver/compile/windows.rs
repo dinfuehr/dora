@@ -27,10 +27,14 @@ pub(super) fn create_object_file(
         }
         TargetArch::Arm64 => {
             assembler_command
-                .arg("-nologo")
+                .arg("-target")
+                .arg("aarch64-pc-windows-msvc")
+                .arg("-x")
+                .arg("assembler")
+                .arg("-c")
+                .arg(asm_path)
                 .arg("-o")
-                .arg(obj_path_ref)
-                .arg(asm_path);
+                .arg(obj_path_ref);
         }
     }
 
@@ -351,7 +355,7 @@ fn dumpbin_disasm_windows(label: &str, path: &Path, symbols: &[&str]) {
 fn windows_assembler(target_arch: TargetArch) -> PathBuf {
     match target_arch {
         TargetArch::X64 => PathBuf::from("ml64"),
-        TargetArch::Arm64 => PathBuf::from("armasm64"),
+        TargetArch::Arm64 => PathBuf::from("clang"),
     }
 }
 

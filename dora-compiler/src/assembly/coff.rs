@@ -36,7 +36,13 @@ pub(super) fn write_relocation(
             };
             syntax.write_indented_line(format_args!("adrp {page_reg}, {target}"));
             syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEBASE_REL21, target);
-            syntax.write_indented_line(format_args!("ldr {dst_reg}, [{base_reg}, {target}]"));
+            if syntax.is_gnu_arm64_coff() {
+                syntax.write_indented_line(format_args!(
+                    "ldr {dst_reg}, [{base_reg}, :lo12:{target}]"
+                ));
+            } else {
+                syntax.write_indented_line(format_args!("ldr {dst_reg}, [{base_reg}, {target}]"));
+            }
             syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEOFFSET_12L, target);
         }
         (
@@ -73,7 +79,12 @@ pub(super) fn write_relocation(
             let dst_reg = arm64_x_reg(dst_reg);
             syntax.write_indented_line(format_args!("adrp {page_reg}, {target}"));
             syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEBASE_REL21, target);
-            syntax.write_indented_line(format_args!("add {dst_reg}, {base_reg}, {target}"));
+            if syntax.is_gnu_arm64_coff() {
+                syntax
+                    .write_indented_line(format_args!("add {dst_reg}, {base_reg}, :lo12:{target}"));
+            } else {
+                syntax.write_indented_line(format_args!("add {dst_reg}, {base_reg}, {target}"));
+            }
             syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEOFFSET_12A, target);
         }
         _ => panic!(
