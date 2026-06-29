@@ -144,6 +144,10 @@ impl AssemblySyntax {
         self.is_coff() && self.target_arch.is_arm64()
     }
 
+    fn uses_rust_aot_main(&self) -> bool {
+        self.is_armasm()
+    }
+
     fn symbol(&self, symbol: &str) -> String {
         debug_assert!(!symbol.starts_with(".L"));
         debug_assert!(!symbol.starts_with('_'));
@@ -509,6 +513,7 @@ pub fn write_assembly(
     let mut string_slots = Vec::<StringSlotEntry>::new();
     let mut string_slot_map = HashMap::<AotStringId, usize>::new();
     let mut function_metadata = Vec::with_capacity(functions.len() + 1);
+    let fixed_entry_symbol = fixed_aot_entry_symbol(kind);
 
     for (func_idx, func) in functions.iter().enumerate() {
         let label = func.symbol_name.as_str();
@@ -516,6 +521,10 @@ pub fn write_assembly(
         write_masm_extern_proc_for_function(&mut syntax, func);
         syntax.write_newline();
         syntax.write_align16();
+        if syntax.uses_rust_aot_main() && fixed_entry_symbol.as_deref() == Some(label) {
+            syntax.write_global_func("dora_aot_entry");
+            syntax.write_label("dora_aot_entry");
+        }
         syntax.write_global_func(label);
         syntax.write_label(label);
 
@@ -574,10 +583,14 @@ pub fn write_assembly(
 
     write_test_metadata(&mut syntax, aot);
 
-    match kind {
-        AotAssemblyKind::Regular => write_regular_main(&mut syntax, target_arch),
-        AotAssemblyKind::Test => write_test_main(&mut syntax, target_arch),
-        AotAssemblyKind::CompilerImage => write_compiler_image_main(&mut syntax, target_arch),
+    if syntax.uses_rust_aot_main() {
+        write_rust_aot_main_metadata(&mut syntax, kind);
+    } else {
+        match kind {
+            AotAssemblyKind::Regular => write_regular_main(&mut syntax, target_arch),
+            AotAssemblyKind::Test => write_test_main(&mut syntax, target_arch),
+            AotAssemblyKind::CompilerImage => write_compiler_image_main(&mut syntax, target_arch),
+        }
     }
 
     write_function_metadata(&mut syntax, &function_metadata);
@@ -585,6 +598,14 @@ pub fn write_assembly(
 
     syntax.write_end();
     syntax.flush();
+}
+
+fn fixed_aot_entry_symbol(kind: AotAssemblyKind) -> Option<String> {
+    match kind {
+        AotAssemblyKind::Regular => Some(mangle_name("main")),
+        AotAssemblyKind::CompilerImage => Some(mangle_name("interface::compile")),
+        AotAssemblyKind::Test => None,
+    }
 }
 
 fn write_masm_extern_procs(syntax: &mut AssemblySyntax, kind: AotAssemblyKind) {
@@ -934,6 +955,35 @@ fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArc
         }
         syntax.write_indented_line(format_args!("jmp {startup_symbol}"));
     }
+}
+
+fn write_rust_aot_main_metadata(syntax: &mut AssemblySyntax, kind: AotAssemblyKind) {
+    const AOT_STARTUP_REGULAR: u8 = 0;
+    const AOT_STARTUP_TEST: u8 = 1;
+    const AOT_STARTUP_COMPILER_IMAGE: u8 = 2;
+
+    let startup_kind = match kind {
+        AotAssemblyKind::Regular => AOT_STARTUP_REGULAR,
+        AotAssemblyKind::Test => AOT_STARTUP_TEST,
+        AotAssemblyKind::CompilerImage => AOT_STARTUP_COMPILER_IMAGE,
+    };
+
+    if matches!(kind, AotAssemblyKind::Test) {
+        syntax.write_newline();
+        syntax.write_text();
+        syntax.write_align16();
+        syntax.write_global_func("dora_aot_entry");
+        syntax.write_label("dora_aot_entry");
+        syntax.write_indented_line(format_args!("ret"));
+    }
+
+    syntax.write_newline();
+    syntax.write_data_section(".dora.startup", "__dora_start", SectionKind::ReadOnly);
+    syntax.write_align4();
+    syntax.write_global("dora_aot_startup_kind");
+    syntax.write_label("dora_aot_startup_kind");
+    syntax.write_byte(startup_kind);
+    syntax.write_text();
 }
 
 fn write_armasm64_startup_call(
