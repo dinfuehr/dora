@@ -120,6 +120,7 @@ pub fn dora_boots_compiler_main(
     );
 
     set_vm(&vm);
+    vm.gc.setup(&vm);
 
     patch_string_slots(&vm, strings, metadata::string_slots());
 
