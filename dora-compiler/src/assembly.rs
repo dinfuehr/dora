@@ -141,11 +141,15 @@ impl AssemblySyntax {
     }
 
     fn is_armasm(&self) -> bool {
+        false
+    }
+
+    fn is_gnu_arm64_coff(&self) -> bool {
         self.is_coff() && self.target_arch.is_arm64()
     }
 
     fn uses_rust_aot_main(&self) -> bool {
-        self.is_armasm()
+        self.is_gnu_arm64_coff()
     }
 
     fn symbol(&self, symbol: &str) -> String {
@@ -154,8 +158,6 @@ impl AssemblySyntax {
 
         if self.is_macho() {
             format!("_{}", symbol)
-        } else if self.is_armasm() {
-            armasm_symbol(symbol)
         } else {
             symbol.to_string()
         }
@@ -172,7 +174,9 @@ impl AssemblySyntax {
     fn local_symbol_ref(&self, symbol: &str) -> String {
         debug_assert!(symbol.starts_with(".L"));
 
-        let symbol = if self.is_armasm() {
+        let symbol = if self.is_gnu_arm64_coff() {
+            symbol.to_string()
+        } else if self.is_armasm() {
             format!("L_{}", &symbol[2..])
         } else if self.is_coff() {
             format!("L${}", &symbol[2..])
@@ -198,13 +202,15 @@ impl AssemblySyntax {
     }
 
     fn write_preamble(&mut self) {
-        if self.is_coff() && !self.is_armasm() {
+        if self.is_coff() && !self.is_armasm() && !self.is_gnu_arm64_coff() {
             self.write_line(format_args!("OPTION CASEMAP:NONE"));
         }
     }
 
     fn write_text(&mut self) {
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!(".text"))
+        } else if self.is_armasm() {
             self.write_indented_line(format_args!("AREA |.text|, CODE, ARM64, ALIGN=4"))
         } else if self.is_coff() {
             self.write_line(format_args!(".code"))
@@ -217,6 +223,9 @@ impl AssemblySyntax {
         match self.format {
             ObjectFormat::Elf => self.write_line(format_args!(".section .rodata")),
             ObjectFormat::MachO => self.write_line(format_args!(".section __TEXT,__const")),
+            ObjectFormat::Coff if self.is_gnu_arm64_coff() => {
+                self.write_line(format_args!(".section .rdata,\"dr\""))
+            }
             ObjectFormat::Coff if self.is_armasm() => {
                 self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=3"))
             }
@@ -244,6 +253,14 @@ impl AssemblySyntax {
                 assert!(macho_section_name.len() <= 16);
                 self.write_line(format_args!(".section __DATA,{macho_section_name}"))
             }
+            ObjectFormat::Coff if self.is_gnu_arm64_coff() => match kind {
+                SectionKind::ReadOnly => {
+                    self.write_line(format_args!(".section {elf_section_name},\"dr\""))
+                }
+                SectionKind::Writable => {
+                    self.write_line(format_args!(".section {elf_section_name},\"dw\""))
+                }
+            },
             ObjectFormat::Coff if self.is_armasm() => match kind {
                 SectionKind::ReadOnly => {
                     self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=3"))
@@ -263,6 +280,7 @@ impl AssemblySyntax {
         match self.format {
             ObjectFormat::Elf => self.write_line(format_args!(".bss")),
             ObjectFormat::MachO => self.write_line(format_args!(".section __DATA,__bss")),
+            ObjectFormat::Coff if self.is_gnu_arm64_coff() => self.write_line(format_args!(".bss")),
             ObjectFormat::Coff if self.is_armasm() => self.write_indented_line(format_args!(
                 "AREA |.bss|, DATA, READWRITE, NOINIT, ALIGN=3"
             )),
@@ -272,7 +290,9 @@ impl AssemblySyntax {
 
     fn write_global(&mut self, symbol: &str) {
         let symbol = self.symbol(symbol);
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!(".globl {symbol}"))
+        } else if self.is_armasm() {
             self.write_indented_line(format_args!("EXPORT {symbol}"))
         } else if self.is_coff() {
             self.write_line(format_args!("PUBLIC {symbol}"))
@@ -283,7 +303,9 @@ impl AssemblySyntax {
 
     fn write_global_func(&mut self, symbol: &str) {
         let symbol = self.symbol(symbol);
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!(".globl {symbol}"))
+        } else if self.is_armasm() {
             self.write_indented_line(format_args!("EXPORT {symbol} [FUNC]"))
         } else if self.is_coff() {
             self.write_line(format_args!("PUBLIC {symbol}"))
@@ -296,7 +318,9 @@ impl AssemblySyntax {
         debug_assert!(self.is_coff());
 
         let symbol = self.symbol(symbol);
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!(".extern {symbol}"));
+        } else if self.is_armasm() {
             self.write_indented_line(format_args!("IMPORT {symbol}"));
         } else {
             self.write_line(format_args!("EXTERN {symbol}:PROC"));
@@ -305,7 +329,9 @@ impl AssemblySyntax {
 
     fn write_label(&mut self, symbol: &str) {
         let symbol = self.symbol(symbol);
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!("{symbol}:"))
+        } else if self.is_armasm() {
             self.write_line(format_args!("{symbol}"))
         } else {
             self.write_line(format_args!("{symbol}:"))
@@ -314,7 +340,9 @@ impl AssemblySyntax {
 
     fn write_local_symbol(&mut self, symbol: &str) {
         let symbol = self.local_symbol_ref(symbol);
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!("{symbol}:"))
+        } else if self.is_armasm() {
             self.write_line(format_args!("{symbol}"))
         } else {
             self.write_line(format_args!("{symbol}:"))
@@ -326,7 +354,9 @@ impl AssemblySyntax {
     }
 
     fn write_p2_align(&mut self, alignment: u32) {
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_indented_line(format_args!(".p2align {alignment}"))
+        } else if self.is_armasm() {
             self.write_indented_line(format_args!("ALIGN {}", 1_u32 << alignment))
         } else if self.is_coff() {
             self.write_indented_line(format_args!("ALIGN {}", 1_u32 << alignment))
@@ -349,7 +379,14 @@ impl AssemblySyntax {
 
     fn write_bytes(&mut self, data: &[u8]) {
         for chunk in data.chunks(12) {
-            if self.is_armasm() {
+            if self.is_gnu_arm64_coff() {
+                let bytes = chunk
+                    .iter()
+                    .map(|b| format!("0x{:02x}", b))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                self.write_indented_line(format_args!(".byte {bytes}"));
+            } else if self.is_armasm() {
                 let bytes = chunk
                     .iter()
                     .map(|b| b.to_string())
@@ -375,7 +412,9 @@ impl AssemblySyntax {
     }
 
     fn write_byte(&mut self, value: impl fmt::Display) {
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_indented_line(format_args!(".byte {value}"))
+        } else if self.is_armasm() {
             self.write_indented_line(format_args!("DCB {value}"))
         } else if self.is_coff() {
             self.write_indented_line(format_args!("DB {value}"))
@@ -385,7 +424,9 @@ impl AssemblySyntax {
     }
 
     fn write_quad(&mut self, value: impl fmt::Display) {
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_indented_line(format_args!(".quad {value}"))
+        } else if self.is_armasm() {
             self.write_indented_line(format_args!("DCQ {value}"))
         } else if self.is_coff() {
             self.write_indented_line(format_args!("DQ {value}"))
@@ -416,7 +457,9 @@ impl AssemblySyntax {
     }
 
     fn write_long(&mut self, value: impl fmt::Display) {
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_indented_line(format_args!(".long {value}"))
+        } else if self.is_armasm() {
             self.write_indented_line(format_args!("DCD {value}"))
         } else if self.is_coff() {
             self.write_indented_line(format_args!("DD {value}"))
@@ -426,7 +469,9 @@ impl AssemblySyntax {
     }
 
     fn write_zero(&mut self, size: impl fmt::Display) {
-        if self.is_armasm() {
+        if self.is_gnu_arm64_coff() {
+            self.write_indented_line(format_args!(".zero {size}"))
+        } else if self.is_armasm() {
             self.write_indented_line(format_args!("SPACE {size}"))
         } else if self.is_coff() {
             self.write_indented_line(format_args!("DB {size} DUP (?)"))
@@ -438,7 +483,7 @@ impl AssemblySyntax {
     fn write_end(&mut self) {
         if self.is_armasm() {
             self.write_indented_line(format_args!("END"));
-        } else if self.is_coff() {
+        } else if self.is_coff() && !self.is_gnu_arm64_coff() {
             self.write_line(format_args!("END"));
         }
     }
