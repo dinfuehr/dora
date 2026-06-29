@@ -277,6 +277,17 @@ impl AssemblySyntax {
         }
     }
 
+    fn write_global_func(&mut self, symbol: &str) {
+        let symbol = self.symbol(symbol);
+        if self.is_armasm() {
+            self.write_indented_line(format_args!("EXPORT {symbol} [FUNC]"))
+        } else if self.is_coff() {
+            self.write_line(format_args!("PUBLIC {symbol}"))
+        } else {
+            self.write_line(format_args!(".globl {symbol}"))
+        }
+    }
+
     fn write_extern_proc(&mut self, symbol: &str) {
         debug_assert!(self.is_coff());
 
@@ -490,7 +501,7 @@ pub fn write_assembly(
         write_masm_extern_proc_for_function(&mut syntax, func);
         syntax.write_newline();
         syntax.write_align16();
-        syntax.write_global(label);
+        syntax.write_global_func(label);
         syntax.write_label(label);
 
         write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
@@ -519,7 +530,7 @@ pub fn write_assembly(
     syntax.write_align16();
     let dora_entry_trampoline = "dora_entry_trampoline";
     let dora_entry_trampoline_end = ".Ldora_entry_trampoline_end";
-    syntax.write_global(dora_entry_trampoline);
+    syntax.write_global_func(dora_entry_trampoline);
     syntax.write_label(dora_entry_trampoline);
     syntax.write_bytes(trampoline);
     syntax.write_local_symbol(dora_entry_trampoline_end);
@@ -825,7 +836,7 @@ fn write_regular_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
 
     syntax.write_newline();
     syntax.write_align16();
-    syntax.write_global("main");
+    syntax.write_global_func("main");
     syntax.write_label("main");
     if target_arch.is_arm64() {
         if syntax.is_macho() {
@@ -854,7 +865,7 @@ fn write_test_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
 
     syntax.write_newline();
     syntax.write_align16();
-    syntax.write_global("main");
+    syntax.write_global_func("main");
     syntax.write_label("main");
     if target_arch.is_arm64() {
         syntax.write_indented_line(format_args!("b {startup_symbol}"));
@@ -871,7 +882,7 @@ fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArc
 
     syntax.write_newline();
     syntax.write_align16();
-    syntax.write_global("main");
+    syntax.write_global_func("main");
     syntax.write_label("main");
     if target_arch.is_arm64() {
         if syntax.is_macho() {
