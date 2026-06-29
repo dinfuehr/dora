@@ -168,7 +168,9 @@ impl AssemblySyntax {
     fn local_symbol_ref(&self, symbol: &str) -> String {
         debug_assert!(symbol.starts_with(".L"));
 
-        let symbol = if self.is_coff() {
+        let symbol = if self.is_armasm() {
+            format!("L_{}", &symbol[2..])
+        } else if self.is_coff() {
             format!("L${}", &symbol[2..])
         } else {
             symbol.to_string()
@@ -199,7 +201,7 @@ impl AssemblySyntax {
 
     fn write_text(&mut self) {
         if self.is_armasm() {
-            self.write_indented_line(format_args!("AREA |.text|, CODE, ARM64, ALIGN=16"))
+            self.write_indented_line(format_args!("AREA |.text|, CODE, ARM64, ALIGN=4"))
         } else if self.is_coff() {
             self.write_line(format_args!(".code"))
         } else {
@@ -212,7 +214,7 @@ impl AssemblySyntax {
             ObjectFormat::Elf => self.write_line(format_args!(".section .rodata")),
             ObjectFormat::MachO => self.write_line(format_args!(".section __TEXT,__const")),
             ObjectFormat::Coff if self.is_armasm() => {
-                self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=8"))
+                self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=3"))
             }
             ObjectFormat::Coff => self.write_line(format_args!(".const")),
         }
@@ -240,10 +242,10 @@ impl AssemblySyntax {
             }
             ObjectFormat::Coff if self.is_armasm() => match kind {
                 SectionKind::ReadOnly => {
-                    self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=8"))
+                    self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=3"))
                 }
                 SectionKind::Writable => {
-                    self.write_indented_line(format_args!("AREA |.data|, DATA, READWRITE, ALIGN=8"))
+                    self.write_indented_line(format_args!("AREA |.data|, DATA, READWRITE, ALIGN=3"))
                 }
             },
             ObjectFormat::Coff => match kind {
@@ -258,7 +260,7 @@ impl AssemblySyntax {
             ObjectFormat::Elf => self.write_line(format_args!(".bss")),
             ObjectFormat::MachO => self.write_line(format_args!(".section __DATA,__bss")),
             ObjectFormat::Coff if self.is_armasm() => self.write_indented_line(format_args!(
-                "AREA |.bss|, DATA, READWRITE, NOINIT, ALIGN=8"
+                "AREA |.bss|, DATA, READWRITE, NOINIT, ALIGN=3"
             )),
             ObjectFormat::Coff => self.write_line(format_args!(".data?")),
         }
