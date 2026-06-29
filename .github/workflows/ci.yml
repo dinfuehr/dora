@@ -66,11 +66,13 @@ jobs:
           where.exe link
 
       - name: Increase Stack Size
-        run: echo "RUST_MIN_STACK=16777216" >> $GITHUB_ENV
+        shell: bash
+        run: echo "RUST_MIN_STACK=16777216" >> "$GITHUB_ENV"
 
       - name: Enable AOT compile trace
         if: matrix.aot_trace_compile == '1'
-        run: echo "DORA_AOT_TRACE_COMPILE=1" >> $GITHUB_ENV
+        shell: bash
+        run: echo "DORA_AOT_TRACE_COMPILE=1" >> "$GITHUB_ENV"
 
       - name: Test Release
         if: runner.os != 'Windows'
