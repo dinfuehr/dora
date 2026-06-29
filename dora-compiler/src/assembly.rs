@@ -831,8 +831,10 @@ fn write_test_metadata(syntax: &mut AssemblySyntax, aot: &AotCompilation) {
 
 fn write_regular_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     // Pass the compiled program entry as a third argument to startup.
-    let main_symbol = syntax.symbol(&mangle_name("main"));
-    let startup_symbol = syntax.symbol("dora_aot_main");
+    let main_symbol_name = mangle_name("main");
+    let main_symbol = syntax.symbol(&main_symbol_name);
+    let startup_symbol_name = "dora_aot_main";
+    let startup_symbol = syntax.symbol(startup_symbol_name);
 
     syntax.write_newline();
     syntax.write_align16();
@@ -840,11 +842,7 @@ fn write_regular_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     syntax.write_label("main");
     if target_arch.is_arm64() {
         if syntax.is_armasm() {
-            write_armasm64_main_prolog(syntax);
-            syntax.write_indented_line(format_args!("adrp x2, {main_symbol}"));
-            syntax.write_indented_line(format_args!("add x2, x2, {main_symbol}"));
-            syntax.write_indented_line(format_args!("bl {startup_symbol}"));
-            write_armasm64_main_epilog(syntax);
+            write_armasm64_startup_call(syntax, Some(&main_symbol_name), startup_symbol_name);
         } else if syntax.is_macho() {
             syntax.write_indented_line(format_args!("adrp x2, {main_symbol}@PAGE"));
             syntax.write_indented_line(format_args!("add x2, x2, {main_symbol}@PAGEOFF"));
@@ -866,7 +864,8 @@ fn write_regular_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
 }
 
 fn write_test_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
-    let startup_symbol = syntax.symbol("dora_aot_test_main");
+    let startup_symbol_name = "dora_aot_test_main";
+    let startup_symbol = syntax.symbol(startup_symbol_name);
 
     syntax.write_newline();
     syntax.write_align16();
@@ -874,9 +873,7 @@ fn write_test_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     syntax.write_label("main");
     if target_arch.is_arm64() {
         if syntax.is_armasm() {
-            write_armasm64_main_prolog(syntax);
-            syntax.write_indented_line(format_args!("bl {startup_symbol}"));
-            write_armasm64_main_epilog(syntax);
+            write_armasm64_startup_call(syntax, None, startup_symbol_name);
         } else {
             syntax.write_indented_line(format_args!("b {startup_symbol}"));
         }
@@ -888,8 +885,10 @@ fn write_test_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
 fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     // The executable entry enters Rust startup first. The compiled entry
     // symbol is passed as a third C argument.
-    let compiler_entry_symbol = syntax.symbol(&mangle_name("interface::compile"));
-    let startup_symbol = syntax.symbol("dora_boots_compiler_main");
+    let compiler_entry_symbol_name = mangle_name("interface::compile");
+    let compiler_entry_symbol = syntax.symbol(&compiler_entry_symbol_name);
+    let startup_symbol_name = "dora_boots_compiler_main";
+    let startup_symbol = syntax.symbol(startup_symbol_name);
 
     syntax.write_newline();
     syntax.write_align16();
@@ -897,11 +896,11 @@ fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArc
     syntax.write_label("main");
     if target_arch.is_arm64() {
         if syntax.is_armasm() {
-            write_armasm64_main_prolog(syntax);
-            syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}"));
-            syntax.write_indented_line(format_args!("add x2, x2, {compiler_entry_symbol}"));
-            syntax.write_indented_line(format_args!("bl {startup_symbol}"));
-            write_armasm64_main_epilog(syntax);
+            write_armasm64_startup_call(
+                syntax,
+                Some(&compiler_entry_symbol_name),
+                startup_symbol_name,
+            );
         } else if syntax.is_macho() {
             syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}@PAGE"));
             syntax.write_indented_line(format_args!("add x2, x2, {compiler_entry_symbol}@PAGEOFF"));
@@ -920,6 +919,35 @@ fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArc
         }
         syntax.write_indented_line(format_args!("jmp {startup_symbol}"));
     }
+}
+
+fn write_armasm64_startup_call(
+    syntax: &mut AssemblySyntax,
+    entry_symbol: Option<&str>,
+    startup_symbol: &str,
+) {
+    let entry_slot = ".Ldora_main_entry_slot";
+    let startup_slot = ".Ldora_main_startup_slot";
+    let startup_slot_ref = syntax.local_symbol_ref(startup_slot);
+
+    write_armasm64_main_prolog(syntax);
+    if entry_symbol.is_some() {
+        let entry_slot_ref = syntax.local_symbol_ref(entry_slot);
+        syntax.write_indented_line(format_args!("adrp x2, {entry_slot_ref}"));
+        syntax.write_indented_line(format_args!("ldr x2, [x2, {entry_slot_ref}]"));
+    }
+    syntax.write_indented_line(format_args!("adrp x16, {startup_slot_ref}"));
+    syntax.write_indented_line(format_args!("ldr x16, [x16, {startup_slot_ref}]"));
+    syntax.write_indented_line(format_args!("blr x16"));
+    write_armasm64_main_epilog(syntax);
+
+    syntax.write_align8();
+    if let Some(entry_symbol) = entry_symbol {
+        syntax.write_local_symbol(entry_slot);
+        syntax.write_quad_symbol(entry_symbol);
+    }
+    syntax.write_local_symbol(startup_slot);
+    syntax.write_quad_symbol(startup_symbol);
 }
 
 fn write_armasm64_main_prolog(syntax: &mut AssemblySyntax) {
