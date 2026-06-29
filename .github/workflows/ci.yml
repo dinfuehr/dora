@@ -9,20 +9,25 @@ jobs:
   test:
     name: test ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    timeout-minutes: ${{ fromJSON(matrix.timeout_minutes) }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
+            timeout_minutes: "90"
           - os: ubuntu-24.04-arm
+            timeout_minutes: "90"
           - os: windows-latest
+            timeout_minutes: "90"
             msvc_arch: x64
             msvc_assembler: ml64
           - os: windows-11-arm
+            timeout_minutes: "180"
             msvc_arch: arm64
             msvc_assembler: armasm64
           - os: macOS-latest
+            timeout_minutes: "90"
 
     steps:
       - name: Prepare git
