@@ -27,7 +27,7 @@ jobs:
             msvc_assembler: ml64
           - os: windows-11-arm
             timeout_minutes: "180"
-            test_config: cannon
+            test_config: all
             msvc_arch: arm64
             msvc_assembler: armasm64
           - os: macOS-latest
