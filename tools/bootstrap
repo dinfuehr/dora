@@ -121,6 +121,7 @@ def main(argv: list[str]) -> int:
     stage1 = target_dir / f"dora-boots-compiler-stage1{EXE_SUFFIX}"
     stage2 = target_dir / f"dora-boots-compiler-stage2{EXE_SUFFIX}"
     stage3 = target_dir / f"dora-boots-compiler-stage3{EXE_SUFFIX}"
+    stage_candidate = target_dir / f"dora-boots-compiler-stage-candidate{EXE_SUFFIX}"
     final = target_dir / f"dora-boots-compiler{EXE_SUFFIX}"
     package = target_dir / "boots.dora-package"
 
@@ -137,8 +138,12 @@ def main(argv: list[str]) -> int:
     )
 
     compile_boots_stage(dora, package, stage1, compile_args, cannon=True)
-    compile_boots_stage(dora, package, stage2, compile_args, compiler=stage1)
-    compile_boots_stage(dora, package, stage3, compile_args, compiler=stage2)
+    # Link stage2 and stage3 through the same output path. Modern macOS
+    # generates path-sensitive LC_UUID values, which then affect code signing.
+    compile_boots_stage(dora, package, stage_candidate, compile_args, compiler=stage1)
+    (REPO_ROOT / stage_candidate).replace(REPO_ROOT / stage2)
+    compile_boots_stage(dora, package, stage_candidate, compile_args, compiler=stage2)
+    (REPO_ROOT / stage_candidate).replace(REPO_ROOT / stage3)
 
     if not filecmp.cmp(REPO_ROOT / stage2, REPO_ROOT / stage3, shallow=False):
         print("stage2 and stage3 Boots compiler binaries differ", file=sys.stderr)

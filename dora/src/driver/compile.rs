@@ -335,12 +335,6 @@ fn link_object_unix(
         // make otherwise identical AOT binaries differ.
         .arg("-Wl,-x");
 
-    if cfg!(target_os = "macos") {
-        // Apple Silicon links ad-hoc signed binaries by default. Sign once
-        // after linking so stage2/stage3 bootstrap binaries stay comparable.
-        command.arg("-Wl,-no_adhoc_codesign");
-    }
-
     command.arg("-lpthread");
     if cfg!(target_os = "linux") {
         command.arg("-ldl");
