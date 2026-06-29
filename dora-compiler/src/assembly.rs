@@ -839,17 +839,22 @@ fn write_regular_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     syntax.write_global_func("main");
     syntax.write_label("main");
     if target_arch.is_arm64() {
-        if syntax.is_macho() {
-            syntax.write_indented_line(format_args!("adrp x2, {main_symbol}@PAGE"));
-            syntax.write_indented_line(format_args!("add x2, x2, {main_symbol}@PAGEOFF"));
-        } else if syntax.is_armasm() {
+        if syntax.is_armasm() {
+            write_armasm64_main_prolog(syntax);
             syntax.write_indented_line(format_args!("adrp x2, {main_symbol}"));
             syntax.write_indented_line(format_args!("add x2, x2, {main_symbol}"));
+            syntax.write_indented_line(format_args!("bl {startup_symbol}"));
+            write_armasm64_main_epilog(syntax);
+        } else if syntax.is_macho() {
+            syntax.write_indented_line(format_args!("adrp x2, {main_symbol}@PAGE"));
+            syntax.write_indented_line(format_args!("add x2, x2, {main_symbol}@PAGEOFF"));
         } else {
             syntax.write_indented_line(format_args!("adrp x2, {main_symbol}"));
             syntax.write_indented_line(format_args!("add x2, x2, :lo12:{main_symbol}"));
         }
-        syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        if !syntax.is_armasm() {
+            syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        }
     } else {
         if syntax.is_coff() {
             syntax.write_indented_line(format_args!("lea r8, [{main_symbol}]"));
@@ -868,7 +873,13 @@ fn write_test_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     syntax.write_global_func("main");
     syntax.write_label("main");
     if target_arch.is_arm64() {
-        syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        if syntax.is_armasm() {
+            write_armasm64_main_prolog(syntax);
+            syntax.write_indented_line(format_args!("bl {startup_symbol}"));
+            write_armasm64_main_epilog(syntax);
+        } else {
+            syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        }
     } else {
         syntax.write_indented_line(format_args!("jmp {startup_symbol}"));
     }
@@ -885,17 +896,22 @@ fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArc
     syntax.write_global_func("main");
     syntax.write_label("main");
     if target_arch.is_arm64() {
-        if syntax.is_macho() {
-            syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}@PAGE"));
-            syntax.write_indented_line(format_args!("add x2, x2, {compiler_entry_symbol}@PAGEOFF"));
-        } else if syntax.is_armasm() {
+        if syntax.is_armasm() {
+            write_armasm64_main_prolog(syntax);
             syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}"));
             syntax.write_indented_line(format_args!("add x2, x2, {compiler_entry_symbol}"));
+            syntax.write_indented_line(format_args!("bl {startup_symbol}"));
+            write_armasm64_main_epilog(syntax);
+        } else if syntax.is_macho() {
+            syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}@PAGE"));
+            syntax.write_indented_line(format_args!("add x2, x2, {compiler_entry_symbol}@PAGEOFF"));
         } else {
             syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}"));
             syntax.write_indented_line(format_args!("add x2, x2, :lo12:{compiler_entry_symbol}"));
         }
-        syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        if !syntax.is_armasm() {
+            syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        }
     } else {
         if syntax.is_coff() {
             syntax.write_indented_line(format_args!("lea r8, [{compiler_entry_symbol}]"));
@@ -904,6 +920,16 @@ fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArc
         }
         syntax.write_indented_line(format_args!("jmp {startup_symbol}"));
     }
+}
+
+fn write_armasm64_main_prolog(syntax: &mut AssemblySyntax) {
+    syntax.write_indented_line(format_args!("stp x29, x30, [sp, #-16]!"));
+    syntax.write_indented_line(format_args!("mov x29, sp"));
+}
+
+fn write_armasm64_main_epilog(syntax: &mut AssemblySyntax) {
+    syntax.write_indented_line(format_args!("ldp x29, x30, [sp], #16"));
+    syntax.write_indented_line(format_args!("ret"));
 }
 
 fn write_program_metadata(syntax: &mut AssemblySyntax, encoded_program: &[u8]) {
