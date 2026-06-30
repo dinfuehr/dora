@@ -14,7 +14,7 @@ pub(super) fn write_relocation(
     match (target_kind, form) {
         (AotRelocationTarget::Call(_), RelocationForm::Arm64Branch26) => {
             syntax.write_indented_line(format_args!("bl {target}"));
-            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_BRANCH26);
+            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_BRANCH26, target);
         }
         (AotRelocationTarget::Call(_), RelocationForm::X64CallRel32) => {
             syntax.write_indented_line(format_args!("call {target}"));
@@ -35,7 +35,7 @@ pub(super) fn write_relocation(
                 Arm64LoadWidth::U64 => arm64_x_reg(dst_reg),
             };
             syntax.write_indented_line(format_args!("adrp {page_reg}, {target}"));
-            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEBASE_REL21);
+            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEBASE_REL21, target);
             if syntax.is_gnu_arm64_coff() {
                 syntax.write_indented_line(format_args!(
                     "ldr {dst_reg}, [{base_reg}, :lo12:{target}]"
@@ -43,7 +43,7 @@ pub(super) fn write_relocation(
             } else {
                 syntax.write_indented_line(format_args!("ldr {dst_reg}, [{base_reg}, {target}]"));
             }
-            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEOFFSET_12L);
+            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEOFFSET_12L, target);
         }
         (
             AotRelocationTarget::StringSlot(_),
@@ -78,14 +78,14 @@ pub(super) fn write_relocation(
             let base_reg = arm64_x_reg(base_reg);
             let dst_reg = arm64_x_reg(dst_reg);
             syntax.write_indented_line(format_args!("adrp {page_reg}, {target}"));
-            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEBASE_REL21);
+            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEBASE_REL21, target);
             if syntax.is_gnu_arm64_coff() {
                 syntax
                     .write_indented_line(format_args!("add {dst_reg}, {base_reg}, :lo12:{target}"));
             } else {
                 syntax.write_indented_line(format_args!("add {dst_reg}, {base_reg}, {target}"));
             }
-            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEOFFSET_12A);
+            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEOFFSET_12A, target);
         }
         _ => panic!(
             "unexpected COFF relocation target/form combination {:?}",
