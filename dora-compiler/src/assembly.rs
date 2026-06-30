@@ -141,15 +141,15 @@ impl AssemblySyntax {
     }
 
     fn is_armasm(&self) -> bool {
-        self.is_coff() && self.target_arch.is_arm64()
-    }
-
-    fn is_gnu_arm64_coff(&self) -> bool {
         false
     }
 
+    fn is_gnu_arm64_coff(&self) -> bool {
+        self.is_coff() && self.target_arch.is_arm64()
+    }
+
     fn uses_rust_aot_main(&self) -> bool {
-        self.is_armasm() || self.is_gnu_arm64_coff()
+        self.is_gnu_arm64_coff()
     }
 
     fn symbol(&self, symbol: &str) -> String {
@@ -438,7 +438,7 @@ impl AssemblySyntax {
     fn write_quad_symbol(&mut self, symbol: &str) {
         let symbol = self.symbol_ref(symbol);
         self.write_quad(&symbol);
-        self.write_armasm64_reloc(IMAGE_REL_ARM64_ADDR64);
+        self.write_armasm64_reloc(IMAGE_REL_ARM64_ADDR64, &symbol);
     }
 
     fn write_quad_symbol_offset(&mut self, symbol: &str, offset: usize) {
@@ -449,7 +449,7 @@ impl AssemblySyntax {
             format!("{symbol}+{offset}")
         };
         self.write_quad(&value);
-        self.write_armasm64_reloc(IMAGE_REL_ARM64_ADDR64);
+        self.write_armasm64_reloc(IMAGE_REL_ARM64_ADDR64, &value);
     }
 
     fn write_quad_bits(&mut self, value: u64) {
@@ -488,9 +488,9 @@ impl AssemblySyntax {
         }
     }
 
-    fn write_armasm64_reloc(&mut self, reloc: u16) {
+    fn write_armasm64_reloc(&mut self, reloc: u16, symbol: &str) {
         if self.is_armasm() {
-            self.write_indented_line(format_args!("RELOC {reloc}"));
+            self.write_indented_line(format_args!("RELOC {reloc}, {symbol}"));
         }
     }
 
