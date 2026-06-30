@@ -67,7 +67,7 @@ jobs:
       - name: Verify Windows Arm64 assembler
         if: runner.os == 'Windows' && matrix.msvc_arch == 'arm64'
         run: |
-          where.exe clang
+          where.exe armasm64
 
       - name: Increase Stack Size
         shell: bash
