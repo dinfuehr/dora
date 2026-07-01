@@ -98,8 +98,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--runs",
         type=int,
-        default=10,
-        help="Measured runs. Defaults to 10.",
+        default=50,
+        help="Measured runs. Defaults to 50.",
     )
     parser.add_argument(
         "--warmups",
