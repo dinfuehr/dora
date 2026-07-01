@@ -3,209 +3,302 @@ use std::{Equals, Hash, HashSet, HashMap};
 use package::bytecode::{ClassId, GlobalId};
 use package::compilation::CompilationInfo;
 use package::dominator::compute_post_order;
-use package::graph::{Block, ClassInfo, Graph, Inst, Op};
+use package::graph::{create_phi_inst, Block, ClassInfo, Graph, Inst, Op};
 
 pub fn perform_load_elimination(ci: CompilationInfo, graph: Graph) {
-    compute_post_order(graph);
-    let per_block_data = Array[Option[LoadData]]::fill(graph.blocks.size(), None[LoadData]);
-
-    for block in graph.reverse_post_order_iterator() {
-        let data = merge_predecessors(block, per_block_data);
-        process_block(block, data);
-        per_block_data(block.id().to_int64()) = Some[LoadData](data);
-    }
+    LoadEliminationPass::new(graph).run();
 }
 
-fn merge_predecessors(block: Block, per_block_data: Array[Option[LoadData]]): LoadData {
-    let p = block.predecessors.size();
+class LoadEliminationPass {
+    graph: Graph,
+    per_block_data: Array[Option[LoadData]],
+    created_phis: Vec[Inst],
+}
 
-    if p == 0 {
-        return LoadData::new();
+impl LoadEliminationPass {
+    static fn new(graph: Graph): LoadEliminationPass {
+        let per_block_data = Array[Option[LoadData]]::fill(graph.blocks.size(), None[LoadData]);
+
+        LoadEliminationPass(
+            graph = graph,
+            per_block_data = per_block_data,
+            created_phis = Vec[Inst]::new(),
+        )
     }
 
-    let predecessor_data = Array[Option[LoadData]]::fill(p, None[LoadData]);
-    let mut i = 0;
+    fn run() {
+        compute_post_order(self.graph);
 
-    for pred_edge in block.predecessors {
-        let data = per_block_data(pred_edge.source.id().to_int64());
+        for block in self.graph.reverse_post_order_iterator() {
+            let data = self.merge_predecessors(block);
+            self.process_block(block, data);
+            self.per_block_data(block.id().to_int64()) = Some[LoadData](data);
+        }
 
-        if data.is_none() {
+        self.remove_dead_created_phis();
+    }
+
+    fn merge_predecessors(block: Block): LoadData {
+        let p = block.predecessors.size();
+
+        if p == 0 {
             return LoadData::new();
         }
 
-        predecessor_data(i) = data;
-        i += 1;
-    }
+        let predecessor_data = Array[Option[LoadData]]::fill(p, None[LoadData]);
+        let mut i = 0;
 
-    let first = predecessor_data(0).get_or_panic();
+        for pred_edge in block.predecessors {
+            let data = self.per_block_data(pred_edge.source.id().to_int64());
 
-    if p == 1 {
-        return first.clone();
-    }
-
-    let result = LoadData::new();
-
-    for global in first.initialized_globals {
-        let mut i = 1;
-        let mut in_all = true;
-
-        while i < p {
-            let pred_data = predecessor_data(i).get_or_panic();
-
-            if !pred_data.initialized_globals.contains(global) {
-                in_all = false;
-                break;
+            if data.is_none() {
+                return LoadData::new();
             }
 
+            predecessor_data(i) = data;
             i += 1;
         }
 
-        if in_all {
-            result.initialized_globals.insert(global);
+        let first = predecessor_data(0).get_or_panic();
+
+        if p == 1 {
+            return first.clone();
         }
+
+        let result = LoadData::new();
+
+        for global in first.initialized_globals {
+            let mut i = 1;
+            let mut in_all = true;
+
+            while i < p {
+                let pred_data = predecessor_data(i).get_or_panic();
+
+                if !pred_data.initialized_globals.contains(global) {
+                    in_all = false;
+                    break;
+                }
+
+                i += 1;
+            }
+
+            if in_all {
+                result.initialized_globals.insert(global);
+            }
+        }
+
+        for (global, value) in first.global_values {
+            if self.merge_global_value(block, global, value, predecessor_data) is Some(merged) {
+                result.global_values.insert(global, merged);
+            }
+        }
+
+        for (field, value) in first.class_field_infos {
+            if self.merge_field_value(block, field, value, predecessor_data) is Some(merged) {
+                result.class_field_infos.insert(field, merged);
+            }
+        }
+
+        for (field, value) in first.immutable_values {
+            if self.merge_immutable_value(block, field, value, predecessor_data) is Some(merged) {
+                result.immutable_values.insert(field, merged);
+            }
+        }
+
+        result
     }
 
-    for (global, value) in first.global_values {
-        let mut i = 1;
-        let mut in_all = true;
+    fn merge_global_value(block: Block, global: Int32, first_value: Inst, predecessor_data: Array[Option[LoadData]]): Option[Inst] {
+        let values = Vec[Inst]::new();
+        values.push(first_value);
 
-        while i < p {
+        let mut i = 1;
+        let mut same_value = true;
+
+        while i < predecessor_data.size() {
             let pred_data = predecessor_data(i).get_or_panic();
 
-            if !(pred_data.global_values.get(global) is Some(x) && x == value) {
-                in_all = false;
-                break;
-            }
+            if pred_data.global_values.get(global) is Some(value) {
+                if value != first_value {
+                    same_value = false;
+                }
 
-            i += 1;
-        }
-
-        if in_all {
-            result.global_values.insert(global, value);
-        }
-    }
-
-    for (field, value) in first.class_values {
-        let mut i = 1;
-        let mut in_all = true;
-
-        while i < p {
-            let pred_data = predecessor_data(i).get_or_panic();
-
-            if !(pred_data.class_values.get(field) is Some(x) && x == value) {
-                in_all = false;
-                break;
-            }
-
-            i += 1;
-        }
-
-        if in_all {
-            result.class_values.insert(field, value);
-        }
-    }
-
-    for (field, value) in first.immutable_values {
-        let mut i = 1;
-        let mut in_all = true;
-
-        while i < p {
-            let pred_data = predecessor_data(i).get_or_panic();
-
-            if !(pred_data.immutable_values.get(field) is Some(x) && x == value) {
-                in_all = false;
-                break;
-            }
-
-            i += 1;
-        }
-
-        if in_all {
-            result.immutable_values.insert(field, value);
-        }
-    }
-
-    result
-}
-
-fn process_block(block: Block, data: LoadData) {
-    for inst in block.instructions_iterator() {
-        let op = inst.op();
-
-        if op == Op::EnsureGlobalInitialized {
-            let id = inst.get_global_id();
-
-            if !data.initialize_global(id) {
-                inst.remove();
-            }
-
-        } else if op == Op::LoadGlobal {
-            let id = inst.get_global_id();
-
-            if data.get_global_value(id) is Some(value) {
-                inst.replace_all_uses_with(value);
-                inst.remove();
+                values.push(value);
             } else {
-                data.set_global_value(id, inst);
+                return None[Inst];
             }
 
-        } else if op == Op::StoreGlobal {
-            let id = inst.get_global_id();
-            let value = inst.get_input(0).get_value();
-            data.set_global_value(id, value);
+            i += 1;
+        }
 
-        } else if op == Op::Load {
-            if inst.has_class_info() {
-                let class_info = inst.get_class_info();
-                let object = inst.get_input(0).get_value();
-                let field = Field(object, class_info, offset = inst.get_offset());
+        Some[Inst](self.create_merged_value(block, first_value, values, same_value))
+    }
 
-                if data.class_values.get(field) is Some(value) {
+    fn merge_field_value(block: Block, field: Field, first_value: Inst, predecessor_data: Array[Option[LoadData]]): Option[Inst] {
+        let values = Vec[Inst]::new();
+        values.push(first_value);
+
+        let mut i = 1;
+        let mut same_value = true;
+
+        while i < predecessor_data.size() {
+            let pred_data = predecessor_data(i).get_or_panic();
+
+            if pred_data.class_field_infos.get(field) is Some(value) {
+                if value != first_value {
+                    same_value = false;
+                }
+
+                values.push(value);
+            } else {
+                return None[Inst];
+            }
+
+            i += 1;
+        }
+
+        Some[Inst](self.create_merged_value(block, first_value, values, same_value))
+    }
+
+    fn merge_immutable_value(block: Block, field: ObjectWithOffset, first_value: Inst, predecessor_data: Array[Option[LoadData]]): Option[Inst] {
+        let values = Vec[Inst]::new();
+        values.push(first_value);
+
+        let mut i = 1;
+        let mut same_value = true;
+
+        while i < predecessor_data.size() {
+            let pred_data = predecessor_data(i).get_or_panic();
+
+            if pred_data.immutable_values.get(field) is Some(value) {
+                if value != first_value {
+                    same_value = false;
+                }
+
+                values.push(value);
+            } else {
+                return None[Inst];
+            }
+
+            i += 1;
+        }
+
+        Some[Inst](self.create_merged_value(block, first_value, values, same_value))
+    }
+
+    fn create_merged_value(block: Block, first_value: Inst, values: Vec[Inst], same_value: Bool): Inst {
+        if same_value {
+            return first_value;
+        }
+
+        let ty = first_value.get_value_type();
+        let phi = create_phi_inst(ty);
+
+        for value in values {
+            assert(value.get_value_type() == ty);
+            phi.add_input(value);
+        }
+
+        block.append_phi(phi);
+        self.created_phis.push(phi);
+
+        phi
+    }
+
+    fn remove_dead_created_phis() {
+        let mut changed = true;
+
+        while changed {
+            changed = false;
+
+            for phi in self.created_phis {
+                if phi.has_id() && !phi.has_uses() {
+                    phi.remove();
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    fn process_block(block: Block, data: LoadData) {
+        for inst in block.instructions_iterator() {
+            let op = inst.op();
+
+            if op == Op::EnsureGlobalInitialized {
+                let id = inst.get_global_id();
+
+                if !data.initialize_global(id) {
+                    inst.remove();
+                }
+
+            } else if op == Op::LoadGlobal {
+                let id = inst.get_global_id();
+
+                if data.get_global_value(id) is Some(value) {
                     inst.replace_all_uses_with(value);
                     inst.remove();
                 } else {
-                    data.class_values.insert(field, inst);
+                    data.set_global_value(id, inst);
                 }
-            } else if inst.is_immutable() {
-                let object = inst.get_input(0).get_value();
-                let offset = inst.get_offset();
 
-                if data.get_immutable_value(object, offset) is Some(value) {
-                    inst.replace_all_uses_with(value);
-                    inst.remove();
+            } else if op == Op::StoreGlobal {
+                let id = inst.get_global_id();
+                let value = inst.get_input(0).get_value();
+                data.set_global_value(id, value);
+
+            } else if op == Op::Load {
+                if inst.has_class_info() {
+                    let class_info = inst.get_class_info();
+                    let object = inst.get_input(0).get_value();
+                    let field = Field(object, class_info, offset = inst.get_offset());
+
+                    if data.class_field_infos.get(field) is Some(value) {
+                        inst.replace_all_uses_with(value);
+                        inst.remove();
+                    } else {
+                        data.class_field_infos.insert(field, inst);
+                    }
+                } else if inst.is_immutable() {
+                    let object = inst.get_input(0).get_value();
+                    let offset = inst.get_offset();
+
+                    if data.get_immutable_value(object, offset) is Some(value) {
+                        inst.replace_all_uses_with(value);
+                        inst.remove();
+                    } else {
+                        data.set_immutable_value(object, offset, inst);
+                    }
+                }
+
+            } else if op == Op::Store || op == Op::StoreWb {
+                if inst.has_class_info() {
+                    let class_info = inst.get_class_info();
+                    let field_offset = inst.get_offset();
+
+                    let object = inst.get_input(0).get_value();
+                    let field = Field(object, class_info, offset = field_offset);
+                    let cur_value = data.class_field_infos.get(field);
+
+                    data.class_field_infos.retain_if(|field: Field, value: Inst|: Bool {
+                        field.class_info != class_info || field.offset != field_offset
+                    });
+
+                    let new_value = inst.get_input(1).get_value();
+                    if cur_value is Some(cur_value) && cur_value == new_value {
+                        assert(!inst.has_uses());
+                        inst.remove();
+                    }
+
+                    data.class_field_infos.insert(field, new_value);
                 } else {
-                    data.set_immutable_value(object, offset, inst);
-                }
-            }
-
-        } else if op == Op::Store || op == Op::StoreWb {
-            if inst.has_class_info() {
-                let class_info = inst.get_class_info();
-                let field_offset = inst.get_offset();
-
-                let object = inst.get_input(0).get_value();
-                let field = Field(object, class_info, offset = field_offset);
-                let cur_value = data.class_values.get(field);
-
-                data.class_values.retain_if(|field: Field, value: Inst|: Bool {
-                    field.class_info != class_info || field.offset != field_offset
-                });
-
-                let new_value = inst.get_input(1).get_value();
-                if cur_value is Some(cur_value) && cur_value == new_value {
-                    assert(!inst.has_uses());
-                    inst.remove();
+                    // Store without ClassInfo could alias with any class field
+                    // (e.g., StoreAddress to a computed address within a class object)
+                    data.class_field_infos.clear();
                 }
 
-                data.class_values.insert(field, new_value);
-            } else {
-                // Store without ClassInfo could alias with any class field
-                // (e.g., StoreAddress to a computed address within a class object)
-                data.class_values.clear();
+            } else if op.is_call() {
+                data.kill();
             }
-
-        } else if op.is_call() {
-            data.kill();
         }
     }
 }
@@ -248,7 +341,7 @@ impl Hash for Field {
 class LoadData {
     initialized_globals: HashSet[Int32],
     global_values: HashMap[Int32, Inst],
-    class_values: HashMap[Field, Inst],
+    class_field_infos: HashMap[Field, Inst],
     immutable_values: HashMap[ObjectWithOffset, Inst],
 }
 
@@ -257,7 +350,7 @@ impl LoadData {
         LoadData(
             initialized_globals = HashSet[Int32]::new(),
             global_values = HashMap[Int32, Inst]::new(),
-            class_values = HashMap[Field, Inst]::new(),
+            class_field_infos = HashMap[Field, Inst]::new(),
             immutable_values = HashMap[ObjectWithOffset, Inst]::new(),
         )
     }
@@ -274,8 +367,8 @@ impl LoadData {
         self.global_values.insert(id.0, value);
     }
 
-    fn load_class_field(field: Field, value: Inst) {
-        self.class_values.insert(field, value);
+    fn set_field_value(field: Field, value: Inst) {
+        self.class_field_infos.insert(field, value);
     }
 
     fn set_immutable_value(object: Inst, offset: Int32, value: Inst) {
@@ -288,14 +381,14 @@ impl LoadData {
 
     fn kill() {
         self.global_values.clear();
-        self.class_values.clear();
+        self.class_field_infos.clear();
     }
 
     fn clone(): LoadData {
         LoadData(
             initialized_globals = self.initialized_globals.clone(),
             global_values = self.global_values.clone(),
-            class_values = self.class_values.clone(),
+            class_field_infos = self.class_field_infos.clone(),
             immutable_values = self.immutable_values.clone(),
         )
     }

@@ -47,5 +47,6 @@ fn branch_store_different(box: Box, cond: Bool, left: Int, right: Int): Int {
 // CHECK: Function branch_store_different: final
 // CHECK: Store.Int64(8)
 // CHECK: Store.Int64(8)
-// CHECK: Load.Int64(8)
-// CHECK: Ret.Int64
+// CHECK: [[MERGED:%\d+]]: Phi.Int64
+// CHECK-NOT: Load.Int64(8)
+// CHECK: Ret.Int64 [[MERGED]]

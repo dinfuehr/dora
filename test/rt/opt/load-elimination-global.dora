@@ -1,5 +1,5 @@
 //= boots
-//= compile-args "--emit-graph=repeated_global_load;store_then_load_global;global_load_after_call"
+//= compile-args "--emit-graph=repeated_global_load;store_then_load_global;global_load_after_call;branch_store_global"
 
 let mut global_value: Int = 0;
 
@@ -8,6 +8,8 @@ fn main() {
     assert(repeated_global_load() == 20);
     assert(store_then_load_global(31) == 31);
     assert(global_load_after_call() == 62);
+    assert(branch_store_global(true, 41, 42) == 41);
+    assert(branch_store_global(false, 41, 42) == 42);
 }
 
 fn repeated_global_load(): Int {
@@ -44,3 +46,20 @@ fn global_load_after_call(): Int {
 // CHECK-NOT: EnsureGlobalInitialized
 // CHECK: [[SECOND:%\d+]]: LoadGlobal.Int64
 // CHECK: CheckedAdd.Int64 [[FIRST]], [[SECOND]]
+
+fn branch_store_global(cond: Bool, left: Int, right: Int): Int {
+    if cond {
+        global_value = left;
+    } else {
+        global_value = right;
+    }
+
+    global_value
+}
+
+// CHECK: Function branch_store_global: final
+// CHECK: StoreGlobal.Int64
+// CHECK: StoreGlobal.Int64
+// CHECK: [[MERGED:%\d+]]: Phi.Int64
+// CHECK-NOT: LoadGlobal.Int64
+// CHECK: Ret.Int64 [[MERGED]]

@@ -1,5 +1,5 @@
 //= boots
-//= compile-args "--emit-graph=f1;f2;f3;f4;f5"
+//= compile-args "--emit-graph=f1;f2;f3;f4;f5;f6"
 
 class Foo {
     a: Int,
@@ -27,6 +27,10 @@ fn main() {
     let b = Bar(x);
     let new_x = Foo(a = 121, b = 2);
     assert(f5(b, b, new_x) == 131);
+
+    let array = Array[Int]::zero(7);
+    assert(f6(array, true) == 7);
+    assert(f6(array, false) == 7);
 }
 
 fn f1(foo: Foo): Int {
@@ -80,3 +84,20 @@ fn f5(foo: Bar, foo2: Bar, new_x: Foo): Int {
 // CHECK: Load.Int64(8) [[R1]]
 // CHECK: [[R2:%\d+]]: Load.Ptr(8) %1
 // CHECK: Load.Int64(8) [[R2]]
+
+fn f6(array: Array[Int], cond: Bool): Int {
+    if cond {
+        array.size();
+    } else {
+        array.size();
+    }
+
+    array.size()
+}
+
+// CHECK: Function f6:
+// CHECK: Load.Int64(8)
+// CHECK: Load.Int64(8)
+// CHECK: [[MERGED:%\d+]]: Phi.Int64
+// CHECK-NOT: Load.Int64(8)
+// CHECK: Ret.Int64 [[MERGED]]
