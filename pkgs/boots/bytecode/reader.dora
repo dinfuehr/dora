@@ -32,394 +32,422 @@ impl BytecodeIterator {
         let start = self.pos;
         let opcode = self.read_opcode();
 
-        let inst = if opcode == opc::BYTECODE_OPCODE_ADD {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::Add(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_SUB {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::Sub(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_NEG {
-            let dest = self.read_register();
-            let src = self.read_register();
-            BytecodeInstruction::Neg(dest, src)
-
-        } else if opcode == opc::BYTECODE_OPCODE_MUL {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::Mul(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_DIV {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::Div(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_MOD {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::Mod(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_ADD {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::CheckedAdd(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_SUB {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::CheckedSub(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_NEG {
-            let dest = self.read_register();
-            let src = self.read_register();
-            BytecodeInstruction::CheckedNeg(dest, src)
-
-        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_MUL {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::CheckedMul(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_DIV {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::CheckedDiv(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_CHECKED_MOD {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::CheckedMod(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_AND {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::And(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_OR {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::Or(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_XOR {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::Xor(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_NOT {
-            let dest = self.read_register();
-            let src = self.read_register();
-            BytecodeInstruction::Not(dest, src)
-
-        } else if opcode == opc::BYTECODE_OPCODE_SHL {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::Shl(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_SHR {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::Shr(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_SAR {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::Sar(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_MOV {
-            let dest = self.read_register();
-            let src = self.read_register();
-            BytecodeInstruction::Mov(dest, src)
-
-        } else if opcode == opc::BYTECODE_OPCODE_LOAD_FIELD {
-            let dest = self.read_register();
-            let obj = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::LoadField(dest, obj, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_STORE_FIELD {
-            let src = self.read_register();
-            let obj = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::StoreField(src, obj, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_LOAD_ENUM_VARIANT {
-            let dest = self.read_register();
-            let src = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::LoadEnumVariant(dest, src, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_LOAD_ENUM_ELEMENT {
-            let dest = self.read_register();
-            let src = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::LoadEnumElement(dest, src, idx)
-
-        } else if opcode == opc::BYTECODE_OPCODE_LOAD_GLOBAL {
-            let dest = self.read_register();
-            let glob = self.read_global_id();
-            BytecodeInstruction::LoadGlobal(dest, glob)
-        } else if opcode == opc::BYTECODE_OPCODE_STORE_GLOBAL {
-            let src = self.read_register();
-            let glob = self.read_global_id();
-            BytecodeInstruction::StoreGlobal(src, glob)
-
-        } else if opcode == opc::BYTECODE_OPCODE_LOAD_CONST {
-            let dest = self.read_register();
-            let glob = self.read_const_id();
-            BytecodeInstruction::LoadConst(dest, glob)
-
-        } else if opcode == opc::BYTECODE_OPCODE_CONST_TRUE {
-            let dest = self.read_register();
-            BytecodeInstruction::ConstTrue(dest)
-        } else if opcode == opc::BYTECODE_OPCODE_CONST_FALSE {
-            let dest = self.read_register();
-            BytecodeInstruction::ConstFalse(dest)
-        } else if opcode == opc::BYTECODE_OPCODE_CONST_UINT8 {
-            let dest = self.read_register();
-            let value = self.read_byte().to_uint8();
-            BytecodeInstruction::ConstUInt8(dest, value)
-        } else if opcode == opc::BYTECODE_OPCODE_CONST_CHAR {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::ConstChar(dest, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_CONST_INT32 {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::ConstInt32(dest, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_CONST_INT64 {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::ConstInt64(dest, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_CONST_FLOAT32{
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::ConstFloat32(dest, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_CONST_FLOAT64 {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::ConstFloat64(dest, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_CONST_STRING {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::ConstString(dest, idx)
-
-        } else if opcode == opc::BYTECODE_OPCODE_TEST_EQ {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::TestEq(dest, lhs, rhs)
-        } else if opcode == opc::BYTECODE_OPCODE_TEST_NE {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::TestNe(dest, lhs, rhs)
-        } else if opcode == opc::BYTECODE_OPCODE_TEST_GT {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::TestGt(dest, lhs, rhs)
-        } else if opcode == opc::BYTECODE_OPCODE_TEST_GE {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::TestGe(dest, lhs, rhs)
-        } else if opcode == opc::BYTECODE_OPCODE_TEST_LT {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::TestLt(dest, lhs, rhs)
-        } else if opcode == opc::BYTECODE_OPCODE_TEST_LE {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::TestLe(dest, lhs, rhs)
-        } else if opcode == opc::BYTECODE_OPCODE_TEST_IDENTITY {
-            let dest = self.read_register();
-            let lhs = self.read_register();
-            let rhs = self.read_register();
-            BytecodeInstruction::TestIdentity(dest, lhs, rhs)
-
-        } else if opcode == opc::BYTECODE_OPCODE_LOOP_START {
-            BytecodeInstruction::LoopStart
-
-        } else if opcode == opc::BYTECODE_OPCODE_JUMP_LOOP {
-            let offset = self.read_offset();
-            BytecodeInstruction::JumpLoop(offset)
-
-        } else if opcode == opc::BYTECODE_OPCODE_JUMP_IF_FALSE {
-            let opnd = self.read_register();
-            let offset = self.read_forward_offset();
-            BytecodeInstruction::JumpIfFalse(opnd, offset)
-        } else if opcode == opc::BYTECODE_OPCODE_JUMP_IF_TRUE {
-            let opnd = self.read_register();
-            let offset = self.read_forward_offset();
-            BytecodeInstruction::JumpIfTrue(opnd, offset)
-        } else if opcode == opc::BYTECODE_OPCODE_JUMP {
-            let offset = self.read_forward_offset();
-            BytecodeInstruction::Jump(offset)
-        } else if opcode == opc::BYTECODE_OPCODE_SWITCH {
-            let opnd = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::Switch(opnd, idx)
-
-        } else if opcode == opc::BYTECODE_OPCODE_INVOKE_DIRECT {
-            let dest = self.read_register();
-            let fct = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::InvokeDirect(dest, fct, arguments)
-
-        } else if opcode == opc::BYTECODE_OPCODE_INVOKE_VIRTUAL {
-            let dest = self.read_register();
-            let fct = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::InvokeVirtual(dest, fct, arguments)
-
-        } else if opcode == opc::BYTECODE_OPCODE_INVOKE_STATIC {
-            let dest = self.read_register();
-            let fct = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::InvokeStatic(dest, fct, arguments)
-
-        } else if opcode == opc::BYTECODE_OPCODE_INVOKE_LAMBDA {
-            let dest = self.read_register();
-            let fct = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::InvokeLambda(dest, fct, arguments)
-
-        } else if opcode == opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT {
-            let dest = self.read_register();
-            let fct = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::InvokeGenericDirect(dest, fct, arguments)
-
-        } else if opcode == opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC {
-            let dest = self.read_register();
-            let fct = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::InvokeGenericStatic(dest, fct, arguments)
-
-        } else if opcode == opc::BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::NewObjectUninitialized(dest, idx)
-
-        } else if opcode == opc::BYTECODE_OPCODE_NEW_OBJECT {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::NewObject(dest, idx, arguments)
-
-        } else if opcode == opc::BYTECODE_OPCODE_NEW_ARRAY {
-            let dest = self.read_register();
-            let length = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::NewArray(dest, length, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_NEW_LAMBDA {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::NewLambda(dest, idx, arguments)
-        } else if opcode == opc::BYTECODE_OPCODE_NEW_TRAIT_OBJECT {
-            let dest = self.read_register();
-            let obj = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::NewTraitObject(dest, obj, idx)
-        } else if opcode == opc::BYTECODE_OPCODE_NEW_STRUCT {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::NewStruct(dest, idx, arguments)
-        } else if opcode == opc::BYTECODE_OPCODE_NEW_TUPLE {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::NewTuple(dest, idx, arguments)
-        } else if opcode == opc::BYTECODE_OPCODE_NEW_ENUM {
-            let dest = self.read_register();
-            let idx = self.read_const_pool_id();
-            let arguments = self.read_arguments();
-            BytecodeInstruction::NewEnum(dest, idx, arguments)
-
-        } else if opcode == opc::BYTECODE_OPCODE_ARRAY_LENGTH {
-            let dest = self.read_register();
-            let arr = self.read_register();
-            BytecodeInstruction::ArrayLength(dest, arr)
-
-        } else if opcode == opc::BYTECODE_OPCODE_LOAD_ARRAY {
-            let dest = self.read_register();
-            let arr = self.read_register();
-            let idx = self.read_register();
-            BytecodeInstruction::LoadArray(dest, arr, idx)
-
-        } else if opcode == opc::BYTECODE_OPCODE_STORE_ARRAY {
-            let src = self.read_register();
-            let arr = self.read_register();
-            let idx = self.read_register();
-            BytecodeInstruction::StoreArray(src, arr, idx)
-
-        } else if opcode == opc::BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE {
-            let dest = self.read_register();
-            let src = self.read_register();
-            BytecodeInstruction::LoadTraitObjectValue(dest, src)
-
-        } else if opcode == opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS {
-            let dest = self.read_register();
-            let obj = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::GetFieldAddress(dest, obj, idx)
-
-        } else if opcode == opc::BYTECODE_OPCODE_STORE_ADDRESS {
-            let src = self.read_register();
-            let address = self.read_register();
-            BytecodeInstruction::StoreAddress(src, address)
-
-        } else if opcode == opc::BYTECODE_OPCODE_LOAD_ADDRESS {
-            let dest = self.read_register();
-            let address = self.read_register();
-            BytecodeInstruction::LoadAddress(dest, address)
-
-        } else if opcode == opc::BYTECODE_OPCODE_GET_FIELD_REF {
-            let dest = self.read_register();
-            let obj = self.read_register();
-            let idx = self.read_const_pool_id();
-            BytecodeInstruction::GetFieldRef(dest, obj, idx)
-
-        } else if opcode == opc::BYTECODE_OPCODE_STORE_REF {
-            let src = self.read_register();
-            let reference = self.read_register();
-            BytecodeInstruction::StoreRef(src, reference)
-
-        } else if opcode == opc::BYTECODE_OPCODE_LOAD_REF {
-            let dest = self.read_register();
-            let reference = self.read_register();
-            BytecodeInstruction::LoadRef(dest, reference)
-
-        } else if opcode == opc::BYTECODE_OPCODE_GET_REF {
-            let dest = self.read_register();
-            let src = self.read_register();
-            BytecodeInstruction::GetRef(dest, src)
-
-        } else if opcode == opc::BYTECODE_OPCODE_RET {
-            let opnd = self.read_register();
-            BytecodeInstruction::Ret(opnd)
-
-        } else {
-            std::fatal_error[BytecodeInstruction]("unkown opcode ${opcode} ${opc::bytecode_name(opcode)}")
+        let inst = match opcode {
+            opc::BYTECODE_OPCODE_ADD => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Add(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_SUB => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Sub(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_NEG => {
+                let dest = self.read_register();
+                let src = self.read_register();
+                BytecodeInstruction::Neg(dest, src)
+            }
+            opc::BYTECODE_OPCODE_MUL => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Mul(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_DIV => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Div(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_MOD => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Mod(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_CHECKED_ADD => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::CheckedAdd(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_CHECKED_SUB => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::CheckedSub(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_CHECKED_NEG => {
+                let dest = self.read_register();
+                let src = self.read_register();
+                BytecodeInstruction::CheckedNeg(dest, src)
+            }
+            opc::BYTECODE_OPCODE_CHECKED_MUL => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::CheckedMul(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_CHECKED_DIV => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::CheckedDiv(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_CHECKED_MOD => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::CheckedMod(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_AND => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::And(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_OR => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Or(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_XOR => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Xor(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_NOT => {
+                let dest = self.read_register();
+                let src = self.read_register();
+                BytecodeInstruction::Not(dest, src)
+            }
+            opc::BYTECODE_OPCODE_SHL => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Shl(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_SHR => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Shr(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_SAR => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::Sar(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_MOV => {
+                let dest = self.read_register();
+                let src = self.read_register();
+                BytecodeInstruction::Mov(dest, src)
+            }
+            opc::BYTECODE_OPCODE_LOAD_ENUM_ELEMENT => {
+                let dest = self.read_register();
+                let src = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::LoadEnumElement(dest, src, idx)
+            }
+            opc::BYTECODE_OPCODE_LOAD_ENUM_VARIANT => {
+                let dest = self.read_register();
+                let src = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::LoadEnumVariant(dest, src, idx)
+            }
+            opc::BYTECODE_OPCODE_LOAD_FIELD => {
+                let dest = self.read_register();
+                let obj = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::LoadField(dest, obj, idx)
+            }
+            opc::BYTECODE_OPCODE_STORE_FIELD => {
+                let src = self.read_register();
+                let obj = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::StoreField(src, obj, idx)
+            }
+            opc::BYTECODE_OPCODE_LOAD_GLOBAL => {
+                let dest = self.read_register();
+                let glob = self.read_global_id();
+                BytecodeInstruction::LoadGlobal(dest, glob)
+            }
+            opc::BYTECODE_OPCODE_STORE_GLOBAL => {
+                let src = self.read_register();
+                let glob = self.read_global_id();
+                BytecodeInstruction::StoreGlobal(src, glob)
+            }
+            opc::BYTECODE_OPCODE_LOAD_CONST => {
+                let dest = self.read_register();
+                let glob = self.read_const_id();
+                BytecodeInstruction::LoadConst(dest, glob)
+            }
+            opc::BYTECODE_OPCODE_CONST_TRUE => {
+                let dest = self.read_register();
+                BytecodeInstruction::ConstTrue(dest)
+            }
+            opc::BYTECODE_OPCODE_CONST_FALSE => {
+                let dest = self.read_register();
+                BytecodeInstruction::ConstFalse(dest)
+            }
+            opc::BYTECODE_OPCODE_CONST_UINT8 => {
+                let dest = self.read_register();
+                let value = self.read_byte().to_uint8();
+                BytecodeInstruction::ConstUInt8(dest, value)
+            }
+            opc::BYTECODE_OPCODE_CONST_CHAR => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::ConstChar(dest, idx)
+            }
+            opc::BYTECODE_OPCODE_CONST_INT32 => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::ConstInt32(dest, idx)
+            }
+            opc::BYTECODE_OPCODE_CONST_INT64 => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::ConstInt64(dest, idx)
+            }
+            opc::BYTECODE_OPCODE_CONST_FLOAT32 => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::ConstFloat32(dest, idx)
+            }
+            opc::BYTECODE_OPCODE_CONST_FLOAT64 => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::ConstFloat64(dest, idx)
+            }
+            opc::BYTECODE_OPCODE_CONST_STRING => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::ConstString(dest, idx)
+            }
+            opc::BYTECODE_OPCODE_TEST_IDENTITY => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::TestIdentity(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_TEST_EQ => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::TestEq(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_TEST_NE => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::TestNe(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_TEST_GT => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::TestGt(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_TEST_GE => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::TestGe(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_TEST_LT => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::TestLt(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_TEST_LE => {
+                let dest = self.read_register();
+                let lhs = self.read_register();
+                let rhs = self.read_register();
+                BytecodeInstruction::TestLe(dest, lhs, rhs)
+            }
+            opc::BYTECODE_OPCODE_JUMP_LOOP => {
+                let offset = self.read_offset();
+                BytecodeInstruction::JumpLoop(offset)
+            }
+            opc::BYTECODE_OPCODE_LOOP_START => {
+                BytecodeInstruction::LoopStart
+            }
+            opc::BYTECODE_OPCODE_JUMP => {
+                let offset = self.read_forward_offset();
+                BytecodeInstruction::Jump(offset)
+            }
+            opc::BYTECODE_OPCODE_JUMP_IF_FALSE => {
+                let opnd = self.read_register();
+                let offset = self.read_forward_offset();
+                BytecodeInstruction::JumpIfFalse(opnd, offset)
+            }
+            opc::BYTECODE_OPCODE_JUMP_IF_TRUE => {
+                let opnd = self.read_register();
+                let offset = self.read_forward_offset();
+                BytecodeInstruction::JumpIfTrue(opnd, offset)
+            }
+            opc::BYTECODE_OPCODE_SWITCH => {
+                let opnd = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::Switch(opnd, idx)
+            }
+            opc::BYTECODE_OPCODE_INVOKE_DIRECT => {
+                let dest = self.read_register();
+                let fct = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeDirect(dest, fct, arguments)
+            }
+            opc::BYTECODE_OPCODE_INVOKE_VIRTUAL => {
+                let dest = self.read_register();
+                let fct = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeVirtual(dest, fct, arguments)
+            }
+            opc::BYTECODE_OPCODE_INVOKE_STATIC => {
+                let dest = self.read_register();
+                let fct = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeStatic(dest, fct, arguments)
+            }
+            opc::BYTECODE_OPCODE_INVOKE_LAMBDA => {
+                let dest = self.read_register();
+                let fct = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeLambda(dest, fct, arguments)
+            }
+            opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC => {
+                let dest = self.read_register();
+                let fct = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeGenericStatic(dest, fct, arguments)
+            }
+            opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT => {
+                let dest = self.read_register();
+                let fct = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::InvokeGenericDirect(dest, fct, arguments)
+            }
+            opc::BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::NewObjectUninitialized(dest, idx)
+            }
+            opc::BYTECODE_OPCODE_NEW_OBJECT => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::NewObject(dest, idx, arguments)
+            }
+            opc::BYTECODE_OPCODE_NEW_ARRAY => {
+                let dest = self.read_register();
+                let length = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::NewArray(dest, length, idx)
+            }
+            opc::BYTECODE_OPCODE_NEW_TUPLE => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::NewTuple(dest, idx, arguments)
+            }
+            opc::BYTECODE_OPCODE_NEW_ENUM => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::NewEnum(dest, idx, arguments)
+            }
+            opc::BYTECODE_OPCODE_NEW_STRUCT => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::NewStruct(dest, idx, arguments)
+            }
+            opc::BYTECODE_OPCODE_NEW_TRAIT_OBJECT => {
+                let dest = self.read_register();
+                let obj = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::NewTraitObject(dest, obj, idx)
+            }
+            opc::BYTECODE_OPCODE_NEW_LAMBDA => {
+                let dest = self.read_register();
+                let idx = self.read_const_pool_id();
+                let arguments = self.read_arguments();
+                BytecodeInstruction::NewLambda(dest, idx, arguments)
+            }
+            opc::BYTECODE_OPCODE_ARRAY_LENGTH => {
+                let dest = self.read_register();
+                let arr = self.read_register();
+                BytecodeInstruction::ArrayLength(dest, arr)
+            }
+            opc::BYTECODE_OPCODE_LOAD_ARRAY => {
+                let dest = self.read_register();
+                let arr = self.read_register();
+                let idx = self.read_register();
+                BytecodeInstruction::LoadArray(dest, arr, idx)
+            }
+            opc::BYTECODE_OPCODE_STORE_ARRAY => {
+                let src = self.read_register();
+                let arr = self.read_register();
+                let idx = self.read_register();
+                BytecodeInstruction::StoreArray(src, arr, idx)
+            }
+            opc::BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE => {
+                let dest = self.read_register();
+                let src = self.read_register();
+                BytecodeInstruction::LoadTraitObjectValue(dest, src)
+            }
+            opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS => {
+                let dest = self.read_register();
+                let obj = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::GetFieldAddress(dest, obj, idx)
+            }
+            opc::BYTECODE_OPCODE_STORE_ADDRESS => {
+                let src = self.read_register();
+                let address = self.read_register();
+                BytecodeInstruction::StoreAddress(src, address)
+            }
+            opc::BYTECODE_OPCODE_LOAD_ADDRESS => {
+                let dest = self.read_register();
+                let address = self.read_register();
+                BytecodeInstruction::LoadAddress(dest, address)
+            }
+            opc::BYTECODE_OPCODE_GET_FIELD_REF => {
+                let dest = self.read_register();
+                let obj = self.read_register();
+                let idx = self.read_const_pool_id();
+                BytecodeInstruction::GetFieldRef(dest, obj, idx)
+            }
+            opc::BYTECODE_OPCODE_STORE_REF => {
+                let src = self.read_register();
+                let reference = self.read_register();
+                BytecodeInstruction::StoreRef(src, reference)
+            }
+            opc::BYTECODE_OPCODE_LOAD_REF => {
+                let dest = self.read_register();
+                let reference = self.read_register();
+                BytecodeInstruction::LoadRef(dest, reference)
+            }
+            opc::BYTECODE_OPCODE_GET_REF => {
+                let dest = self.read_register();
+                let src = self.read_register();
+                BytecodeInstruction::GetRef(dest, src)
+            }
+            opc::BYTECODE_OPCODE_RET => {
+                let opnd = self.read_register();
+                BytecodeInstruction::Ret(opnd)
+            }
+            _ => {
+                std::fatal_error[BytecodeInstruction]("unkown opcode ${opcode} ${opc::bytecode_name(opcode)}")
+            }
         };
 
         let size = self.pos - start;
