@@ -2,8 +2,9 @@ use super::BytecodeBuilder;
 use dora_bytecode::{BytecodeType, Label, Register};
 
 use crate::sema::{
-    AltPattern, ClassDefinitionId, CtorPatternField, EnumDefinitionId, FieldIndex, IdentType,
-    Pattern, PatternId, StructDefinitionId, TuplePattern, VarId, VarLocation,
+    AltPattern, ClassDefinitionId, ConstDefinitionId, ConstValue, CtorPatternField,
+    EnumDefinitionId, FieldIndex, IdentType, Pattern, PatternId, StructDefinitionId, TuplePattern,
+    VarId, VarLocation,
 };
 use crate::specialize::specialize_type;
 use crate::ty::SourceType;
@@ -22,7 +23,8 @@ pub(super) fn setup_pattern_vars(g: &mut AstBytecodeGen, pattern_id: PatternId) 
             match ident_type {
                 Some(IdentType::EnumVariant(..))
                 | Some(IdentType::Struct(..))
-                | Some(IdentType::Class(..)) => {
+                | Some(IdentType::Class(..))
+                | Some(IdentType::Const(..)) => {
                     // Do nothing - no fields to set up.
                 }
 
@@ -160,6 +162,10 @@ fn destruct_pattern_inner(
 
                 Some(IdentType::Var(var_id)) => {
                     destruct_pattern_var(g, pattern_id, value, var_id);
+                }
+
+                Some(IdentType::Const(const_id)) => {
+                    destruct_pattern_const(g, pck, pattern_id, value, ty, const_id);
                 }
 
                 _ => unreachable!(),
@@ -324,6 +330,12 @@ fn destruct_pattern_inner(
                     );
                 }
 
+                IdentType::Const(const_id) => {
+                    assert!(ctor.fields.is_empty());
+                    assert!(!ctor.has_parens);
+                    destruct_pattern_const(g, pck, pattern_id, value, ty, const_id);
+                }
+
                 _ => unreachable!(),
             }
         }
@@ -334,6 +346,102 @@ fn destruct_pattern_inner(
 
         Pattern::Rest => unreachable!(),
         Pattern::Error => unreachable!(),
+    }
+}
+
+fn destruct_pattern_const(
+    g: &mut AstBytecodeGen,
+    pck: &mut PatternCheckContext,
+    pattern_id: PatternId,
+    value: Register,
+    ty: SourceType,
+    const_id: ConstDefinitionId,
+) {
+    let const_value = g.sa.const_(const_id).value().clone();
+    destruct_pattern_const_value(g, pck, pattern_id, value, ty, const_value);
+}
+
+fn destruct_pattern_const_value(
+    g: &mut AstBytecodeGen,
+    pck: &mut PatternCheckContext,
+    pattern_id: PatternId,
+    value: Register,
+    ty: SourceType,
+    const_value: ConstValue,
+) {
+    match const_value {
+        ConstValue::Bool(bool_value) => {
+            let mismatch_lbl = pck.ensure_label(&mut g.builder);
+            if bool_value {
+                g.builder.emit_jump_if_false(value, mismatch_lbl);
+            } else {
+                g.builder.emit_jump_if_true(value, mismatch_lbl);
+            }
+        }
+
+        ConstValue::Char(char_value) => {
+            let mismatch_lbl = pck.ensure_label(&mut g.builder);
+            let tmp = g.alloc_temp(BytecodeType::Bool);
+            let expected = g.alloc_temp(BytecodeType::Char);
+            g.builder.emit_const_char(expected, char_value);
+            g.builder.emit_test_eq(tmp, value, expected);
+            g.builder.emit_jump_if_false(tmp, mismatch_lbl);
+            g.builder.free_temp(tmp);
+            g.builder.free_temp(expected);
+        }
+
+        ConstValue::Float(float_value) => {
+            let bty = g.emitter.convert_ty_reg(g.sa, ty);
+            assert!(bty == BytecodeType::Float32 || bty == BytecodeType::Float64);
+            let mismatch_lbl = pck.ensure_label(&mut g.builder);
+            let tmp = g.alloc_temp(BytecodeType::Bool);
+            let expected = g.alloc_temp(bty.clone());
+            match bty {
+                BytecodeType::Float32 => g.builder.emit_const_float32(expected, float_value as f32),
+                BytecodeType::Float64 => g.builder.emit_const_float64(expected, float_value),
+                _ => unreachable!(),
+            }
+            g.builder.emit_test_eq(tmp, value, expected);
+            g.builder.emit_jump_if_false(tmp, mismatch_lbl);
+            g.builder.free_temp(tmp);
+            g.builder.free_temp(expected);
+        }
+
+        ConstValue::Int(int_value) => {
+            let bty = g.emitter.convert_ty_reg(g.sa, ty);
+            let mismatch_lbl = pck.ensure_label(&mut g.builder);
+            let tmp = g.alloc_temp(BytecodeType::Bool);
+            let expected = g.alloc_temp(bty.clone());
+            match bty {
+                BytecodeType::UInt8 => g.builder.emit_const_uint8(expected, int_value as u8),
+                BytecodeType::Int32 => g.builder.emit_const_int32(expected, int_value as i32),
+                BytecodeType::Int64 => g.builder.emit_const_int64(expected, int_value),
+                _ => unreachable!(),
+            }
+            g.builder.emit_test_eq(tmp, value, expected);
+            g.builder.emit_jump_if_false(tmp, mismatch_lbl);
+            g.builder.free_temp(tmp);
+            g.builder.free_temp(expected);
+        }
+
+        ConstValue::String(string_value) => {
+            let mismatch_lbl = pck.ensure_label(&mut g.builder);
+            let tmp = g.alloc_temp(BytecodeType::Bool);
+            let expected = g.alloc_temp(BytecodeType::Ptr);
+            g.builder.emit_const_string(expected, string_value);
+            let fct_id = g.sa.known.functions.string_equals();
+            let idx = g
+                .builder
+                .add_const_fct(g.emitter.convert_function_id(g.sa, fct_id));
+            let loc = g.loc_for_pattern(pattern_id);
+            g.builder
+                .emit_invoke_direct(tmp, idx, &[value, expected], loc);
+            g.builder.emit_jump_if_false(tmp, mismatch_lbl);
+            g.builder.free_temp(tmp);
+            g.builder.free_temp(expected);
+        }
+
+        ConstValue::None => unreachable!(),
     }
 }
 

@@ -1,0 +1,9 @@
+error: Int32 expected but got type Int64.
+--> match-const-wrong-type.dora:5:9
+ | fn f(value: Int32): Int32 {
+ |     match value {
+ |         ZERO => 1i32,
+           ~~~~
+ |         _ => 2i32
+ |     }
+1 error found.

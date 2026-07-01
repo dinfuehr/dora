@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use dora_parser::Span;
 
 use crate::access::{
-    class_accessible_from, enum_accessible_from, is_default_accessible, module_accessible_from,
-    struct_accessible_from,
+    class_accessible_from, const_accessible_from, enum_accessible_from, is_default_accessible,
+    module_accessible_from, struct_accessible_from,
 };
 use crate::args;
 use crate::error::diagnostics::{
@@ -17,9 +17,9 @@ use crate::error::diagnostics::{
     UNEXPECTED_NAMED_ARGUMENT, UNKNOWN_ENUM_VARIANT, UNKNOWN_IDENTIFIER, WRONG_TYPE,
 };
 use crate::sema::{
-    AltPattern, ClassDefinitionId, ConstValue, CtorPattern, CtorPatternField, ElementWithFields,
-    EnumDefinitionId, IdentPattern, IdentType, Pattern, PatternId, StructDefinitionId,
-    TuplePattern, VarId,
+    AltPattern, ClassDefinitionId, ConstDefinitionId, ConstValue, CtorPattern, CtorPatternField,
+    ElementWithFields, EnumDefinitionId, IdentPattern, IdentType, Pattern, PatternId,
+    StructDefinitionId, TuplePattern, VarId,
 };
 use crate::ty::SourceType;
 use crate::typeck::{
@@ -77,6 +77,10 @@ fn check_pattern_inner(
 
                 Some(SymbolKind::Struct(struct_id)) => {
                     check_pattern_struct(ck, ctxt, pattern_id, ty, struct_id);
+                }
+
+                Some(SymbolKind::Const(const_id)) => {
+                    check_pattern_const(ck, pattern_id, ty, const_id);
                 }
 
                 _ => {
@@ -301,6 +305,15 @@ fn check_pattern_ctor(
             check_pattern_struct(ck, ctxt, pattern_id, ty, struct_id);
         }
 
+        Ok(SymbolKind::Const(const_id)) => {
+            if ctor_pattern.fields.is_empty() && !ctor_pattern.has_parens {
+                check_pattern_const(ck, pattern_id, ty, const_id);
+            } else {
+                ck.report(span, &PATTERN_NO_PARENS, args!());
+                check_subpatterns_error(ck, ctxt, pattern_id);
+            }
+        }
+
         Ok(..) => {
             ck.report(span, &ENUM_VARIANT_EXPECTED, args!());
         }
@@ -375,6 +388,24 @@ fn check_pattern_enum(
 
         check_subpatterns_error(ck, ctxt, pattern_id);
     }
+}
+
+fn check_pattern_const(
+    ck: &mut TypeCheck,
+    pattern_id: PatternId,
+    ty: SourceType,
+    const_id: ConstDefinitionId,
+) {
+    let span = ck.pattern_span(pattern_id);
+
+    if !const_accessible_from(ck.sa, const_id, ck.module_id) {
+        ck.report(span, &NOT_ACCESSIBLE, args!());
+    }
+
+    let const_ = ck.sa.const_(const_id);
+    let const_ty = const_.ty();
+    ck.body.insert_ident(pattern_id, IdentType::Const(const_id));
+    check_literal_ty(ck, span, const_ty, ty);
 }
 
 fn check_pattern_tuple(

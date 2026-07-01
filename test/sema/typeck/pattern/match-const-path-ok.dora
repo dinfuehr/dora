@@ -1,0 +1,11 @@
+//= ok
+mod opcodes {
+    pub const ADD: Int32 = 0i32;
+}
+
+fn f(opcode: Int32): Bool {
+    match opcode {
+        opcodes::ADD => true,
+        _ => false
+    }
+}

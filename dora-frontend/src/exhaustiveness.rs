@@ -8,9 +8,9 @@ use crate::args;
 use crate::error::diagnostics::{NON_EXHAUSTIVE_MATCH, USELESS_PATTERN};
 use crate::interner::Name;
 use crate::sema::{
-    Body, ClassDefinitionId, CtorPattern, ElementWithFields, EnumDefinitionId, Expr, ExprId,
-    IdentType, MatchExpr, Pattern as SemaPattern, PatternId, Sema, SourceFileId, Stmt,
-    StructDefinitionId,
+    Body, ClassDefinitionId, ConstDefinitionId, ConstValue, CtorPattern, ElementWithFields,
+    EnumDefinitionId, Expr, ExprId, IdentType, MatchExpr, Pattern as SemaPattern, PatternId, Sema,
+    SourceFileId, Stmt, StructDefinitionId,
 };
 
 pub fn check(sa: &Sema) {
@@ -1324,6 +1324,8 @@ fn convert_pattern(
 
                 IdentType::Var(_var_id) => Pattern::Any { span: Some(span) },
 
+                IdentType::Const(const_id) => convert_const_pattern(sa, const_id, span),
+
                 _ => unreachable!(),
             }
         }
@@ -1371,9 +1373,41 @@ fn convert_pattern(
                     }
                 }
 
+                IdentType::Const(const_id) => {
+                    assert!(ctor.fields.is_empty());
+                    assert!(!ctor.has_parens);
+                    convert_const_pattern(sa, const_id, span)
+                }
+
                 _ => unreachable!(),
             }
         }
+    }
+}
+
+fn convert_const_pattern(sa: &Sema, const_id: ConstDefinitionId, span: Span) -> Pattern {
+    match sa.const_(const_id).value() {
+        ConstValue::Bool(value) => Pattern::Literal {
+            span,
+            value: LiteralValue::Bool(*value),
+        },
+        ConstValue::Char(value) => Pattern::Literal {
+            span,
+            value: LiteralValue::Char(*value),
+        },
+        ConstValue::Int(value) => Pattern::Literal {
+            span,
+            value: LiteralValue::Int(*value),
+        },
+        ConstValue::Float(value) => Pattern::Literal {
+            span,
+            value: LiteralValue::Float(*value),
+        },
+        ConstValue::String(value) => Pattern::Literal {
+            span,
+            value: LiteralValue::String(value.clone()),
+        },
+        ConstValue::None => unreachable!(),
     }
 }
 

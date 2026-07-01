@@ -1,0 +1,6 @@
+//= ok
+const FOO: Int32 = 1i32;
+
+fn f(x: Option[Int32]): Bool {
+    x is Some(FOO)
+}

@@ -1,0 +1,8 @@
+warning: unreachable pattern.
+--> match-const-same-as-literal.dora:6:9
+ |     match value {
+ |         0i32 => 1i32,
+ |         ZERO => 2i32,
+           ~~~~
+ |         _ => 3i32
+ |     }

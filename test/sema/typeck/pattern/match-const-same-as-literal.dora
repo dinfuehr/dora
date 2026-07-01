@@ -1,0 +1,9 @@
+const ZERO: Int32 = 0i32;
+
+fn f(value: Int32): Int32 {
+    match value {
+        0i32 => 1i32,
+        ZERO => 2i32,
+        _ => 3i32
+    }
+}
