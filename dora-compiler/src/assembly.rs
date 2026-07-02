@@ -112,10 +112,11 @@ impl MachineCodeEvent<'_> {
 struct AssemblySyntax {
     f: BufWriter<File>,
     format: ObjectFormat,
+    target_arch: TargetArch,
 }
 
 impl AssemblySyntax {
-    fn new(f: File) -> AssemblySyntax {
+    fn new(f: File, target_arch: TargetArch) -> AssemblySyntax {
         let format = if cfg!(target_os = "windows") {
             ObjectFormat::Coff
         } else if cfg!(target_os = "macos") {
@@ -127,6 +128,7 @@ impl AssemblySyntax {
         AssemblySyntax {
             f: BufWriter::new(f),
             format,
+            target_arch,
         }
     }
 
@@ -136,6 +138,18 @@ impl AssemblySyntax {
 
     fn is_coff(&self) -> bool {
         self.format == ObjectFormat::Coff
+    }
+
+    fn is_armasm(&self) -> bool {
+        false
+    }
+
+    fn is_gnu_arm64_coff(&self) -> bool {
+        self.is_coff() && self.target_arch.is_arm64()
+    }
+
+    fn uses_rust_aot_main(&self) -> bool {
+        self.is_gnu_arm64_coff()
     }
 
     fn symbol(&self, symbol: &str) -> String {
@@ -160,10 +174,20 @@ impl AssemblySyntax {
     fn local_symbol_ref(&self, symbol: &str) -> String {
         debug_assert!(symbol.starts_with(".L"));
 
-        if self.is_coff() {
+        let symbol = if self.is_gnu_arm64_coff() {
+            symbol.to_string()
+        } else if self.is_armasm() {
+            format!("L_{}", &symbol[2..])
+        } else if self.is_coff() {
             format!("L${}", &symbol[2..])
         } else {
             symbol.to_string()
+        };
+
+        if self.is_armasm() {
+            armasm_symbol(&symbol)
+        } else {
+            symbol
         }
     }
 
@@ -178,13 +202,17 @@ impl AssemblySyntax {
     }
 
     fn write_preamble(&mut self) {
-        if self.is_coff() {
+        if self.is_coff() && !self.is_armasm() && !self.is_gnu_arm64_coff() {
             self.write_line(format_args!("OPTION CASEMAP:NONE"));
         }
     }
 
     fn write_text(&mut self) {
-        if self.is_coff() {
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!(".text"))
+        } else if self.is_armasm() {
+            self.write_indented_line(format_args!("AREA |.text|, CODE, ARM64, ALIGN=4"))
+        } else if self.is_coff() {
             self.write_line(format_args!(".code"))
         } else {
             self.write_line(format_args!(".text"))
@@ -195,6 +223,12 @@ impl AssemblySyntax {
         match self.format {
             ObjectFormat::Elf => self.write_line(format_args!(".section .rodata")),
             ObjectFormat::MachO => self.write_line(format_args!(".section __TEXT,__const")),
+            ObjectFormat::Coff if self.is_gnu_arm64_coff() => {
+                self.write_line(format_args!(".section .rdata,\"dr\""))
+            }
+            ObjectFormat::Coff if self.is_armasm() => {
+                self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=3"))
+            }
             ObjectFormat::Coff => self.write_line(format_args!(".const")),
         }
     }
@@ -219,6 +253,22 @@ impl AssemblySyntax {
                 assert!(macho_section_name.len() <= 16);
                 self.write_line(format_args!(".section __DATA,{macho_section_name}"))
             }
+            ObjectFormat::Coff if self.is_gnu_arm64_coff() => match kind {
+                SectionKind::ReadOnly => {
+                    self.write_line(format_args!(".section {elf_section_name},\"dr\""))
+                }
+                SectionKind::Writable => {
+                    self.write_line(format_args!(".section {elf_section_name},\"dw\""))
+                }
+            },
+            ObjectFormat::Coff if self.is_armasm() => match kind {
+                SectionKind::ReadOnly => {
+                    self.write_indented_line(format_args!("AREA |.const|, DATA, READONLY, ALIGN=3"))
+                }
+                SectionKind::Writable => {
+                    self.write_indented_line(format_args!("AREA |.data|, DATA, READWRITE, ALIGN=3"))
+                }
+            },
             ObjectFormat::Coff => match kind {
                 SectionKind::ReadOnly => self.write_line(format_args!(".const")),
                 SectionKind::Writable => self.write_line(format_args!(".data")),
@@ -230,13 +280,34 @@ impl AssemblySyntax {
         match self.format {
             ObjectFormat::Elf => self.write_line(format_args!(".bss")),
             ObjectFormat::MachO => self.write_line(format_args!(".section __DATA,__bss")),
+            ObjectFormat::Coff if self.is_gnu_arm64_coff() => self.write_line(format_args!(".bss")),
+            ObjectFormat::Coff if self.is_armasm() => self.write_indented_line(format_args!(
+                "AREA |.bss|, DATA, READWRITE, NOINIT, ALIGN=3"
+            )),
             ObjectFormat::Coff => self.write_line(format_args!(".data?")),
         }
     }
 
     fn write_global(&mut self, symbol: &str) {
         let symbol = self.symbol(symbol);
-        if self.is_coff() {
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!(".globl {symbol}"))
+        } else if self.is_armasm() {
+            self.write_indented_line(format_args!("EXPORT {symbol}"))
+        } else if self.is_coff() {
+            self.write_line(format_args!("PUBLIC {symbol}"))
+        } else {
+            self.write_line(format_args!(".globl {symbol}"))
+        }
+    }
+
+    fn write_global_func(&mut self, symbol: &str) {
+        let symbol = self.symbol(symbol);
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!(".globl {symbol}"))
+        } else if self.is_armasm() {
+            self.write_indented_line(format_args!("EXPORT {symbol} [FUNC]"))
+        } else if self.is_coff() {
             self.write_line(format_args!("PUBLIC {symbol}"))
         } else {
             self.write_line(format_args!(".globl {symbol}"))
@@ -247,17 +318,35 @@ impl AssemblySyntax {
         debug_assert!(self.is_coff());
 
         let symbol = self.symbol(symbol);
-        self.write_line(format_args!("EXTERN {symbol}:PROC"));
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!(".extern {symbol}"));
+        } else if self.is_armasm() {
+            self.write_indented_line(format_args!("IMPORT {symbol}"));
+        } else {
+            self.write_line(format_args!("EXTERN {symbol}:PROC"));
+        }
     }
 
     fn write_label(&mut self, symbol: &str) {
         let symbol = self.symbol(symbol);
-        self.write_line(format_args!("{symbol}:"))
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!("{symbol}:"))
+        } else if self.is_armasm() {
+            self.write_line(format_args!("{symbol}"))
+        } else {
+            self.write_line(format_args!("{symbol}:"))
+        }
     }
 
     fn write_local_symbol(&mut self, symbol: &str) {
         let symbol = self.local_symbol_ref(symbol);
-        self.write_line(format_args!("{symbol}:"))
+        if self.is_gnu_arm64_coff() {
+            self.write_line(format_args!("{symbol}:"))
+        } else if self.is_armasm() {
+            self.write_line(format_args!("{symbol}"))
+        } else {
+            self.write_line(format_args!("{symbol}:"))
+        }
     }
 
     fn write_newline(&mut self) {
@@ -265,7 +354,11 @@ impl AssemblySyntax {
     }
 
     fn write_p2_align(&mut self, alignment: u32) {
-        if self.is_coff() {
+        if self.is_gnu_arm64_coff() {
+            self.write_indented_line(format_args!(".p2align {alignment}"))
+        } else if self.is_armasm() {
+            self.write_indented_line(format_args!("ALIGN {}", 1_u32 << alignment))
+        } else if self.is_coff() {
             self.write_indented_line(format_args!("ALIGN {}", 1_u32 << alignment))
         } else {
             self.write_indented_line(format_args!(".p2align {alignment}"))
@@ -286,7 +379,21 @@ impl AssemblySyntax {
 
     fn write_bytes(&mut self, data: &[u8]) {
         for chunk in data.chunks(12) {
-            if self.is_coff() {
+            if self.is_gnu_arm64_coff() {
+                let bytes = chunk
+                    .iter()
+                    .map(|b| format!("0x{:02x}", b))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                self.write_indented_line(format_args!(".byte {bytes}"));
+            } else if self.is_armasm() {
+                let bytes = chunk
+                    .iter()
+                    .map(|b| b.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                self.write_indented_line(format_args!("DCB {bytes}"));
+            } else if self.is_coff() {
                 let bytes = chunk
                     .iter()
                     .map(|b| b.to_string())
@@ -305,7 +412,11 @@ impl AssemblySyntax {
     }
 
     fn write_byte(&mut self, value: impl fmt::Display) {
-        if self.is_coff() {
+        if self.is_gnu_arm64_coff() {
+            self.write_indented_line(format_args!(".byte {value}"))
+        } else if self.is_armasm() {
+            self.write_indented_line(format_args!("DCB {value}"))
+        } else if self.is_coff() {
             self.write_indented_line(format_args!("DB {value}"))
         } else {
             self.write_indented_line(format_args!(".byte {value}"))
@@ -313,7 +424,11 @@ impl AssemblySyntax {
     }
 
     fn write_quad(&mut self, value: impl fmt::Display) {
-        if self.is_coff() {
+        if self.is_gnu_arm64_coff() {
+            self.write_indented_line(format_args!(".quad {value}"))
+        } else if self.is_armasm() {
+            self.write_indented_line(format_args!("DCQ {value}"))
+        } else if self.is_coff() {
             self.write_indented_line(format_args!("DQ {value}"))
         } else {
             self.write_indented_line(format_args!(".quad {value}"))
@@ -322,16 +437,19 @@ impl AssemblySyntax {
 
     fn write_quad_symbol(&mut self, symbol: &str) {
         let symbol = self.symbol_ref(symbol);
-        self.write_quad(symbol)
+        self.write_quad(&symbol);
+        self.write_armasm64_reloc(IMAGE_REL_ARM64_ADDR64, &symbol);
     }
 
     fn write_quad_symbol_offset(&mut self, symbol: &str, offset: usize) {
         let symbol = self.symbol_ref(symbol);
-        if offset == 0 {
-            self.write_quad(symbol)
+        let value = if offset == 0 {
+            symbol
         } else {
-            self.write_quad(format_args!("{symbol}+{offset}"))
-        }
+            format!("{symbol}+{offset}")
+        };
+        self.write_quad(&value);
+        self.write_armasm64_reloc(IMAGE_REL_ARM64_ADDR64, &value);
     }
 
     fn write_quad_bits(&mut self, value: u64) {
@@ -339,7 +457,11 @@ impl AssemblySyntax {
     }
 
     fn write_long(&mut self, value: impl fmt::Display) {
-        if self.is_coff() {
+        if self.is_gnu_arm64_coff() {
+            self.write_indented_line(format_args!(".long {value}"))
+        } else if self.is_armasm() {
+            self.write_indented_line(format_args!("DCD {value}"))
+        } else if self.is_coff() {
             self.write_indented_line(format_args!("DD {value}"))
         } else {
             self.write_indented_line(format_args!(".long {value}"))
@@ -347,7 +469,11 @@ impl AssemblySyntax {
     }
 
     fn write_zero(&mut self, size: impl fmt::Display) {
-        if self.is_coff() {
+        if self.is_gnu_arm64_coff() {
+            self.write_indented_line(format_args!(".zero {size}"))
+        } else if self.is_armasm() {
+            self.write_indented_line(format_args!("SPACE {size}"))
+        } else if self.is_coff() {
             self.write_indented_line(format_args!("DB {size} DUP (?)"))
         } else {
             self.write_indented_line(format_args!(".zero {size}"))
@@ -355,13 +481,39 @@ impl AssemblySyntax {
     }
 
     fn write_end(&mut self) {
-        if self.is_coff() {
+        if self.is_armasm() {
+            self.write_indented_line(format_args!("END"));
+        } else if self.is_coff() && !self.is_gnu_arm64_coff() {
             self.write_line(format_args!("END"));
+        }
+    }
+
+    fn write_armasm64_reloc(&mut self, reloc: u16, symbol: &str) {
+        if self.is_armasm() {
+            self.write_indented_line(format_args!("RELOC {reloc}, {symbol}"));
         }
     }
 
     fn flush(&mut self) {
         self.f.flush().expect("failed to write assembly");
+    }
+}
+
+const IMAGE_REL_ARM64_BRANCH26: u16 = 0x0003;
+const IMAGE_REL_ARM64_PAGEBASE_REL21: u16 = 0x0004;
+const IMAGE_REL_ARM64_PAGEOFFSET_12A: u16 = 0x0006;
+const IMAGE_REL_ARM64_PAGEOFFSET_12L: u16 = 0x0007;
+const IMAGE_REL_ARM64_ADDR64: u16 = 0x000E;
+
+fn armasm_symbol(symbol: &str) -> String {
+    if symbol
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+    {
+        symbol.to_string()
+    } else {
+        assert!(!symbol.contains('|'));
+        format!("|{symbol}|")
     }
 }
 
@@ -391,14 +543,10 @@ pub fn write_assembly(
             output_path.display()
         )
     });
-    let mut syntax = AssemblySyntax::new(output);
+    let mut syntax = AssemblySyntax::new(output, target_arch);
 
     if syntax.is_macho() && !target_arch.is_arm64() {
         panic!("Mach-O AOT assembly is only supported on arm64");
-    }
-
-    if syntax.is_coff() && target_arch.is_arm64() {
-        panic!("COFF AOT assembly is only supported on x64");
     }
 
     let functions: &[AotFunction] = &aot.functions;
@@ -410,6 +558,7 @@ pub fn write_assembly(
     let mut string_slots = Vec::<StringSlotEntry>::new();
     let mut string_slot_map = HashMap::<AotStringId, usize>::new();
     let mut function_metadata = Vec::with_capacity(functions.len() + 1);
+    let fixed_entry_symbol = fixed_aot_entry_symbol(kind);
 
     for (func_idx, func) in functions.iter().enumerate() {
         let label = func.symbol_name.as_str();
@@ -417,7 +566,11 @@ pub fn write_assembly(
         write_masm_extern_proc_for_function(&mut syntax, func);
         syntax.write_newline();
         syntax.write_align16();
-        syntax.write_global(label);
+        if syntax.uses_rust_aot_main() && fixed_entry_symbol.as_deref() == Some(label) {
+            syntax.write_global_func("dora_aot_entry");
+            syntax.write_label("dora_aot_entry");
+        }
+        syntax.write_global_func(label);
         syntax.write_label(label);
 
         write_function_body(&mut syntax, func, &mut string_slots, &mut string_slot_map);
@@ -446,7 +599,7 @@ pub fn write_assembly(
     syntax.write_align16();
     let dora_entry_trampoline = "dora_entry_trampoline";
     let dora_entry_trampoline_end = ".Ldora_entry_trampoline_end";
-    syntax.write_global(dora_entry_trampoline);
+    syntax.write_global_func(dora_entry_trampoline);
     syntax.write_label(dora_entry_trampoline);
     syntax.write_bytes(trampoline);
     syntax.write_local_symbol(dora_entry_trampoline_end);
@@ -475,10 +628,14 @@ pub fn write_assembly(
 
     write_test_metadata(&mut syntax, aot);
 
-    match kind {
-        AotAssemblyKind::Regular => write_regular_main(&mut syntax, target_arch),
-        AotAssemblyKind::Test => write_test_main(&mut syntax, target_arch),
-        AotAssemblyKind::CompilerImage => write_compiler_image_main(&mut syntax, target_arch),
+    if syntax.uses_rust_aot_main() {
+        write_rust_aot_main_metadata(&mut syntax, kind);
+    } else {
+        match kind {
+            AotAssemblyKind::Regular => write_regular_main(&mut syntax, target_arch),
+            AotAssemblyKind::Test => write_test_main(&mut syntax, target_arch),
+            AotAssemblyKind::CompilerImage => write_compiler_image_main(&mut syntax, target_arch),
+        }
     }
 
     write_function_metadata(&mut syntax, &function_metadata);
@@ -486,6 +643,14 @@ pub fn write_assembly(
 
     syntax.write_end();
     syntax.flush();
+}
+
+fn fixed_aot_entry_symbol(kind: AotAssemblyKind) -> Option<String> {
+    match kind {
+        AotAssemblyKind::Regular => Some(mangle_name("main")),
+        AotAssemblyKind::CompilerImage => Some(mangle_name("interface::compile")),
+        AotAssemblyKind::Test => None,
+    }
 }
 
 fn write_masm_extern_procs(syntax: &mut AssemblySyntax, kind: AotAssemblyKind) {
@@ -747,22 +912,28 @@ fn write_test_metadata(syntax: &mut AssemblySyntax, aot: &AotCompilation) {
 
 fn write_regular_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     // Pass the compiled program entry as a third argument to startup.
-    let main_symbol = syntax.symbol(&mangle_name("main"));
-    let startup_symbol = syntax.symbol("dora_aot_main");
+    let main_symbol_name = mangle_name("main");
+    let main_symbol = syntax.symbol(&main_symbol_name);
+    let startup_symbol_name = "dora_aot_main";
+    let startup_symbol = syntax.symbol(startup_symbol_name);
 
     syntax.write_newline();
     syntax.write_align16();
-    syntax.write_global("main");
+    syntax.write_global_func("main");
     syntax.write_label("main");
     if target_arch.is_arm64() {
-        if syntax.is_macho() {
+        if syntax.is_armasm() {
+            write_armasm64_startup_call(syntax, Some(&main_symbol_name), startup_symbol_name);
+        } else if syntax.is_macho() {
             syntax.write_indented_line(format_args!("adrp x2, {main_symbol}@PAGE"));
             syntax.write_indented_line(format_args!("add x2, x2, {main_symbol}@PAGEOFF"));
         } else {
             syntax.write_indented_line(format_args!("adrp x2, {main_symbol}"));
             syntax.write_indented_line(format_args!("add x2, x2, :lo12:{main_symbol}"));
         }
-        syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        if !syntax.is_armasm() {
+            syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        }
     } else {
         if syntax.is_coff() {
             syntax.write_indented_line(format_args!("lea r8, [{main_symbol}]"));
@@ -774,14 +945,19 @@ fn write_regular_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
 }
 
 fn write_test_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
-    let startup_symbol = syntax.symbol("dora_aot_test_main");
+    let startup_symbol_name = "dora_aot_test_main";
+    let startup_symbol = syntax.symbol(startup_symbol_name);
 
     syntax.write_newline();
     syntax.write_align16();
-    syntax.write_global("main");
+    syntax.write_global_func("main");
     syntax.write_label("main");
     if target_arch.is_arm64() {
-        syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        if syntax.is_armasm() {
+            write_armasm64_startup_call(syntax, None, startup_symbol_name);
+        } else {
+            syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        }
     } else {
         syntax.write_indented_line(format_args!("jmp {startup_symbol}"));
     }
@@ -790,22 +966,32 @@ fn write_test_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
 fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     // The executable entry enters Rust startup first. The compiled entry
     // symbol is passed as a third C argument.
-    let compiler_entry_symbol = syntax.symbol(&mangle_name("interface::compile"));
-    let startup_symbol = syntax.symbol("dora_boots_compiler_main");
+    let compiler_entry_symbol_name = mangle_name("interface::compile");
+    let compiler_entry_symbol = syntax.symbol(&compiler_entry_symbol_name);
+    let startup_symbol_name = "dora_boots_compiler_main";
+    let startup_symbol = syntax.symbol(startup_symbol_name);
 
     syntax.write_newline();
     syntax.write_align16();
-    syntax.write_global("main");
+    syntax.write_global_func("main");
     syntax.write_label("main");
     if target_arch.is_arm64() {
-        if syntax.is_macho() {
+        if syntax.is_armasm() {
+            write_armasm64_startup_call(
+                syntax,
+                Some(&compiler_entry_symbol_name),
+                startup_symbol_name,
+            );
+        } else if syntax.is_macho() {
             syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}@PAGE"));
             syntax.write_indented_line(format_args!("add x2, x2, {compiler_entry_symbol}@PAGEOFF"));
         } else {
             syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}"));
             syntax.write_indented_line(format_args!("add x2, x2, :lo12:{compiler_entry_symbol}"));
         }
-        syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        if !syntax.is_armasm() {
+            syntax.write_indented_line(format_args!("b {startup_symbol}"));
+        }
     } else {
         if syntax.is_coff() {
             syntax.write_indented_line(format_args!("lea r8, [{compiler_entry_symbol}]"));
@@ -814,6 +1000,76 @@ fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArc
         }
         syntax.write_indented_line(format_args!("jmp {startup_symbol}"));
     }
+}
+
+fn write_rust_aot_main_metadata(syntax: &mut AssemblySyntax, kind: AotAssemblyKind) {
+    const AOT_STARTUP_REGULAR: u8 = 0;
+    const AOT_STARTUP_TEST: u8 = 1;
+    const AOT_STARTUP_COMPILER_IMAGE: u8 = 2;
+
+    let startup_kind = match kind {
+        AotAssemblyKind::Regular => AOT_STARTUP_REGULAR,
+        AotAssemblyKind::Test => AOT_STARTUP_TEST,
+        AotAssemblyKind::CompilerImage => AOT_STARTUP_COMPILER_IMAGE,
+    };
+
+    if matches!(kind, AotAssemblyKind::Test) {
+        syntax.write_newline();
+        syntax.write_text();
+        syntax.write_align16();
+        syntax.write_global_func("dora_aot_entry");
+        syntax.write_label("dora_aot_entry");
+        syntax.write_indented_line(format_args!("ret"));
+    }
+
+    syntax.write_newline();
+    syntax.write_data_section(".dora.startup", "__dora_start", SectionKind::ReadOnly);
+    syntax.write_align4();
+    syntax.write_global("dora_aot_startup_kind");
+    syntax.write_label("dora_aot_startup_kind");
+    syntax.write_byte(startup_kind);
+    syntax.write_text();
+}
+
+fn write_armasm64_startup_call(
+    syntax: &mut AssemblySyntax,
+    entry_symbol: Option<&str>,
+    startup_symbol: &str,
+) {
+    let entry_slot = ".Ldora_main_entry_slot";
+    let startup_slot = ".Ldora_main_startup_slot";
+    let startup_slot_ref = syntax.local_symbol_ref(startup_slot);
+
+    write_armasm64_main_prolog(syntax);
+    if entry_symbol.is_some() {
+        let entry_slot_ref = syntax.local_symbol_ref(entry_slot);
+        syntax.write_indented_line(format_args!("adrp x2, {entry_slot_ref}"));
+        syntax.write_indented_line(format_args!("add x2, x2, {entry_slot_ref}"));
+        syntax.write_indented_line(format_args!("ldr x2, [x2]"));
+    }
+    syntax.write_indented_line(format_args!("adrp x16, {startup_slot_ref}"));
+    syntax.write_indented_line(format_args!("add x16, x16, {startup_slot_ref}"));
+    syntax.write_indented_line(format_args!("ldr x16, [x16]"));
+    syntax.write_indented_line(format_args!("blr x16"));
+    write_armasm64_main_epilog(syntax);
+
+    syntax.write_align8();
+    if let Some(entry_symbol) = entry_symbol {
+        syntax.write_local_symbol(entry_slot);
+        syntax.write_quad_symbol(entry_symbol);
+    }
+    syntax.write_local_symbol(startup_slot);
+    syntax.write_quad_symbol(startup_symbol);
+}
+
+fn write_armasm64_main_prolog(syntax: &mut AssemblySyntax) {
+    syntax.write_indented_line(format_args!("stp x29, x30, [sp, #-16]!"));
+    syntax.write_indented_line(format_args!("mov x29, sp"));
+}
+
+fn write_armasm64_main_epilog(syntax: &mut AssemblySyntax) {
+    syntax.write_indented_line(format_args!("ldp x29, x30, [sp], #16"));
+    syntax.write_indented_line(format_args!("ret"));
 }
 
 fn write_program_metadata(syntax: &mut AssemblySyntax, encoded_program: &[u8]) {

@@ -93,6 +93,7 @@ pub fn compile_boots_compiler_aot(
     inputs: AotCompileInputs,
 ) -> AotCompilation {
     let tc = compute_transitive_closure(program, &[entry_id], inputs.emit_compiler);
+
     let ctx = Box::new(AotCodegenContext {
         program,
         layout: AotLayout::new(program),
@@ -105,10 +106,12 @@ pub fn compile_boots_compiler_aot(
         emit_graph: inputs.emit_graph.as_deref(),
         emit_graph_after_each_pass: inputs.emit_graph_after_each_pass,
     });
+
     let ctc = {
         let _active_aot_context = ctx.compiler_invocation.enter_context(ctx.as_ref());
         compile_transitive_closure(ctx.as_ref(), &tc)
     };
+
     let mut strings = AotStringTable::new();
     let runtime_functions = compile_aot_runtime_trampolines(&mut strings, inputs.target_arch);
 

@@ -93,15 +93,12 @@ pub fn command_compile(args: CompileArgs) -> Result<()> {
         return Ok(());
     }
 
-    #[cfg(target_os = "windows")]
-    assert!(matches!(args.target_arch(), TargetArch::X64));
-
     let obj_path = measure(&mut timings.object, || {
-        create_object_file(&asm_path, args.verbose)
+        create_object_file(args.target_arch(), &asm_path, args.verbose)
     })?;
     let obj_path_ref: &Path = obj_path.as_ref();
     measure(&mut timings.link, || {
-        link_object(obj_path_ref, &output, args.verbose)
+        link_object(args.target_arch(), obj_path_ref, &output, args.verbose)
     })?;
 
     maybe_print_timings(&args, &timings, total_start.elapsed());
@@ -266,19 +263,25 @@ fn default_compiler_binary_name(args: &CompileArgs) -> &'static str {
     }
 }
 
-fn create_object_file(asm_path: &Path, verbose: bool) -> Result<TempPath> {
+fn create_object_file(target_arch: TargetArch, asm_path: &Path, verbose: bool) -> Result<TempPath> {
     #[cfg(target_os = "windows")]
     {
-        return windows::create_object_file(asm_path, verbose);
+        return windows::create_object_file(target_arch, asm_path, verbose);
     }
 
     #[cfg(not(target_os = "windows"))]
     {
+        let _ = target_arch;
         create_object_file_unix(asm_path, verbose)
     }
 }
 
-fn link_object(obj_path: &Path, output: &str, verbose: bool) -> Result<()> {
+fn link_object(
+    target_arch: TargetArch,
+    obj_path: &Path,
+    output: &str,
+    verbose: bool,
+) -> Result<()> {
     // Find the runtime static library next to the current executable.
     let exe_dir = current_exe_dir()?;
     let runtime_lib = find_staticlib(&exe_dir, "dora_runtime")
@@ -288,11 +291,19 @@ fn link_object(obj_path: &Path, output: &str, verbose: bool) -> Result<()> {
 
     #[cfg(target_os = "windows")]
     {
-        return windows::link_object(obj_path, output, &startup_lib, &runtime_lib, verbose);
+        return windows::link_object(
+            target_arch,
+            obj_path,
+            output,
+            &startup_lib,
+            &runtime_lib,
+            verbose,
+        );
     }
 
     #[cfg(not(target_os = "windows"))]
     {
+        let _ = target_arch;
         link_object_unix(obj_path, output, &startup_lib, &runtime_lib, verbose)
     }
 }
