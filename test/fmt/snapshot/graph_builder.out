@@ -4,15 +4,7 @@ use std::{BitSet, BitVec};
 use package::bytecode::opcode as opc;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
 use package::graph;
-use package::graph::{
-    AllocationData,
-    Block,
-    ClassFieldInfo,
-    Graph,
-    Inst,
-    InstExtraData,
-    Op,
-};
+use package::graph::{AllocationData, Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
 use package::graph::{
     CallKind,

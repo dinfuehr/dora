@@ -1550,17 +1550,6 @@ impl Inst {
         }
     }
 
-    pub fn has_class_field_info(): Bool {
-        self.extra.is_class_field_info()
-    }
-
-    pub fn get_class_field_info(): ClassFieldInfo {
-        match self.extra {
-            InstExtraData::ClassFieldInfo(info) => info,
-            _ => unreachable[ClassFieldInfo](),
-        }
-    }
-
     pub fn has_class_info(): Bool {
         self.extra.is_class_info()
     }
@@ -2023,7 +2012,6 @@ impl Stringable for Inst {
 
 pub enum InstExtraData {
     None,
-    ClassFieldInfo(ClassFieldInfo),
     FunctionInfo(FunctionInfo),
     FunctionAddress(Address),
     VirtualFunctionInfo(VirtualFunctionInfo),
@@ -2079,13 +2067,6 @@ impl InstExtraData {
     fn isFunctionAddress(): Bool {
         match self {
             InstExtraData::FunctionAddress(_) => true,
-            _ => false,
-        }
-    }
-
-    fn is_class_field_info(): Bool {
-        match self {
-            InstExtraData::ClassFieldInfo(_) => true,
             _ => false,
         }
     }
@@ -2922,12 +2903,6 @@ pub fn create_store_array_address_wb_inst(
     inst.add_input(value);
     inst.aux = destOffset.to_int64();
     inst
-}
-
-pub class ClassFieldInfo {
-    pub cls_id: ClassId,
-    pub type_params: Array[BytecodeType],
-    pub field_id: ClassFieldId,
 }
 
 pub class FunctionInfo {
