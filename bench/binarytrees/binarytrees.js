@@ -10,7 +10,7 @@ const TreeNode = function(left, right) {
 };
 
 const itemCheck = function(node){
-    if (node===null) return 1;
+    if (node.left===null) return 1;
     return 1 + itemCheck(node.left) + itemCheck(node.right);
 };
 
@@ -18,19 +18,17 @@ function bottomUpTree(depth){
     return depth>0 ? new TreeNode(
             bottomUpTree(depth-1),
             bottomUpTree(depth-1)
-    ) : null;
+    ) : new TreeNode(null, null);
 };
 
-const maxDepth = Math.max(6, parseInt(process.argv[2]));
+const n = process.argv.length > 2 ? parseInt(process.argv[2]) : 0;
+const maxDepth = Math.max(6, n);
 const stretchDepth = maxDepth + 1;
 
 let check = itemCheck(bottomUpTree(stretchDepth));
 console.log("stretch tree of depth "+ stretchDepth+ "\t check: "+ check);
 
-const longLivedTree = new TreeNode(
-    bottomUpTree(maxDepth-1),
-    bottomUpTree(maxDepth-1)
-);
+const longLivedTree = bottomUpTree(maxDepth);
 
 for (let depth=4; depth<=maxDepth; depth+=2){
     const iterations = 1 << maxDepth - depth + 4;
