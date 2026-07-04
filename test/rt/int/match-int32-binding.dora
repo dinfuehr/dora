@@ -1,0 +1,55 @@
+fn main() {
+    assert(binding_default(4i32) == 8i32);
+    assert(binding_after_value(1i32) == 10i32);
+    assert(binding_after_value(3i32) == 6i32);
+    assert(binding_guard(2i32, true) == 20i32);
+    assert(binding_guard(2i32, false) == 6i32);
+    assert(binding_guard_uses_value(3i32) == 3i32);
+    assert(binding_guard_uses_value(0i32) == 0i32);
+    assert(binding_guard_uses_value(-2i32) == 0i32);
+
+    guard_count = 0i32;
+    assert(binding_alt_guard(7i32) == 21i32);
+    assert(guard_count == 1i32);
+}
+
+let mut guard_count: Int32 = 0i32;
+
+fn binding_default(value: Int32): Int32 {
+    match value {
+        x => x * 2i32
+    }
+}
+
+fn binding_after_value(value: Int32): Int32 {
+    match value {
+        1i32 => 10i32,
+        x => x * 2i32
+    }
+}
+
+fn binding_guard(value: Int32, enabled: Bool): Int32 {
+    match value {
+        x if enabled => x * 10i32,
+        x => x * 3i32
+    }
+}
+
+fn binding_guard_uses_value(value: Int32): Int32 {
+    match value {
+        x if x > 0i32 => x,
+        _ => 0i32
+    }
+}
+
+fn binding_alt_guard(value: Int32): Int32 {
+    match value {
+        x | x if count_guard() => x * 2i32,
+        x => x * 3i32
+    }
+}
+
+fn count_guard(): Bool {
+    guard_count = guard_count + 1i32;
+    false
+}

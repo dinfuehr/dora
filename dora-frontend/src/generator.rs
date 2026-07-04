@@ -15,6 +15,7 @@ mod bytecode;
 mod expr;
 mod function;
 mod global;
+mod int_dispatch;
 mod pattern;
 
 pub use self::function::{generate_fct, generate_fct_id};

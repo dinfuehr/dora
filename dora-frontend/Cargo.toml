@@ -26,3 +26,4 @@ id-arena = "*"
 smol_str = "*"
 rayon = "*"
 clap = { version = "*", features = ["derive"] }
+rustc-hash = "*"

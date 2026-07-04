@@ -24,40 +24,41 @@ fn f:
    21 => 4:5
 
 fn consume:
-  0: LoadEnumVariant r3, r0, @0 # Color
-  4: ConstInt32 r4, @1 # 0
-  7: TestEq r2, r3, r4
- 11: JumpIfFalse r2, 25 (+14)
- 17: ConstInt32 r1, @2 # 10
- 20: Jump 56 (+36)
- 25: LoadEnumVariant r4, r0, @3 # Color
- 29: ConstInt32 r3, @4 # 1
- 32: TestEq r2, r4, r3
- 36: JumpIfFalse r2, 50 (+14)
- 42: ConstInt32 r1, @5 # 20
- 45: Jump 56 (+11)
- 50: InvokeDirect r3, @6 # std::unreachable[T]
- 54: Ret r3
- 56: Ret r1
+  0: LoadEnumVariant r2, r0, @0 # Color
+  4: ConstInt32 r4, @1 # 1
+  7: TestEq r3, r2, r4
+ 11: JumpIfTrue r3, 58 (+47)
+ 17: TestLt r3, r2, r4
+ 21: JumpIfFalse r3, 45 (+24)
+ 27: ConstInt32 r4, @2 # 0
+ 30: TestEq r3, r2, r4
+ 34: JumpIfTrue r3, 50 (+16)
+ 40: Jump 66 (+26)
+ 45: Jump 66 (+21)
+ 50: ConstInt32 r1, @3 # 10
+ 53: Jump 72 (+19)
+ 58: ConstInt32 r1, @4 # 20
+ 61: Jump 72 (+11)
+ 66: InvokeDirect r2, @5 # std::unreachable[T]
+ 70: Ret r2
+ 72: Ret r1
 
   Registers:
    0 => enum Color
    1 => Int32
-   2 => Bool
-   3 => Int32
+   2 => Int32
+   3 => Bool
    4 => Int32
 
   Constants:
    0 => Enum Color
-   1 => Int32 0
-   2 => Int32 10
-   3 => Enum Color
-   4 => Int32 1
-   5 => Int32 20
-   6 => Fct std::unreachable[Int32]
+   1 => Int32 1
+   2 => Int32 0
+   3 => Int32 10
+   4 => Int32 20
+   5 => Fct std::unreachable[Int32]
 
   Locations:
-   0 => 12:9
-   25 => 13:9
-   50 => 11:5
+   0 => 11:11
+   66 => 11:5
 

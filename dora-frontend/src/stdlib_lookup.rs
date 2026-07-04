@@ -405,11 +405,12 @@ fn resolve_uint8(sa: &mut Sema) {
         "std::primitives::UInt8#to_int64",
         Intrinsic::UInt8ToInt64,
     );
-    intrinsic_method(
+    let fct_id = intrinsic_method(
         sa,
         "std::primitives::UInt8#to_int32",
         Intrinsic::UInt8ToInt32,
     );
+    sa.known.functions.uint8_to_int32 = Some(fct_id);
     intrinsic_method(sa, "std::primitives::UInt8#to_char", Intrinsic::UInt8ToChar);
     intrinsic_method(
         sa,
@@ -816,17 +817,18 @@ fn resolve_float64(sa: &Sema) {
     intrinsic_method(sa, "std::primitives::Float64#sqrt", Intrinsic::Float64Sqrt);
 }
 
-fn resolve_int64(sa: &Sema) {
+fn resolve_int64(sa: &mut Sema) {
     intrinsic_method(
         sa,
         "std::primitives::Int64#to_char_unchecked",
         Intrinsic::Int64ToChar,
     );
-    intrinsic_method(
+    let fct_id = intrinsic_method(
         sa,
         "std::primitives::Int64#to_int32",
         Intrinsic::Int64ToInt32,
     );
+    sa.known.functions.int64_to_int32 = Some(fct_id);
     intrinsic_method(
         sa,
         "std::primitives::Int64#to_uint8",

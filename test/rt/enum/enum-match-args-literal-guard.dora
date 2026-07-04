@@ -1,0 +1,25 @@
+enum Packet { Pair(Int32, Int32), Single(Int32), Empty }
+
+fn main() {
+    assert(score(Packet::Pair(1i32, 2i32), false, false) == 20i32);
+    assert(score(Packet::Pair(1i32, 3i32), true, false) == 13i32);
+    assert(score(Packet::Pair(1i32, 4i32), false, true) == 44i32);
+    assert(score(Packet::Pair(5i32, 3i32), false, false) == 105i32);
+    assert(score(Packet::Pair(9i32, 9i32), false, false) == -1i32);
+    assert(score(Packet::Single(7i32), false, true) == 70i32);
+    assert(score(Packet::Single(7i32), false, false) == 7i32);
+    assert(score(Packet::Empty, false, false) == 0i32);
+}
+
+fn score(packet: Packet, a: Bool, b: Bool): Int32 {
+    match packet {
+        Packet::Pair(1i32, x) if a => x + 10i32,
+        Packet::Pair(1i32, 2i32) => 20i32,
+        Packet::Pair(1i32, x) if b => x + 40i32,
+        Packet::Pair(x, 3i32) => x + 100i32,
+        Packet::Single(7i32) if b => 70i32,
+        Packet::Single(x) => x,
+        Packet::Empty => 0i32,
+        _ => -1i32
+    }
+}

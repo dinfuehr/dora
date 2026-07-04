@@ -1,51 +1,49 @@
 fn f:
-  0: LoadEnumVariant r3, r0, @0 # Kind
-  4: ConstInt32 r4, @1 # 0
-  7: TestEq r2, r3, r4
- 11: JumpIfFalse r2, 25 (+14)
- 17: ConstInt32 r1, @2 # 2
- 20: Jump 89 (+69)
- 25: LoadEnumVariant r4, r0, @3 # Kind
- 29: ConstInt32 r3, @4 # 64
- 32: TestEq r2, r4, r3
- 36: JumpIfFalse r2, 50 (+14)
- 42: ConstInt32 r1, @5 # 3
- 45: Jump 89 (+44)
- 50: LoadEnumVariant r3, r0, @6 # Kind
- 54: ConstInt32 r4, @7 # 128
- 57: TestEq r2, r3, r4
- 61: JumpIfFalse r2, 75 (+14)
- 67: ConstInt32 r1, @8 # 1
- 70: Jump 89 (+19)
- 75: ConstInt32 r1, @9 # 0
- 78: Jump 89 (+11)
- 83: InvokeDirect r4, @10 # std::unreachable[T]
- 87: Ret r4
- 89: Ret r1
+  0: LoadEnumVariant r2, r0, @0 # Kind
+  4: ConstInt32 r4, @1 # 64
+  7: TestEq r3, r2, r4
+ 11: JumpIfTrue r3, 71 (+60)
+ 17: TestLt r3, r2, r4
+ 21: JumpIfFalse r3, 45 (+24)
+ 27: ConstInt32 r4, @2 # 0
+ 30: TestEq r3, r2, r4
+ 34: JumpIfTrue r3, 63 (+29)
+ 40: Jump 87 (+47)
+ 45: ConstInt32 r4, @3 # 128
+ 48: TestEq r3, r2, r4
+ 52: JumpIfTrue r3, 79 (+27)
+ 58: Jump 87 (+29)
+ 63: ConstInt32 r1, @4 # 2
+ 66: Jump 101 (+35)
+ 71: ConstInt32 r1, @5 # 3
+ 74: Jump 101 (+27)
+ 79: ConstInt32 r1, @6 # 1
+ 82: Jump 101 (+19)
+ 87: ConstInt32 r1, @7 # 0
+ 90: Jump 101 (+11)
+ 95: InvokeDirect r2, @8 # std::unreachable[T]
+ 99: Ret r2
+101: Ret r1
 
   Registers:
    0 => enum Kind
    1 => Int32
-   2 => Bool
-   3 => Int32
+   2 => Int32
+   3 => Bool
    4 => Int32
 
   Constants:
    0 => Enum Kind
-   1 => Int32 0
-   2 => Int32 2
-   3 => Enum Kind
-   4 => Int32 64
+   1 => Int32 64
+   2 => Int32 0
+   3 => Int32 128
+   4 => Int32 2
    5 => Int32 3
-   6 => Enum Kind
-   7 => Int32 128
-   8 => Int32 1
-   9 => Int32 0
-   10 => Fct std::unreachable[Int32]
+   6 => Int32 1
+   7 => Int32 0
+   8 => Fct std::unreachable[Int32]
 
   Locations:
-   0 => 135:9
-   25 => 136:9
-   50 => 137:9
-   83 => 134:5
+   0 => 134:11
+   95 => 134:5
 

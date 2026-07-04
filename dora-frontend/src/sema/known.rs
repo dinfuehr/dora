@@ -311,6 +311,8 @@ pub struct KnownFunctions {
     pub assert: Option<FctDefinitionId>,
     pub unreachable: Option<FctDefinitionId>,
     pub fatal_error: Option<FctDefinitionId>,
+    pub uint8_to_int32: Option<FctDefinitionId>,
+    pub int64_to_int32: Option<FctDefinitionId>,
     pub option_is_some: Option<FctDefinitionId>,
     pub option_is_none: Option<FctDefinitionId>,
     pub option_unwrap: Option<FctDefinitionId>,
@@ -330,6 +332,8 @@ impl KnownFunctions {
             assert: None,
             unreachable: None,
             fatal_error: None,
+            uint8_to_int32: None,
+            int64_to_int32: None,
             option_is_none: None,
             option_is_some: None,
             option_unwrap: None,
@@ -366,6 +370,14 @@ impl KnownFunctions {
 
     pub fn fatal_error(&self) -> FctDefinitionId {
         self.fatal_error.expect("uninitialized")
+    }
+
+    pub fn uint8_to_int32(&self) -> FctDefinitionId {
+        self.uint8_to_int32.expect("uninitialized")
+    }
+
+    pub fn int64_to_int32(&self) -> FctDefinitionId {
+        self.int64_to_int32.expect("uninitialized")
     }
 
     pub fn option_is_some(&self) -> FctDefinitionId {

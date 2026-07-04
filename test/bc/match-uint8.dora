@@ -1,0 +1,8 @@
+fn f(value: UInt8): Int32 {
+    match value {
+        1u8 => 10i32,
+        2u8 => 20i32,
+        3u8 => 30i32,
+        _ => 99i32
+    }
+}

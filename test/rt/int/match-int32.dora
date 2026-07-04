@@ -1,0 +1,27 @@
+fn main() {
+    assert(f(-2i32) == 99i32);
+    assert(f(-1i32) == 10i32);
+    assert(f(0i32) == 20i32);
+    assert(f(1i32) == 30i32);
+    assert(f(2i32) == 99i32);
+
+    assert(hex(-1i32) == 1i32);
+    assert(hex(0i32) == 2i32);
+}
+
+fn f(value: Int32): Int32 {
+    match value {
+        -1i32 => 10i32,
+        0i32 => 20i32,
+        1i32 => 30i32,
+        _ => 99i32
+    }
+}
+
+fn hex(value: Int32): Int32 {
+    match value {
+        0xFFFFFFFFi32 => 1i32,
+        0i32 => 2i32,
+        _ => 3i32
+    }
+}

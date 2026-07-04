@@ -1,0 +1,38 @@
+fn f:
+  0: InvokeDirect r2, @0, r0 # std::primitives::<impl UInt8>::to_int32
+  5: ConstInt32 r4, @1 # 1
+  8: Sub r3, r2, r4
+ 12: Switch r3, @2 # [15, 23, 31], default 39
+ 15: ConstInt32 r1, @3 # 10
+ 18: Jump 53 (+35)
+ 23: ConstInt32 r1, @4 # 20
+ 26: Jump 53 (+27)
+ 31: ConstInt32 r1, @5 # 30
+ 34: Jump 53 (+19)
+ 39: ConstInt32 r1, @6 # 99
+ 42: Jump 53 (+11)
+ 47: InvokeDirect r3, @7 # std::unreachable[T]
+ 51: Ret r3
+ 53: Ret r1
+
+  Registers:
+   0 => UInt8
+   1 => Int32
+   2 => Int32
+   3 => Int32
+   4 => Int32
+
+  Constants:
+   0 => Fct std::primitives::<impl UInt8>::to_int32
+   1 => Int32 1
+   2 => JumpTable 15, 23, 31, default 39
+   3 => Int32 10
+   4 => Int32 20
+   5 => Int32 30
+   6 => Int32 99
+   7 => Fct std::unreachable[Int32]
+
+  Locations:
+   0 => 2:11
+   47 => 2:5
+

@@ -1,14 +1,14 @@
 fn f:
   0: LoadEnumVariant r2, r0, @0 # Kind
-  4: ConstInt32 r3, @1 # 1
-  7: Sub r2, r2, r3
- 11: Switch r2, @2 # [14, 22, 14, 22, 14], default 22
+  4: ConstInt32 r4, @1 # 1
+  7: Sub r3, r2, r4
+ 11: Switch r3, @2 # [14, 22, 14, 22, 14], default 22
  14: ConstInt32 r1, @3 # 40
  17: Jump 36 (+19)
  22: ConstInt32 r1, @4 # 99
  25: Jump 36 (+11)
- 30: InvokeDirect r3, @5 # std::unreachable[T]
- 34: Ret r3
+ 30: InvokeDirect r2, @5 # std::unreachable[T]
+ 34: Ret r2
  36: Ret r1
 
   Registers:
@@ -16,6 +16,7 @@ fn f:
    1 => Int32
    2 => Int32
    3 => Int32
+   4 => Int32
 
   Constants:
    0 => Enum Kind

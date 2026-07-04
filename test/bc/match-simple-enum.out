@@ -7,15 +7,14 @@ fn f:
  18: Jump 37 (+19)
  23: ConstInt32 r1, @4 # 30
  26: Jump 37 (+11)
- 31: InvokeDirect r3, @5 # std::unreachable[T]
- 35: Ret r3
+ 31: InvokeDirect r2, @5 # std::unreachable[T]
+ 35: Ret r2
  37: Ret r1
 
   Registers:
    0 => enum Color
    1 => Int32
    2 => Int32
-   3 => Int32
 
   Constants:
    0 => Enum Color

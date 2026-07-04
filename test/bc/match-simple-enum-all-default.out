@@ -1,9 +1,11 @@
 fn f:
-  0: ConstInt32 r1, @0 # 99
-  3: Jump 14 (+11)
-  8: InvokeDirect r2, @1 # std::unreachable[T]
- 12: Ret r2
- 14: Ret r1
+  0: LoadEnumVariant r2, r0, @0 # Kind
+  4: Jump 9 (+5)
+  9: ConstInt32 r1, @1 # 99
+ 12: Jump 23 (+11)
+ 17: InvokeDirect r2, @2 # std::unreachable[T]
+ 21: Ret r2
+ 23: Ret r1
 
   Registers:
    0 => enum Kind
@@ -11,9 +13,11 @@ fn f:
    2 => Int32
 
   Constants:
-   0 => Int32 99
-   1 => Fct std::unreachable[Int32]
+   0 => Enum Kind
+   1 => Int32 99
+   2 => Fct std::unreachable[Int32]
 
   Locations:
-   8 => 4:5
+   0 => 4:11
+   17 => 4:5
 

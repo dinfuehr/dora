@@ -1,0 +1,27 @@
+fn main() {
+    for raw in std::range(-101, 102) {
+        let value = raw.to_int32();
+        assert(f(value) == expected(value));
+    }
+}
+
+fn f(value: Int32): Int32 {
+    match value {
+        -100i32 => 10i32,
+        0i32 => 20i32,
+        100i32 => 30i32,
+        _ => 99i32
+    }
+}
+
+fn expected(value: Int32): Int32 {
+    if value == -100i32 {
+        10i32
+    } else if value == 0i32 {
+        20i32
+    } else if value == 100i32 {
+        30i32
+    } else {
+        99i32
+    }
+}

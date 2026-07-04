@@ -10,6 +10,7 @@ fn test_const_values() {
                         const x: UInt8 = 255u8;
                         const a: Int32 = 100i32;
                         const b: Int64 = 200i64;
+                        const h: Int32 = 0xFFFFFFFFi32;
                         const c: Char = 'A';
                         const d: Float32 = 3.0f32;
                         const e: Float64 = 6.0;");
@@ -39,6 +40,13 @@ fn test_const_values() {
             .to_const()
             .expect("const expected");
         assert_eq!(&ConstValue::Int(200), sa.const_(id).value());
+    }
+
+    {
+        let id = resolve_path(&sa, "<prog>::h")
+            .to_const()
+            .expect("const expected");
+        assert_eq!(&ConstValue::Int(-1), sa.const_(id).value());
     }
 
     {

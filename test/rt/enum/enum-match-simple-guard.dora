@@ -1,0 +1,30 @@
+enum Kind { A, B, C }
+
+fn main() {
+    assert(f(Kind::A, false, false) == 20i32);
+    assert(f(Kind::A, true, false) == 10i32);
+    assert(f(Kind::B, false, true) == 40i32);
+    assert(f(Kind::B, false, false) == 30i32);
+    assert(f(Kind::C, true, false) == 10i32);
+    assert(f(Kind::C, false, false) == 30i32);
+    assert(binding_guard_uses_value(Kind::A) == 11i32);
+    assert(binding_guard_uses_value(Kind::B) == 22i32);
+    assert(binding_guard_uses_value(Kind::C) == 33i32);
+}
+
+fn f(kind: Kind, a: Bool, b: Bool): Int32 {
+    match kind {
+        _ if a => 10i32,
+        Kind::A => 20i32,
+        Kind::B if b => 40i32,
+        _ => 30i32
+    }
+}
+
+fn binding_guard_uses_value(kind: Kind): Int32 {
+    match kind {
+        x if x is Kind::A => 11i32,
+        x if x is Kind::B => 22i32,
+        _ => 33i32
+    }
+}

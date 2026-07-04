@@ -1,0 +1,35 @@
+fn main() {
+    assert(f(1i32, false, false) == 40i32);
+    assert(f(1i32, true, false) == 10i32);
+    assert(f(1i32, false, true) == 20i32);
+    assert(f(2i32, false, false) == 30i32);
+    assert(f(3i32, false, true) == 50i32);
+
+    guard_count = 0i32;
+    assert(f_overlapping_alt(1i32) == 40i32);
+    assert(guard_count == 1i32);
+}
+
+let mut guard_count: Int32 = 0i32;
+
+fn f(value: Int32, a: Bool, b: Bool): Int32 {
+    match value {
+        1i32 if a => 10i32,
+        1i32 if b => 20i32,
+        2i32 => 30i32,
+        _ if b => 50i32,
+        _ => 40i32
+    }
+}
+
+fn f_overlapping_alt(value: Int32): Int32 {
+    match value {
+        1i32 | _ if count_guard() => 10i32,
+        _ => 40i32
+    }
+}
+
+fn count_guard(): Bool {
+    guard_count = guard_count + 1i32;
+    false
+}

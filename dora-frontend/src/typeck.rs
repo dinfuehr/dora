@@ -874,7 +874,14 @@ pub fn check_lit_int_from_text(
             sa.report(file, span, &NUMBER_OVERFLOW, args!(ty_name));
         }
 
-        (ty, SemaConstValue::Int(value as i64))
+        let value = match ty {
+            SourceType::UInt8 => i64::from(value as u8),
+            SourceType::Int32 => i64::from(value as i32),
+            SourceType::Int64 => value as i64,
+            _ => unreachable!(),
+        };
+
+        (ty, SemaConstValue::Int(value))
     }
 }
 

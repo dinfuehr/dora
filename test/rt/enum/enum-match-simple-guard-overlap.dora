@@ -1,0 +1,37 @@
+enum Kind { A, B, C }
+
+fn main() {
+    assert(f(Kind::A, false, false) == 40i32);
+    assert(f(Kind::A, true, false) == 10i32);
+    assert(f(Kind::A, false, true) == 20i32);
+    assert(f(Kind::B, false, false) == 30i32);
+    assert(f(Kind::C, false, true) == 50i32);
+
+    guard_count = 0i32;
+    assert(f_overlapping_alt(Kind::A) == 40i32);
+    assert(guard_count == 1i32);
+}
+
+let mut guard_count: Int32 = 0i32;
+
+fn f(kind: Kind, a: Bool, b: Bool): Int32 {
+    match kind {
+        Kind::A if a => 10i32,
+        Kind::A if b => 20i32,
+        Kind::B => 30i32,
+        _ if b => 50i32,
+        _ => 40i32
+    }
+}
+
+fn f_overlapping_alt(kind: Kind): Int32 {
+    match kind {
+        Kind::A | _ if count_guard() => 10i32,
+        _ => 40i32
+    }
+}
+
+fn count_guard(): Bool {
+    guard_count = guard_count + 1i32;
+    false
+}

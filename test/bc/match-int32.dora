@@ -1,0 +1,8 @@
+fn f(value: Int32): Int32 {
+    match value {
+        -1i32 => 10i32,
+        0i32 => 20i32,
+        1i32 => 30i32,
+        _ => 99i32
+    }
+}
