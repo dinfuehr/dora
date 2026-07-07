@@ -1,6 +1,9 @@
-use crate::{AotRelocationTarget, RelocationForm};
+use crate::{AotRelocationTarget, Arm64LoadWidth, RelocationForm};
 
-use super::AssemblySyntax;
+use super::{
+    AssemblySyntax, IMAGE_REL_ARM64_BRANCH26, IMAGE_REL_ARM64_PAGEBASE_REL21,
+    IMAGE_REL_ARM64_PAGEOFFSET_12A, IMAGE_REL_ARM64_PAGEOFFSET_12L,
+};
 
 pub(super) fn write_relocation(
     syntax: &mut AssemblySyntax,
@@ -9,8 +12,38 @@ pub(super) fn write_relocation(
     target: &str,
 ) {
     match (target_kind, form) {
+        (AotRelocationTarget::Call(_), RelocationForm::Arm64Branch26) => {
+            syntax.write_indented_line(format_args!("bl {target}"));
+            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_BRANCH26, target);
+        }
         (AotRelocationTarget::Call(_), RelocationForm::X64CallRel32) => {
             syntax.write_indented_line(format_args!("call {target}"));
+        }
+        (
+            AotRelocationTarget::StringSlot(_),
+            RelocationForm::Arm64AdrpLdr {
+                page_reg,
+                base_reg,
+                dst_reg,
+                width,
+            },
+        ) => {
+            let page_reg = arm64_x_reg(page_reg);
+            let base_reg = arm64_x_reg(base_reg);
+            let dst_reg = match width {
+                Arm64LoadWidth::U32 => arm64_w_reg(dst_reg),
+                Arm64LoadWidth::U64 => arm64_x_reg(dst_reg),
+            };
+            syntax.write_indented_line(format_args!("adrp {page_reg}, {target}"));
+            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEBASE_REL21, target);
+            if syntax.is_gnu_arm64_coff() {
+                syntax.write_indented_line(format_args!(
+                    "ldr {dst_reg}, [{base_reg}, :lo12:{target}]"
+                ));
+            } else {
+                syntax.write_indented_line(format_args!("ldr {dst_reg}, [{base_reg}, {target}]"));
+            }
+            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEOFFSET_12L, target);
         }
         (
             AotRelocationTarget::StringSlot(_),
@@ -29,8 +62,33 @@ pub(super) fn write_relocation(
             let dst_reg = x64_reg64(dst_reg);
             syntax.write_indented_line(format_args!("lea {dst_reg}, [{target}]"));
         }
+        (
+            AotRelocationTarget::StringSlot(_)
+            | AotRelocationTarget::ShapeAddress(_)
+            | AotRelocationTarget::ShapeBase
+            | AotRelocationTarget::Global(_)
+            | AotRelocationTarget::JumpTable { .. },
+            RelocationForm::Arm64AdrpAdd {
+                page_reg,
+                base_reg,
+                dst_reg,
+            },
+        ) => {
+            let page_reg = arm64_x_reg(page_reg);
+            let base_reg = arm64_x_reg(base_reg);
+            let dst_reg = arm64_x_reg(dst_reg);
+            syntax.write_indented_line(format_args!("adrp {page_reg}, {target}"));
+            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEBASE_REL21, target);
+            if syntax.is_gnu_arm64_coff() {
+                syntax
+                    .write_indented_line(format_args!("add {dst_reg}, {base_reg}, :lo12:{target}"));
+            } else {
+                syntax.write_indented_line(format_args!("add {dst_reg}, {base_reg}, {target}"));
+            }
+            syntax.write_armasm64_reloc(IMAGE_REL_ARM64_PAGEOFFSET_12A, target);
+        }
         _ => panic!(
-            "unexpected MASM relocation target/form combination {:?}",
+            "unexpected COFF relocation target/form combination {:?}",
             form
         ),
     }
@@ -56,4 +114,12 @@ fn x64_reg64(reg: u8) -> &'static str {
         15 => "r15",
         _ => panic!("invalid x64 register {reg}"),
     }
+}
+
+fn arm64_x_reg(reg: u8) -> String {
+    format!("x{reg}")
+}
+
+fn arm64_w_reg(reg: u8) -> String {
+    format!("w{reg}")
 }

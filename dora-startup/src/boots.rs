@@ -73,10 +73,12 @@ pub fn dora_boots_compiler_main(
         Ok(args) => args,
         Err(exit_code) => return exit_code,
     };
+
     let runtime_flags = match super::parse_runtime_flags_from_env() {
         Ok(runtime_flags) => runtime_flags,
         Err(exit_code) => return exit_code,
     };
+
     let input_program = match read_program_from_file(&args.input) {
         Ok(program) => program,
         Err(err) => {
@@ -121,14 +123,18 @@ pub fn dora_boots_compiler_main(
 
     set_vm(&vm);
 
+    vm.gc.setup(&vm);
+
     patch_string_slots(&vm, strings, metadata::string_slots());
 
     let compiler_invocation = CompilerInvocation::new(dora_boots_compiler::BootsAotBackend::new(
         compile_address,
         dora_entry_trampoline,
     ));
+
     let aot_inputs = AotCompileInputs::from_program(&input_program, &args, compiler_invocation);
     let target_arch = aot_inputs.target_arch();
+
     let aot = if args.internal_compile_boots && args.test {
         execute_on_main(|| {
             compile_test_runner(&input_program, input_program.program_package_id, aot_inputs)
@@ -146,6 +152,7 @@ pub fn dora_boots_compiler_main(
     };
     let encoded_program = bincode::encode_to_vec(&input_program, bincode::config::standard())
         .expect("program serialization failed");
+
     let trampoline = dora_entry_trampoline_codegen::generate_aot(target_arch);
     let assembly_kind = if args.internal_compile_boots && !args.test {
         AotAssemblyKind::CompilerImage
