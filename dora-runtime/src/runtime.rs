@@ -30,7 +30,7 @@ pub use self::code::{
     install_external_code,
 };
 pub use self::extensions::{block_matches_ty, block_matches_ty_in_program};
-pub use self::flags::{Compiler, MemSize, VmFlags, parse_collector, parse_target_arch};
+pub use self::flags::{Compiler, MemSize, RuntimeFlags, parse_collector, parse_target_arch};
 pub use self::globals::GlobalVariableMemory;
 pub use self::globals::{INITIALIZED, RUNNING, UNINITIALIZED};
 pub use self::impls::{
@@ -57,26 +57,26 @@ mod specialize;
 mod ty;
 mod waitlists;
 
-static mut VM_GLOBAL: *const u8 = ptr::null();
+static mut RUNTIME_GLOBAL: *const u8 = ptr::null();
 
-pub fn get_vm() -> &'static VM {
+pub fn get_runtime() -> &'static Runtime {
     unsafe {
-        debug_assert!(!VM_GLOBAL.is_null());
-        &*(VM_GLOBAL as *const VM)
+        debug_assert!(!RUNTIME_GLOBAL.is_null());
+        &*(RUNTIME_GLOBAL as *const Runtime)
     }
 }
 
-pub fn set_vm(vm: &VM) {
+pub fn set_runtime(rt: &Runtime) {
     unsafe {
-        debug_assert!(VM_GLOBAL.is_null());
-        VM_GLOBAL = vm as *const _ as *const u8;
+        debug_assert!(RUNTIME_GLOBAL.is_null());
+        RUNTIME_GLOBAL = rt as *const _ as *const u8;
     }
 }
 
-pub fn clear_vm() {
+pub fn clear_runtime() {
     unsafe {
-        debug_assert!(!VM_GLOBAL.is_null());
-        VM_GLOBAL = ptr::null();
+        debug_assert!(!RUNTIME_GLOBAL.is_null());
+        RUNTIME_GLOBAL = ptr::null();
     }
 }
 
@@ -88,29 +88,29 @@ pub fn stack_pointer() -> Address {
 
 #[derive(TryFromPrimitive, IntoPrimitive, PartialEq, Eq, Copy, Clone, Debug)]
 #[repr(u8)]
-pub enum VmState {
+pub enum RuntimeState {
     Running,
     Safepoint,
 }
 
-impl VmState {
+impl RuntimeState {
     pub fn in_running(&self) -> bool {
         match self {
-            VmState::Running => true,
+            RuntimeState::Running => true,
             _ => false,
         }
     }
 
     pub fn in_safepoint(&self) -> bool {
         match self {
-            VmState::Safepoint => true,
+            RuntimeState::Safepoint => true,
             _ => false,
         }
     }
 }
 
-pub struct VM {
-    pub flags: VmFlags,
+pub struct Runtime {
+    pub flags: RuntimeFlags,
     pub program_args: Vec<String>,
     pub program: Program,
     pub known: KnownElements,
@@ -127,11 +127,11 @@ pub struct VM {
     pub startup_time: Instant,
 }
 
-impl VM {
-    pub fn new(program: Program, flags: VmFlags, program_args: Vec<String>) -> Box<VM> {
+impl Runtime {
+    pub fn new(program: Program, flags: RuntimeFlags, program_args: Vec<String>) -> Box<Runtime> {
         let gc = Gc::new(&flags);
 
-        let vm = Box::new(VM {
+        let rt = Box::new(Runtime {
             flags,
             program_args,
             program,
@@ -145,11 +145,11 @@ impl VM {
             intrinsics: HashMap::new(),
             threads: Threads::new(),
             wait_lists: WaitLists::new(),
-            state: AtomicU8::new(VmState::Running.into()),
+            state: AtomicU8::new(RuntimeState::Running.into()),
             startup_time: Instant::now(),
         });
 
-        vm
+        rt
     }
 
     pub fn shutdown(&self) {
@@ -160,14 +160,14 @@ impl VM {
         self.known.boots_compile_fct_address().to_ptr()
     }
 
-    pub fn state(&self) -> VmState {
+    pub fn state(&self) -> RuntimeState {
         let state = self.state.load(Ordering::Relaxed);
-        VmState::try_from(state).expect("invalid state")
+        RuntimeState::try_from(state).expect("invalid state")
     }
 
-    pub fn set_state(&self, new_state: VmState) -> VmState {
+    pub fn set_state(&self, new_state: RuntimeState) -> RuntimeState {
         let old_state = self.state.swap(new_state.into(), Ordering::Relaxed);
-        VmState::try_from(old_state).expect("invalid state")
+        RuntimeState::try_from(old_state).expect("invalid state")
     }
 
     pub fn startup_time(&self) -> Instant {
@@ -261,20 +261,20 @@ impl VM {
     }
 }
 
-unsafe impl Sync for VM {}
+unsafe impl Sync for Runtime {}
 
 pub fn execute_on_main<F, R>(callback: F) -> R
 where
     F: FnOnce() -> R,
 {
-    let vm = get_vm();
+    let rt = get_runtime();
 
-    let native_thread = DoraThread::new(vm, ThreadState::Running);
+    let native_thread = DoraThread::new(rt, ThreadState::Running);
     init_current_thread(native_thread.clone());
 
-    vm.threads.add_main_thread(native_thread.clone());
+    rt.threads.add_main_thread(native_thread.clone());
 
-    let mut managed_thread = ManagedThread::alloc(vm);
+    let mut managed_thread = ManagedThread::alloc(rt);
     managed_thread.install_native_thread(&native_thread);
 
     let managed_thread_handle = native_thread.handles.create_handle(managed_thread);
@@ -291,7 +291,7 @@ where
 
     let result = callback();
 
-    vm.threads.remove_current_thread();
+    rt.threads.remove_current_thread();
     deinit_current_thread();
 
     result

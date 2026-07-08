@@ -3,7 +3,7 @@ use std::slice;
 
 use crate::gc::Address;
 use crate::mem;
-use crate::vm::ShapeKind;
+use crate::runtime::ShapeKind;
 use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type_array};
 use dora_compiler::{
     AOT_SHAPE_KIND_ARRAY, AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,

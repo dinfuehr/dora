@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 use crate::gc::Address;
-use crate::vm::VM;
+use crate::runtime::Runtime;
 use dora_bytecode::{FunctionId, Location, display_fct};
 use dora_compiler::{GcPoint, GcPointTable, InlinedFunctionId, InlinedLocation, LocationTable};
 
@@ -56,7 +56,7 @@ impl CodeMap {
         }
     }
 
-    pub fn dump(&self, vm: &VM) {
+    pub fn dump(&self, rt: &Runtime) {
         println!("CodeMap {{");
 
         for (key, &code_id) in self.tree.iter() {
@@ -65,12 +65,12 @@ impl CodeMap {
 
             match code.descriptor() {
                 CodeKind::OptimizedFct(fct_id) => {
-                    println!("dora(opt) {}", display_fct(&vm.program, fct_id));
+                    println!("dora(opt) {}", display_fct(&rt.program, fct_id));
                 }
                 CodeKind::TrapTrampoline => println!("trap_stub"),
                 CodeKind::AllocationFailureTrampoline => println!("alloc_stub"),
                 CodeKind::RuntimeEntryTrampoline(fct_id) => {
-                    println!("native stub {}", display_fct(&vm.program, fct_id));
+                    println!("native stub {}", display_fct(&rt.program, fct_id));
                 }
                 CodeKind::DoraEntryTrampoline => println!("dora_stub"),
                 CodeKind::StackOverflowTrampoline => println!("stack_overflow_stub"),
@@ -106,7 +106,7 @@ impl CodeMap {
 }
 
 pub fn install_external_code(
-    vm: &mut VM,
+    rt: &mut Runtime,
     instruction_start: Address,
     instruction_end: Address,
     kind: CodeKind,
@@ -128,7 +128,7 @@ pub fn install_external_code(
         inlined_functions,
     };
 
-    vm.add_code(code)
+    rt.add_code(code)
 }
 
 pub struct Code {

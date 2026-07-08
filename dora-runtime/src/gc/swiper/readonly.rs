@@ -3,7 +3,7 @@ use parking_lot::Mutex;
 use crate::gc::swiper::{LARGE_OBJECT_SIZE, RegularPage};
 use crate::gc::{Address, PAGE_SIZE, Region, fill_region, is_page_aligned};
 use crate::os::{self, MemoryPermission, Reservation};
-use crate::vm::VM;
+use crate::runtime::Runtime;
 
 pub struct ReadOnlySpace {
     total: Region,
@@ -33,9 +33,9 @@ impl ReadOnlySpace {
         }
     }
 
-    pub fn alloc(&self, vm: &VM, size: usize) -> Option<Address> {
+    pub fn alloc(&self, rt: &Runtime, size: usize) -> Option<Address> {
         let mut protected = self.allocate.lock();
-        protected.alloc(vm, size)
+        protected.alloc(rt, size)
     }
 
     pub fn pages(&self) -> Vec<RegularPage> {
@@ -62,32 +62,32 @@ struct ReadOnlySpaceProtected {
 }
 
 impl ReadOnlySpaceProtected {
-    fn alloc(&mut self, vm: &VM, size: usize) -> Option<Address> {
+    fn alloc(&mut self, rt: &Runtime, size: usize) -> Option<Address> {
         assert!(size < LARGE_OBJECT_SIZE);
 
-        if let Some(address) = self.raw_alloc(vm, size) {
+        if let Some(address) = self.raw_alloc(rt, size) {
             return Some(address);
         }
 
-        self.allocate_page(vm);
-        self.raw_alloc(vm, size)
+        self.allocate_page(rt);
+        self.raw_alloc(rt, size)
     }
 
-    fn raw_alloc(&mut self, vm: &VM, size: usize) -> Option<Address> {
+    fn raw_alloc(&mut self, rt: &Runtime, size: usize) -> Option<Address> {
         if self.top.offset(size) <= self.current_limit {
             let alloc_start = self.top;
             let alloc_end = alloc_start.offset(size);
             self.top = alloc_end;
-            fill_region(vm, self.top, self.current_limit);
+            fill_region(rt, self.top, self.current_limit);
             Some(alloc_start)
         } else {
             None
         }
     }
 
-    fn allocate_page(&mut self, vm: &VM) {
+    fn allocate_page(&mut self, rt: &Runtime) {
         if self.next_page < self.limit {
-            fill_region(vm, self.top, self.current_limit);
+            fill_region(rt, self.top, self.current_limit);
             let page_start = self.next_page;
             os::commit_at(page_start, PAGE_SIZE, MemoryPermission::ReadWrite);
             let page = RegularPage::setup(page_start, false, true);

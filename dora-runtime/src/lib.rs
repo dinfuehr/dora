@@ -15,6 +15,7 @@ mod handle;
 pub mod mem;
 mod mirror;
 mod os;
+pub mod runtime;
 mod safepoint;
 mod shape;
 mod snapshot;
@@ -24,7 +25,6 @@ mod stdlib;
 mod threads;
 mod timer;
 mod utils;
-pub mod vm;
 
 pub use dora_compiler::cpu::{
     CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, FReg, REG_PARAMS, REG_RESULT, REG_SP,
@@ -47,10 +47,10 @@ pub use dora_symbol::{demangle_name, mangle_name};
 pub use gc::Address;
 pub use handle::{Handle, create_handle, handle_scope};
 pub use mirror::{Header, Object, Ref, Str, UInt8Array, byte_array_from_buffer};
+pub use runtime::Runtime;
+pub use runtime::{
+    CollectorName, Compiler, FunctionInfoAot, InlinedFunctionAot, MemSize, RuntimeFlags, ShapeKind,
+    TargetArch, clear_runtime, execute_on_main, parse_collector, parse_target_arch, set_runtime,
+};
 pub use shape::Shape;
 pub use threads::{ThreadLocalData, current_thread};
-pub use vm::VM;
-pub use vm::{
-    CollectorName, Compiler, FunctionInfoAot, InlinedFunctionAot, MemSize, ShapeKind, TargetArch,
-    VmFlags, clear_vm, execute_on_main, parse_collector, parse_target_arch, set_vm,
-};

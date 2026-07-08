@@ -2,7 +2,7 @@ fn main() {
   let ok = Result[String, Int32]::Ok("ok");
   let er = Result[String, Int32]::Err(23i32);
 
-  // thread 'main' panicked at 'no impl found for generic trait method call', dora/src/vm/impls.rs:86:10
+  // thread 'main' panicked at 'no impl found for generic trait method call', dora-runtime/src/runtime/impls.rs
   // assert(ok.get_err_or_zero() == 23i32);
   // assert(er.get_err_or_zero() == 0i32);
 }

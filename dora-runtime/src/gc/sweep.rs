@@ -9,8 +9,8 @@ use crate::gc::{
     formatted_size, iterate_weak_roots, setup_free_space,
 };
 use crate::os;
+use crate::runtime::{Runtime, RuntimeFlags};
 use crate::timer::Timer;
-use crate::vm::{VM, VmFlags};
 
 pub struct SweepCollector {
     heap: Region,
@@ -20,7 +20,7 @@ pub struct SweepCollector {
 }
 
 impl SweepCollector {
-    pub fn new(args: &VmFlags) -> SweepCollector {
+    pub fn new(args: &RuntimeFlags) -> SweepCollector {
         let heap_size = args.max_heap_size();
         let heap_start = os::commit(heap_size);
 
@@ -47,33 +47,33 @@ impl SweepCollector {
 }
 
 impl Collector for SweepCollector {
-    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region> {
-        self.inner_alloc(vm, size)
+    fn alloc_tlab_area(&self, rt: &Runtime, size: usize) -> Option<Region> {
+        self.inner_alloc(rt, size)
             .map(|address| address.region_start(size))
     }
 
-    fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address> {
-        self.inner_alloc(vm, size)
+    fn alloc_object(&self, rt: &Runtime, size: usize) -> Option<Address> {
+        self.inner_alloc(rt, size)
     }
 
-    fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
+    fn alloc_readonly(&self, _rt: &Runtime, size: usize) -> Address {
         self.readonly.alloc(size)
     }
 
     fn collect_garbage(
         &self,
-        vm: &VM,
+        rt: &Runtime,
         threads: &[std::sync::Arc<crate::threads::DoraThread>],
         reason: GcReason,
         _size: usize,
     ) {
-        let mut timer = Timer::new(vm.flags.gc_stats);
+        let mut timer = Timer::new(rt.flags.gc_stats);
 
-        tlab::make_iterable_all(vm, threads);
-        let rootset = determine_strong_roots(vm, threads);
-        self.mark_sweep(vm, &rootset, reason);
+        tlab::make_iterable_all(rt, threads);
+        let rootset = determine_strong_roots(rt, threads);
+        self.mark_sweep(rt, &rootset, reason);
 
-        if vm.flags.gc_stats {
+        if rt.flags.gc_stats {
             let duration = timer.stop();
             let mut stats = self.stats.lock();
             stats.add(duration);
@@ -111,17 +111,17 @@ impl Drop for SweepCollector {
 }
 
 impl SweepCollector {
-    fn inner_alloc(&self, vm: &VM, size: usize) -> Option<Address> {
+    fn inner_alloc(&self, rt: &Runtime, size: usize) -> Option<Address> {
         let mut alloc = self.alloc.lock();
-        alloc.allocate(vm, size)
+        alloc.allocate(rt, size)
     }
 
-    fn mark_sweep(&self, vm: &VM, rootset: &[Slot], reason: GcReason) {
+    fn mark_sweep(&self, rt: &Runtime, rootset: &[Slot], reason: GcReason) {
         let start = self.heap.start;
         let top = self.alloc.lock().top;
 
         let mut collector = MarkSweep {
-            vm,
+            rt,
             heap: Region::new(start, top),
             readonly_space: &self.readonly,
 
@@ -130,7 +130,7 @@ impl SweepCollector {
             free_list: FreeList::new(),
         };
 
-        collector.collect(vm);
+        collector.collect(rt);
 
         let mut alloc = self.alloc.lock();
         alloc.free_list = collector.free_list;
@@ -138,7 +138,7 @@ impl SweepCollector {
 }
 
 struct MarkSweep<'a> {
-    vm: &'a VM,
+    rt: &'a Runtime,
     heap: Region,
     readonly_space: &'a Space,
 
@@ -148,16 +148,16 @@ struct MarkSweep<'a> {
 }
 
 impl<'a> MarkSweep<'a> {
-    fn collect(&mut self, vm: &VM) {
+    fn collect(&mut self, rt: &Runtime) {
         self.mark();
         self.iterate_weak_refs();
 
-        self.sweep(vm);
+        self.sweep(rt);
     }
 
     fn mark(&mut self) {
         marking::start(
-            self.vm,
+            self.rt,
             self.rootset,
             self.heap,
             self.readonly_space.total(),
@@ -165,7 +165,7 @@ impl<'a> MarkSweep<'a> {
     }
 
     fn iterate_weak_refs(&mut self) {
-        iterate_weak_roots(self.vm, |current_address| {
+        iterate_weak_roots(self.rt, |current_address| {
             let obj = current_address.to_obj();
 
             if obj.header().is_marked() {
@@ -176,10 +176,10 @@ impl<'a> MarkSweep<'a> {
         });
     }
 
-    fn sweep(&mut self, vm: &VM) {
+    fn sweep(&mut self, rt: &Runtime) {
         let start = self.heap.start;
         let end = self.heap.end;
-        let shape_base = vm.shape_base();
+        let shape_base = rt.shape_base();
 
         let mut scan = start;
         let mut garbage_start = Address::null();
@@ -212,7 +212,7 @@ impl<'a> MarkSweep<'a> {
         }
 
         let size = end.offset_from(start);
-        self.free_list.add(self.vm, start, size);
+        self.free_list.add(self.rt, start, size);
     }
 }
 
@@ -231,7 +231,7 @@ impl SweepAllocator {
         }
     }
 
-    fn allocate(&mut self, vm: &VM, size: usize) -> Option<Address> {
+    fn allocate(&mut self, rt: &Runtime, size: usize) -> Option<Address> {
         let object = self.top;
         let next_top = object.offset(size);
 
@@ -240,19 +240,19 @@ impl SweepAllocator {
             return Some(object);
         }
 
-        let free_space = self.free_list.alloc(vm, size);
+        let free_space = self.free_list.alloc(rt, size);
 
         if free_space.is_non_null() {
             let object = free_space.addr();
-            let free_size = free_space.size(vm.shape_base());
+            let free_size = free_space.size(rt.shape_base());
             assert!(size <= free_size);
 
             let free_start = object.offset(size);
             let free_end = object.offset(free_size);
             let new_free_size = free_end.offset_from(free_start);
 
-            setup_free_space(vm, free_start, free_end, Address::null());
-            self.free_list.add(vm, free_start, new_free_size);
+            setup_free_space(rt, free_start, free_end, Address::null());
+            self.free_list.add(rt, free_start, new_free_size);
             return Some(object);
         }
 

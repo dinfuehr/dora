@@ -1,7 +1,7 @@
 use crate::gc::bump::BumpAllocator;
 use crate::gc::{Address, Collector, GcReason, Region, Space, default_readonly_space_config};
 use crate::os::{self, MemoryPermission, Reservation};
-use crate::vm::{VM, VmFlags};
+use crate::runtime::{Runtime, RuntimeFlags};
 
 pub struct ZeroCollector {
     start: Address,
@@ -12,7 +12,7 @@ pub struct ZeroCollector {
 }
 
 impl ZeroCollector {
-    pub fn new(args: &VmFlags) -> ZeroCollector {
+    pub fn new(args: &RuntimeFlags) -> ZeroCollector {
         let heap_size: usize = args.max_heap_size();
 
         let reservation = os::reserve_align(heap_size, 0);
@@ -34,23 +34,23 @@ impl ZeroCollector {
 }
 
 impl Collector for ZeroCollector {
-    fn alloc_tlab_area(&self, _vm: &VM, size: usize) -> Option<Region> {
+    fn alloc_tlab_area(&self, _rt: &Runtime, size: usize) -> Option<Region> {
         self.alloc
             .bump_alloc(size)
             .map(|address| address.region_start(size))
     }
 
-    fn alloc_object(&self, _vm: &VM, size: usize) -> Option<Address> {
+    fn alloc_object(&self, _rt: &Runtime, size: usize) -> Option<Address> {
         self.alloc.bump_alloc(size)
     }
 
-    fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
+    fn alloc_readonly(&self, _rt: &Runtime, size: usize) -> Address {
         self.readonly.alloc(size)
     }
 
     fn collect_garbage(
         &self,
-        _vm: &VM,
+        _rt: &Runtime,
         _threads: &[std::sync::Arc<crate::threads::DoraThread>],
         _reason: GcReason,
         _size: usize,

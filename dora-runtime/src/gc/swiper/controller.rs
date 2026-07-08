@@ -8,10 +8,10 @@ use std::time::Instant;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{CollectionKind, Heap, PAGE_SIZE, align_page_down, align_page_up};
 use crate::gc::{AllNumbers, GcReason, formatted_size, report_out_of_memory_error};
+use crate::runtime::{Runtime, RuntimeFlags};
 use crate::threads::DoraThread;
-use crate::vm::{VM, VmFlags};
 
-pub fn init(config: &mut HeapController, args: &VmFlags) {
+pub fn init(config: &mut HeapController, args: &RuntimeFlags) {
     assert!(config.min_heap_size <= config.max_heap_size);
 
     let young_size = if let Some(young_size) = args.young_size() {
@@ -51,12 +51,12 @@ pub fn start(config: &SharedHeapConfig, heap: &Heap) {
 }
 
 pub fn stop(
-    vm: &VM,
+    rt: &Runtime,
     config: &SharedHeapConfig,
     kind: CollectionKind,
     heap: &Heap,
     young: &YoungGen,
-    args: &VmFlags,
+    args: &RuntimeFlags,
     reason: GcReason,
     threads: &[Arc<DoraThread>],
 ) {
@@ -86,10 +86,10 @@ pub fn stop(
     let young_size = align_page_down(target_young_size / 2) * 2;
 
     if old_size + young_size > config.max_heap_size {
-        report_out_of_memory_error(vm, threads);
+        report_out_of_memory_error(rt, threads);
     }
 
-    young.resize_after_gc(vm, young_size);
+    young.resize_after_gc(rt, young_size);
     config.old_limit = config.max_heap_size - young_size;
     assert!(config.old_limit >= old_size);
 
@@ -118,12 +118,12 @@ pub fn stop(
     }
 
     if args.gc_verbose {
-        print(vm, &*config, kind, gc_duration_ms, reason);
+        print(rt, &*config, kind, gc_duration_ms, reason);
     }
 }
 
 fn print(
-    vm: &VM,
+    rt: &Runtime,
     config: &HeapController,
     kind: CollectionKind,
     gc_duration: f32,
@@ -132,7 +132,7 @@ fn print(
     let timestamp = config
         .gc_start
         .expect("missing timestamp")
-        .duration_since(vm.startup_time());
+        .duration_since(rt.startup_time());
 
     match kind {
         CollectionKind::Minor => {

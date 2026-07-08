@@ -9,7 +9,7 @@ use crate::gc::root::Slot;
 use crate::handle::{Handle, create_handle};
 use crate::mem;
 pub use crate::mirror::string::Str;
-use crate::vm::VM;
+use crate::runtime::Runtime;
 use crate::{Shape, ShapeVisitor};
 
 mod string;
@@ -344,12 +344,12 @@ impl Object {
         }
     }
 
-    pub fn is_filler(&self, vm: &VM) -> bool {
-        let vtblptr = self.header().raw_vtblptr(vm.shape_base());
+    pub fn is_filler(&self, rt: &Runtime) -> bool {
+        let vtblptr = self.header().raw_vtblptr(rt.shape_base());
 
-        vtblptr == vm.known.filler_word_shape().address()
-            || vtblptr == vm.known.filler_array_shape().address()
-            || vtblptr == vm.known.free_space_shape().address()
+        vtblptr == rt.known.filler_word_shape().address()
+            || vtblptr == rt.known.filler_array_shape().address()
+            || vtblptr == rt.known.free_space_shape().address()
     }
 }
 
@@ -502,8 +502,8 @@ impl<T> Into<Ref<T>> for Address {
     }
 }
 
-pub fn byte_array_from_buffer(vm: &VM, buf: &[u8]) -> Ref<UInt8Array> {
-    let mut handle = byte_array_alloc_heap(vm, buf.len());
+pub fn byte_array_from_buffer(rt: &Runtime, buf: &[u8]) -> Ref<UInt8Array> {
+    let mut handle = byte_array_alloc_heap(rt, buf.len());
     handle.length = buf.len();
 
     let data = handle.data() as *mut u8;
@@ -515,19 +515,19 @@ pub fn byte_array_from_buffer(vm: &VM, buf: &[u8]) -> Ref<UInt8Array> {
     handle
 }
 
-fn byte_array_alloc_heap(vm: &VM, len: usize) -> Ref<UInt8Array> {
+fn byte_array_alloc_heap(rt: &Runtime, len: usize) -> Ref<UInt8Array> {
     let size = Header::size() as usize      // Object header
                 + mem::ptr_width() as usize // length field
                 + len; // array content
 
     let size = mem::align_usize_up(size, mem::ptr_width() as usize);
-    let ptr = vm.gc.alloc(vm, size);
+    let ptr = rt.gc.alloc(rt, size);
 
     let mut handle: Ref<UInt8Array> = ptr.into();
-    let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
+    let (is_marked, is_remembered) = rt.gc.initial_metadata_value(size, false);
     handle.header_mut().setup_header_word(
-        vm.known.byte_array_shape().address(),
-        vm.shape_base(),
+        rt.known.byte_array_shape().address(),
+        rt.shape_base(),
         is_marked,
         is_remembered,
     );
@@ -623,17 +623,17 @@ where
         }
     }
 
-    pub fn alloc(vm: &VM, len: usize, elem: T, shape: &Shape) -> Ref<Array<T>> {
+    pub fn alloc(rt: &Runtime, len: usize, elem: T, shape: &Shape) -> Ref<Array<T>> {
         let size = Header::size() as usize        // Object header
                    + mem::ptr_width() as usize    // length field
                    + len * std::mem::size_of::<T>(); // array content
 
-        let ptr = vm.gc.alloc(vm, size).to_usize();
+        let ptr = rt.gc.alloc(rt, size).to_usize();
         let mut handle: Ref<Array<T>> = ptr.into();
-        let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
+        let (is_marked, is_remembered) = rt.gc.initial_metadata_value(size, false);
         handle.header_mut().setup_header_word(
             shape.address(),
-            vm.shape_base(),
+            rt.shape_base(),
             is_marked,
             is_remembered,
         );
@@ -661,16 +661,16 @@ pub type UInt8Array = Array<u8>;
 pub type Int32Array = Array<i32>;
 pub type StrArray = Array<Ref<Str>>;
 
-pub fn alloc(vm: &VM, shape: &Shape) -> Ref<Object> {
+pub fn alloc(rt: &Runtime, shape: &Shape) -> Ref<Object> {
     let size = mem::align_usize_up(shape.instance_size(), mem::ptr_width() as usize);
     assert!(size > 0);
 
-    let ptr = vm.gc.alloc(vm, size).to_usize();
+    let ptr = rt.gc.alloc(rt, size).to_usize();
     let object: Ref<Object> = ptr.into();
-    let (is_marked, is_remembered) = vm.gc.initial_metadata_value(size, false);
+    let (is_marked, is_remembered) = rt.gc.initial_metadata_value(size, false);
     object
         .header()
-        .setup_header_word(shape.address(), vm.shape_base(), is_marked, is_remembered);
+        .setup_header_word(shape.address(), rt.shape_base(), is_marked, is_remembered);
 
     object
 }

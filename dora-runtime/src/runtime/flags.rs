@@ -7,7 +7,7 @@ use std::ops::Deref;
 pub use dora_compiler::{CollectorName, parse_collector, parse_target_arch};
 
 #[derive(Debug)]
-pub struct VmFlags {
+pub struct RuntimeFlags {
     pub gc_stress: bool,
     pub gc_stress_minor: bool,
     pub gc_stats: bool,
@@ -23,7 +23,7 @@ pub struct VmFlags {
     pub snapshot_on_oom: Option<String>,
 }
 
-impl VmFlags {
+impl RuntimeFlags {
     pub fn min_heap_size(&self) -> usize {
         let min_heap_size = self.min_heap_size.map(|s| *s).unwrap_or(32 * M);
         let max_heap_size = self.max_heap_size();

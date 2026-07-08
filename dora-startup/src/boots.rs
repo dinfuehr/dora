@@ -4,10 +4,10 @@ use dora_runtime::startup::{
     initialize_code_map, initialize_global_memory, initialize_shapes, patch_string_slots,
 };
 use dora_runtime::{
-    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
-    TargetArch, VM, clear_vm, compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
-    dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main, parse_collector,
-    parse_target_arch, set_vm, write_assembly,
+    AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation, Runtime,
+    TargetArch, clear_runtime, compile_boots_compiler_aot, compile_program_aot,
+    compile_test_runner, dora_entry_trampoline as dora_entry_trampoline_codegen, execute_on_main,
+    parse_collector, parse_target_arch, set_runtime, write_assembly,
 };
 use std::os::raw::{c_char, c_int};
 use std::path::PathBuf;
@@ -73,8 +73,8 @@ pub fn dora_boots_compiler_main(
         Ok(args) => args,
         Err(exit_code) => return exit_code,
     };
-    let runtime_flags = match super::parse_runtime_flags_from_env() {
-        Ok(runtime_flags) => runtime_flags,
+    let aot_flags = match super::parse_aot_runtime_flags_from_env() {
+        Ok(aot_flags) => aot_flags,
         Err(exit_code) => return exit_code,
     };
     let input_program = match read_program_from_file(&args.input) {
@@ -85,13 +85,13 @@ pub fn dora_boots_compiler_main(
         }
     };
 
-    let vm_flags = super::vm_flags_from_runtime_flags(&runtime_flags);
-    let mut vm = VM::new(super::decode_program(), vm_flags, Vec::new());
+    let runtime_flags = super::runtime_flags_from_aot_flags(&aot_flags);
+    let mut rt = Runtime::new(super::decode_program(), runtime_flags, Vec::new());
 
     let shape_metadata = metadata::shape_metadata();
     let strings = shape_metadata.strings;
     initialize_shapes(
-        &mut vm,
+        &mut rt,
         shape_metadata.shape_base,
         shape_metadata.shape_size,
         shape_metadata.known_shape_entries,
@@ -99,7 +99,7 @@ pub fn dora_boots_compiler_main(
 
     let (global_memory_start, global_memory_end) = metadata::global_memory();
     initialize_global_memory(
-        &mut vm,
+        &mut rt,
         global_memory_start,
         global_memory_end,
         metadata::global_refs(),
@@ -108,7 +108,7 @@ pub fn dora_boots_compiler_main(
     let code_metadata = metadata::code_metadata();
     let dora_entry_trampoline = super::dora_entry_trampoline as *const u8;
     initialize_code_map(
-        &mut vm,
+        &mut rt,
         dora_entry_trampoline,
         code_metadata.function_entries,
         code_metadata.gcpoint_entries,
@@ -119,9 +119,9 @@ pub fn dora_boots_compiler_main(
         code_metadata.inlined_function_entries,
     );
 
-    set_vm(&vm);
+    set_runtime(&rt);
 
-    patch_string_slots(&vm, strings, metadata::string_slots());
+    patch_string_slots(&rt, strings, metadata::string_slots());
 
     let compiler_invocation = CompilerInvocation::new(dora_boots_compiler::BootsAotBackend::new(
         compile_address,
@@ -164,9 +164,9 @@ pub fn dora_boots_compiler_main(
         assembly_kind,
     );
 
-    vm.threads.join_all();
-    vm.shutdown();
-    clear_vm();
+    rt.threads.join_all();
+    rt.shutdown();
+    clear_runtime();
 
     0
 }

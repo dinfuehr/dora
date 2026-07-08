@@ -6,10 +6,10 @@ use std::sync::Arc;
 use crate::gc::root::iterate_strong_roots;
 use crate::gc::{Address, tlab};
 use crate::mirror::{Array, Ref, Str};
+use crate::runtime::{Runtime, specialize_ty_in_program};
 use crate::safepoint;
 use crate::shape::Shape;
 use crate::threads::DoraThread;
-use crate::vm::{VM, specialize_ty_in_program};
 use crate::{FieldInstance, ShapeKind};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ClassId, EnumId, display_ty, display_ty_array,
@@ -42,7 +42,7 @@ pub struct SnapshotGenerator<'a> {
     variant_name_id: StringId,
     actual_object_name_id: StringId,
     context_name_id: StringId,
-    vm: &'a VM,
+    rt: &'a Runtime,
     layout: AotLayout<'a>,
 }
 
@@ -56,7 +56,7 @@ struct FieldRange {
 struct ShapeKindId(usize);
 
 impl<'a> SnapshotGenerator<'a> {
-    pub fn new(vm: &'a VM, file: File) -> IoResult<SnapshotGenerator<'a>> {
+    pub fn new(rt: &'a Runtime, file: File) -> IoResult<SnapshotGenerator<'a>> {
         let writer = BufWriter::new(file);
         let placeholder = StringId(0);
 
@@ -73,7 +73,7 @@ impl<'a> SnapshotGenerator<'a> {
             shape_kinds: Vec::new(),
             shape_field_ranges: HashMap::new(),
             field_instances: Vec::new(),
-            shape_base: vm.shape_base(),
+            shape_base: rt.shape_base(),
             shape_edge_name_id: placeholder, // Will be initialized later.
             shape_type_name_id: placeholder,
             empty_string_id: placeholder,
@@ -83,8 +83,8 @@ impl<'a> SnapshotGenerator<'a> {
             actual_object_name_id: placeholder,
             context_name_id: placeholder,
             value_map: HashMap::new(),
-            vm,
-            layout: AotLayout::new(&vm.program),
+            rt,
+            layout: AotLayout::new(&rt.program),
         })
     }
 
@@ -97,8 +97,8 @@ impl<'a> SnapshotGenerator<'a> {
     }
 
     pub fn generate_in_safepoint(self) -> IoResult<()> {
-        safepoint::stop_the_world(self.vm, |threads| {
-            tlab::make_iterable_all(self.vm, threads);
+        safepoint::stop_the_world(self.rt, |threads| {
+            tlab::make_iterable_all(self.rt, threads);
             self.generate(threads)
         })
     }
@@ -142,7 +142,7 @@ impl<'a> SnapshotGenerator<'a> {
 
         let mut edges = 0;
 
-        iterate_strong_roots(self.vm, threads, |slot| {
+        iterate_strong_roots(self.rt, threads, |slot| {
             let object_address = slot.get();
 
             if object_address.is_non_null() {
@@ -163,8 +163,8 @@ impl<'a> SnapshotGenerator<'a> {
     }
 
     fn iterate_heap(&mut self) {
-        let swiper = self.vm.gc.collector().to_swiper();
-        swiper.iterate_heap(self.vm, |address| self.process_object(address));
+        let swiper = self.rt.gc.collector().to_swiper();
+        swiper.iterate_heap(self.rt, |address| self.process_object(address));
     }
 
     fn verify_snapshot(&mut self) {
@@ -324,7 +324,7 @@ impl<'a> SnapshotGenerator<'a> {
         }
 
         let shape_node_id = self.ensure_node(shape.address());
-        let shape_name = display_shape_name(self.vm, self.shape_kind_by_id(kind));
+        let shape_name = display_shape_name(self.rt, self.shape_kind_by_id(kind));
 
         {
             let shape_instance_name_id = self.ensure_string(shape_name.clone());
@@ -346,12 +346,12 @@ impl<'a> SnapshotGenerator<'a> {
         type_params: &BytecodeTypeArray,
         fields: FieldRange,
     ) {
-        let class = self.vm.class(cls_id);
+        let class = self.rt.class(cls_id);
         assert_eq!(class.fields.len(), fields.len);
 
         for (field_idx, field) in class.fields.iter().enumerate() {
             let ty =
-                specialize_ty_in_program(&self.vm.program, None, field.ty.clone(), type_params);
+                specialize_ty_in_program(&self.rt.program, None, field.ty.clone(), type_params);
             let field_offset = self.field_instances[fields.start + field_idx].offset;
             let field_addr = address.offset(field_offset as usize);
 
@@ -515,7 +515,7 @@ impl<'a> SnapshotGenerator<'a> {
 
         let params = subtypes
             .iter()
-            .map(|ty| display_ty(&self.vm.program, &ty))
+            .map(|ty| display_ty(&self.rt.program, &ty))
             .collect::<Vec<_>>()
             .join(", ");
         let name = format!("({})", params);
@@ -541,7 +541,7 @@ impl<'a> SnapshotGenerator<'a> {
             name: None,
         });
 
-        let struct_ = self.vm.struct_(struct_id);
+        let struct_ = self.rt.struct_(struct_id);
 
         let layout = self.layout.struct_layout(struct_id, type_params);
 
@@ -573,7 +573,7 @@ impl<'a> SnapshotGenerator<'a> {
         let name = format!(
             "{}{}",
             struct_.name,
-            display_ty_array(&self.vm.program, type_params)
+            display_ty_array(&self.rt.program, type_params)
         );
         self.node_mut(node_id).name = Some(self.ensure_string(name));
 
@@ -588,7 +588,7 @@ impl<'a> SnapshotGenerator<'a> {
 
         let edge_start_idx = self.edge_buffer.len();
 
-        let enum_ = self.vm.enum_(enum_id);
+        let enum_ = self.rt.enum_(enum_id);
         let variant_name: &str;
 
         match self.layout.enum_layout(enum_id, type_params) {
@@ -648,7 +648,7 @@ impl<'a> SnapshotGenerator<'a> {
         let name = format!(
             "{}{}::{}",
             enum_.name,
-            display_ty_array(&self.vm.program, type_params),
+            display_ty_array(&self.rt.program, type_params),
             variant_name,
         );
         self.node_mut(node_id).name = Some(self.ensure_string(name));
@@ -746,31 +746,31 @@ impl<'a> SnapshotGenerator<'a> {
     }
 }
 
-pub(crate) fn display_shape_name(vm: &VM, kind: &ShapeKind) -> String {
+pub(crate) fn display_shape_name(rt: &Runtime, kind: &ShapeKind) -> String {
     match kind {
         ShapeKind::Class(cls_id, type_params) | ShapeKind::Array(cls_id, type_params) => {
-            let class = vm.class(*cls_id);
+            let class = rt.class(*cls_id);
             let class_name = class.name.clone();
             format!(
                 "{}{}",
                 class_name,
-                display_ty_array(&vm.program, &type_params)
+                display_ty_array(&rt.program, &type_params)
             )
         }
         ShapeKind::String => "String".into(),
         ShapeKind::Lambda(fct_id, type_params) => {
-            let fct = vm.fct(*fct_id);
+            let fct = rt.fct(*fct_id);
             let params = fct
                 .params
                 .iter()
                 .skip(1)
                 .map(|ty| {
-                    let ty = specialize_ty_in_program(&vm.program, None, ty.clone(), &type_params);
-                    display_ty(&vm.program, &ty)
+                    let ty = specialize_ty_in_program(&rt.program, None, ty.clone(), &type_params);
+                    display_ty(&rt.program, &ty)
                 })
                 .collect::<Vec<_>>()
                 .join(", ");
-            let ret_ty = display_ty(&vm.program, &fct.return_type);
+            let ret_ty = display_ty(&rt.program, &fct.return_type);
             format!("({}): {}", params, ret_ty)
         }
         ShapeKind::TraitObject {
@@ -779,17 +779,17 @@ pub(crate) fn display_shape_name(vm: &VM, kind: &ShapeKind) -> String {
         } => {
             format!(
                 "{} as {}",
-                display_ty(&vm.program, &actual_object_ty),
-                display_ty(&vm.program, &trait_ty)
+                display_ty(&rt.program, &actual_object_ty),
+                display_ty(&rt.program, &trait_ty)
             )
         }
         ShapeKind::EnumVariant(enum_id, type_params, variant_idx) => {
-            let enum_ = vm.program.enum_(*enum_id);
+            let enum_ = rt.program.enum_(*enum_id);
             let enum_name = enum_.name.clone();
             format!(
                 "{}{}::{}",
                 enum_name,
-                display_ty_array(&vm.program, &type_params),
+                display_ty_array(&rt.program, &type_params),
                 enum_.variants[*variant_idx as usize].name
             )
         }

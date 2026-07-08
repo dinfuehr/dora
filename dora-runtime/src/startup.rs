@@ -1,11 +1,11 @@
 use crate::Address;
 use crate::mirror::Str;
+use crate::runtime::{
+    CodeKind, FunctionInfoAot, GcPoint, GcPointTable, InlinedFunctionAot, InlinedFunctionId,
+    InlinedLocation, LocationTable, Runtime, install_external_code,
+};
 use crate::shape::Shape;
 use crate::threads::current_thread;
-use crate::vm::{
-    CodeKind, FunctionInfoAot, GcPoint, GcPointTable, InlinedFunctionAot, InlinedFunctionId,
-    InlinedLocation, LocationTable, VM, install_external_code,
-};
 use dora_bytecode::{FunctionId, Location};
 pub use dora_compiler::{
     AOT_CODE_KIND_ALLOCATION_FAILURE_TRAMPOLINE, AOT_CODE_KIND_DORA_ENTRY_TRAMPOLINE,
@@ -138,7 +138,7 @@ pub struct AotInlinedFunctionEntry {
 }
 
 pub fn initialize_shapes(
-    vm: &mut VM,
+    rt: &mut Runtime,
     shape_base: *const Shape,
     shape_size: usize,
     known_shape_entries: &[AotKnownShapeEntry],
@@ -154,19 +154,19 @@ pub fn initialize_shapes(
         "AOT shape descriptor base must be Shape-aligned"
     );
     assert!(shape_size > 0, "empty AOT shape descriptor section");
-    vm.set_shape_space(shape_base, shape_size);
+    rt.set_shape_space(shape_base, shape_size);
 
     for known_shape in known_shape_entries {
         let shape_ptr = checked_shape_ptr(shape_base, shape_size, known_shape.shape_ptr);
         match known_shape.kind {
-            0 => vm.known.byte_array_shape = shape_ptr,
-            1 => vm.known.int32_array_shape = shape_ptr,
-            2 => vm.known.string_shape = shape_ptr,
-            3 => vm.known.thread_shape = shape_ptr,
-            4 => vm.known.filler_word_shape = shape_ptr,
-            5 => vm.known.filler_array_shape = shape_ptr,
-            6 => vm.known.free_space_shape = shape_ptr,
-            7 => vm.known.code_shape = shape_ptr,
+            0 => rt.known.byte_array_shape = shape_ptr,
+            1 => rt.known.int32_array_shape = shape_ptr,
+            2 => rt.known.string_shape = shape_ptr,
+            3 => rt.known.thread_shape = shape_ptr,
+            4 => rt.known.filler_word_shape = shape_ptr,
+            5 => rt.known.filler_array_shape = shape_ptr,
+            6 => rt.known.free_space_shape = shape_ptr,
+            7 => rt.known.code_shape = shape_ptr,
             _ => panic!("invalid known shape kind {}", known_shape.kind),
         }
     }
@@ -201,7 +201,7 @@ fn checked_shape_ptr(
 }
 
 pub fn initialize_code_map(
-    vm: &mut VM,
+    rt: &mut Runtime,
     dora_entry_trampoline: *const u8,
     functions: &[AotFunctionEntry],
     gcpoints: &[AotGcPointEntry],
@@ -211,7 +211,7 @@ pub fn initialize_code_map(
     locations: &[AotLocationEntry],
     inlined_functions: &[AotInlinedFunctionEntry],
 ) {
-    vm.dora_entry_trampoline = Some(Address::from_ptr(dora_entry_trampoline));
+    rt.dora_entry_trampoline = Some(Address::from_ptr(dora_entry_trampoline));
 
     for function in functions {
         let code_start = function.code_start as usize;
@@ -267,7 +267,7 @@ pub fn initialize_code_map(
 
         let code_kind = decode_code_kind(function.kind, function.fct_id);
         install_external_code(
-            vm,
+            rt,
             (function.code_start as usize).into(),
             (function.code_end as usize).into(),
             code_kind,
@@ -313,7 +313,7 @@ fn decode_utf8(entry: &AotStringEntry) -> &'static str {
 }
 
 pub fn patch_string_slots(
-    vm: &VM,
+    rt: &Runtime,
     strings: &[AotStringEntry],
     string_slots: &[AotStringSlotEntry],
 ) {
@@ -330,7 +330,7 @@ pub fn patch_string_slots(
                     slice::from_raw_parts(string_entry.data_ptr, string_entry.len as usize)
                 };
                 str::from_utf8(bytes).expect("AOT string payload is not valid UTF-8.");
-                let address = Str::from_buffer_in_perm(vm, bytes).address().to_usize();
+                let address = Str::from_buffer_in_perm(rt, bytes).address().to_usize();
                 string_addresses[string_idx] = Some(address);
                 address
             }
@@ -342,14 +342,19 @@ pub fn patch_string_slots(
     }
 }
 
-pub fn initialize_global_memory(vm: &mut VM, start: *const u8, end: *const u8, references: &[i32]) {
+pub fn initialize_global_memory(
+    rt: &mut Runtime,
+    start: *const u8,
+    end: *const u8,
+    references: &[i32],
+) {
     use crate::gc::Address;
-    use crate::vm::GlobalVariableMemory;
+    use crate::runtime::GlobalVariableMemory;
 
     let start_addr = Address::from(start as usize);
     let end_addr = Address::from(end as usize);
     let memory = GlobalVariableMemory::from_external(start_addr, end_addr, references.to_vec());
-    vm.global_variable_memory = Some(memory);
+    rt.global_variable_memory = Some(memory);
 }
 
 pub fn current_thread_tld_address() -> usize {

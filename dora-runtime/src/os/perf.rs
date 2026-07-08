@@ -1,4 +1,4 @@
-use crate::vm::Code;
+use crate::runtime::Code;
 
 #[cfg(target_os = "linux")]
 pub fn register_with_perf(code: &Code, name: &str) {

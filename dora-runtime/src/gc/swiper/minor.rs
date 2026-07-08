@@ -12,15 +12,15 @@ use crate::gc::swiper::{BasePage, LARGE_OBJECT_SIZE, Swiper};
 use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};
 use crate::gc::{Address, GcReason, GenerationAllocator, fill_region, iterate_weak_roots};
 use crate::mirror::{ForwardResult, Object, VtblptrWordKind};
+use crate::runtime::Runtime;
 use crate::threads::DoraThread;
-use crate::vm::VM;
 
 use crossbeam_deque::{Injector, Steal, Stealer, Worker};
 use rand::distr::uniform::{UniformSampler, UniformUsize};
 use scoped_threadpool::Pool;
 
 pub struct MinorCollector<'a> {
-    vm: &'a VM,
+    rt: &'a Runtime,
 
     swiper: &'a Swiper,
     young: &'a YoungGen,
@@ -46,7 +46,7 @@ pub struct MinorCollector<'a> {
 
 impl<'a> MinorCollector<'a> {
     pub fn new(
-        vm: &'a VM,
+        rt: &'a Runtime,
         swiper: &'a Swiper,
         young: &'a YoungGen,
         old: &'a OldGen,
@@ -60,7 +60,7 @@ impl<'a> MinorCollector<'a> {
         config: &'a SharedHeapConfig,
     ) -> MinorCollector<'a> {
         MinorCollector {
-            vm,
+            rt,
 
             swiper,
             young,
@@ -91,7 +91,7 @@ impl<'a> MinorCollector<'a> {
 
     pub fn collect(&mut self) {
         self.young.unprotect_from();
-        self.young.swap_semi(self.vm);
+        self.young.swap_semi(self.rt);
 
         self.run_threads();
 
@@ -118,7 +118,7 @@ impl<'a> MinorCollector<'a> {
         }
 
         let terminator = Terminator::new(self.number_workers);
-        let vm = self.vm;
+        let rt = self.rt;
 
         let young = self.young;
         let old = self.old;
@@ -153,7 +153,7 @@ impl<'a> MinorCollector<'a> {
                     let injector = &injector;
                     let stealers = &stealers;
                     let terminator = &terminator;
-                    let shape_base = vm.shape_base();
+                    let shape_base = rt.shape_base();
 
                     scoped.execute(move || {
                         let mut task = CopyTask {
@@ -164,7 +164,7 @@ impl<'a> MinorCollector<'a> {
                             stealers,
                             terminator,
 
-                            vm,
+                            rt,
                             young,
                             old,
                             rootset,
@@ -215,13 +215,13 @@ impl<'a> MinorCollector<'a> {
     }
 
     fn iterate_weak_refs(&mut self) {
-        iterate_weak_roots(self.vm, |object_address| {
+        iterate_weak_roots(self.rt, |object_address| {
             let page = BasePage::from_address(object_address);
             if page.is_young() {
                 let obj = object_address.to_obj();
 
                 if let VtblptrWordKind::Fwdptr(fwdptr) =
-                    obj.header().vtblptr_or_fwdptr(self.vm.shape_base())
+                    obj.header().vtblptr_or_fwdptr(self.rt.shape_base())
                 {
                     Some(fwdptr)
                 } else {
@@ -252,15 +252,15 @@ impl Lab {
         self.limit = limit;
     }
 
-    fn make_iterable_young(&mut self, vm: &VM) {
-        fill_region(vm, self.top, self.limit);
+    fn make_iterable_young(&mut self, rt: &Runtime) {
+        fill_region(rt, self.top, self.limit);
 
         self.top = Address::null();
         self.limit = Address::null();
     }
 
-    fn make_iterable_old(&mut self, vm: &VM) {
-        fill_region(vm, self.top, self.limit);
+    fn make_iterable_old(&mut self, rt: &Runtime) {
+        fill_region(rt, self.top, self.limit);
 
         self.top = Address::null();
         self.limit = Address::null();
@@ -300,7 +300,7 @@ struct CopyTask<'a> {
     stealers: &'a [Stealer<WorkItem>],
     terminator: &'a Terminator,
 
-    vm: &'a VM,
+    rt: &'a Runtime,
     young: &'a YoungGen,
     old: &'a OldGen,
     rootset: &'a [Slot],
@@ -386,7 +386,7 @@ impl<'a> CopyTask<'a> {
     fn visit_remembered_object(&mut self, object_address: Address) {
         let object = object_address.to_obj();
 
-        object.visit_reference_fields(self.vm.shape_base(), |slot| {
+        object.visit_reference_fields(self.rt.shape_base(), |slot| {
             let pointer = slot.get();
 
             if pointer.is_non_null() && self.is_young(pointer) {
@@ -410,14 +410,14 @@ impl<'a> CopyTask<'a> {
             }
         }
 
-        self.young_lab.make_iterable_young(self.vm);
-        self.old_lab.make_iterable_old(self.vm);
+        self.young_lab.make_iterable_young(self.rt);
+        self.old_lab.make_iterable_old(self.rt);
     }
 
     fn trace_young_object(&mut self, object_addr: Address) {
         let object = object_addr.to_obj();
 
-        object.visit_reference_fields(self.vm.shape_base(), |slot| {
+        object.visit_reference_fields(self.rt.shape_base(), |slot| {
             let pointer = slot.get();
 
             if pointer.is_non_null() && self.is_young(pointer) {
@@ -431,7 +431,7 @@ impl<'a> CopyTask<'a> {
 
         let mut ref_to_young_gen = false;
 
-        object.visit_reference_fields(self.vm.shape_base(), |slot| {
+        object.visit_reference_fields(self.rt.shape_base(), |slot| {
             let field_ptr: Address = slot.get();
 
             if field_ptr.is_non_null() && self.is_young(field_ptr) {
@@ -466,7 +466,7 @@ impl<'a> CopyTask<'a> {
         }
 
         debug_assert!(size <= MAX_LAB_SIZE);
-        self.young_lab.make_iterable_young(self.vm);
+        self.young_lab.make_iterable_young(self.rt);
         if !self.alloc_young_lab() {
             return Address::null();
         }
@@ -477,7 +477,7 @@ impl<'a> CopyTask<'a> {
     fn alloc_young_medium(&mut self, size: usize) -> Address {
         debug_assert!(MAX_LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
 
-        if let Some(region) = self.young.allocate(self.vm, size, size) {
+        if let Some(region) = self.young.allocate(self.rt, size, size) {
             region.start()
         } else {
             Address::null()
@@ -485,7 +485,7 @@ impl<'a> CopyTask<'a> {
     }
 
     fn alloc_young_lab(&mut self) -> bool {
-        if let Some(lab) = self.young.allocate(self.vm, MIN_LAB_SIZE, MAX_LAB_SIZE) {
+        if let Some(lab) = self.young.allocate(self.rt, MIN_LAB_SIZE, MAX_LAB_SIZE) {
             self.young_lab.reset(lab.start(), lab.end());
             true
         } else {
@@ -499,7 +499,7 @@ impl<'a> CopyTask<'a> {
             self.young_lab.undo_alloc(size)
         } else {
             // Can't undo mid-sized objects. Need to make the heap iterable.
-            fill_region(self.vm, copy_addr, copy_addr.offset(size));
+            fill_region(self.rt, copy_addr, copy_addr.offset(size));
         }
     }
 
@@ -519,7 +519,7 @@ impl<'a> CopyTask<'a> {
             return object_start;
         }
 
-        self.old_lab.make_iterable_old(self.vm);
+        self.old_lab.make_iterable_old(self.rt);
         if !self.alloc_old_lab() {
             return Address::null();
         }
@@ -531,7 +531,7 @@ impl<'a> CopyTask<'a> {
     fn alloc_old_medium(&mut self, size: usize) -> Address {
         debug_assert!(MAX_LAB_OBJECT_SIZE <= size && size < LARGE_OBJECT_SIZE);
 
-        if let Some(new_region) = self.old.allocate(self.vm, size, size) {
+        if let Some(new_region) = self.old.allocate(self.rt, size, size) {
             let object_start = new_region.start();
             object_start
         } else {
@@ -544,12 +544,12 @@ impl<'a> CopyTask<'a> {
             self.old_lab.undo_alloc(size);
         } else {
             // Can't undo mid-sized objects. Need to make the heap iterable.
-            fill_region(self.vm, copy_addr, copy_addr.offset(size));
+            fill_region(self.rt, copy_addr, copy_addr.offset(size));
         }
     }
 
     fn alloc_old_lab(&mut self) -> bool {
-        if let Some(lab) = self.old.allocate(self.vm, MIN_LAB_SIZE, MAX_LAB_SIZE) {
+        if let Some(lab) = self.old.allocate(self.rt, MIN_LAB_SIZE, MAX_LAB_SIZE) {
             self.old_lab.reset(lab.start(), lab.end());
 
             true
@@ -572,7 +572,7 @@ impl<'a> CopyTask<'a> {
         let obj = obj_addr.to_obj();
 
         // Check if object was already copied
-        let vtblptr = match obj.header().vtblptr_or_fwdptr(self.vm.shape_base()) {
+        let vtblptr = match obj.header().vtblptr_or_fwdptr(self.rt.shape_base()) {
             VtblptrWordKind::Fwdptr(fwd_addr) => {
                 return fwd_addr;
             }

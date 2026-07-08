@@ -6,10 +6,11 @@ use dora_bytecode::Location;
 
 use crate::handle::{Handle, create_handle};
 use crate::mirror::{Array, Int32Array, Ref, Stacktrace, StacktraceIterator, Str};
-use crate::threads::current_thread;
-use crate::vm::{
-    Code, CodeId, CodeKind, FunctionInfoAot, InlinedFunctionId, InlinedLocation, VM, get_vm,
+use crate::runtime::{
+    Code, CodeId, CodeKind, FunctionInfoAot, InlinedFunctionId, InlinedLocation, Runtime,
+    get_runtime,
 };
+use crate::threads::current_thread;
 
 pub struct NativeStacktrace {
     elems: Vec<StackElem>,
@@ -28,20 +29,20 @@ impl NativeStacktrace {
         self.elems.push(StackElem { code_id, offset });
     }
 
-    pub fn dump_to_stderr(&self, vm: &VM) {
+    pub fn dump_to_stderr(&self, rt: &Runtime) {
         let stderr = std::io::stderr();
         let stderr = stderr.lock();
         // stderr() is not buffered, create BufWriter for it.
         let mut writer = BufWriter::new(stderr);
-        self.dump(vm, &mut writer).expect("output broken");
+        self.dump(rt, &mut writer).expect("output broken");
     }
 
-    pub fn dump<W>(&self, vm: &VM, w: &mut W) -> std::io::Result<()>
+    pub fn dump<W>(&self, rt: &Runtime, w: &mut W) -> std::io::Result<()>
     where
         W: Write,
     {
         for elem in &self.elems {
-            let code = vm.code_map.get_code(elem.code_id);
+            let code = rt.code_map.get_code(elem.code_id);
             dump_stack_elem(w, code, elem.offset)?;
         }
 
@@ -113,13 +114,13 @@ impl DoraToNativeInfo {
     }
 }
 
-pub fn stacktrace_from_last_dtn(vm: &VM) -> NativeStacktrace {
+pub fn stacktrace_from_last_dtn(rt: &Runtime) -> NativeStacktrace {
     let mut stacktrace = NativeStacktrace::new();
-    frames_from_dtns(&mut stacktrace, vm);
+    frames_from_dtns(&mut stacktrace, rt);
     return stacktrace;
 }
 
-fn frames_from_dtns(stacktrace: &mut NativeStacktrace, vm: &VM) {
+fn frames_from_dtns(stacktrace: &mut NativeStacktrace, rt: &Runtime) {
     let mut dtn_ptr = current_thread().dtn();
 
     while !dtn_ptr.is_null() {
@@ -128,21 +129,21 @@ fn frames_from_dtns(stacktrace: &mut NativeStacktrace, vm: &VM) {
         let pc: usize = dtn.pc;
         let fp: usize = dtn.fp;
 
-        frames_from_pc(stacktrace, vm, pc, fp);
+        frames_from_pc(stacktrace, rt, pc, fp);
 
         dtn_ptr = dtn.last
     }
 }
 
-fn frames_from_pc(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize, mut fp: usize) {
-    if !determine_stack_entry(stacktrace, vm, pc) {
+fn frames_from_pc(stacktrace: &mut NativeStacktrace, rt: &Runtime, pc: usize, mut fp: usize) {
+    if !determine_stack_entry(stacktrace, rt, pc) {
         return;
     }
 
     while fp != 0 {
         let ra = unsafe { *((fp + 8) as *const usize) };
 
-        if !determine_stack_entry(stacktrace, vm, ra) {
+        if !determine_stack_entry(stacktrace, rt, ra) {
             return;
         }
 
@@ -150,11 +151,11 @@ fn frames_from_pc(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize, mut fp:
     }
 }
 
-fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) -> bool {
-    let code_id = vm.code_map.get(pc.into());
+fn determine_stack_entry(stacktrace: &mut NativeStacktrace, rt: &Runtime, pc: usize) -> bool {
+    let code_id = rt.code_map.get(pc.into());
 
     if let Some(code_id) = code_id {
-        let code = vm.code_map.get_code(code_id);
+        let code = rt.code_map.get_code(code_id);
         match code.descriptor() {
             CodeKind::OptimizedFct(_) => {
                 let offset = pc - code.instruction_start().to_usize();
@@ -180,18 +181,18 @@ fn determine_stack_entry(stacktrace: &mut NativeStacktrace, vm: &VM, pc: usize) 
         }
     } else {
         println!("no code found at pc = {:x}", pc);
-        vm.code_map.dump(vm);
+        rt.code_map.dump(rt);
         panic!("invalid stack frame");
     }
 }
 
 #[dora_native("std::Stacktrace#capture")]
 pub extern "C" fn capture_stack_trace(mut obj: Handle<Stacktrace>) {
-    let vm = get_vm();
-    let stacktrace = stacktrace_from_last_dtn(vm);
+    let rt = get_runtime();
+    let stacktrace = stacktrace_from_last_dtn(rt);
 
     let array: Ref<Int32Array> =
-        Array::alloc(vm, stacktrace.len() * 2, 0, vm.known.int32_array_shape());
+        Array::alloc(rt, stacktrace.len() * 2, 0, rt.known.int32_array_shape());
     let mut array = create_handle(array);
     let mut i = 0;
 
@@ -205,10 +206,10 @@ pub extern "C" fn capture_stack_trace(mut obj: Handle<Stacktrace>) {
 
 #[dora_native("std::symbolize_stacktrace_element")]
 pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterator>) {
-    let vm = get_vm();
+    let rt = get_runtime();
 
     let code_id: CodeId = (obj.code_id as usize).into();
-    let code = vm.code_map.get_code(code_id);
+    let code = rt.code_map.get_code(code_id);
 
     let (function_info, location, next_inlined_function_id) = if obj.inlined_function_id == -1 {
         let offset = obj.offset as u32;
@@ -232,7 +233,7 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
         "{} ({}:{})",
         function_info.name, function_info.file, location
     );
-    obj.text = Str::from_buffer(vm, text.as_bytes());
+    obj.text = Str::from_buffer(rt, text.as_bytes());
     obj.inlined_function_id = next_inlined_function_id.0 as i32;
 }
 

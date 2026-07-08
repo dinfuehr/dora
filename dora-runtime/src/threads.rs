@@ -10,8 +10,8 @@ use crate::gc::swiper::get_swiper;
 use crate::gc::{Address, K, Region, WorklistSegment, tlab};
 use crate::handle::HandleMemory;
 use crate::mirror::{Header, Ref, alloc};
+use crate::runtime::{Runtime, get_runtime};
 use crate::stack::DoraToNativeInfo;
-use crate::vm::{VM, get_vm};
 use dora_compiler::ThreadState;
 
 pub const STACK_SIZE: usize = 500 * K;
@@ -91,15 +91,15 @@ impl Threads {
     }
 
     pub fn remove_current_thread(&self) {
-        let vm = get_vm();
+        let rt = get_runtime();
 
         // Other threads might still be running and perform a GC.
         // Fill the TLAB for them.
-        tlab::make_iterable_current(vm);
+        tlab::make_iterable_current(rt);
 
         let thread = current_thread();
 
-        thread.park(vm);
+        thread.park(rt);
 
         let mut threads = self.threads.lock();
         let idx = thread.index_in_thread_list.load(Ordering::Relaxed);
@@ -156,8 +156,8 @@ unsafe impl Sync for DoraThread {}
 unsafe impl Send for DoraThread {}
 
 impl DoraThread {
-    pub fn new(vm: &VM, initial_state: ThreadState) -> Arc<DoraThread> {
-        DoraThread::with_id(vm.threads.next_thread_id(), initial_state, vm.shape_base())
+    pub fn new(rt: &Runtime, initial_state: ThreadState) -> Arc<DoraThread> {
+        DoraThread::with_id(rt.threads.next_thread_id(), initial_state, rt.shape_base())
     }
 
     pub fn with_id(id: usize, initial_state: ThreadState, shape_base: Address) -> Arc<DoraThread> {
@@ -200,7 +200,7 @@ impl DoraThread {
         self.state_relaxed().is_parked()
     }
 
-    pub fn park(&self, vm: &VM) {
+    pub fn park(&self, rt: &Runtime) {
         if self
             .tld
             .state
@@ -212,11 +212,11 @@ impl DoraThread {
             )
             .is_err()
         {
-            self.park_slow(vm);
+            self.park_slow(rt);
         }
     }
 
-    fn park_slow(&self, vm: &VM) {
+    fn park_slow(&self, rt: &Runtime) {
         assert!(
             self.tld
                 .state
@@ -228,10 +228,10 @@ impl DoraThread {
                 )
                 .is_ok()
         );
-        vm.threads.barrier.notify_park();
+        rt.threads.barrier.notify_park();
     }
 
-    pub fn unpark(&self, vm: &VM) {
+    pub fn unpark(&self, rt: &Runtime) {
         if self
             .tld
             .state
@@ -243,11 +243,11 @@ impl DoraThread {
             )
             .is_err()
         {
-            self.unpark_slow(vm);
+            self.unpark_slow(rt);
         }
     }
 
-    fn unpark_slow(&self, vm: &VM) {
+    fn unpark_slow(&self, rt: &Runtime) {
         loop {
             match self.tld.state.compare_exchange(
                 ThreadState::Parked as u8,
@@ -258,7 +258,7 @@ impl DoraThread {
                 Ok(_) => break,
                 Err(state) => {
                     assert_eq!(state, ThreadState::ParkedSafepointRequested as u8);
-                    vm.threads.barrier.wait_in_unpark();
+                    rt.threads.barrier.wait_in_unpark();
                 }
             }
         }
@@ -331,7 +331,7 @@ impl DoraThread {
         } else {
             let remset_segment = remset_segment.as_mut().expect("missing segment");
             if !remset_segment.push(address) {
-                let swiper = get_swiper(get_vm());
+                let swiper = get_swiper(get_runtime());
                 let full_segment = std::mem::replace(remset_segment, WorklistSegment::new());
                 swiper.add_remset_segment(full_segment);
             }
@@ -343,14 +343,14 @@ pub fn parked_scope<F, R>(callback: F) -> R
 where
     F: FnOnce() -> R,
 {
-    let vm = get_vm();
+    let rt = get_runtime();
     let thread = current_thread();
 
     assert!(thread.is_running());
 
-    thread.park(vm);
+    thread.park(rt);
     let result = callback();
-    thread.unpark(vm);
+    thread.unpark(rt);
 
     assert!(thread.is_running());
 
@@ -578,8 +578,8 @@ pub struct ManagedThread {
 }
 
 impl ManagedThread {
-    pub fn alloc(vm: &VM) -> Ref<ManagedThread> {
-        let mut managed_thread: Ref<ManagedThread> = alloc(vm, vm.known.thread_shape()).cast();
+    pub fn alloc(rt: &Runtime) -> Ref<ManagedThread> {
+        let mut managed_thread: Ref<ManagedThread> = alloc(rt, rt.known.thread_shape()).cast();
         managed_thread.native_thread_ptr = 0;
         managed_thread.id = 0;
         managed_thread

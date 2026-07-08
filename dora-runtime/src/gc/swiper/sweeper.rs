@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use crate::gc::swiper::{RegularPage, get_swiper};
 use crate::gc::{Address, Region};
-use crate::vm::{VM, get_vm};
+use crate::runtime::{Runtime, get_runtime};
 
 pub struct Sweeper {
     pages_to_sweep: RwLock<Vec<RegularPage>>,
@@ -29,17 +29,17 @@ impl Sweeper {
         self.in_progress.load(Ordering::SeqCst)
     }
 
-    pub fn start(&self, pages: Vec<RegularPage>, vm: &VM) {
-        let workers = vm.flags.gc_workers();
+    pub fn start(&self, pages: Vec<RegularPage>, rt: &Runtime) {
+        let workers = rt.flags.gc_workers();
         self.reset(pages, workers);
 
-        let swiper = get_swiper(vm);
+        let swiper = get_swiper(rt);
 
         for _ in 0..workers {
             swiper.concurrent_threadpool.execute(move || {
-                let vm = get_vm();
-                let swiper = get_swiper(vm);
-                swiper.sweeper.sweep_task(vm);
+                let rt = get_runtime();
+                let swiper = get_swiper(rt);
+                swiper.sweeper.sweep_task(rt);
             });
         }
     }
@@ -52,33 +52,33 @@ impl Sweeper {
         *self.running_workers.lock() = workers;
     }
 
-    pub fn sweep_task(&self, vm: &VM) {
-        self.sweep_pages(vm);
+    pub fn sweep_task(&self, rt: &Runtime) {
+        self.sweep_pages(rt);
         self.decrement_workers();
     }
 
-    pub fn sweep_in_allocation(&self, vm: &VM) {
+    pub fn sweep_in_allocation(&self, rt: &Runtime) {
         let pages_to_sweep = self.pages_to_sweep.try_read().expect("lock failed");
 
         if let Some(&page) = pages_to_sweep.get(self.next_page_idx()) {
-            sweep_page(vm, page);
+            sweep_page(rt, page);
         }
     }
 
-    pub fn sweep_in_allocation_to_end(&self, vm: &VM) {
+    pub fn sweep_in_allocation_to_end(&self, rt: &Runtime) {
         if !self.in_progress() {
             return;
         }
 
-        self.sweep_pages(vm);
+        self.sweep_pages(rt);
         self.join();
     }
 
-    fn sweep_pages(&self, vm: &VM) {
+    fn sweep_pages(&self, rt: &Runtime) {
         let pages_to_sweep = self.pages_to_sweep.try_read().expect("lock failed");
 
         while let Some(&page) = pages_to_sweep.get(self.next_page_idx()) {
-            sweep_page(vm, page);
+            sweep_page(rt, page);
         }
     }
 
@@ -106,27 +106,27 @@ impl Sweeper {
     }
 }
 
-fn sweep_page(vm: &VM, page: RegularPage) {
-    let swiper = get_swiper(vm);
+fn sweep_page(rt: &Runtime, page: RegularPage) {
+    let swiper = get_swiper(rt);
     let old = &swiper.old;
-    let (live, free_regions) = sweep_page_for_free_memory(vm, page);
+    let (live, free_regions) = sweep_page_for_free_memory(rt, page);
     assert!(live > 0);
 
-    old.add_to_free_list(vm, free_regions);
+    old.add_to_free_list(rt, free_regions);
 }
 
-fn sweep_page_for_free_memory(vm: &VM, page: RegularPage) -> (usize, Vec<Region>) {
+fn sweep_page_for_free_memory(rt: &Runtime, page: RegularPage) -> (usize, Vec<Region>) {
     let region = page.object_area();
     let mut scan = region.start;
     let mut free_start = region.start;
     let mut live = 0;
     let mut free_regions = Vec::new();
-    let shape_base = vm.shape_base();
+    let shape_base = rt.shape_base();
 
     while scan < region.end {
         let object = scan.to_obj();
 
-        if object.is_filler(vm) {
+        if object.is_filler(rt) {
             scan = scan.offset(object.size(shape_base));
         } else {
             let object_size = object.size(shape_base);

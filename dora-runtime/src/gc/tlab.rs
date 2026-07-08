@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::gc::{Address, K, Region, fill_region};
+use crate::runtime::Runtime;
 use crate::threads::{DoraThread, current_thread};
-use crate::vm::VM;
 
 pub const MIN_TLAB_SIZE: usize = 8 * K;
 pub const MAX_TLAB_SIZE: usize = 32 * K;
@@ -32,21 +32,21 @@ pub fn allocate(size: usize) -> Option<Address> {
     }
 }
 
-pub fn make_iterable_all(vm: &VM, threads: &[Arc<DoraThread>]) {
+pub fn make_iterable_all(rt: &Runtime, threads: &[Arc<DoraThread>]) {
     for thread in threads {
         let tlab = thread.tld.tlab_region();
-        fill_region(vm, tlab.start, tlab.end);
+        fill_region(rt, tlab.start, tlab.end);
 
         let n = Address::null();
         thread.tld.tlab_initialize(n, n);
     }
 }
 
-pub fn make_iterable_current(vm: &VM) {
+pub fn make_iterable_current(rt: &Runtime) {
     let thread = current_thread();
     let tlab = thread.tld.tlab_region();
 
-    fill_region(vm, tlab.start, tlab.end);
+    fill_region(rt, tlab.start, tlab.end);
 
     let n = Address::null();
     thread.tld.tlab_initialize(n, n);

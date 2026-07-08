@@ -5,15 +5,15 @@ pub(crate) use dora_compiler::wire::{
 };
 
 use dora_compiler::AotCodegenContext;
-use dora_runtime::{Ref, Shape, TargetArch, UInt8Array, VM, byte_array_from_buffer};
+use dora_runtime::{Ref, Runtime, Shape, TargetArch, UInt8Array, byte_array_from_buffer};
 
 pub fn allocate_encoded_system_config(
-    vm: &VM,
+    rt: &Runtime,
     aot_context: &AotCodegenContext<'_>,
 ) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
     encode_system_config(aot_context, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
 fn encode_system_config(aot_context: &AotCodegenContext<'_>, buffer: &mut ByteBuffer) {
@@ -50,22 +50,25 @@ fn has_avx2() -> bool {
     false
 }
 
-pub fn allocate_encoded_struct_data(vm: &VM, struct_: &StructData) -> Ref<UInt8Array> {
+pub fn allocate_encoded_struct_data(rt: &Runtime, struct_: &StructData) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
     crate::wire_serializer::encode_struct_data(struct_, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
-pub fn allocate_encoded_enum_data(vm: &VM, enum_: &EnumData) -> Ref<UInt8Array> {
+pub fn allocate_encoded_enum_data(rt: &Runtime, enum_: &EnumData) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
     crate::wire_serializer::encode_enum_data(enum_, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
-pub fn allocate_encoded_function_inlining_info(vm: &VM, fct: &FunctionData) -> Ref<UInt8Array> {
+pub fn allocate_encoded_function_inlining_info(
+    rt: &Runtime,
+    fct: &FunctionData,
+) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
     crate::wire_serializer::encode_function_inlining_info(fct, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
 fn get_architecture(target: TargetArch) -> u8 {

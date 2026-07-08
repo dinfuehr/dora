@@ -16,11 +16,11 @@ pub use crate::gc::worklist::{Worklist, WorklistSegment};
 use crate::gc::zero::ZeroCollector;
 use crate::mem;
 use crate::mirror::{Header, Object};
+use crate::runtime::{CollectorName, Runtime, RuntimeFlags, Trap};
 use crate::safepoint;
 use crate::snapshot::SnapshotGenerator;
 use crate::stdlib;
 use crate::threads::DoraThread;
-use crate::vm::{CollectorName, Trap, VM, VmFlags};
 
 pub use crate::gc::root::{Slot, iterate_strong_roots, iterate_weak_roots};
 
@@ -55,7 +55,7 @@ pub struct Gc {
 }
 
 impl Gc {
-    pub fn new(args: &VmFlags) -> Gc {
+    pub fn new(args: &RuntimeFlags) -> Gc {
         let collector_name = args.gc.unwrap_or(CollectorName::Swiper);
 
         let collector: Box<dyn Collector + Sync> = match collector_name {
@@ -74,8 +74,8 @@ impl Gc {
         }
     }
 
-    pub fn setup(&self, vm: &VM) {
-        self.collector.setup(vm);
+    pub fn setup(&self, rt: &Runtime) {
+        self.collector.setup(rt);
     }
 
     pub fn add_finalizer(&self, object: Address, thread: Arc<DoraThread>) {
@@ -87,20 +87,20 @@ impl Gc {
         self.collector.needs_write_barrier()
     }
 
-    pub fn alloc_readonly(&self, vm: &VM, size: usize) -> Address {
-        self.collector.alloc_readonly(vm, size)
+    pub fn alloc_readonly(&self, rt: &Runtime, size: usize) -> Address {
+        self.collector.alloc_readonly(rt, size)
     }
 
-    pub fn alloc(&self, vm: &VM, size: usize) -> Address {
-        if vm.flags.gc_stress_minor {
-            self.collect_garbage(vm, GcReason::StressMinor, 0);
+    pub fn alloc(&self, rt: &Runtime, size: usize) -> Address {
+        if rt.flags.gc_stress_minor {
+            self.collect_garbage(rt, GcReason::StressMinor, 0);
         }
 
-        if vm.flags.gc_stress {
-            self.collect_garbage(vm, GcReason::Stress, 0);
+        if rt.flags.gc_stress {
+            self.collect_garbage(rt, GcReason::Stress, 0);
         }
 
-        if let Some(address) = self.allocate_raw(vm, size) {
+        if let Some(address) = self.allocate_raw(rt, size) {
             return address;
         }
 
@@ -110,29 +110,29 @@ impl Gc {
             } else {
                 GcReason::AllocationFailure
             };
-            self.collect_garbage(vm, reason, size);
+            self.collect_garbage(rt, reason, size);
 
-            if let Some(address) = self.allocate_raw(vm, size) {
+            if let Some(address) = self.allocate_raw(rt, size) {
                 return address;
             }
         }
 
-        safepoint::stop_the_world(vm, |threads| {
-            report_out_of_memory_error(vm, threads);
+        safepoint::stop_the_world(rt, |threads| {
+            report_out_of_memory_error(rt, threads);
         })
     }
 
-    fn alloc_in_lab(&self, vm: &VM, size: usize) -> Option<Address> {
+    fn alloc_in_lab(&self, rt: &Runtime, size: usize) -> Option<Address> {
         // try to allocate in current tlab
         if let Some(addr) = tlab::allocate(size) {
             return Some(addr);
         }
 
         // if there is not enough space, make heap iterable by filling tlab with unused objects
-        tlab::make_iterable_current(vm);
+        tlab::make_iterable_current(rt);
 
         // allocate new tlab
-        if let Some(tlab) = self.collector.alloc_tlab_area(vm, tlab::calculate_size()) {
+        if let Some(tlab) = self.collector.alloc_tlab_area(rt, tlab::calculate_size()) {
             let object_start = tlab.start;
             let tlab = Region::new(tlab.start.offset(size), tlab.end);
 
@@ -155,13 +155,13 @@ impl Gc {
         self.epoch.load(AtomicOrdering::Relaxed)
     }
 
-    pub fn force_collect(&self, vm: &VM, reason: GcReason) {
+    pub fn force_collect(&self, rt: &Runtime, reason: GcReason) {
         assert!(reason.is_forced() || reason.is_stress());
-        self.collect_garbage(vm, reason, 0);
+        self.collect_garbage(rt, reason, 0);
     }
 
-    pub fn shutdown(&self, vm: &VM) {
-        self.collector.shutdown(vm);
+    pub fn shutdown(&self, rt: &Runtime) {
+        self.collector.shutdown(rt);
     }
 
     pub fn dump_summary(&self, runtime: f32) {
@@ -172,33 +172,33 @@ impl Gc {
         self.collector.initial_metadata_value(size, is_readonly)
     }
 
-    fn allocate_raw(&self, vm: &VM, size: usize) -> Option<Address> {
-        if vm.flags.disable_tlab {
-            self.collector.alloc_object(vm, size)
+    fn allocate_raw(&self, rt: &Runtime, size: usize) -> Option<Address> {
+        if rt.flags.disable_tlab {
+            self.collector.alloc_object(rt, size)
         } else if size < MAX_TLAB_OBJECT_SIZE {
-            self.alloc_in_lab(vm, size)
+            self.alloc_in_lab(rt, size)
         } else {
-            self.collector.alloc_object(vm, size)
+            self.collector.alloc_object(rt, size)
         }
     }
 
-    fn collect_garbage(&self, vm: &VM, reason: GcReason, size: usize) {
+    fn collect_garbage(&self, rt: &Runtime, reason: GcReason, size: usize) {
         let initial_epoch = self.epoch();
-        safepoint::stop_the_world(vm, |threads| {
+        safepoint::stop_the_world(rt, |threads| {
             if reason.is_forced() || initial_epoch == self.epoch() {
                 self.epoch.fetch_add(1, AtomicOrdering::Relaxed);
-                tlab::make_iterable_all(vm, threads);
+                tlab::make_iterable_all(rt, threads);
 
-                self.collector.collect_garbage(vm, threads, reason, size);
+                self.collector.collect_garbage(rt, threads, reason, size);
             }
         });
     }
 }
 
-fn report_out_of_memory_error(vm: &VM, threads: &[Arc<DoraThread>]) -> ! {
-    if let Some(ref snapshot_path) = vm.flags.snapshot_on_oom {
+fn report_out_of_memory_error(rt: &Runtime, threads: &[Arc<DoraThread>]) -> ! {
+    if let Some(ref snapshot_path) = rt.flags.snapshot_on_oom {
         let snapshot_path = File::create(snapshot_path).expect("Failed to create file.");
-        let snapshot = SnapshotGenerator::new(vm, snapshot_path).unwrap();
+        let snapshot = SnapshotGenerator::new(rt, snapshot_path).unwrap();
         snapshot
             .generate(threads)
             .expect("Failed to generate snapshot");
@@ -210,11 +210,17 @@ fn report_out_of_memory_error(vm: &VM, threads: &[Arc<DoraThread>]) -> ! {
 
 pub trait Collector {
     // Allocate object of given size.
-    fn alloc_tlab_area(&self, vm: &VM, size: usize) -> Option<Region>;
-    fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address>;
-    fn alloc_readonly(&self, vm: &VM, size: usize) -> Address;
+    fn alloc_tlab_area(&self, rt: &Runtime, size: usize) -> Option<Region>;
+    fn alloc_object(&self, rt: &Runtime, size: usize) -> Option<Address>;
+    fn alloc_readonly(&self, rt: &Runtime, size: usize) -> Address;
 
-    fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason, size: usize);
+    fn collect_garbage(
+        &self,
+        rt: &Runtime,
+        threads: &[Arc<DoraThread>],
+        reason: GcReason,
+        size: usize,
+    );
 
     // Decides whether to emit write barriers needed for
     // generational GC.
@@ -230,16 +236,16 @@ pub trait Collector {
     fn dump_summary(&self, _runtime: f32);
 
     // Verify reference
-    fn verify_ref(&self, _vm: &VM, _addr: Address) {
+    fn verify_ref(&self, _rt: &Runtime, _addr: Address) {
         // do nothing
     }
 
-    // Invoked once right after VM was created.
-    fn setup(&self, _vm: &VM) {
+    // Invoked once right after Runtime was created.
+    fn setup(&self, _rt: &Runtime) {
         // Do nothing.
     }
 
-    fn shutdown(&self, _vm: &VM) {
+    fn shutdown(&self, _rt: &Runtime) {
         // Do nothing.
     }
 
@@ -547,34 +553,34 @@ impl fmt::Display for GcReason {
     }
 }
 
-pub fn fill_region(vm: &VM, start: Address, end: Address) {
+pub fn fill_region(rt: &Runtime, start: Address, end: Address) {
     let size = end.offset_from(start);
 
     if size == mem::ptr_width_usize() {
-        let shape = vm.known.filler_word_shape();
+        let shape = rt.known.filler_word_shape();
 
         unsafe {
             *start.to_mut_ptr::<usize>() =
-                Header::compute_header_word(shape.address(), vm.shape_base(), false, false);
+                Header::compute_header_word(shape.address(), rt.shape_base(), false, false);
         }
     } else if size > mem::ptr_width_usize() {
-        let shape = vm.known.filler_array_shape();
+        let shape = rt.known.filler_array_shape();
         let header_size = Header::size() as usize + mem::ptr_width_usize();
         let length: usize = end.offset_from(start.offset(header_size)) / mem::ptr_width_usize();
 
         unsafe {
             *start.to_mut_ptr::<usize>() =
-                Header::compute_header_word(shape.address(), vm.shape_base(), false, false);
+                Header::compute_header_word(shape.address(), rt.shape_base(), false, false);
             *start.add_ptr(1).to_mut_ptr::<usize>() = length;
         }
     }
 }
 
-pub fn setup_free_space(vm: &VM, start: Address, end: Address, next: Address) {
+pub fn setup_free_space(rt: &Runtime, start: Address, end: Address, next: Address) {
     assert!(end.offset_from(start) > 2 * mem::ptr_width_usize());
 
     // fill with FreeArray
-    let shape = vm.known.free_space_shape();
+    let shape = rt.known.free_space_shape();
 
     // determine of header+length in bytes
     let header_size = Header::size() as usize + mem::ptr_width_usize();
@@ -584,7 +590,7 @@ pub fn setup_free_space(vm: &VM, start: Address, end: Address, next: Address) {
 
     unsafe {
         *start.to_mut_ptr::<usize>() =
-            Header::compute_header_word(shape.address(), vm.shape_base(), false, false);
+            Header::compute_header_word(shape.address(), rt.shape_base(), false, false);
         *start.add_ptr(1).to_mut_ptr::<usize>() = length;
         *start.add_ptr(2).to_mut_ptr::<usize>() = next.to_usize();
     }

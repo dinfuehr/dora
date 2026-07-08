@@ -1,5 +1,5 @@
 use crate::gc::{Address, K, fill_region, setup_free_space};
-use crate::vm::VM;
+use crate::runtime::Runtime;
 
 pub const SIZE_CLASSES: usize = 6;
 
@@ -77,9 +77,9 @@ impl FreeList {
         FreeList { classes }
     }
 
-    pub fn add(&mut self, vm: &VM, addr: Address, size: usize) {
+    pub fn add(&mut self, rt: &Runtime, addr: Address, size: usize) {
         if size <= SIZE_SMALLEST {
-            fill_region(vm, addr, addr.offset(size));
+            fill_region(rt, addr, addr.offset(size));
             return;
         }
 
@@ -87,11 +87,11 @@ impl FreeList {
         let szclass = SizeClass::next_down(size);
 
         let free_class = &mut self.classes[szclass.idx()];
-        setup_free_space(vm, addr, addr.offset(size), free_class.head.addr());
+        setup_free_space(rt, addr, addr.offset(size), free_class.head.addr());
         free_class.head = FreeSpace(addr);
     }
 
-    pub fn alloc(&mut self, vm: &VM, size: usize) -> FreeSpace {
+    pub fn alloc(&mut self, rt: &Runtime, size: usize) -> FreeSpace {
         let szclass = SizeClass::next_up(size).idx();
         let last = SIZE_CLASS_HUGE.idx();
 
@@ -99,12 +99,12 @@ impl FreeList {
             let result = self.classes[class].first();
 
             if result.is_non_null() {
-                assert!(result.size(vm.shape_base()) >= size);
+                assert!(result.size(rt.shape_base()) >= size);
                 return result;
             }
         }
 
-        self.classes[SIZE_CLASS_HUGE.idx()].find(vm, size)
+        self.classes[SIZE_CLASS_HUGE.idx()].find(rt, size)
     }
 
     pub fn clear(&mut self) {
@@ -135,12 +135,12 @@ impl FreeListClass {
         }
     }
 
-    fn find(&mut self, vm: &VM, minimum_size: usize) -> FreeSpace {
+    fn find(&mut self, rt: &Runtime, minimum_size: usize) -> FreeSpace {
         let mut curr = self.head;
         let mut prev = FreeSpace::null();
 
         while curr.is_non_null() {
-            if curr.size(vm.shape_base()) >= minimum_size {
+            if curr.size(rt.shape_base()) >= minimum_size {
                 if prev.is_null() {
                     self.head = curr.next();
                 } else {

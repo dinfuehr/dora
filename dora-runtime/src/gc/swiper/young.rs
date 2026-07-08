@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::gc::swiper::{PAGE_SIZE, RegularPage, SURVIVOR_BIT, get_swiper};
 use crate::gc::{Address, GenerationAllocator, Region, fill_region, is_page_aligned};
 use crate::os::{self, MemoryPermission};
-use crate::vm::VM;
+use crate::runtime::Runtime;
 
 pub struct YoungGen {
     from_index: AtomicUsize,
@@ -28,29 +28,29 @@ impl YoungGen {
         }
     }
 
-    pub(super) fn setup(&self, vm: &VM, young_size: usize) {
+    pub(super) fn setup(&self, rt: &Runtime, young_size: usize) {
         assert_eq!(young_size % (2 * PAGE_SIZE), 0);
         let semi_size = young_size / 2;
         assert!(semi_size > 0);
         assert_eq!(semi_size % PAGE_SIZE, 0);
 
-        self.commit(vm, semi_size);
+        self.commit(rt, semi_size);
         self.protect_from();
 
         let protected = self.protected.lock();
-        self.make_pages_iterable(vm, &protected.pages[self.to_index()]);
+        self.make_pages_iterable(rt, &protected.pages[self.to_index()]);
     }
 
-    fn make_pages_iterable(&self, vm: &VM, pages: &[RegularPage]) {
+    fn make_pages_iterable(&self, rt: &Runtime, pages: &[RegularPage]) {
         for &page in pages {
             let page = RegularPage::setup(page.address(), true, false);
-            fill_region(vm, page.object_area_start(), page.object_area_end());
+            fill_region(rt, page.object_area_start(), page.object_area_end());
         }
     }
 
-    fn commit(&self, vm: &VM, semi_size: usize) {
-        self.commit_semi_space(vm, 0, semi_size);
-        self.commit_semi_space(vm, 1, semi_size);
+    fn commit(&self, rt: &Runtime, semi_size: usize) {
+        self.commit_semi_space(rt, 0, semi_size);
+        self.commit_semi_space(rt, 1, semi_size);
     }
 
     pub fn unprotect_from(&self) {
@@ -76,21 +76,21 @@ impl YoungGen {
         }
     }
 
-    pub fn swap_semi(&self, vm: &VM) {
+    pub fn swap_semi(&self, rt: &Runtime) {
         self.swap_indices();
 
         let mut protected = self.protected.lock();
 
-        self.make_pages_iterable(vm, &protected.pages[self.to_index()]);
+        self.make_pages_iterable(rt, &protected.pages[self.to_index()]);
 
         protected.top = Address::null();
         protected.limit = Address::null();
         protected.next_page_idx = 0;
     }
 
-    pub fn reset_after_full_gc(&self, vm: &VM) {
+    pub fn reset_after_full_gc(&self, rt: &Runtime) {
         self.unprotect_from();
-        self.swap_semi(vm);
+        self.swap_semi(rt);
         self.protect_from();
 
         for page in self.to_pages() {
@@ -107,20 +107,20 @@ impl YoungGen {
         }
     }
 
-    pub fn resize_after_gc(&self, vm: &VM, young_size: usize) {
+    pub fn resize_after_gc(&self, rt: &Runtime, young_size: usize) {
         assert_eq!(young_size % (2 * PAGE_SIZE), 0);
         let new_semi_size = young_size / 2;
         assert_eq!(new_semi_size % PAGE_SIZE, 0);
 
-        self.commit_semi_space(vm, 0, new_semi_size);
-        self.commit_semi_space(vm, 1, new_semi_size);
+        self.commit_semi_space(rt, 0, new_semi_size);
+        self.commit_semi_space(rt, 1, new_semi_size);
 
         let protected = self.protected.lock();
         assert!(protected.top <= protected.limit);
         assert!(protected.next_page_idx <= new_semi_size / PAGE_SIZE);
     }
 
-    fn commit_semi_space(&self, vm: &VM, semi_space_idx: usize, new_size: usize) {
+    fn commit_semi_space(&self, rt: &Runtime, semi_space_idx: usize, new_size: usize) {
         assert!(is_page_aligned(new_size));
 
         let mut protected = self.protected.lock();
@@ -130,17 +130,17 @@ impl YoungGen {
 
         if old_size < new_size {
             let new_pages = (new_size - old_size) / PAGE_SIZE;
-            let heap = &get_swiper(vm).heap;
+            let heap = &get_swiper(rt).heap;
 
             for _ in 0..new_pages {
                 let page = heap
-                    .alloc_regular_young_page(vm)
+                    .alloc_regular_young_page(rt)
                     .expect("page allocation failed");
                 space_pages.push(page);
             }
         } else if old_size > new_size {
             let target_pages = new_size / PAGE_SIZE;
-            let heap = &get_swiper(vm).heap;
+            let heap = &get_swiper(rt).heap;
 
             while space_pages.len() > target_pages {
                 let page = space_pages.pop().expect("missing page");
@@ -175,9 +175,9 @@ impl YoungGen {
 }
 
 impl GenerationAllocator for YoungGen {
-    fn allocate(&self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
+    fn allocate(&self, rt: &Runtime, min_size: usize, max_size: usize) -> Option<Region> {
         let mut protected = self.protected.lock();
-        protected.alloc(vm, self, min_size, max_size)
+        protected.alloc(rt, self, min_size, max_size)
     }
 
     fn free(&self, _region: Region) {
@@ -196,12 +196,12 @@ struct YoungGenProtected {
 impl YoungGenProtected {
     fn alloc(
         &mut self,
-        vm: &VM,
+        rt: &Runtime,
         young: &YoungGen,
         min_size: usize,
         max_size: usize,
     ) -> Option<Region> {
-        if let Some(region) = self.raw_alloc(vm, min_size, max_size) {
+        if let Some(region) = self.raw_alloc(rt, min_size, max_size) {
             return Some(region);
         }
 
@@ -210,13 +210,13 @@ impl YoungGenProtected {
         assert!(self.next_page_idx <= pages.len());
 
         if self.next_page_idx < pages.len() {
-            fill_region(vm, self.top, self.limit);
+            fill_region(rt, self.top, self.limit);
             let page = RegularPage::setup(pages[self.next_page_idx].address(), true, false);
             self.top = page.object_area_start();
             self.limit = page.object_area_end();
             self.next_page_idx += 1;
-            fill_region(vm, self.top, self.limit);
-            let result = self.raw_alloc(vm, min_size, max_size);
+            fill_region(rt, self.top, self.limit);
+            let result = self.raw_alloc(rt, min_size, max_size);
             assert!(result.is_some());
             result
         } else {
@@ -224,14 +224,14 @@ impl YoungGenProtected {
         }
     }
 
-    fn raw_alloc(&mut self, vm: &VM, min_size: usize, max_size: usize) -> Option<Region> {
+    fn raw_alloc(&mut self, rt: &Runtime, min_size: usize, max_size: usize) -> Option<Region> {
         if self.top.offset(min_size) <= self.limit {
             let alloc_start = self.top;
             let alloc_end = alloc_start.offset(max_size).min(self.limit);
             let alloc = Region::new(alloc_start, alloc_end);
             debug_assert!(alloc.size() >= min_size);
             self.top = alloc_end;
-            fill_region(vm, self.top, self.limit);
+            fill_region(rt, self.top, self.limit);
             Some(alloc)
         } else {
             None

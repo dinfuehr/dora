@@ -10,11 +10,11 @@ use crate::gc::swiper::{
 };
 use crate::gc::worklist::{Worklist, WorklistSegment};
 use crate::gc::{Address, GcReason, Region, Slot, iterate_weak_roots};
+use crate::runtime::Runtime;
 use crate::threads::DoraThread;
-use crate::vm::VM;
 
 pub struct FullCollector<'a> {
-    vm: &'a VM,
+    rt: &'a Runtime,
     young: &'a YoungGen,
     old: &'a OldGen,
     large_space: &'a LargeSpace,
@@ -37,7 +37,7 @@ pub struct FullCollector<'a> {
 
 impl<'a> FullCollector<'a> {
     pub fn new(
-        vm: &'a VM,
+        rt: &'a Runtime,
         swiper: &'a Swiper,
         young: &'a YoungGen,
         old: &'a OldGen,
@@ -49,7 +49,7 @@ impl<'a> FullCollector<'a> {
         max_heap_size: usize,
     ) -> FullCollector<'a> {
         FullCollector {
-            vm,
+            rt,
             swiper,
             young,
             old,
@@ -57,7 +57,7 @@ impl<'a> FullCollector<'a> {
             large_space,
             rootset,
             threads,
-            shape_base: vm.shape_base(),
+            shape_base: rt.shape_base(),
             live_pages: FixedBitSet::new(),
 
             reason,
@@ -75,36 +75,36 @@ impl<'a> FullCollector<'a> {
     }
 
     pub fn collect(&mut self) {
-        self.phases.complete = measure(self.vm, || {
-            self.swiper.sweeper.sweep_in_allocation_to_end(self.vm);
+        self.phases.complete = measure(self.rt, || {
+            self.swiper.sweeper.sweep_in_allocation_to_end(self.rt);
         });
 
-        self.phases.marking = measure(self.vm, || {
+        self.phases.marking = measure(self.rt, || {
             self.mark_live();
         });
 
-        if self.vm.flags.gc_verify {
-            verify_marking(self.vm, self.young, self.old, self.large_space);
+        if self.rt.flags.gc_verify {
+            verify_marking(self.rt, self.young, self.old, self.large_space);
         }
 
-        self.old.promote_pages(self.vm, self.young);
+        self.old.promote_pages(self.rt, self.young);
 
-        self.phases.sweep = measure(self.vm, || {
+        self.phases.sweep = measure(self.rt, || {
             self.sweep();
         });
 
-        self.young.reset_after_full_gc(self.vm);
+        self.young.reset_after_full_gc(self.rt);
 
         self.swiper.remset.write().clear();
     }
 
     fn mark_live(&mut self) {
         let (marked_bytes, live_pages) =
-            MarkingTask::new().mark(self.vm, self.swiper, self.rootset);
+            MarkingTask::new().mark(self.rt, self.swiper, self.rootset);
         self.config.lock().marked_bytes = marked_bytes;
         self.live_pages = live_pages;
 
-        iterate_weak_roots(self.vm, |object_address| {
+        iterate_weak_roots(self.rt, |object_address| {
             let obj = object_address.to_obj();
 
             if obj.header().is_marked() {
@@ -130,14 +130,14 @@ impl<'a> FullCollector<'a> {
                 pages_to_sweep.push(page);
                 computed_old_committed_size += page.size();
             } else {
-                self.old.free_page(self.vm, page);
+                self.old.free_page(self.rt, page);
             }
         }
 
         self.swiper.heap.merge_free_regions();
-        self.swiper.sweeper.start(pages_to_sweep, self.vm);
+        self.swiper.sweeper.start(pages_to_sweep, self.rt);
 
-        if self.vm.flags.gc_verify {
+        if self.rt.flags.gc_verify {
             self.swiper.sweeper.join();
         }
 
@@ -181,8 +181,8 @@ impl MarkingTask {
         }
     }
 
-    fn mark(mut self, vm: &VM, swiper: &Swiper, rootset: &[Slot]) -> (usize, FixedBitSet) {
-        let shape_base = vm.shape_base();
+    fn mark(mut self, rt: &Runtime, swiper: &Swiper, rootset: &[Slot]) -> (usize, FixedBitSet) {
+        let shape_base = rt.shape_base();
         let pages = swiper.heap.pages();
         let heap_start = swiper.heap.start_address();
         let mut live_pages = FixedBitSet::with_capacity(pages);
@@ -251,31 +251,31 @@ impl MarkingTask {
     }
 }
 
-pub fn verify_marking(vm: &VM, young: &YoungGen, old: &OldGen, large: &LargeSpace) {
+pub fn verify_marking(rt: &Runtime, young: &YoungGen, old: &OldGen, large: &LargeSpace) {
     for page in old.pages() {
-        verify_marking_region(vm, page.object_area());
+        verify_marking_region(rt, page.object_area());
     }
 
     for page in young.to_pages() {
-        verify_marking_region(vm, page.object_area());
+        verify_marking_region(rt, page.object_area());
     }
 
     large.iterate_pages(|page| {
-        verify_marking_object(vm, page.object_address());
+        verify_marking_object(rt, page.object_address());
     });
 }
 
-fn verify_marking_region(vm: &VM, region: Region) {
-    walk_region(vm, region, |_obj, obj_address, _size| {
-        verify_marking_object(vm, obj_address);
+fn verify_marking_region(rt: &Runtime, region: Region) {
+    walk_region(rt, region, |_obj, obj_address, _size| {
+        verify_marking_object(rt, obj_address);
     });
 }
 
-fn verify_marking_object(vm: &VM, obj_address: Address) {
+fn verify_marking_object(rt: &Runtime, obj_address: Address) {
     let obj = obj_address.to_obj();
 
     if obj.header().is_marked() {
-        obj.visit_reference_fields(vm.shape_base(), |field| {
+        obj.visit_reference_fields(rt.shape_base(), |field| {
             let object_addr = field.get();
 
             if object_addr.is_null() {
@@ -287,11 +287,11 @@ fn verify_marking_object(vm: &VM, obj_address: Address) {
     }
 }
 
-fn measure<F>(vm: &VM, fct: F) -> f32
+fn measure<F>(rt: &Runtime, fct: F) -> f32
 where
     F: FnOnce(),
 {
-    if vm.flags.gc_stats {
+    if rt.flags.gc_stats {
         let start = Instant::now();
         fct();
         let duration = start.elapsed();

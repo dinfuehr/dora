@@ -4,8 +4,8 @@ use std::ops::{Deref, DerefMut};
 use crate::gc::Address;
 use crate::mirror::{Object, Ref};
 use crate::os::{self, Reservation};
+use crate::runtime::get_runtime;
 use crate::threads::current_thread;
-use crate::vm::get_vm;
 
 pub struct HandleMemory {
     inner: UnsafeCell<HandleMemoryInner>,
@@ -42,7 +42,7 @@ impl HandleMemory {
     }
 
     pub fn iterate_for_gc(&self) -> HandleMemoryIter<'_> {
-        assert!(get_vm().state().in_safepoint());
+        assert!(get_runtime().state().in_safepoint());
         self.raw_iterate()
     }
 

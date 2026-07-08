@@ -1,32 +1,36 @@
 use std::sync::Arc;
 
 use crate::gc::Address;
+use crate::runtime::{CodeKind, Runtime};
 use crate::stack::DoraToNativeInfo;
 use crate::threads::DoraThread;
-use crate::vm::{CodeKind, VM};
 
-pub fn determine_strong_roots(vm: &VM, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
+pub fn determine_strong_roots(rt: &Runtime, threads: &[Arc<DoraThread>]) -> Vec<Slot> {
     let mut rootset = Vec::new();
 
-    iterate_strong_roots(vm, threads, |slot| {
+    iterate_strong_roots(rt, threads, |slot| {
         rootset.push(slot);
     });
 
     rootset
 }
 
-pub fn iterate_strong_roots<F: FnMut(Slot)>(vm: &VM, threads: &[Arc<DoraThread>], mut callback: F) {
+pub fn iterate_strong_roots<F: FnMut(Slot)>(
+    rt: &Runtime,
+    threads: &[Arc<DoraThread>],
+    mut callback: F,
+) {
     for thread in threads {
-        iterate_roots_from_stack(vm, thread, &mut callback);
+        iterate_roots_from_stack(rt, thread, &mut callback);
         iterate_roots_from_handles(thread, &mut callback);
     }
 
-    iterate_roots_from_globals(vm, &mut callback);
-    iterate_roots_from_wait_list(vm, &mut callback);
+    iterate_roots_from_globals(rt, &mut callback);
+    iterate_roots_from_wait_list(rt, &mut callback);
 }
 
-fn iterate_roots_from_wait_list<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
-    vm.wait_lists.visit_roots(|slot| {
+fn iterate_roots_from_wait_list<F: FnMut(Slot)>(rt: &Runtime, callback: &mut F) {
+    rt.wait_lists.visit_roots(|slot| {
         callback(slot);
     });
 }
@@ -38,8 +42,8 @@ fn iterate_roots_from_handles<F: FnMut(Slot)>(thread: &DoraThread, callback: &mu
     }
 }
 
-fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
-    let Some(global_variable_memory) = vm.global_variable_memory.as_ref() else {
+fn iterate_roots_from_globals<F: FnMut(Slot)>(rt: &Runtime, callback: &mut F) {
+    let Some(global_variable_memory) = rt.global_variable_memory.as_ref() else {
         return;
     };
     let address_start = global_variable_memory.start();
@@ -50,11 +54,11 @@ fn iterate_roots_from_globals<F: FnMut(Slot)>(vm: &VM, callback: &mut F) {
     }
 }
 
-fn iterate_roots_from_stack<F: FnMut(Slot)>(vm: &VM, thread: &DoraThread, callback: &mut F) {
+fn iterate_roots_from_stack<F: FnMut(Slot)>(rt: &Runtime, thread: &DoraThread, callback: &mut F) {
     let mut dtn = thread.dtn();
 
     while !dtn.is_null() {
-        dtn = iterate_roots_from_dora_to_native_info(vm, dtn, callback);
+        dtn = iterate_roots_from_dora_to_native_info(rt, dtn, callback);
     }
 }
 
@@ -65,7 +69,7 @@ struct ManagedFrame {
 }
 
 fn iterate_roots_from_dora_to_native_info<F: FnMut(Slot)>(
-    vm: &VM,
+    rt: &Runtime,
     dtn: *const DoraToNativeInfo,
     callback: &mut F,
 ) -> *const DoraToNativeInfo {
@@ -77,7 +81,7 @@ fn iterate_roots_from_dora_to_native_info<F: FnMut(Slot)>(
     };
 
     while frame.fp.is_non_null() {
-        if !iterate_roots_from_stack_frame(vm, frame, callback) {
+        if !iterate_roots_from_stack_frame(rt, frame, callback) {
             break;
         }
 
@@ -95,14 +99,14 @@ fn read_caller_frame(fp: Address) -> ManagedFrame {
 }
 
 fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
-    vm: &VM,
+    rt: &Runtime,
     frame: ManagedFrame,
     callback: &mut F,
 ) -> bool {
-    let code_id = vm.code_map.get(frame.pc.into());
+    let code_id = rt.code_map.get(frame.pc.into());
 
     if let Some(code_id) = code_id {
-        let code = vm.code_map.get_code(code_id);
+        let code = rt.code_map.get_code(code_id);
 
         match code.descriptor() {
             CodeKind::OptimizedFct(_) => {
@@ -139,16 +143,16 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
         }
     } else {
         println!("no code found at pc = {}", frame.pc);
-        vm.code_map.dump(vm);
+        rt.code_map.dump(rt);
         panic!("invalid stack frame");
     }
 }
 
-pub fn iterate_weak_roots<F>(vm: &VM, mut object_updater: F)
+pub fn iterate_weak_roots<F>(rt: &Runtime, mut object_updater: F)
 where
     F: FnMut(Address) -> Option<Address>,
 {
-    let mut finalizers = vm.gc.finalizers.lock();
+    let mut finalizers = rt.gc.finalizers.lock();
     let mut deleted = false;
 
     for (address, _) in &mut *finalizers {

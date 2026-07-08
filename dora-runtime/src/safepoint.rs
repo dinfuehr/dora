@@ -1,23 +1,23 @@
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
+use crate::runtime::{Runtime, RuntimeState, get_runtime};
 use crate::threads::{DoraThread, current_thread, parked_scope};
-use crate::vm::{VM, VmState, get_vm};
 use dora_compiler::ThreadState;
 
-pub fn stop_the_world<F, R>(vm: &VM, operation: F) -> R
+pub fn stop_the_world<F, R>(rt: &Runtime, operation: F) -> R
 where
     F: FnOnce(&[Arc<DoraThread>]) -> R,
 {
     parked_scope(|| {
-        let threads = vm.threads.threads.lock();
+        let threads = rt.threads.threads.lock();
 
         if threads.len() == 1 {
             assert_eq!(
                 current_thread() as *const _,
                 threads.first().expect("missing thread").as_ref() as *const _
             );
-            let ret = invoke_safepoint_operation(vm, &*threads, operation);
+            let ret = invoke_safepoint_operation(rt, &*threads, operation);
             return ret;
         }
 
@@ -27,31 +27,31 @@ where
                 .any(|t| t.as_ref() as *const _ == current_thread() as *const _)
         );
 
-        stop_threads(vm, &*threads);
-        let ret = invoke_safepoint_operation(vm, &*threads, operation);
-        resume_threads(vm, &*threads);
+        stop_threads(rt, &*threads);
+        let ret = invoke_safepoint_operation(rt, &*threads, operation);
+        resume_threads(rt, &*threads);
 
         ret
     })
 }
 
-fn invoke_safepoint_operation<F, R>(vm: &VM, threads: &[Arc<DoraThread>], operation: F) -> R
+fn invoke_safepoint_operation<F, R>(rt: &Runtime, threads: &[Arc<DoraThread>], operation: F) -> R
 where
     F: FnOnce(&[Arc<DoraThread>]) -> R,
 {
-    let old_state = vm.set_state(VmState::Safepoint);
+    let old_state = rt.set_state(RuntimeState::Safepoint);
     assert!(old_state.in_running());
 
     let result = operation(threads);
 
-    let old_state = vm.set_state(VmState::Running);
+    let old_state = rt.set_state(RuntimeState::Running);
     assert!(old_state.in_safepoint());
 
     result
 }
 
-fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
-    vm.threads.barrier.arm();
+fn stop_threads(rt: &Runtime, threads: &[Arc<DoraThread>]) {
+    rt.threads.barrier.arm();
 
     let mut running = 0;
 
@@ -68,10 +68,10 @@ fn stop_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
         }
     }
 
-    vm.threads.barrier.wait_until_threads_stopped(running);
+    rt.threads.barrier.wait_until_threads_stopped(running);
 }
 
-fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
+fn resume_threads(rt: &Runtime, threads: &[Arc<DoraThread>]) {
     for thread in threads.iter() {
         let old_state: ThreadState = thread
             .tld
@@ -85,13 +85,13 @@ fn resume_threads(vm: &VM, threads: &[Arc<DoraThread>]) {
         );
     }
 
-    vm.threads.barrier.disarm();
+    rt.threads.barrier.disarm();
 }
 
 #[unsafe(export_name = "dora_native_safepoint_slow")]
 pub extern "C" fn safepoint_slow() {
     let thread = current_thread();
-    let vm = get_vm();
+    let rt = get_runtime();
 
     let state: ThreadState = thread
         .tld
@@ -99,6 +99,6 @@ pub extern "C" fn safepoint_slow() {
         .swap(ThreadState::Safepoint as u8, Ordering::SeqCst)
         .into();
     assert_eq!(state, ThreadState::SafepointRequested);
-    vm.threads.barrier.wait_in_safepoint();
-    thread.unpark(vm);
+    rt.threads.barrier.wait_in_safepoint();
+    thread.unpark(rt);
 }

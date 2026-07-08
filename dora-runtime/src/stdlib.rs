@@ -13,12 +13,12 @@ use std::time::Duration;
 use crate::gc::{Address, GcReason};
 use crate::handle::{Handle, create_handle, handle_scope};
 use crate::mirror::{Object, Ref, Str, UInt8Array};
+use crate::runtime::{ManagedCondition, ManagedMutex, Trap, get_runtime, stack_pointer};
 use crate::stack::stacktrace_from_last_dtn;
 use crate::threads::{
     DoraThread, ManagedThread, STACK_SIZE, current_thread, deinit_current_thread,
     init_current_thread,
 };
-use crate::vm::{ManagedCondition, ManagedMutex, Trap, get_vm, stack_pointer};
 use dora_compiler::ThreadState;
 
 pub mod io;
@@ -27,9 +27,9 @@ pub mod io;
 pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
-        let vm = get_vm();
+        let rt = get_runtime();
 
-        Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(rt, buffer.as_bytes())
     })
 }
 
@@ -37,9 +37,9 @@ pub extern "C" fn uint8_to_string(val: u8) -> Ref<Str> {
 pub extern "C" fn char_to_string(val: u32) -> Ref<Str> {
     handle_scope(|| {
         let buffer = unsafe { char::from_u32_unchecked(val) }.to_string();
-        let vm = get_vm();
+        let rt = get_runtime();
 
-        Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(rt, buffer.as_bytes())
     })
 }
 
@@ -47,9 +47,9 @@ pub extern "C" fn char_to_string(val: u32) -> Ref<Str> {
 pub extern "C" fn int32_to_string(val: i32) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
-        let vm = get_vm();
+        let rt = get_runtime();
 
-        Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(rt, buffer.as_bytes())
     })
 }
 
@@ -57,9 +57,9 @@ pub extern "C" fn int32_to_string(val: i32) -> Ref<Str> {
 pub extern "C" fn int64_to_string(val: i64) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
-        let vm = get_vm();
+        let rt = get_runtime();
 
-        Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(rt, buffer.as_bytes())
     })
 }
 
@@ -67,9 +67,9 @@ pub extern "C" fn int64_to_string(val: i64) -> Ref<Str> {
 pub extern "C" fn float32_to_string(val: f32) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
-        let vm = get_vm();
+        let rt = get_runtime();
 
-        Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(rt, buffer.as_bytes())
     })
 }
 
@@ -77,9 +77,9 @@ pub extern "C" fn float32_to_string(val: f32) -> Ref<Str> {
 pub extern "C" fn float64_to_string(val: f64) -> Ref<Str> {
     handle_scope(|| {
         let buffer = val.to_string();
-        let vm = get_vm();
+        let rt = get_runtime();
 
-        Str::from_buffer(vm, buffer.as_bytes())
+        Str::from_buffer(rt, buffer.as_bytes())
     })
 }
 
@@ -94,9 +94,9 @@ pub extern "C" fn fatal_error(msg: Handle<Str>) {
     std::io::stderr().write(msg.content()).unwrap();
     eprintln!("");
 
-    let vm = get_vm();
-    let stacktrace = stacktrace_from_last_dtn(vm);
-    stacktrace.dump_to_stderr(vm);
+    let rt = get_runtime();
+    let stacktrace = stacktrace_from_last_dtn(rt);
+    stacktrace.dump_to_stderr(rt);
 
     std::process::exit(1);
 }
@@ -114,12 +114,12 @@ extern "C" fn exit(status: i32) {
 
 #[unsafe(export_name = "dora_native_unreachable")]
 pub extern "C" fn unreachable() {
-    let vm = get_vm();
+    let rt = get_runtime();
 
     eprintln!("unreachable code executed.");
 
-    let stacktrace = stacktrace_from_last_dtn(vm);
-    stacktrace.dump_to_stderr(vm);
+    let stacktrace = stacktrace_from_last_dtn(rt);
+    stacktrace.dump_to_stderr(rt);
 
     std::process::exit(1);
 }
@@ -158,17 +158,17 @@ pub extern "C" fn strcmp(lhs: Handle<Str>, rhs: Handle<Str>) -> i32 {
 #[dora_native("std::traits::Add for std::string::String#add")]
 pub extern "C" fn strcat(lhs: Handle<Str>, rhs: Handle<Str>) -> Ref<Str> {
     handle_scope(|| {
-        let vm = get_vm();
-        Str::concat(vm, lhs, rhs).direct()
+        let rt = get_runtime();
+        Str::concat(rt, lhs, rhs).direct()
     })
 }
 
 #[dora_native("std::string::String#clone")]
 pub extern "C" fn str_clone(val: Handle<Str>) -> Ref<Str> {
     handle_scope(|| {
-        let vm = get_vm();
+        let rt = get_runtime();
 
-        val.dup(vm)
+        val.dup(rt)
     })
 }
 
@@ -184,45 +184,45 @@ pub extern "C" fn str_from_string(val: Handle<Str>, offset: usize, len: usize) -
 
 fn str_from_str(val: Handle<Str>, offset: usize, len: usize) -> Ref<Str> {
     handle_scope(|| {
-        let vm = get_vm();
+        let rt = get_runtime();
 
-        Str::from_str(vm, val, offset, len)
+        Str::from_str(rt, val, offset, len)
     })
 }
 
 #[unsafe(export_name = "dora_native_gc_alloc")]
 pub extern "C" fn gc_alloc(size: usize) -> *mut Object {
-    let vm = get_vm();
-    vm.gc.alloc(vm, size).to_mut_ptr()
+    let rt = get_runtime();
+    rt.gc.alloc(rt, size).to_mut_ptr()
 }
 
 #[dora_native("std::force_collect")]
 extern "C" fn gc_collect() {
-    let vm = get_vm();
-    vm.gc.force_collect(vm, GcReason::ForceCollect);
+    let rt = get_runtime();
+    rt.gc.force_collect(rt, GcReason::ForceCollect);
 }
 
 #[dora_native("std::force_minor_collect")]
 extern "C" fn gc_minor_collect() {
-    let vm = get_vm();
-    vm.gc.force_collect(vm, GcReason::ForceMinorCollect);
+    let rt = get_runtime();
+    rt.gc.force_collect(rt, GcReason::ForceMinorCollect);
 }
 
 #[dora_native("std::argc")]
 extern "C" fn argc() -> i32 {
-    let vm = get_vm();
+    let rt = get_runtime();
 
-    vm.program_args.len() as i32
+    rt.program_args.len() as i32
 }
 
 #[dora_native("std::argv")]
 extern "C" fn argv(ind: i32) -> Ref<Str> {
-    let vm = get_vm();
+    let rt = get_runtime();
 
-    if ind >= 0 && (ind as usize) < vm.program_args.len() {
-        let value = &vm.program_args[ind as usize];
+    if ind >= 0 && (ind as usize) < rt.program_args.len() {
+        let value = &rt.program_args[ind as usize];
 
-        return Str::from_buffer(vm, value.as_bytes());
+        return Str::from_buffer(rt, value.as_bytes());
     }
 
     panic!("argument does not exist");
@@ -294,7 +294,7 @@ pub extern "C" fn str_to_float64(val: Handle<Str>) -> f64 {
 
 #[unsafe(export_name = "dora_native_trap")]
 pub extern "C" fn trap(trap_id: u32) {
-    let vm = get_vm();
+    let rt = get_runtime();
     let trap = Trap::try_from(trap_id as u8).expect("illegal trap code");
 
     let msg = match trap {
@@ -311,8 +311,8 @@ pub extern "C" fn trap(trap_id: u32) {
     };
 
     eprintln!("{}", msg);
-    let stacktrace = stacktrace_from_last_dtn(vm);
-    stacktrace.dump_to_stderr(vm);
+    let stacktrace = stacktrace_from_last_dtn(rt);
+    stacktrace.dump_to_stderr(rt);
     unsafe {
         libc::_exit(101 + trap_id as i32);
     }
@@ -325,24 +325,24 @@ pub extern "C" fn stack_overflow() {
 
 #[dora_native("std::thread::spawn")]
 pub extern "C" fn spawn_thread(runner: Handle<Object>) -> Address {
-    let vm = get_vm();
+    let rt = get_runtime();
 
     handle_scope(|| {
-        let managed_thread = ManagedThread::alloc(vm);
+        let managed_thread = ManagedThread::alloc(rt);
         let mut managed_thread: Handle<ManagedThread> = create_handle(managed_thread);
 
         // Create new thread in Parked state.
-        let thread = DoraThread::new(vm, ThreadState::Parked);
+        let thread = DoraThread::new(rt, ThreadState::Parked);
 
         managed_thread.install_native_thread(&thread);
 
-        vm.gc
+        rt.gc
             .add_finalizer(managed_thread.direct_ptr(), thread.clone());
 
         // Add thread to our list of all threads first. This method parks
         // and unparks the current thread, this means the handle needs to be created
         // afterwards.
-        vm.threads.add_thread(thread.clone());
+        rt.threads.add_thread(thread.clone());
 
         // Now we can create a handle in that newly created thread. Since the thread
         // is now registered, the handle is updated as well by the GC.
@@ -368,7 +368,7 @@ pub extern "C" fn spawn_thread(runner: Handle<Object>) -> Address {
 }
 
 fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: Address) {
-    let vm = get_vm();
+    let rt = get_runtime();
     let _thread_handle: Handle<ManagedThread> = Handle::from_address(thread_location);
     let runner_handle: Handle<Object> = Handle::from_address(runner_location);
 
@@ -380,9 +380,9 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
 
     // Thread was created in Parked state, so we need to Unpark
     // before we dereference handle.
-    thread.unpark(vm);
+    thread.unpark(rt);
 
-    let shape = runner_handle.header().shape(vm.shape_base());
+    let shape = runner_handle.header().shape(rt.shape_base());
 
     let fct_ptr = shape
         .table()
@@ -394,7 +394,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     let tld = thread.tld_address();
 
     // execute the runner/lambda
-    let dora_stub_address = vm
+    let dora_stub_address = rt
         .dora_entry_trampoline
         .expect("uninitialized dora_entry_trampoline");
     let fct: extern "C" fn(Address, Address, Ref<Object>) =
@@ -402,7 +402,7 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
     fct(tld, fct_ptr, runner_handle.direct());
 
     // remove thread from list of all threads
-    vm.threads.remove_current_thread();
+    rt.threads.remove_current_thread();
 
     // notify threads waiting in join() for this thread's end
     thread.stop();
@@ -416,20 +416,20 @@ pub extern "C" fn join_thread(managed_thread: Handle<ManagedThread>) {
 
 #[dora_native("std::thread::Mutex#wait")]
 pub extern "C" fn mutex_wait(mutex: Handle<ManagedMutex>, value: i32) {
-    let vm = get_vm();
-    vm.wait_lists.block(mutex, value);
+    let rt = get_runtime();
+    rt.wait_lists.block(mutex, value);
 }
 
 #[dora_native("std::thread::Mutex#notify")]
 pub extern "C" fn mutex_notify(mutex: Handle<ManagedMutex>) {
-    let vm = get_vm();
-    vm.wait_lists.wakeup(mutex.direct_ptr());
+    let rt = get_runtime();
+    rt.wait_lists.wakeup(mutex.direct_ptr());
 }
 
 #[dora_native("std::thread::Condition#enqueue")]
 pub extern "C" fn condition_enqueue(cond: Handle<ManagedCondition>) {
-    let vm = get_vm();
-    vm.wait_lists.enqueue(cond);
+    let rt = get_runtime();
+    rt.wait_lists.enqueue(cond);
 }
 
 #[dora_native("std::thread::Condition#block")]
@@ -440,23 +440,23 @@ pub extern "C" fn condition_block_after_enqueue(_cond: Handle<Object>) {
 
 #[dora_native("std::thread::Condition#wakeup_one")]
 pub extern "C" fn condition_wakeup_one(cond: Handle<Object>) {
-    let vm = get_vm();
-    vm.wait_lists.wakeup(cond.direct_ptr());
+    let rt = get_runtime();
+    rt.wait_lists.wakeup(cond.direct_ptr());
 }
 
 #[dora_native("std::thread::Condition#wakeup_all")]
 pub extern "C" fn condition_wakeup_all(cond: Handle<Object>) {
-    let vm = get_vm();
-    vm.wait_lists.wakeup_all(cond.direct_ptr());
+    let rt = get_runtime();
+    rt.wait_lists.wakeup_all(cond.direct_ptr());
 }
 
 #[dora_native("std::take_heap_snapshot")]
 pub extern "C" fn take_heap_snapshot() {
     use crate::snapshot::SnapshotGenerator;
 
-    let vm = get_vm();
+    let rt = get_runtime();
     let file = File::create("dora.heapsnapshot").expect("Failed to create file");
-    let snapshot = SnapshotGenerator::new(vm, file).unwrap();
+    let snapshot = SnapshotGenerator::new(rt, file).unwrap();
     snapshot
         .generate_in_safepoint()
         .expect("Failed to generate snapshot");
@@ -466,9 +466,9 @@ pub extern "C" fn take_heap_snapshot() {
 pub extern "C" fn take_heap_snapshot_for_testing() {
     use crate::snapshot::SnapshotGenerator;
 
-    let vm = get_vm();
+    let rt = get_runtime();
     let file = tempfile::tempfile().expect("Failed to open temporary file.");
-    let snapshot = SnapshotGenerator::new(vm, file).unwrap();
+    let snapshot = SnapshotGenerator::new(rt, file).unwrap();
     snapshot
         .generate_in_safepoint()
         .expect("Failed to generate snapshot");

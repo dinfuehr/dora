@@ -8,9 +8,9 @@ use scoped_threadpool::Pool;
 
 use crate::gc::root::Slot;
 use crate::gc::{Address, Region};
-use crate::vm::VM;
+use crate::runtime::Runtime;
 
-pub fn start(vm: &VM, rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool) {
+pub fn start(rt: &Runtime, rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool) {
     let number_workers = threadpool.thread_count() as usize;
     let mut workers = Vec::with_capacity(number_workers);
     let mut stealers = Vec::with_capacity(number_workers);
@@ -47,7 +47,7 @@ pub fn start(vm: &VM, rootset: &[Slot], heap: Region, perm: Region, threadpool: 
             let injector = &injector;
             let stealers = &stealers;
             let terminator = &terminator;
-            let shape_base = vm.shape_base();
+            let shape_base = rt.shape_base();
 
             scoped.execute(move || {
                 let mut task = MarkingTask {

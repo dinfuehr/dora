@@ -11,9 +11,9 @@ use crate::gc::{
 use crate::mem;
 use crate::mirror::{Object, VtblptrWordKind};
 use crate::os::{self, MemoryPermission};
+use crate::runtime::{Runtime, RuntimeFlags};
 use crate::threads::DoraThread;
 use crate::timer::Timer;
-use crate::vm::{VM, VmFlags};
 
 pub struct CopyCollector {
     total: Region,
@@ -25,7 +25,7 @@ pub struct CopyCollector {
 }
 
 impl CopyCollector {
-    pub fn new(args: &VmFlags) -> CopyCollector {
+    pub fn new(args: &RuntimeFlags) -> CopyCollector {
         let alignment = 2 * os::page_size();
         let heap_size = mem::align_usize_up(args.max_heap_size(), alignment);
         let heap_start = os::commit(heap_size);
@@ -52,33 +52,33 @@ impl CopyCollector {
 }
 
 impl Collector for CopyCollector {
-    fn alloc_tlab_area(&self, _vm: &VM, size: usize) -> Option<Region> {
+    fn alloc_tlab_area(&self, _rt: &Runtime, size: usize) -> Option<Region> {
         self.alloc
             .bump_alloc(size)
             .map(|address| address.region_start(size))
     }
 
-    fn alloc_object(&self, _vm: &VM, size: usize) -> Option<Address> {
+    fn alloc_object(&self, _rt: &Runtime, size: usize) -> Option<Address> {
         self.alloc.bump_alloc(size)
     }
 
-    fn alloc_readonly(&self, _vm: &VM, size: usize) -> Address {
+    fn alloc_readonly(&self, _rt: &Runtime, size: usize) -> Address {
         self.readonly.alloc(size)
     }
 
     fn collect_garbage(
         &self,
-        vm: &VM,
+        rt: &Runtime,
         threads: &[Arc<DoraThread>],
         reason: GcReason,
         _size: usize,
     ) {
-        let mut timer = Timer::new(vm.flags.gc_stats);
+        let mut timer = Timer::new(rt.flags.gc_stats);
 
-        tlab::make_iterable_all(vm, threads);
-        self.copy_collect(vm, threads, reason);
+        tlab::make_iterable_all(rt, threads);
+        self.copy_collect(rt, threads, reason);
 
-        if vm.flags.gc_stats {
+        if rt.flags.gc_stats {
             let duration = timer.stop();
             let mut stats = self.stats.lock();
             stats.add(duration);
@@ -116,8 +116,8 @@ impl Drop for CopyCollector {
 }
 
 impl CopyCollector {
-    fn copy_collect(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason) {
-        let timer = Timer::new(vm.flags.gc_verbose);
+    fn copy_collect(&self, rt: &Runtime, threads: &[Arc<DoraThread>], reason: GcReason) {
+        let timer = Timer::new(rt.flags.gc_verbose);
 
         // enable writing into to-space again (for debug builds)
         if cfg!(debug_assertions) {
@@ -135,11 +135,11 @@ impl CopyCollector {
         let mut top = to_space.start;
         let mut scan = top;
 
-        iterate_strong_roots(vm, threads, |root| {
+        iterate_strong_roots(rt, threads, |root| {
             let root_ptr = root.get();
 
             if from_space.contains(root_ptr) {
-                root.set(self.copy(vm, root_ptr, &mut top));
+                root.set(self.copy(rt, root_ptr, &mut top));
             } else if root_ptr.is_non_null() {
                 assert!(self.readonly.contains(root_ptr));
             }
@@ -148,20 +148,20 @@ impl CopyCollector {
         while scan < top {
             let object: &Object = scan.to_obj();
 
-            object.visit_reference_fields(vm.shape_base(), |field| {
+            object.visit_reference_fields(rt.shape_base(), |field| {
                 let field_ptr = field.get();
 
                 if from_space.contains(field_ptr) {
-                    field.set(self.copy(vm, field_ptr, &mut top));
+                    field.set(self.copy(rt, field_ptr, &mut top));
                 } else if field_ptr.is_non_null() {
                     assert!(self.readonly.contains(field_ptr));
                 }
             });
 
-            scan = scan.offset(object.size(vm.shape_base()));
+            scan = scan.offset(object.size(rt.shape_base()));
         }
 
-        self.iterate_weak_roots(vm);
+        self.iterate_weak_roots(rt);
 
         // disable access in current from-space
         // makes sure that no pointer into from-space is left (in debug-builds)
@@ -192,13 +192,13 @@ impl CopyCollector {
         });
     }
 
-    fn iterate_weak_roots(&self, vm: &VM) {
-        iterate_weak_roots(vm, |current_address| {
+    fn iterate_weak_roots(&self, rt: &Runtime) {
+        iterate_weak_roots(rt, |current_address| {
             debug_assert!(self.from_space().contains(current_address));
             let obj = current_address.to_obj();
 
             if let VtblptrWordKind::Fwdptr(new_address) =
-                obj.header().vtblptr_or_fwdptr(vm.shape_base())
+                obj.header().vtblptr_or_fwdptr(rt.shape_base())
             {
                 debug_assert!(self.to_space().contains(new_address));
                 Some(new_address)
@@ -208,15 +208,15 @@ impl CopyCollector {
         })
     }
 
-    fn copy(&self, vm: &VM, obj_addr: Address, top: &mut Address) -> Address {
+    fn copy(&self, rt: &Runtime, obj_addr: Address, top: &mut Address) -> Address {
         let obj = obj_addr.to_obj();
 
-        if let VtblptrWordKind::Fwdptr(fwd) = obj.header().vtblptr_or_fwdptr(vm.shape_base()) {
+        if let VtblptrWordKind::Fwdptr(fwd) = obj.header().vtblptr_or_fwdptr(rt.shape_base()) {
             return fwd;
         }
 
         let addr = *top;
-        let obj_size = obj.size(vm.shape_base());
+        let obj_size = obj.size(rt.shape_base());
 
         obj.copy_to(addr, obj_size);
         *top = top.offset(obj_size);

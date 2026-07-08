@@ -2,8 +2,8 @@ use crate::gc::Address;
 use crate::gc::root::Slot;
 use crate::handle::Handle;
 use crate::mirror::{Header, Ref};
+use crate::runtime::get_runtime;
 use crate::threads::{DoraThreadPtr, current_thread};
-use crate::vm::get_vm;
 use parking_lot::Mutex;
 use std::mem::MaybeUninit;
 use std::sync::atomic::{AtomicI32, Ordering};
@@ -192,7 +192,7 @@ impl<T: Default + Clone> ObjectHashMap<T> {
             data: boxed_slice,
             entries: 0,
             capacity: capacity,
-            gc_epoch: get_vm().gc_epoch(),
+            gc_epoch: get_runtime().gc_epoch(),
         }
     }
 
@@ -307,7 +307,7 @@ impl<T: Default + Clone> ObjectHashMap<T> {
     }
 
     fn invalidated_by_gc(&self) -> bool {
-        self.gc_epoch != get_vm().gc_epoch()
+        self.gc_epoch != get_runtime().gc_epoch()
     }
 
     fn rehash(&mut self, new_capacity: usize) {

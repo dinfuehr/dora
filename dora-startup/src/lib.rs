@@ -57,7 +57,7 @@
 //   .dora.known_shapes (R)
 //   (AotKnownShapeEntry)
 //   +-------------------+
-//   | kind (e.g. Code)  |    maps vm.known.* fields to shape descriptors
+//   | kind (e.g. Code)  |    maps rt.known.* fields to shape descriptors
 //   | shape_ptr --------+---> .dora.shapes descriptor
 //   +-------------------+
 //
@@ -86,7 +86,7 @@
 // Functions / GC stack maps
 // -------------------------
 // Startup rebuilds function GC metadata and registers code ranges in
-// vm.code_map via initialize_code_map().
+// rt.code_map via initialize_code_map().
 //
 //   .text (RX)                  .dora.functions (R)              .dora.gcpoints (R)
 //   +-------------------+       (AotFunctionEntry)               (AotGcPointEntry)
@@ -113,7 +113,9 @@ use dora_runtime::startup::{
     AotTestEntry, current_thread_tld_address, initialize_code_map, initialize_global_memory,
     initialize_shapes, patch_string_slots,
 };
-use dora_runtime::{CollectorName, MemSize, VM, VmFlags, clear_vm, execute_on_main, set_vm};
+use dora_runtime::{
+    CollectorName, MemSize, Runtime, RuntimeFlags, clear_runtime, execute_on_main, set_runtime,
+};
 use std::ffi::CStr;
 use std::io::Write;
 use std::os::raw::{c_char, c_int};
@@ -140,7 +142,7 @@ fn decode_program() -> Program {
 }
 
 #[derive(Parser)]
-struct RuntimeFlags {
+struct AotRuntimeFlags {
     /// Verify heap before and after collections
     #[arg(long)]
     gc_verify: bool,
@@ -236,25 +238,25 @@ fn program_args_from_argv(
     program_args
 }
 
-fn vm_flags_from_runtime_flags(runtime_flags: &RuntimeFlags) -> VmFlags {
-    VmFlags {
-        gc_stress: runtime_flags.gc_stress,
-        gc_stress_minor: runtime_flags.gc_stress_minor,
+fn runtime_flags_from_aot_flags(aot_flags: &AotRuntimeFlags) -> RuntimeFlags {
+    RuntimeFlags {
+        gc_stress: aot_flags.gc_stress,
+        gc_stress_minor: aot_flags.gc_stress_minor,
         gc_stats: false,
-        gc_verbose: runtime_flags.gc_verbose,
-        gc_verify: runtime_flags.gc_verify,
-        gc_worker: runtime_flags.gc_worker,
-        gc_young_size: runtime_flags.gc_young_size,
+        gc_verbose: aot_flags.gc_verbose,
+        gc_verify: aot_flags.gc_verify,
+        gc_worker: aot_flags.gc_worker,
+        gc_young_size: aot_flags.gc_young_size,
         gc: Some(decode_collector_name(metadata::gc_collector())),
-        min_heap_size: runtime_flags.min_heap_size,
-        max_heap_size: runtime_flags.max_heap_size,
+        min_heap_size: aot_flags.min_heap_size,
+        max_heap_size: aot_flags.max_heap_size,
         readonly_size: None,
-        disable_tlab: runtime_flags.disable_tlab,
+        disable_tlab: aot_flags.disable_tlab,
         snapshot_on_oom: None,
     }
 }
 
-fn parse_runtime_flags_from_env() -> Result<RuntimeFlags, i32> {
+fn parse_aot_runtime_flags_from_env() -> Result<AotRuntimeFlags, i32> {
     let dora_flags = std::env::var("DORA_FLAGS").unwrap_or_default();
     let args = match shlex::split(&dora_flags) {
         Some(args) => args,
@@ -265,8 +267,8 @@ fn parse_runtime_flags_from_env() -> Result<RuntimeFlags, i32> {
     };
     // try_parse_from expects argv[0] (program name) as the first element.
     let args = std::iter::once(String::new()).chain(args);
-    match RuntimeFlags::try_parse_from(args) {
-        Ok(runtime_flags) => Ok(runtime_flags),
+    match AotRuntimeFlags::try_parse_from(args) {
+        Ok(aot_flags) => Ok(aot_flags),
         Err(e) => {
             e.print().ok();
             Err(1)
@@ -296,19 +298,19 @@ enum AotStartupEntry {
 
 fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i32 {
     let program_args = program_args_from_argv(argc, argv, true);
-    let runtime_flags = match parse_runtime_flags_from_env() {
-        Ok(runtime_flags) => runtime_flags,
+    let aot_flags = match parse_aot_runtime_flags_from_env() {
+        Ok(aot_flags) => aot_flags,
         Err(exit_code) => return exit_code,
     };
 
-    let vm_flags = vm_flags_from_runtime_flags(&runtime_flags);
+    let runtime_flags = runtime_flags_from_aot_flags(&aot_flags);
 
-    let mut vm = VM::new(decode_program(), vm_flags, program_args);
+    let mut rt = Runtime::new(decode_program(), runtime_flags, program_args);
 
     let shape_metadata = metadata::shape_metadata();
     let strings = shape_metadata.strings;
     initialize_shapes(
-        &mut vm,
+        &mut rt,
         shape_metadata.shape_base,
         shape_metadata.shape_size,
         shape_metadata.known_shape_entries,
@@ -316,7 +318,7 @@ fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i
 
     let (global_memory_start, global_memory_end) = metadata::global_memory();
     initialize_global_memory(
-        &mut vm,
+        &mut rt,
         global_memory_start,
         global_memory_end,
         metadata::global_refs(),
@@ -324,7 +326,7 @@ fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i
 
     let code_metadata = metadata::code_metadata();
     initialize_code_map(
-        &mut vm,
+        &mut rt,
         dora_entry_trampoline as *const u8,
         code_metadata.function_entries,
         code_metadata.gcpoint_entries,
@@ -335,17 +337,17 @@ fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i
         code_metadata.inlined_function_entries,
     );
 
-    set_vm(&vm);
-    vm.gc.setup(&vm);
+    set_runtime(&rt);
+    rt.gc.setup(&rt);
 
-    patch_string_slots(&vm, strings, metadata::string_slots());
+    patch_string_slots(&rt, strings, metadata::string_slots());
 
     let exit_code = execute_on_main(|| match entry {
         AotStartupEntry::Main(main_address) => unsafe {
             dora_entry_trampoline(current_thread_tld_address(), main_address)
         },
         AotStartupEntry::Tests => {
-            if run_tests(&vm, code_metadata.test_entries) {
+            if run_tests(&rt, code_metadata.test_entries) {
                 0
             } else {
                 1
@@ -355,32 +357,32 @@ fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i
 
     let main_returns_unit = match entry {
         AotStartupEntry::Main(_) => {
-            let main_fct_id = vm.program.main_fct_id.expect("missing AOT main function");
-            vm.fct(main_fct_id).return_type.is_unit()
+            let main_fct_id = rt.program.main_fct_id.expect("missing AOT main function");
+            rt.fct(main_fct_id).return_type.is_unit()
         }
         AotStartupEntry::Tests => false,
     };
 
     std::io::stdout().flush().ok();
 
-    vm.threads.join_all();
-    vm.shutdown();
-    clear_vm();
+    rt.threads.join_all();
+    rt.shutdown();
+    clear_runtime();
 
     if main_returns_unit { 0 } else { exit_code }
 }
 
-fn run_tests(vm: &VM, test_entries: &[AotTestEntry]) -> bool {
+fn run_tests(rt: &Runtime, test_entries: &[AotTestEntry]) -> bool {
     let mut tests = 0;
     let mut passed = 0;
 
     for test_entry in test_entries {
         let fct_id = FunctionId::from(test_entry.fct_id as usize);
-        debug_assert!(vm.program.fct(fct_id).is_test);
+        debug_assert!(rt.program.fct(fct_id).is_test);
 
         tests += 1;
 
-        print!("test {} ... ", display_fct(&vm.program, fct_id));
+        print!("test {} ... ", display_fct(&rt.program, fct_id));
 
         unsafe {
             dora_entry_trampoline(current_thread_tld_address(), test_entry.code_start);

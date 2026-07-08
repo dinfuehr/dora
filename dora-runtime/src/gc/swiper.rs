@@ -22,8 +22,8 @@ use crate::gc::{Address, Collector, GcReason, K, M, Region, Worklist, WorklistSe
 use crate::mem;
 use crate::mirror::Object;
 use crate::os::{self, Reservation};
+use crate::runtime::{Runtime, RuntimeFlags, get_runtime};
 use crate::threads::DoraThread;
-use crate::vm::{VM, VmFlags, get_vm};
 
 mod controller;
 mod full;
@@ -58,8 +58,8 @@ pub fn is_page_aligned(size: usize) -> bool {
     (size & (PAGE_SIZE - 1)) == 0
 }
 
-pub fn get_swiper(vm: &VM) -> &Swiper {
-    vm.gc.collector.to_swiper()
+pub fn get_swiper(rt: &Runtime) -> &Swiper {
+    rt.gc.collector.to_swiper()
 }
 
 pub struct Swiper {
@@ -85,7 +85,7 @@ pub struct Swiper {
 }
 
 impl Swiper {
-    pub fn new(args: &VmFlags) -> Swiper {
+    pub fn new(args: &RuntimeFlags) -> Swiper {
         let max_heap_size = align_page_up(args.max_heap_size());
         let min_heap_size = align_page_up(args.min_heap_size());
 
@@ -138,17 +138,17 @@ impl Swiper {
 
     fn minor_collect(
         &self,
-        vm: &VM,
+        rt: &Runtime,
         reason: GcReason,
         rootset: &[Slot],
         threads: &[Arc<DoraThread>],
     ) {
-        self.verify(vm, VerifierPhase::PreMinor, CollectionKind::Minor, &rootset);
+        self.verify(rt, VerifierPhase::PreMinor, CollectionKind::Minor, &rootset);
 
         {
             let mut pool = self.threadpool.lock();
             let mut collector = MinorCollector::new(
-                vm,
+                rt,
                 self,
                 &self.young,
                 &self.old,
@@ -164,14 +164,14 @@ impl Swiper {
 
             collector.collect();
 
-            if vm.flags.gc_stats {
+            if rt.flags.gc_stats {
                 let mut config = self.config.lock();
                 config.add_minor(collector.phases());
             }
         }
 
         self.verify(
-            vm,
+            rt,
             VerifierPhase::PostMinor,
             CollectionKind::Minor,
             &rootset,
@@ -180,16 +180,16 @@ impl Swiper {
 
     fn full_collect(
         &self,
-        vm: &VM,
+        rt: &Runtime,
         reason: GcReason,
         threads: &[Arc<DoraThread>],
         rootset: &[Slot],
     ) {
-        self.verify(vm, VerifierPhase::PreFull, CollectionKind::Full, &rootset);
+        self.verify(rt, VerifierPhase::PreFull, CollectionKind::Full, &rootset);
 
         {
             let mut collector = FullCollector::new(
-                vm,
+                rt,
                 self,
                 &self.young,
                 &self.old,
@@ -202,19 +202,19 @@ impl Swiper {
             );
             collector.collect();
 
-            if vm.flags.gc_stats {
+            if rt.flags.gc_stats {
                 let mut config = self.config.lock();
                 config.add_full(collector.phases());
             }
         }
 
-        self.verify(vm, VerifierPhase::PostFull, CollectionKind::Full, &rootset);
+        self.verify(rt, VerifierPhase::PostFull, CollectionKind::Full, &rootset);
     }
 
-    fn verify(&self, vm: &VM, phase: VerifierPhase, _kind: CollectionKind, rootset: &[Slot]) {
-        if vm.flags.gc_verify {
+    fn verify(&self, rt: &Runtime, phase: VerifierPhase, _kind: CollectionKind, rootset: &[Slot]) {
+        if rt.flags.gc_verify {
             let mut verifier = Verifier::new(
-                vm,
+                rt,
                 self,
                 &self.young,
                 &self.old,
@@ -227,11 +227,11 @@ impl Swiper {
         }
     }
 
-    fn alloc_normal(&self, vm: &VM, size: usize) -> Option<Address> {
-        self.young.allocate(vm, size, size).map(|r| r.start())
+    fn alloc_normal(&self, rt: &Runtime, size: usize) -> Option<Address> {
+        self.young.allocate(rt, size, size).map(|r| r.start())
     }
 
-    fn alloc_large(&self, _vm: &VM, size: usize) -> Option<Address> {
+    fn alloc_large(&self, _rt: &Runtime, size: usize) -> Option<Address> {
         self.large.alloc(&self.heap, size)
     }
 
@@ -239,20 +239,20 @@ impl Swiper {
         self.remset2.write().push_segment(segment);
     }
 
-    pub fn iterate_heap<F>(&self, vm: &VM, mut fct: F)
+    pub fn iterate_heap<F>(&self, rt: &Runtime, mut fct: F)
     where
         F: FnMut(Address),
     {
         for page in self.young.to_pages() {
-            iterate_page(vm, page, &mut fct);
+            iterate_page(rt, page, &mut fct);
         }
 
         for page in self.old.pages() {
-            iterate_page(vm, page, &mut fct);
+            iterate_page(rt, page, &mut fct);
         }
 
         for page in self.readonly.pages() {
-            iterate_page(vm, page, &mut fct);
+            iterate_page(rt, page, &mut fct);
         }
 
         self.large.iterate_pages(|page| {
@@ -261,7 +261,7 @@ impl Swiper {
     }
 }
 
-fn iterate_page<F>(vm: &VM, page: RegularPage, fct: &mut F)
+fn iterate_page<F>(rt: &Runtime, page: RegularPage, fct: &mut F)
 where
     F: FnMut(Address),
 {
@@ -270,9 +270,9 @@ where
 
     while curr < region.end {
         let object = curr.to_obj();
-        let size = object.size(vm.shape_base());
+        let size = object.size(rt.shape_base());
 
-        if !object.is_filler(vm) {
+        if !object.is_filler(rt) {
             fct(curr);
         }
 
@@ -283,45 +283,51 @@ where
 }
 
 impl Collector for Swiper {
-    fn alloc_tlab_area(&self, vm: &VM, _size: usize) -> Option<Region> {
-        self.young.allocate(vm, MIN_TLAB_SIZE, MAX_TLAB_SIZE)
+    fn alloc_tlab_area(&self, rt: &Runtime, _size: usize) -> Option<Region> {
+        self.young.allocate(rt, MIN_TLAB_SIZE, MAX_TLAB_SIZE)
     }
 
-    fn alloc_object(&self, vm: &VM, size: usize) -> Option<Address> {
+    fn alloc_object(&self, rt: &Runtime, size: usize) -> Option<Address> {
         if size < LARGE_OBJECT_SIZE {
-            self.alloc_normal(vm, size)
+            self.alloc_normal(rt, size)
         } else {
-            self.alloc_large(vm, size)
+            self.alloc_large(rt, size)
         }
     }
 
-    fn alloc_readonly(&self, vm: &VM, size: usize) -> Address {
-        self.readonly.alloc(vm, size).unwrap_or(Address::null())
+    fn alloc_readonly(&self, rt: &Runtime, size: usize) -> Address {
+        self.readonly.alloc(rt, size).unwrap_or(Address::null())
     }
 
-    fn collect_garbage(&self, vm: &VM, threads: &[Arc<DoraThread>], reason: GcReason, size: usize) {
+    fn collect_garbage(
+        &self,
+        rt: &Runtime,
+        threads: &[Arc<DoraThread>],
+        reason: GcReason,
+        size: usize,
+    ) {
         let kind = choose_collection_kind(&self.heap, reason, size);
         controller::start(&self.config, &self.heap);
 
-        let rootset = determine_strong_roots(vm, threads);
+        let rootset = determine_strong_roots(rt, threads);
 
         match kind {
             CollectionKind::Minor => {
-                self.minor_collect(vm, reason, &rootset, threads);
+                self.minor_collect(rt, reason, &rootset, threads);
             }
 
             CollectionKind::Full => {
-                self.full_collect(vm, reason, threads, &rootset);
+                self.full_collect(rt, reason, threads, &rootset);
             }
         }
 
         controller::stop(
-            vm,
+            rt,
             &self.config,
             kind,
             &self.heap,
             &self.young,
-            &vm.flags,
+            &rt.flags,
             reason,
             threads,
         );
@@ -374,12 +380,12 @@ impl Collector for Swiper {
         println!("");
     }
 
-    fn setup(&self, vm: &VM) {
+    fn setup(&self, rt: &Runtime) {
         let semi_size = self.config.lock().young_size;
-        self.young.setup(vm, semi_size);
+        self.young.setup(rt, semi_size);
     }
 
-    fn shutdown(&self, _vm: &VM) {
+    fn shutdown(&self, _rt: &Runtime) {
         self.sweeper.join();
     }
 
@@ -442,7 +448,7 @@ impl fmt::Display for CollectionKind {
     }
 }
 
-pub fn walk_region<F>(vm: &VM, region: Region, mut fct: F)
+pub fn walk_region<F>(rt: &Runtime, region: Region, mut fct: F)
 where
     F: FnMut(&Object, Address, usize),
 {
@@ -451,10 +457,10 @@ where
     while scan < region.end {
         let object = scan.to_obj();
 
-        if object.is_filler(vm) {
-            scan = scan.offset(object.size(vm.shape_base()));
+        if object.is_filler(rt) {
+            scan = scan.offset(object.size(rt.shape_base()));
         } else {
-            let object_size = object.size(vm.shape_base());
+            let object_size = object.size(rt.shape_base());
             fct(object, scan, object_size);
             scan = scan.offset(object_size);
         }
@@ -752,7 +758,7 @@ impl LargePageHeader {
 
 #[unsafe(export_name = "dora_aot_write_barrier_slow_path")]
 pub extern "C" fn object_write_barrier_slow_path(object_address: Address, value_address: Address) {
-    let vm = get_vm();
+    let rt = get_runtime();
     debug_assert!(!BasePage::from_address(object_address).is_young());
     let obj = object_address.to_obj();
     obj.header().set_remembered();
@@ -762,7 +768,7 @@ pub extern "C" fn object_write_barrier_slow_path(object_address: Address, value_
     debug_assert_eq!(value.header().compressed_vtblptr() & 1, 0);
     debug_assert_eq!(value.header().sentinel(), 0xFFFF_FFFC);
 
-    let swiper = get_swiper(vm);
+    let swiper = get_swiper(rt);
     swiper.remset.write().push(object_address);
     assert!(obj.header().is_remembered());
 }

@@ -12,7 +12,7 @@ use dora_compiler::wire::{
     ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array,
 };
 use dora_compiler::{AotBackend, AotCodegenContext, AotContextGuard, CompilationData};
-use dora_runtime::vm::{CodeDescriptor, get_vm, impls, specialize_ty_in_program};
+use dora_runtime::runtime::{CodeDescriptor, get_runtime, impls, specialize_ty_in_program};
 use dora_runtime::{
     Address, Handle, Object, Ref, Str, UInt8Array, byte_array_from_buffer, create_handle,
     current_thread, handle_scope,
@@ -89,7 +89,7 @@ fn compile(
         encode_compilation_info(&compilation_data, &mut buffer);
 
         let encoded_compilation_info: Handle<Object> =
-            create_handle(byte_array_from_buffer(get_vm(), buffer.data()).cast());
+            create_handle(byte_array_from_buffer(get_runtime(), buffer.data()).cast());
 
         let tld_address = current_thread().tld_address();
 
@@ -229,17 +229,17 @@ extern "C" fn get_field_offset(data: Handle<UInt8Array>) -> u32 {
 
 #[dora_native("interface::get_system_config_raw")]
 extern "C" fn get_system_config_raw() -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
-    serializer::allocate_encoded_system_config(vm, aot_context)
+    serializer::allocate_encoded_system_config(rt, aot_context)
 }
 
 #[dora_native("interface::get_string_by_const_pool_id_raw")]
 extern "C" fn get_string_by_const_pool_id_raw(fct_id: u32, const_pool_id: u32) -> Ref<Str> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
     let value = const_pool_string(aot_context.program(), fct_id, const_pool_id);
-    Str::from_buffer(vm, value.as_bytes())
+    Str::from_buffer(rt, value.as_bytes())
 }
 
 fn const_pool_string(program: &Program, fct_id: u32, const_pool_id: u32) -> &str {
@@ -254,7 +254,7 @@ fn const_pool_string(program: &Program, fct_id: u32, const_pool_id: u32) -> &str
 
 #[dora_native("interface::find_trait_impl_raw")]
 extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
     let program = aot_context.program();
 
@@ -281,12 +281,12 @@ extern "C" fn find_trait_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let mut buffer = ByteBuffer::new();
     buffer.emit_u32(callee_id.index_as_u32());
     serializer::encode_bytecode_type_array(&type_params, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
 #[dora_native("interface::find_trait_ty_impl_raw")]
 extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
     let program = aot_context.program();
 
@@ -301,12 +301,12 @@ extern "C" fn find_trait_ty_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array
     let mut buffer = ByteBuffer::new();
     buffer.emit_u32(impl_id.index_as_u32());
     serializer::encode_bytecode_type_array(&bindings, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
 #[dora_native("interface::get_assoc_type_in_impl_raw")]
 extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
     let program = aot_context.program();
 
@@ -330,12 +330,12 @@ extern "C" fn get_assoc_type_in_impl_raw(data: Handle<UInt8Array>) -> Ref<UInt8A
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_bytecode_type(&impl_alias_ty, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
 #[dora_native("interface::specialize_assoc_ty_raw")]
 extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
     let program = aot_context.program();
 
@@ -350,7 +350,7 @@ extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Arra
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_bytecode_type(&ty, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
 #[dora_native("interface::get_intrinsic_for_function_raw")]
@@ -365,19 +365,19 @@ extern "C" fn get_intrinsic_for_function_raw(id: u32) -> i32 {
 
 #[dora_native("interface::get_function_display_name_raw")]
 extern "C" fn get_function_display_name_raw(id: FunctionId) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
 
     let name = display_fct(aot_context.program(), id);
 
-    Str::from_buffer(vm, name.as_bytes()).cast()
+    Str::from_buffer(rt, name.as_bytes()).cast()
 }
 
 #[dora_native("interface::get_function_display_name_with_type_params_raw")]
 extern "C" fn get_function_display_name_with_type_params_raw(
     data: Handle<UInt8Array>,
 ) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
@@ -387,22 +387,22 @@ extern "C" fn get_function_display_name_with_type_params_raw(
 
     let name = display_fct_specialized(aot_context.program(), id, &type_params);
 
-    Str::from_buffer(vm, name.as_bytes()).cast()
+    Str::from_buffer(rt, name.as_bytes()).cast()
 }
 
 #[dora_native("interface::get_function_info_for_inlining_raw")]
 extern "C" fn get_function_info_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
 
     let fct = aot_context.program().fct(id);
 
-    serializer::allocate_encoded_function_inlining_info(vm, fct)
+    serializer::allocate_encoded_function_inlining_info(rt, fct)
 }
 
 #[dora_native("interface::get_function_bytecode_data_for_inlining_raw")]
 extern "C" fn get_function_bytecode_data_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
     let program = aot_context.program();
 
@@ -410,42 +410,42 @@ extern "C" fn get_function_bytecode_data_for_inlining_raw(id: FunctionId) -> Ref
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_function_bytecode_data(program, fct, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
 #[dora_native("interface::get_struct_data_raw")]
 extern "C" fn get_struct_data_raw(id: StructId) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
 
     let struct_ = aot_context.program().struct_(id);
-    serializer::allocate_encoded_struct_data(vm, &struct_)
+    serializer::allocate_encoded_struct_data(rt, &struct_)
 }
 
 #[dora_native("interface::get_enum_data_raw")]
 extern "C" fn get_enum_data_raw(id: EnumId) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
 
     let enum_ = aot_context.program().enum_(id);
-    serializer::allocate_encoded_enum_data(vm, &enum_)
+    serializer::allocate_encoded_enum_data(rt, &enum_)
 }
 
 #[dora_native("interface::get_const_value_raw")]
 extern "C" fn get_const_value_raw(id: ConstId) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
 
     let const_ = aot_context.program().const_(id);
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_const_value(&const_.value, &mut buffer);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
 #[dora_native("interface::get_class_data_for_enum_variant_raw")]
 extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
-    let vm = get_vm();
+    let rt = get_runtime();
     let aot_context = active_aot_context();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
@@ -461,7 +461,7 @@ extern "C" fn get_class_data_for_enum_variant_raw(data: Handle<UInt8Array>) -> R
     let mut buffer = ByteBuffer::new();
     buffer.emit_u64(0);
     buffer.emit_u32(alloc_size);
-    byte_array_from_buffer(vm, buffer.data()).cast()
+    byte_array_from_buffer(rt, buffer.data()).cast()
 }
 
 #[dora_native("interface::get_field_offset_for_enum_variant_raw")]

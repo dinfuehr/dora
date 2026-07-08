@@ -4,7 +4,7 @@ use crate::gc::swiper::{LargePage, RegularPage, SharedHeapConfig, align_page_up,
 use crate::gc::{Address, Region, fill_region};
 use crate::mem::is_os_page_aligned;
 use crate::os::{self, MemoryPermission};
-use crate::vm::VM;
+use crate::runtime::Runtime;
 
 use super::PAGE_SIZE;
 
@@ -61,22 +61,22 @@ impl Heap {
         self.protected.lock().free_large_page(page);
     }
 
-    pub fn alloc_regular_old_page(&self, vm: &VM) -> Option<RegularPage> {
+    pub fn alloc_regular_old_page(&self, rt: &Runtime) -> Option<RegularPage> {
         let mut config = self.config.lock();
 
         if !config.grow_old(PAGE_SIZE) {
             return None;
         }
 
-        self.protected.lock().alloc_regular_page(vm, false, false)
+        self.protected.lock().alloc_regular_page(rt, false, false)
     }
 
     pub fn free_regular_old_page(&self, page: RegularPage) {
         self.protected.lock().free_regular_page(page, false)
     }
 
-    pub fn alloc_regular_young_page(&self, vm: &VM) -> Option<RegularPage> {
-        self.protected.lock().alloc_regular_page(vm, true, false)
+    pub fn alloc_regular_young_page(&self, rt: &Runtime) -> Option<RegularPage> {
+        self.protected.lock().alloc_regular_page(rt, true, false)
     }
 
     pub fn free_regular_young_page(&self, page: RegularPage) {
@@ -137,14 +137,14 @@ impl MixedHeapProtected {
 
     fn alloc_regular_page(
         &mut self,
-        vm: &VM,
+        rt: &Runtime,
         is_young: bool,
         is_readonly: bool,
     ) -> Option<RegularPage> {
         if let Some(region) = self.alloc_pages(PAGE_SIZE) {
             os::commit_at(region.start(), PAGE_SIZE, MemoryPermission::ReadWrite);
             let page = RegularPage::setup(region.start(), is_young, is_readonly);
-            fill_region(vm, page.object_area_start(), page.object_area_end());
+            fill_region(rt, page.object_area_start(), page.object_area_end());
             if is_young {
                 self.committed_sizes.young += PAGE_SIZE;
             } else {

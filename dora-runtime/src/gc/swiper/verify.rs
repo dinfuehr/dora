@@ -9,7 +9,7 @@ use crate::gc::swiper::old::OldGen;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{LargePage, ReadOnlySpace, RegularPage, Swiper};
 
-use crate::vm::VM;
+use crate::runtime::Runtime;
 
 #[derive(Copy, Clone)]
 pub enum VerifierPhase {
@@ -66,7 +66,7 @@ impl fmt::Display for VerifierPhase {
 }
 
 pub struct Verifier<'a> {
-    vm: &'a VM,
+    rt: &'a Runtime,
     swiper: &'a Swiper,
     young: &'a YoungGen,
     old: &'a OldGen,
@@ -82,7 +82,7 @@ pub struct Verifier<'a> {
 
 impl<'a> Verifier<'a> {
     pub fn new(
-        vm: &'a VM,
+        rt: &'a Runtime,
         swiper: &'a Swiper,
         young: &'a YoungGen,
         old: &'a OldGen,
@@ -92,7 +92,7 @@ impl<'a> Verifier<'a> {
         phase: VerifierPhase,
     ) -> Verifier<'a> {
         Verifier {
-            vm,
+            rt,
             swiper,
             young,
             old,
@@ -100,8 +100,8 @@ impl<'a> Verifier<'a> {
             readonly_space,
             large,
             minimum_remset: Vec::new(),
-            shape_base: vm.shape_base(),
-            shape_size: vm.shape_size(),
+            shape_base: rt.shape_base(),
+            shape_size: rt.shape_size(),
 
             phase,
         }
@@ -198,7 +198,7 @@ impl<'a> Verifier<'a> {
             assert_eq!(page, page_for_object);
             assert!(object_end <= page.end());
 
-            if !object.is_filler(self.vm) {
+            if !object.is_filler(self.rt) {
                 self.verify_object(page.as_base_page(), curr);
             }
 
@@ -227,7 +227,7 @@ impl<'a> Verifier<'a> {
 
         let mut object_has_young_ref = false;
 
-        object.visit_reference_fields(self.vm.shape_base(), |child| {
+        object.visit_reference_fields(self.rt.shape_base(), |child| {
             if self.verify_slot(child, object_address) {
                 object_has_young_ref = true;
             }

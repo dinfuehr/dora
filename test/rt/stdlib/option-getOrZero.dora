@@ -2,7 +2,7 @@ fn main() {
   let some = Option[Int32]::Some(23i32);
   let none = Option[Int32]::None;
 
-  // thread 'main' panicked at 'no impl found for generic trait method call', dora/src/vm/impls.rs:86:10
+  // thread 'main' panicked at 'no impl found for generic trait method call', dora-runtime/src/runtime/impls.rs
   // assert(some.get_or_zero() == 23i32);
   // assert(none.get_or_zero() == 0i32);
 }
