@@ -141,6 +141,10 @@ impl GraphVerifier {
                 self.assert_no_inputs(inst);
             }
 
+            Op::LocalGet => {
+                unreachable[()]();
+            }
+
             Op::EnsureGlobalInitialized
             | Op::LoadGlobal
             | Op::GetGlobalAddress
@@ -195,6 +199,10 @@ impl GraphVerifier {
 
             Op::LoadReg | Op::Load | Op::Convert | Op::Bitcast | Op::AtomicLoad => {
                 self.assert_input_count(inst, 1i64);
+            }
+
+            Op::LocalSet => {
+                unreachable[()]();
             }
 
             Op::Add => self.assert_add_inputs(inst),

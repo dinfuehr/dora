@@ -21,6 +21,7 @@ use package::liveness::compute_liveness;
 
 mod assembler;
 mod bytecode;
+mod bytecode_graph_builder;
 mod cfg_simplification;
 mod codegen;
 mod compilation;
@@ -41,6 +42,7 @@ mod resolver;
 mod serializer;
 mod simplification;
 mod sparse_set;
+mod ssa_construction;
 mod specialize;
 mod stackalloc;
 mod store_elimination;

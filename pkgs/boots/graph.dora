@@ -311,8 +311,26 @@ fn remove_unreachable_blocks(graph: Graph, reachable: BitSet) {
             continue;
         }
 
+        for phi in block.phis_iterator() {
+            remove_unreachable_inst(graph, phi);
+        }
+
+        for inst in block.instructions_iterator() {
+            remove_unreachable_inst(graph, inst);
+        }
+
         block.remove();
     }
+}
+
+fn remove_unreachable_inst(graph: Graph, inst: Inst) {
+    assert(inst.has_id());
+    let id = inst._id;
+    assert(graph.inst_by_id(id.to_int64()).get_or_panic() === inst);
+    graph.inst_by_id(id.to_int64()) = None[Inst];
+    inst._id = -id;
+    inst.block = None[Block];
+    assert(!inst.has_id());
 }
 
 class InsertionOrderIterator {
@@ -957,6 +975,8 @@ pub enum Op {
     CheckDivZero,
 
     Arg,
+    LocalGet,
+    LocalSet,
 
     LoadArray,
     StoreArray,
@@ -1160,6 +1180,8 @@ pub fn op_name(op: Op): String {
         Op::StoreArray => "StoreArray",
         Op::GetElementPtr => "GetElementPtr",
         Op::Arg => "Arg",
+        Op::LocalGet => "LocalGet",
+        Op::LocalSet => "LocalSet",
         Op::Move => "Move",
         Op::LoadReg => "LoadReg",
         Op::StoreReg => "StoreReg",
@@ -1462,6 +1484,8 @@ impl Inst {
             Op::StoreArray => None[Type],
             Op::GetElementPtr => Some[Type](Type::Address),
             Op::Arg => Some[Type](self.ty),
+            Op::LocalGet => Some[Type](self.ty),
+            Op::LocalSet => None[Type],
             Op::Move => Some[Type](self.ty),
             Op::LoadReg => Some[Type](self.ty),
             Op::StoreReg => Some[Type](self.ty),
@@ -1522,6 +1546,7 @@ impl Inst {
             | Op::StoreWb
             | Op::StoreArrayWb
             | Op::StoreArrayAddressWb
+            | Op::LocalSet
             | Op::IsNegOverflowing
             | Op::IsAddOverflowing
             | Op::IsSubOverflowing
@@ -1816,6 +1841,11 @@ impl Inst {
         self.aux.to_int32()
     }
 
+    pub fn get_local_index(): Int32 {
+        assert(self.op() == Op::LocalGet || self.op() == Op::LocalSet);
+        self.aux.to_int32()
+    }
+
     pub fn get_offset(): Int32 {
         assert(self.op() == Op::Load || self.op() == Op::Store  || self.op() == Op::StoreWb || self.op() == Op::StoreArrayAddressWb);
         self.aux.to_int32()
@@ -2061,6 +2091,8 @@ impl Inst {
             Op::StoreArray => true,
             Op::GetElementPtr => false,
             Op::Arg => false,
+            Op::LocalGet => false,
+            Op::LocalSet => true,
             Op::Move => true,
             Op::LoadReg => true,
             Op::StoreReg => true,
@@ -3080,6 +3112,23 @@ pub fn create_arg_inst(index: Int32, ty: Type): Inst {
     inst._op = Some(Op::Arg);
     inst.ty = ty;
     inst.aux = index.to_int64();
+    inst
+}
+
+pub fn create_local_get_inst(index: Int32, ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::LocalGet);
+    inst.ty = ty;
+    inst.aux = index.to_int64();
+    inst
+}
+
+pub fn create_local_set_inst(index: Int32, value: Inst, ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::LocalSet);
+    inst.ty = ty;
+    inst.aux = index.to_int64();
+    inst.add_input(value);
     inst
 }
 

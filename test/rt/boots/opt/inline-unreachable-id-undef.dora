@@ -1,0 +1,18 @@
+//= error
+
+fn main() {
+    testme();
+}
+
+fn testme(): Int {
+    let x = my_fatal_error[Int]();
+    id[Int](x)
+}
+
+fn my_fatal_error[T](): T {
+    std::fatal_error[T]("not yet implemented")
+}
+
+fn id[T](x: T): T {
+    x
+}

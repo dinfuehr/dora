@@ -1,0 +1,373 @@
+use std::{BitSet, HashMap};
+
+use package::bytecode::{BytecodeFunction, BytecodeRegister, BytecodeType, EnumId};
+use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
+use package::graph;
+use package::graph::{Block, Graph, Inst, Op};
+use package::graph::ty::Type;
+use package::regalloc::{EnumLayout};
+use package::regalloc;
+use package::specialize::{specialize_array, specialize_ty};
+
+pub class SsaConstruction {
+    ci: CompilationInfo,
+    graph: Graph,
+    bc: BytecodeFunction,
+    type_params: Array[BytecodeType],
+    return_type: BytecodeType,
+    specialize_self: Option[SpecializeSelf],
+    return_register_type: Option[Type],
+    exit_block: Option[Block],
+    current_def: RegisterTable,
+    // The CFG is complete before this pass runs, but a predecessor's
+    // register definitions are only final after its block has been scanned.
+    processed_blocks: BitSet,
+    // A block is sealed when all predecessor definitions are available, so
+    // any incomplete phis in the block can be resolved.
+    sealed_blocks: BitSet,
+    incomplete_phis: HashMap[Block, HashMap[BytecodeRegister, Inst]],
+    current_replacements: Vec[Inst],
+    return_value: Option[Inst],
+}
+
+impl SsaConstruction {
+    pub static fn new(ci: CompilationInfo, graph: Graph, fct: FunctionCompilationInfo, return_register_type: Option[Type], exit_block: Option[Block]): SsaConstruction {
+        let mut registers = fct.bc.registers.size();
+        if return_register_type.is_some() {
+            registers += 1;
+        }
+
+        SsaConstruction(
+            ci,
+            graph,
+            bc = fct.bc,
+            type_params = fct.type_params,
+            return_type = fct.return_type,
+            specialize_self = fct.specialize_self,
+            return_register_type,
+            exit_block,
+            current_def = RegisterTable::new(registers),
+            processed_blocks = BitSet::new(graph.block_count().to_int64()),
+            sealed_blocks = BitSet::new(graph.block_count().to_int64()),
+            incomplete_phis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
+            current_replacements = Vec[Inst]::new(),
+            return_value = None[Inst],
+        )
+    }
+
+    pub fn run(): Option[Inst] {
+        self.graph.remove_unreachable_blocks();
+        self.process_blocks();
+        self.read_return_value();
+        self.finish();
+        self.return_value
+    }
+
+    fn process_blocks() {
+        for block in self.graph.insertion_order_iterator() {
+            self.try_seal_block(block);
+            self.process_block(block);
+            self.mark_block_processed(block);
+
+            for succ in block.successors {
+                self.try_seal_block(succ.target);
+            }
+        }
+    }
+
+    fn process_block(block: Block) {
+        for inst in block.instructions_iterator() {
+            match inst.op() {
+                Op::LocalGet => {
+                    let register = BytecodeRegister(inst.get_local_index());
+                    let replacement = self.read_variable(register, block);
+                    inst.replace_all_uses_with(replacement);
+                    inst.remove();
+                }
+
+                Op::LocalSet => {
+                    let register = BytecodeRegister(inst.get_local_index());
+                    let value = inst.get_input(0).get_value();
+                    self.write_variable(register, block, value);
+                    inst.remove();
+                }
+
+                _ => (),
+            }
+        }
+    }
+
+    fn read_return_value() {
+        if self.return_register_type.is_none() {
+            return;
+        }
+
+        let exit_block = self.exit_block.get_or_panic();
+        if !exit_block.has_id() {
+            return;
+        }
+
+        if exit_block.predecessors.is_empty() {
+            return;
+        }
+
+        let register = self.return_register();
+        self.return_value = Some[Inst](self.read_variable(register, exit_block));
+    }
+
+    fn finish() {
+        for block in self.graph.insertion_order_iterator() {
+            assert(self.processed_blocks.contains(block.id().to_int64()));
+            assert(self.sealed_blocks.contains(block.id().to_int64()));
+        }
+    }
+
+    fn mark_block_processed(block: Block) {
+        assert(!self.processed_blocks.contains(block.id().to_int64()));
+        self.processed_blocks.insert(block.id().to_int64());
+    }
+
+    fn try_seal_block(block: Block): Bool {
+        if self.sealed_blocks.contains(block.id().to_int64()) {
+            return true;
+        }
+
+        for edge in block.predecessors {
+            if !self.processed_blocks.contains(edge.source.id().to_int64()) {
+                return false;
+            }
+        }
+
+        self.seal_block(block);
+        true
+    }
+
+    fn seal_block(block: Block) {
+        assert(!self.sealed_blocks.contains(block.id().to_int64()));
+        self.sealed_blocks.insert(block.id().to_int64());
+
+        if self.incomplete_phis.get(block) is Some(map) {
+            for (register, phi) in map {
+                assert(phi.has_id());
+                self.add_phi_operands(register, phi);
+            }
+        }
+    }
+
+    fn write_variable(register: BytecodeRegister, block: Block, value: Inst) {
+        assert(value.has_id());
+        self.current_def.insert(register, block, value);
+    }
+
+    fn read_variable(register: BytecodeRegister, block: Block): Inst {
+        let inst = self.current_def.get(register, block);
+
+        if inst.is_some() {
+            let inst = inst.get_or_panic();
+
+            if inst.has_id() {
+                return inst;
+            }
+        }
+
+        self.read_variable_recursive(register, block)
+    }
+
+    fn read_variable_recursive(register: BytecodeRegister, block: Block): Inst {
+        let ty = self.reg_graph_ty(register);
+
+        let value: Inst = if !self.sealed_blocks.contains(block.id().to_int64()) {
+            let incomplete = graph::create_phi_inst(ty);
+            block.append_phi(incomplete);
+
+            if self.incomplete_phis.get(block) is Some(map) {
+                map.insert(register, incomplete);
+            } else {
+                let map = HashMap[BytecodeRegister, Inst]::new();
+                map.insert(register, incomplete);
+                self.incomplete_phis.insert(block, map);
+            }
+
+            incomplete
+        } else if block.predecessors.size() == 1i64 {
+            let predecessor = block.predecessors.first().get_or_panic().source;
+            self.read_variable(register, predecessor)
+        } else {
+            let phi = graph::create_phi_inst(ty);
+            block.append_phi(phi);
+            self.write_variable(register, block, phi);
+            self.add_phi_operands(register, phi)
+        };
+
+        self.write_variable(register, block, value);
+        value
+    }
+
+    fn add_phi_operands(register: BytecodeRegister, phi: Inst): Inst {
+        for pred in phi.get_block().predecessors {
+            let inst = self.read_variable(register, pred.source);
+            phi.add_input(inst);
+        }
+        phi.register_uses();
+        self.try_remove_trivial_phi(phi)
+    }
+
+    fn try_remove_trivial_phi(phi: Inst): Inst {
+        let mut same = None[Inst];
+
+        for inp in phi.get_inputs() {
+            let op = inp.get_value();
+
+            if same is Some(same) && same === op {
+                continue;
+            }
+
+            if op === phi {
+                continue;
+            }
+
+            if same.is_some() {
+                return phi;
+            }
+
+            same = Some(op);
+        }
+
+        let replacement = if same.is_none() {
+            let undef = graph::create_undef_inst();
+            phi.get_block().prepend_inst(undef);
+            undef
+        } else {
+            same.get_or_panic()
+        };
+
+        let users = phi.users();
+
+        phi.replace_all_uses_with(replacement);
+        phi.remove();
+
+        for map in self.current_def.data {
+            let update = Vec[Block]::new();
+
+            for (block, value) in map {
+                if value === phi {
+                    update.push(block);
+                }
+            }
+
+            for block in update {
+                assert(map.insert(block, replacement).is_some());
+            }
+        }
+
+        for idx in std::range(0, self.current_replacements.size()) {
+            if self.current_replacements(idx) === phi {
+                self.current_replacements(idx) = replacement;
+            }
+        }
+
+        if self.return_value.is_some() && self.return_value.get_or_panic() === phi {
+            self.return_value = Some(replacement);
+        }
+
+        self.current_replacements.push(replacement);
+
+        for user in users {
+            if user === phi {
+                continue;
+            }
+
+            if user.has_id() && user.is_phi() {
+                self.try_remove_trivial_phi(user);
+            }
+        }
+
+        let replacement = self.current_replacements.pop().get_or_panic();
+        assert(replacement.has_id());
+        replacement
+    }
+
+    fn reg_graph_ty(id: BytecodeRegister): Type {
+        if self.return_register() == id {
+            return self.return_register_type.get_or_panic();
+        }
+
+        let ty = self.reg(id);
+        self.graph_ty(ty)
+    }
+
+    fn reg(id: BytecodeRegister): BytecodeType {
+        let ty = self.bc.registers(id.0.to_int64());
+        self.specialize_ty(ty)
+    }
+
+    fn return_register(): BytecodeRegister {
+        BytecodeRegister(self.bc.registers.size().to_int32())
+    }
+
+    fn specialize_ty(ty: BytecodeType): BytecodeType {
+        specialize_ty(self.ci, self.specialize_self, ty, self.type_params)
+    }
+
+    fn specialize_array(array: Array[BytecodeType]): Array[BytecodeType] {
+        specialize_array(self.ci, self.specialize_self, array, self.type_params)
+    }
+
+    fn compute_enum_layout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
+        let type_params = self.specialize_array(type_params);
+        regalloc::compute_enum_layout(self.ci, None[SpecializeSelf], enum_id, type_params)
+    }
+
+    fn graph_ty(ty: BytecodeType): Type {
+        match ty {
+            BytecodeType::Unit => Type::Unit,
+            BytecodeType::Bool => Type::Bool,
+            BytecodeType::UInt8 => Type::UInt8,
+            BytecodeType::Float32 => Type::Float32,
+            BytecodeType::Int32 => Type::Int32,
+            BytecodeType::Char => Type::Int32,
+            BytecodeType::Int64 => Type::Int64,
+            BytecodeType::Float64 => Type::Float64,
+            BytecodeType::Class(..)
+            | BytecodeType::Ptr
+            | BytecodeType::Address
+            | BytecodeType::Lambda(..)
+            | BytecodeType::TraitObject(..) => Type::Ptr,
+            BytecodeType::Enum(enum_id, type_params) => {
+                let layout = self.compute_enum_layout(enum_id, type_params);
+                match layout {
+                    EnumLayout::Int32 => Type::Int32,
+                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
+                }
+            }
+            BytecodeType::Struct(..)
+            | BytecodeType::Tuple(_) => Type::Address,
+            BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
+        }
+    }
+}
+
+class RegisterTable {
+    data: Array[HashMap[Block, Inst]],
+}
+
+impl RegisterTable {
+    static fn new(registers: Int64): RegisterTable {
+        let data = Vec[HashMap[Block, Inst]]::new();
+
+        for i in std::range(0, registers) {
+            data.push(HashMap[Block, Inst]::new());
+        }
+
+        RegisterTable(data = data.to_array())
+    }
+
+    fn get(register: BytecodeRegister, block: Block): Option[Inst] {
+        self.data(register.0.to_int64()).get(block)
+    }
+
+    fn insert(register: BytecodeRegister, block: Block, value: Inst) {
+        self.data(register.0.to_int64()).insert(block, value);
+    }
+}
