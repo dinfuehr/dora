@@ -160,8 +160,6 @@ impl BytecodeGraphBuilder {
     }
 
     fn setup_arguments(block: Block) {
-        self.current_block = Some[Block](block);
-
         let mut arg_idx = 0i32;
         let ret_ty = specialize_ty(self.ci, None[SpecializeSelf], self.return_type, self.type_params);
 
@@ -180,19 +178,15 @@ impl BytecodeGraphBuilder {
             if !ty.is_unit() {
                 let arg_inst = graph::create_arg_inst(arg_idx, ty);
                 block.append_inst(arg_inst);
-                self.emit_local_set(BytecodeRegister(reg_idx), arg_inst);
+                self.append_local_set(block, BytecodeRegister(reg_idx), arg_inst);
                 arg_idx += 1i32;
             }
 
             reg_idx += 1i32;
         }
-
-        self.current_block = None[Block];
     }
 
     fn connect_arguments(block: Block, call_inst: Inst) {
-        self.current_block = Some[Block](block);
-
         let mut arg_idx = 0;
         let ret_ty = self.specialize_ty(self.return_type);
 
@@ -209,14 +203,12 @@ impl BytecodeGraphBuilder {
 
             if !ty.is_unit() {
                 let arg = call_inst.get_input(arg_idx).get_value();
-                self.emit_local_set(BytecodeRegister(reg_idx), arg);
+                self.append_local_set(block, BytecodeRegister(reg_idx), arg);
                 arg_idx += 1;
             }
 
             reg_idx += 1i32;
         }
-
-        self.current_block = None[Block];
     }
 
     fn emit_block_bodies() {
@@ -272,10 +264,14 @@ impl BytecodeGraphBuilder {
     }
 
     fn emit_local_set(register: BytecodeRegister, value: Inst) {
+        self.append_local_set(self.current(), register, value);
+    }
+
+    fn append_local_set(block: Block, register: BytecodeRegister, value: Inst) {
         assert(!self.reg(register).is_unit());
         assert(value.has_id());
         let inst = graph::create_local_set_inst(register.0, value, self.reg_graph_ty(register));
-        self.current().append_inst(inst);
+        block.append_inst(inst);
     }
 
     fn emit_local_get(register: BytecodeRegister): Inst {
