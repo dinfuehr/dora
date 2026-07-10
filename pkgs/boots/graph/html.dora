@@ -311,7 +311,6 @@ function pass_collapse(element, event) {
         self.write("</code></div>"); // end of div.graph
 
         self.write("</div>\n"); // end of div.pass
-
     }
 
     pub fn dump_graph(title: String, graph: Graph) {
@@ -326,7 +325,6 @@ function pass_collapse(element, event) {
         self.write("</code></div>\n"); // end of div.graph
 
         self.write("</div>\n"); // end of div.pass
-
     }
 
     fn dump_block(block: Block) {

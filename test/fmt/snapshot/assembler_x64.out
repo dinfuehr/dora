@@ -3105,13 +3105,9 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x83u8, 0xc0u8, 0x01u8); // add eax, 1
-
         assert_asm(buffer, 0x83u8, 0xc1u8, 0x01u8); // add ecx, 1
-
         assert_asm(buffer, 0x05u8, 0x80u8, 0u8, 0u8, 0u8); // add eax, 128
-
         assert_asm(buffer, 0x81u8, 0xc1u8, 0x80u8, 0u8, 0u8, 0u8); // add ecx, 128
-
         assert_asm_end(buffer);
     }
 
@@ -5118,7 +5114,6 @@ mod tests {
             0xffu8,
             0xffu8,
         ); // andps xmm0, xmmword ptr [rip - 4] ## 0x3 <_main+0x3>
-
         assert_asm(
             buffer,
             0x44u8,
@@ -5130,7 +5125,6 @@ mod tests {
             0u8,
             0u8,
         ); // andps xmm15, xmmword ptr [rip + 8] ## 0x17 <_main+0x17>
-
         assert_asm_end(buffer);
     }
 
@@ -5150,7 +5144,6 @@ mod tests {
             0xb1u8,
             0x38u8,
         ); // cmpxchg qword ptr [rax], rdi
-
         assert_asm(
             buffer,
             0x48u8,
@@ -5158,7 +5151,6 @@ mod tests {
             0xb1u8,
             0x07u8,
         ); // cmpxchg qword ptr [rdi], rax
-
         assert_asm(
             buffer,
             0x49u8,
@@ -5166,7 +5158,6 @@ mod tests {
             0xb1u8,
             0x3fu8,
         ); // cmpxchg qword ptr [r15], rdi
-
         assert_asm(
             buffer,
             0x4cu8,
@@ -5174,7 +5165,6 @@ mod tests {
             0xb1u8,
             0x3fu8,
         ); // cmpxchg qword ptr [rdi], r15
-
         assert_asm_end(buffer);
     }
 
@@ -5195,7 +5185,6 @@ mod tests {
             0xb1u8,
             0x38u8,
         ); // lock cmpxchg qword ptr [rax], rdi
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5204,7 +5193,6 @@ mod tests {
             0xb1u8,
             0x07u8,
         ); // lock cmpxchg qword ptr [rdi], rax
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5213,7 +5201,6 @@ mod tests {
             0xb1u8,
             0x3fu8,
         ); // lock cmpxchg qword ptr [r15], rdi
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5222,7 +5209,6 @@ mod tests {
             0xb1u8,
             0x3fu8,
         ); // lock cmpxchg qword ptr [rdi], r15
-
         assert_asm_end(buffer);
     }
 
@@ -5236,9 +5222,7 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x0fu8, 0xb1u8, 0x38u8); // cmpxchg dword ptr [rax], edi
-
         assert_asm(buffer, 0x0fu8, 0xb1u8, 0x07u8); // cmpxchg dword ptr [rdi], eax
-
         assert_asm(
             buffer,
             0x41u8,
@@ -5246,7 +5230,6 @@ mod tests {
             0xb1u8,
             0x3fu8,
         ); // cmpxchg dword ptr [r15], edi
-
         assert_asm(
             buffer,
             0x44u8,
@@ -5254,7 +5237,6 @@ mod tests {
             0xb1u8,
             0x3fu8,
         ); // cmpxchg dword ptr [rdi], r15d
-
         assert_asm_end(buffer);
     }
 
@@ -5274,7 +5256,6 @@ mod tests {
             0xb1u8,
             0x38u8,
         ); // lock cmpxchg dword ptr [rax], edi
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5282,7 +5263,6 @@ mod tests {
             0xb1u8,
             0x07u8,
         ); // lock cmpxchg dword ptr [rdi], eax
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5291,7 +5271,6 @@ mod tests {
             0xb1u8,
             0x3fu8,
         ); // lock cmpxchg dword ptr [r15], edi
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5300,7 +5279,6 @@ mod tests {
             0xb1u8,
             0x3fu8,
         ); // lock cmpxchg dword ptr [rdi], r15d
-
         assert_asm_end(buffer);
     }
 
@@ -5314,13 +5292,9 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x0fu8, 0xc1u8, 0x38u8); // xadd dword ptr [rax], edi
-
         assert_asm(buffer, 0x0fu8, 0xc1u8, 0x07u8); // xadd dword ptr [rdi], eax
-
         assert_asm(buffer, 0x41u8, 0x0fu8, 0xc1u8, 0x3fu8); // xadd dword ptr [r15], edi
-
         assert_asm(buffer, 0x44u8, 0x0fu8, 0xc1u8, 0x3fu8); // xadd dword ptr [rdi], r15d
-
         assert_asm_end(buffer);
     }
 
@@ -5334,13 +5308,9 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x48u8, 0x0fu8, 0xc1u8, 0x38u8); // xadd qword ptr [rax], rdi
-
         assert_asm(buffer, 0x48u8, 0x0fu8, 0xc1u8, 0x07u8); // xadd qword ptr [rdi], rax
-
         assert_asm(buffer, 0x49u8, 0x0fu8, 0xc1u8, 0x3fu8); // xadd qword ptr [r15], rdi
-
         assert_asm(buffer, 0x4cu8, 0x0fu8, 0xc1u8, 0x3fu8); // xadd qword ptr [rdi], r15
-
         assert_asm_end(buffer);
     }
 
@@ -5360,7 +5330,6 @@ mod tests {
             0xc1u8,
             0x38u8,
         ); // lock xadd dword ptr [rax], edi
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5368,7 +5337,6 @@ mod tests {
             0xc1u8,
             0x07u8,
         ); // lock xadd dword ptr [rdi], eax
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5377,7 +5345,6 @@ mod tests {
             0xc1u8,
             0x3fu8,
         ); // lock xadd dword ptr [r15], edi
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5386,7 +5353,6 @@ mod tests {
             0xc1u8,
             0x3fu8,
         ); // lock xadd dword ptr [rdi], r15d
-
         assert_asm_end(buffer);
     }
 
@@ -5407,7 +5373,6 @@ mod tests {
             0xc1u8,
             0x38u8,
         ); // lock xadd qword ptr [rax], rdi
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5416,7 +5381,6 @@ mod tests {
             0xc1u8,
             0x07u8,
         ); // lock xadd qword ptr [rdi], rax
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5425,7 +5389,6 @@ mod tests {
             0xc1u8,
             0x3fu8,
         ); // lock xadd qword ptr [r15], rdi
-
         assert_asm(
             buffer,
             0xF0u8,
@@ -5434,7 +5397,6 @@ mod tests {
             0xc1u8,
             0x3fu8,
         ); // lock xadd qword ptr [rdi], r15
-
         assert_asm_end(buffer);
     }
 
@@ -5447,11 +5409,8 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x8au8, 0x04u8, 0x24u8); // mov al, byte ptr [rsp]
-
         assert_asm(buffer, 0x40u8, 0x8au8, 0x34u8, 0x24u8); // mov sil, byte ptr [rsp]
-
         assert_asm(buffer, 0x44u8, 0x8au8, 0x04u8, 0x24u8); // mov r8b, byte ptr [rsp]
-
         assert_asm_end(buffer);
     }
 
@@ -5474,7 +5433,6 @@ mod tests {
             0xc7u8,
             0x08u8,
         ); // roundss xmm0, xmm15, 8
-
         assert_asm(
             buffer,
             0x66u8,
@@ -5485,7 +5443,6 @@ mod tests {
             0xf8u8,
             0x09u8,
         ); // roundss xmm7, xmm8, 9
-
         assert_asm(
             buffer,
             0x66u8,
@@ -5496,7 +5453,6 @@ mod tests {
             0xc7u8,
             0x0au8,
         ); // roundss xmm8, xmm7, 10
-
         assert_asm(
             buffer,
             0x66u8,
@@ -5507,7 +5463,6 @@ mod tests {
             0xf8u8,
             0x0bu8,
         ); // roundss xmm15, xmm0, 11
-
         assert_asm_end(buffer);
     }
 
@@ -5530,7 +5485,6 @@ mod tests {
             0xc7u8,
             0x08u8,
         ); // roundsd xmm0, xmm15, 8
-
         assert_asm(
             buffer,
             0x66u8,
@@ -5541,7 +5495,6 @@ mod tests {
             0xf8u8,
             0x09u8,
         ); // roundsd xmm7, xmm8, 9
-
         assert_asm(
             buffer,
             0x66u8,
@@ -5552,7 +5505,6 @@ mod tests {
             0xc7u8,
             0x0au8,
         ); // roundsd xmm8, xmm7, 10
-
         assert_asm(
             buffer,
             0x66u8,
@@ -5563,7 +5515,6 @@ mod tests {
             0xf8u8,
             0x0bu8,
         ); // roundsd xmm15, xmm0, 11
-
         assert_asm_end(buffer);
     }
 
@@ -5577,13 +5528,9 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x48u8, 0x87u8, 0x38u8); // xchg qword ptr [rax], rdi
-
         assert_asm(buffer, 0x48u8, 0x87u8, 0x07u8); // xchg qword ptr [rdi], rax
-
         assert_asm(buffer, 0x49u8, 0x87u8, 0x3fu8); // xchg qword ptr [r15], rdi
-
         assert_asm(buffer, 0x4cu8, 0x87u8, 0x3fu8); // xchg qword ptr [rdi], r15
-
         assert_asm_end(buffer);
     }
 
@@ -5597,13 +5544,9 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x87u8, 0x38u8); // xchg dword ptr [rax], edi
-
         assert_asm(buffer, 0x87u8, 0x07u8); // xchg dword ptr [rdi], eax
-
         assert_asm(buffer, 0x41u8, 0x87u8, 0x3fu8); // xchg dword ptr [r15], edi
-
         assert_asm(buffer, 0x44u8, 0x87u8, 0x3fu8); // xchg dword ptr [rdi], r15d
-
         assert_asm_end(buffer);
     }
 
@@ -5617,13 +5560,9 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x40u8, 0x86u8, 0x38u8); // xchg byte ptr [rax], dil
-
         assert_asm(buffer, 0x86u8, 0x07u8); // xchg byte ptr [rdi], al
-
         assert_asm(buffer, 0x41u8, 0x86u8, 0x3fu8); // xchg byte ptr [r15], dil
-
         assert_asm(buffer, 0x44u8, 0x86u8, 0x3fu8); // xchg byte ptr [rdi], r15b
-
         assert_asm_end(buffer);
     }
 

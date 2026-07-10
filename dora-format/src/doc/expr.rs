@@ -10,10 +10,10 @@ use dora_parser::ast::{
 use crate::doc::Doc;
 
 use crate::doc::utils::{
-    CollectElement, Options, collect_comment_docs, collect_nodes, format_node_as_doc, is_node,
-    is_token, next_node, next_token, print_comma_list_grouped, print_comma_list_ungrouped,
-    print_next_token, print_node, print_path_segment_name, print_rest, print_token,
-    print_token_opt, print_trivia,
+    CollectElement, Options, collect_comment_docs, collect_nodes, ends_with_hard_line,
+    format_node_as_doc, is_node, is_token, next_node, next_token, print_comma_list_grouped,
+    print_comma_list_ungrouped, print_next_token, print_node, print_path_segment_name, print_rest,
+    print_token, print_token_opt, print_trivia,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -41,14 +41,23 @@ pub(crate) fn format_block(node: AstBlockExpr, f: &mut Formatter) {
         f.hard_line();
         f.nest(BLOCK_INDENT, |f| {
             for element in elements {
-                match element {
+                let needs_hard_line = match element {
                     CollectElement::Comment(doc_id) => {
+                        let needs_hard_line = !ends_with_hard_line(&doc_id);
                         f.append(doc_id);
+                        needs_hard_line
                     }
-                    CollectElement::Element(_, doc_id) => f.append(doc_id),
-                    CollectElement::Gap => {}
+                    CollectElement::Element(_, doc_id) => {
+                        let needs_hard_line = !ends_with_hard_line(&doc_id);
+                        f.append(doc_id);
+                        needs_hard_line
+                    }
+                    CollectElement::Gap => true,
+                };
+
+                if needs_hard_line {
+                    f.hard_line();
                 }
-                f.hard_line();
             }
         });
     }
@@ -604,7 +613,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn formats_inline_line_comment() {
         let input = "fn  main (  ) {  let  x  =  1 ;   // comment\n }";
         let expected = "fn main() {\n    let x = 1; // comment\n}\n";

@@ -30,7 +30,6 @@ pub trait Hash {
 // @restricted / @internal
 pub trait Zero {
     static fn zero(): Self; // should be `let` instead of `fn`
-
 }
 
 pub enum Ordering {

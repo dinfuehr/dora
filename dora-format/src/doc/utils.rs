@@ -145,6 +145,21 @@ pub(crate) enum CollectElement<T> {
     Gap,
 }
 
+pub(crate) fn ends_with_hard_line(doc: &Doc) -> bool {
+    match doc {
+        Doc::Concat { children } => {
+            if let Some(child) = children.last() {
+                ends_with_hard_line(child)
+            } else {
+                false
+            }
+        }
+        Doc::Nest { doc, .. } | Doc::Group { doc } => ends_with_hard_line(doc),
+        Doc::HardLine => true,
+        _ => false,
+    }
+}
+
 impl<T> CollectElement<T> {
     pub(crate) fn is_gap(&self) -> bool {
         match self {

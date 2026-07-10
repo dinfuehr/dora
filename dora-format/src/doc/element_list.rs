@@ -4,7 +4,8 @@ use dora_parser::ast::{AstElement, AstElementList, SyntaxNodeBase};
 use crate::doc::BLOCK_INDENT;
 use crate::doc::Formatter;
 use crate::doc::utils::{
-    CollectElement, Options, collect_nodes, print_rest, print_token, print_trivia,
+    CollectElement, Options, collect_nodes, ends_with_hard_line, print_rest, print_token,
+    print_trivia,
 };
 
 pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
@@ -73,18 +74,22 @@ pub(crate) fn format_element_list(node: AstElementList, f: &mut Formatter) {
 
     let content = f.concat(|f| {
         for (idx, element) in elements.into_iter().enumerate() {
-            match element {
+            let needs_hard_line = match element {
                 CollectElement::Comment(doc) => {
+                    let needs_hard_line = !ends_with_hard_line(&doc);
                     f.append(doc);
-                    f.hard_line();
+                    needs_hard_line
                 }
                 CollectElement::Element(_, doc) => {
+                    let needs_hard_line = !ends_with_hard_line(&doc);
                     f.append(doc);
-                    f.hard_line();
+                    needs_hard_line
                 }
-                CollectElement::Gap => {
-                    f.hard_line();
-                }
+                CollectElement::Gap => true,
+            };
+
+            if needs_hard_line {
+                f.hard_line();
             }
 
             if additional_gaps[idx] {
