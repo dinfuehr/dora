@@ -16,6 +16,50 @@ use package::regalloc::{EnumLayout, is_reference, RecordLayout};
 use package::regalloc;
 use package::specialize::{specialize_array, specialize_ty};
 
+pub fn compute_inline_return_register_type(ci: CompilationInfo, fct: FunctionCompilationInfo): Option[Type] {
+    let return_type = specialize_ty(ci, fct.specialize_self, fct.return_type, fct.type_params);
+
+    if return_type.is_unit() || return_type.is_struct() || return_type.is_tuple() {
+        None[Type]
+    } else {
+        Some[Type](bytecode_graph_ty(ci, fct.specialize_self, fct.type_params, return_type))
+    }
+}
+
+fn bytecode_graph_ty(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], fct_type_params: Array[BytecodeType], ty: BytecodeType): Type {
+    match ty {
+        BytecodeType::Unit => Type::Unit,
+        BytecodeType::Bool => Type::Bool,
+        BytecodeType::UInt8 => Type::UInt8,
+        BytecodeType::Float32 => Type::Float32,
+        BytecodeType::Int32 => Type::Int32,
+        BytecodeType::Char => Type::Int32,
+        BytecodeType::Int64 => Type::Int64,
+        BytecodeType::Float64 => Type::Float64,
+        BytecodeType::Class(..)
+        | BytecodeType::Ptr
+        | BytecodeType::Address
+        | BytecodeType::Lambda(..)
+        | BytecodeType::TraitObject(..) => Type::Ptr,
+        BytecodeType::Enum(enum_id, enum_type_params) => {
+            let layout = compute_enum_layout(ci, specialize_self, fct_type_params, enum_id, enum_type_params);
+            match layout {
+                EnumLayout::Int32 => Type::Int32,
+                EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
+            }
+        }
+        BytecodeType::Struct(..)
+        | BytecodeType::Tuple(_) => Type::Address,
+        BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
+        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
+    }
+}
+
+fn compute_enum_layout(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], fct_type_params: Array[BytecodeType], enum_id: EnumId, enum_type_params: Array[BytecodeType]): EnumLayout {
+    let enum_type_params = specialize_array(ci, specialize_self, enum_type_params, fct_type_params);
+    regalloc::compute_enum_layout(ci, None[SpecializeSelf], enum_id, enum_type_params)
+}
+
 pub class BytecodeGraphBuilder {
     ci: CompilationInfo,
     graph: Graph,
@@ -34,7 +78,7 @@ pub class BytecodeGraphBuilder {
     exit_block: Option[Block],
 
     return_value_arg_inst: Option[Inst],
-    pub return_register_type: Option[Type],
+    inline_return_type: Option[Type],
 
 }
 
@@ -56,11 +100,11 @@ impl BytecodeGraphBuilder {
             entry_block = None[Block],
             exit_block = None[Block],
             return_value_arg_inst = None[Inst],
-            return_register_type = None[Type],
+            inline_return_type = None[Type],
         )
     }
 
-    pub static fn new_for_inlining(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, analysis: BytecodeAnalysis, entry_block: Block, exit_block: Block): BytecodeGraphBuilder {
+    pub static fn new_for_inlining(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, analysis: BytecodeAnalysis, inline_return_type: Option[Type], entry_block: Block, exit_block: Block): BytecodeGraphBuilder {
         BytecodeGraphBuilder(
             ci,
             graph,
@@ -77,7 +121,7 @@ impl BytecodeGraphBuilder {
             entry_block = Some[Block](entry_block),
             exit_block = Some[Block](exit_block),
             return_value_arg_inst = None[Inst],
-            return_register_type = None[Type],
+            inline_return_type,
         )
     }
 
@@ -1172,8 +1216,8 @@ impl BytecodeGraphBuilder {
                 self.copy_tuple(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
             } else {
                 let value = self.emit_local_get(opnd);
-                let register = self.ensure_return_register(value.get_value_type());
-                self.emit_local_set(register, value);
+                assert(value.get_value_type() == self.inline_return_type.get_or_panic());
+                self.emit_local_set(self.return_register(), value);
             }
 
             let inst = graph::create_goto_inst(exit_block);
@@ -2786,22 +2830,12 @@ impl BytecodeGraphBuilder {
         self.inlined_function_id.is_some()
     }
 
-    fn ensure_return_register(ty: Type): BytecodeRegister {
-        if self.return_register_type is Some(return_register_type) {
-            assert(return_register_type == ty);
-        } else {
-            self.return_register_type = Some[Type](ty);
-        }
-
-        self.return_register()
-    }
-
     fn return_register(): BytecodeRegister {
         BytecodeRegister(self.bc.registers.size().to_int32())
     }
 
     fn is_return_register(register: BytecodeRegister): Bool {
-        if self.return_register_type.is_none() {
+        if self.inline_return_type.is_none() {
             return false;
         }
 
@@ -2810,7 +2844,7 @@ impl BytecodeGraphBuilder {
 
     fn reg_graph_ty(id: BytecodeRegister): Type {
         if self.return_register() == id {
-            return self.return_register_type.get_or_panic();
+            return self.inline_return_type.get_or_panic();
         }
 
         let ty = self.reg(id);
@@ -2849,32 +2883,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn graph_ty(ty: BytecodeType): Type {
-        match ty {
-            BytecodeType::Unit => Type::Unit,
-            BytecodeType::Bool => Type::Bool,
-            BytecodeType::UInt8 => Type::UInt8,
-            BytecodeType::Float32 => Type::Float32,
-            BytecodeType::Int32 => Type::Int32,
-            BytecodeType::Char => Type::Int32,
-            BytecodeType::Int64 => Type::Int64,
-            BytecodeType::Float64 => Type::Float64,
-            BytecodeType::Class(..)
-            | BytecodeType::Ptr
-            | BytecodeType::Address
-            | BytecodeType::Lambda(..)
-            | BytecodeType::TraitObject(..) => Type::Ptr,
-            BytecodeType::Enum(enum_id, type_params) => {
-                let layout = self.compute_enum_layout(enum_id, type_params);
-                match layout {
-                    EnumLayout::Int32 => Type::Int32,
-                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
-                }
-            }
-            BytecodeType::Struct(..)
-            | BytecodeType::Tuple(_) => Type::Address,
-            BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
-            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
-        }
+        bytecode_graph_ty(self.ci, self.specialize_self, self.type_params, ty)
     }
 
     fn reg(id: BytecodeRegister): BytecodeType {
