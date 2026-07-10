@@ -1,8 +1,24 @@
-use package::interface::{Config, StructData, EnumData, EnumVariantData};
-use package::bytecode::{AliasId, BytecodeFunction, BytecodeTraitType, BytecodeType, ClassId, ConstPoolEntry, ConstValue, EnumId, FunctionId, ClassFieldId, ImplId, Location, StructId, StructFieldId, TraitId};
+use package::interface::{Config, EnumData, EnumVariantData, StructData};
+use package::bytecode::{
+    AliasId,
+    BytecodeFunction,
+    BytecodeTraitType,
+    BytecodeType,
+    ClassFieldId,
+    ClassId,
+    ConstPoolEntry,
+    ConstValue,
+    EnumId,
+    FunctionId,
+    ImplId,
+    Location,
+    StructFieldId,
+    StructId,
+    TraitId,
+};
 use package::bytecode::opcode as opc;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
-use package::interface::{FunctionBytecodeData, FunctionInliningInfo, Architecture};
+use package::interface::{Architecture, FunctionBytecodeData, FunctionInliningInfo};
 
 pub fn decode_config(encoded: Array[UInt8]): Config {
     let reader = ByteReader::new(encoded);
@@ -32,7 +48,9 @@ pub fn decode_config(encoded: Array[UInt8]): Config {
     )
 }
 
-pub fn decode_compilation_info(reader: ByteReader): (CompilationInfo, FunctionCompilationInfo) {
+pub fn decode_compilation_info(
+    reader: ByteReader
+): (CompilationInfo, FunctionCompilationInfo) {
     let bc = decode_bytecode_function(reader);
     let fct_id = FunctionId(reader.read_int32());
     let type_params = decode_type_params(reader);
@@ -44,8 +62,22 @@ pub fn decode_compilation_info(reader: ByteReader): (CompilationInfo, FunctionCo
     let emit_graph_after_each_pass = reader.read_bool();
     let emit_html = reader.read_bool();
     let emit_code_comments = reader.read_bool();
-    let ci = CompilationInfo::new(fct_id, loc, emit_debug, emit_final_graph, emit_graph_after_each_pass, emit_html, emit_code_comments);
-    let fct_data = FunctionCompilationInfo(fct_id, bc, return_type, type_params, specialize_self);
+    let ci = CompilationInfo::new(
+        fct_id,
+        loc,
+        emit_debug,
+        emit_final_graph,
+        emit_graph_after_each_pass,
+        emit_html,
+        emit_code_comments,
+    );
+    let fct_data = FunctionCompilationInfo(
+        fct_id,
+        bc,
+        return_type,
+        type_params,
+        specialize_self,
+    );
     (ci, fct_data)
 }
 
@@ -78,19 +110,13 @@ pub fn decode_const_value(reader: ByteReader): ConstValue {
 pub fn decode_struct_data(reader: ByteReader): StructData {
     let type_params = reader.read_int32();
     let types = decode_bytecode_type_array(reader);
-    StructData(
-        type_params,
-        fields = types
-    )
+    StructData(type_params, fields = types)
 }
 
 pub fn decode_enum_data(reader: ByteReader): EnumData {
     let type_params = reader.read_int32();
     let variants = decode_enum_variants(reader);
-    EnumData(
-        type_params,
-        variants = variants
-    )
+    EnumData(type_params, variants = variants)
 }
 
 fn decode_enum_variants(reader: ByteReader): Array[EnumVariantData] {
@@ -123,7 +149,7 @@ pub fn decode_bytecode_function(reader: ByteReader): BytecodeFunction {
         const_pool = constpool,
         registers = registers,
         locations = locations,
-        arguments = arguments
+        arguments = arguments,
     )
 }
 
@@ -156,7 +182,9 @@ pub fn decode_optional_specialize_self(reader: ByteReader): Option[SpecializeSel
         let trait_ty = decode_bytecode_trait_type(reader);
         let extended_ty = decode_bytecode_type(reader);
 
-        Some[SpecializeSelf](SpecializeSelf(impl_id, container_type_params, trait_ty, extended_ty))
+        Some[SpecializeSelf](
+            SpecializeSelf(impl_id, container_type_params, trait_ty, extended_ty)
+        )
     } else {
         None[SpecializeSelf]
     }
@@ -386,8 +414,8 @@ fn decode_architecture(reader: ByteReader): Architecture {
     } else if value == opc::INSTRUCTION_SET_ARM64 {
         Architecture::Arm64
     } else {
-            println("unknown architecture = ${value}");
-            unreachable[Architecture]()
+        println("unknown architecture = ${value}");
+        unreachable[Architecture]()
     }
 }
 
@@ -419,7 +447,12 @@ pub fn decode_function_inlining_info(reader: ByteReader): FunctionInliningInfo {
     let has_force_inline_annotation = reader.read_bool();
     let has_never_inline_annotation = reader.read_bool();
 
-    FunctionInliningInfo(has_bytecode, bytecode_size, has_force_inline_annotation, has_never_inline_annotation)
+    FunctionInliningInfo(
+        has_bytecode,
+        bytecode_size,
+        has_force_inline_annotation,
+        has_never_inline_annotation,
+    )
 }
 
 pub class ByteReader {
@@ -471,7 +504,14 @@ impl ByteReader {
         let by7 = self.read_uint8().to_int64();
         let by8 = self.read_uint8().to_int64();
 
-        (by8 << 56i32) | (by7 << 48i32) | (by6 << 40i32) | (by5 << 32i32) | (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
+        (by8 << 56i32) |
+        (by7 << 48i32) |
+        (by6 << 40i32) |
+        (by5 << 32i32) |
+        (by4 << 24i32) |
+        (by3 << 16i32) |
+        (by2 << 8i32) |
+        by1
     }
 
     pub fn read_byte_array(): Array[UInt8] {

@@ -1,5 +1,5 @@
 use package::compilation::CompilationInfo;
-use package::graph::{create_goto_inst, create_unreachable_inst, Block, Edge, Graph, Op};
+use package::graph::{Block, Edge, Graph, Op, create_goto_inst, create_unreachable_inst};
 
 pub fn perform_cfg_simplification(ci: CompilationInfo, graph: Graph) {
     while true {

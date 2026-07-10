@@ -1,6 +1,6 @@
 use package::bytecode::{BytecodeType, FunctionId};
-use package::compilation::{FunctionCompilationInfo, CompilationInfo};
-use package::graph::{create_goto_inst, create_undef_inst, Block, Graph, Inst, Op};
+use package::compilation::{CompilationInfo, FunctionCompilationInfo};
+use package::graph::{Block, Graph, Inst, Op, create_goto_inst, create_undef_inst};
 use package::graph_builder;
 use package::interface as iface;
 use package::interface::FunctionInliningInfo;
@@ -16,7 +16,10 @@ pub fn perform_inlining(ci: CompilationInfo, graph: Graph) {
         let (call, info) = call.get_or_panic();
 
         if !info.has_force_inline_annotation {
-            if graph.inlined_bytecode_size + info.bytecode_size > ci.max_total_inlined_bytecode_size {
+            if (
+                graph.inlined_bytecode_size + info.bytecode_size >
+                ci.max_total_inlined_bytecode_size
+            ) {
                 break;
             }
         }
@@ -27,7 +30,10 @@ pub fn perform_inlining(ci: CompilationInfo, graph: Graph) {
     }
 }
 
-fn select_next_call_site(ci: CompilationInfo, graph: Graph): Option[(Inst, FunctionInliningInfo)] {
+fn select_next_call_site(
+    ci: CompilationInfo,
+    graph: Graph,
+): Option[(Inst, FunctionInliningInfo)] {
     let mut i = 0;
 
     // Pick "force inline" call sites first.
@@ -54,18 +60,42 @@ fn select_next_call_site(ci: CompilationInfo, graph: Graph): Option[(Inst, Funct
     None[(Inst, FunctionInliningInfo)]
 }
 
-fn inline(ci: CompilationInfo, graph: Graph, inst: Inst, fct_id: FunctionId, type_params: Array[BytecodeType]) {
+fn inline(
+    ci: CompilationInfo,
+    graph: Graph,
+    inst: Inst,
+    fct_id: FunctionId,
+    type_params: Array[BytecodeType],
+) {
     let block = inst.get_block();
-    let inlined_function_id = ci.add_inlined_function(fct_id, type_params, inst.get_inlined_location());
+    let inlined_function_id = ci.add_inlined_function(
+        fct_id,
+        type_params,
+        inst.get_inlined_location(),
+    );
     let data = iface::get_function_bytecode_data_for_inlining(fct_id);
-    let fct_compilation_info = FunctionCompilationInfo(bc = data.bc, return_type = data.return_type, fct_id, type_params, specialize_self = data.specialize_self);
+    let fct_compilation_info = FunctionCompilationInfo(
+        bc = data.bc,
+        return_type = data.return_type,
+        fct_id,
+        type_params,
+        specialize_self = data.specialize_self,
+    );
     let new_block = block.split_after(inst);
     let entry_block = Block::new();
     graph.add_block(entry_block);
     block.append_inst(create_goto_inst(entry_block));
     block.add_successor(entry_block);
 
-    let return_value = graph_builder::add_to_graph(ci, graph, inlined_function_id, fct_compilation_info, entry_block, new_block, inst);
+    let return_value = graph_builder::add_to_graph(
+        ci,
+        graph,
+        inlined_function_id,
+        fct_compilation_info,
+        entry_block,
+        new_block,
+        inst,
+    );
     if return_value.is_some() {
         let return_value = return_value.get_or_panic();
         inst.replace_all_uses_with(return_value);

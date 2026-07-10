@@ -2,11 +2,34 @@ use std::collections::VecIter;
 use std::Stringable;
 use std::traits::IntoIterator;
 
-use package::bytecode::{BytecodeFunction, BytecodeTraitType, BytecodeType, ConstPoolId, FunctionId, Location};
-use package::bytecode::{AliasId, ClassId, ConstId, ConstValue, EnumId, ClassFieldId, GlobalId, ImplId, StructId, StructFieldId, TraitId};
+use package::bytecode::{
+    BytecodeFunction,
+    BytecodeTraitType,
+    BytecodeType,
+    ConstPoolId,
+    FunctionId,
+    Location,
+};
+use package::bytecode::{
+    AliasId,
+    ClassFieldId,
+    ClassId,
+    ConstId,
+    ConstValue,
+    EnumId,
+    GlobalId,
+    ImplId,
+    StructFieldId,
+    StructId,
+    TraitId,
+};
 use package::compilation::{CompilationInfo, SpecializeSelf};
 use package::deserializer::decode_bytecode_function;
-use package::deserializer::{decode_compilation_info, decode_struct_data, decode_enum_data};
+use package::deserializer::{
+    decode_compilation_info,
+    decode_enum_data,
+    decode_struct_data,
+};
 use package::deserializer::decode_config;
 use package::deserializer::ByteReader;
 use package::deserializer;
@@ -14,7 +37,14 @@ use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compile_function;
 use package::graph::TraitObjectInfo;
-use package::serializer::{ByteWriter, encode_bytecode_trait_type, encode_bytecode_type, encode_bytecode_type_array, encode_code_descriptor, encode_optional_specialize_self};
+use package::serializer::{
+    ByteWriter,
+    encode_bytecode_trait_type,
+    encode_bytecode_type,
+    encode_bytecode_type_array,
+    encode_code_descriptor,
+    encode_optional_specialize_self,
+};
 
 pub const TRAP_DIV0: Int32 = 0i32;
 pub const TRAP_ASSERT: Int32 = 1i32;
@@ -27,36 +57,84 @@ pub const TRAP_ILLEGAL: Int32 = 7i32;
 pub const TRAP_OVERFLOW: Int32 = 8i32;
 pub const TRAP_SHIFT: Int32 = 9i32;
 
-@native pub fn get_system_config_raw(): Array[UInt8];
-@native pub fn get_function_vtable_index_raw(trait_id: Int32, fct_id: Int32): Int32;
-@native pub fn get_function_display_name_raw(fct_id: Int32): Array[UInt8];
-@native pub fn get_function_display_name_with_type_params_raw(data: Array[UInt8]): Array[UInt8];
-@native pub fn get_function_info_for_inlining_raw(fct_id: Int32): Array[UInt8];
-@native pub fn get_field_offset_raw(data: Array[UInt8]): Int32;
-@native pub fn get_class_size_raw(data: Array[UInt8]): Int32;
-@native pub fn get_class_size_for_trait_object_raw(data: Array[UInt8]): Int32;
-@native pub fn has_global_initial_value_raw(id: Int32): Bool;
-@native pub fn get_global_initializer_function_id_raw(id: Int32): Int32;
-@native pub fn get_string_by_const_pool_id_raw(fct_id: Int32, const_pool_id: Int32): String;
-@native pub fn find_trait_impl_raw(data: Array[UInt8]): Array[UInt8];
-@native pub fn find_trait_ty_impl_raw(data: Array[UInt8]): Array[UInt8];
-@native pub fn get_assoc_type_in_impl_raw(data: Array[UInt8]): Array[UInt8];
-@native pub fn specialize_assoc_ty_raw(data: Array[UInt8]): Array[UInt8];
-@native pub fn get_intrinsic_for_function_raw(id: Int32): Int32;
-@native pub fn get_struct_data_raw(id: Int32): Array[UInt8];
-@native pub fn get_enum_data_raw(id: Int32): Array[UInt8];
-@native pub fn get_class_data_for_enum_variant_raw(data: Array[UInt8]): Array[UInt8];
-@native pub fn get_field_offset_for_enum_variant_raw(data: Array[UInt8]): Int32;
-@native pub fn get_element_size_raw(data: Array[UInt8]): Int32;
-@native pub fn get_function_bytecode_data_for_inlining_raw(fct_id: Int32): Array[UInt8];
-@native pub fn get_const_value_raw(id: Int32): Array[UInt8];
+@native
+pub fn get_system_config_raw(): Array[UInt8];
+
+@native
+pub fn get_function_vtable_index_raw(trait_id: Int32, fct_id: Int32): Int32;
+
+@native
+pub fn get_function_display_name_raw(fct_id: Int32): Array[UInt8];
+
+@native
+pub fn get_function_display_name_with_type_params_raw(data: Array[UInt8]): Array[UInt8];
+
+@native
+pub fn get_function_info_for_inlining_raw(fct_id: Int32): Array[UInt8];
+
+@native
+pub fn get_field_offset_raw(data: Array[UInt8]): Int32;
+
+@native
+pub fn get_class_size_raw(data: Array[UInt8]): Int32;
+
+@native
+pub fn get_class_size_for_trait_object_raw(data: Array[UInt8]): Int32;
+
+@native
+pub fn has_global_initial_value_raw(id: Int32): Bool;
+
+@native
+pub fn get_global_initializer_function_id_raw(id: Int32): Int32;
+
+@native
+pub fn get_string_by_const_pool_id_raw(fct_id: Int32, const_pool_id: Int32): String;
+
+@native
+pub fn find_trait_impl_raw(data: Array[UInt8]): Array[UInt8];
+
+@native
+pub fn find_trait_ty_impl_raw(data: Array[UInt8]): Array[UInt8];
+
+@native
+pub fn get_assoc_type_in_impl_raw(data: Array[UInt8]): Array[UInt8];
+
+@native
+pub fn specialize_assoc_ty_raw(data: Array[UInt8]): Array[UInt8];
+
+@native
+pub fn get_intrinsic_for_function_raw(id: Int32): Int32;
+
+@native
+pub fn get_struct_data_raw(id: Int32): Array[UInt8];
+
+@native
+pub fn get_enum_data_raw(id: Int32): Array[UInt8];
+
+@native
+pub fn get_class_data_for_enum_variant_raw(data: Array[UInt8]): Array[UInt8];
+
+@native
+pub fn get_field_offset_for_enum_variant_raw(data: Array[UInt8]): Int32;
+
+@native
+pub fn get_element_size_raw(data: Array[UInt8]): Int32;
+
+@native
+pub fn get_function_bytecode_data_for_inlining_raw(fct_id: Int32): Array[UInt8];
+
+@native
+pub fn get_const_value_raw(id: Int32): Array[UInt8];
 
 pub fn get_function_display_name(fct_id: FunctionId): String {
     let encoded = get_function_display_name_raw(fct_id.0);
     String::from_bytes(encoded).get_or_panic()
 }
 
-pub fn get_function_display_name_with_type_params(fct_id: FunctionId, type_params: Array[BytecodeType]): String {
+pub fn get_function_display_name_with_type_params(
+    fct_id: FunctionId,
+    type_params: Array[BytecodeType],
+): String {
     let writer = ByteWriter::new();
     writer.emit_int32(fct_id.0);
     encode_bytecode_type_array(writer, type_params);
@@ -72,11 +150,17 @@ pub fn get_function_info_for_inlining(fct_id: FunctionId): FunctionInliningInfo 
     decoded
 }
 
-pub fn get_class_shape_key_for_lambda(fct_id: FunctionId, type_params: Array[BytecodeType]): AotShapeKey {
+pub fn get_class_shape_key_for_lambda(
+    fct_id: FunctionId,
+    type_params: Array[BytecodeType],
+): AotShapeKey {
     AotShapeKey::Lambda(fct_id, type_params)
 }
 
-pub fn get_class_size_for_trait_object(ci: CompilationInfo, info: TraitObjectInfo): Int32 {
+pub fn get_class_size_for_trait_object(
+    ci: CompilationInfo,
+    info: TraitObjectInfo,
+): Int32 {
     let writer = ci.get_byte_writer();
     encode_bytecode_type(writer, info.trait_ty);
     encode_bytecode_type(writer, info.actual_object_ty);
@@ -91,7 +175,12 @@ pub fn get_function_vtable_index(trait_id: TraitId, fct_id: FunctionId): Int32 {
     get_function_vtable_index_raw(trait_id.0, fct_id.0)
 }
 
-pub fn get_field_offset(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType], field_id: ClassFieldId): Int32 {
+pub fn get_field_offset(
+    ci: CompilationInfo,
+    cls_id: ClassId,
+    type_params: Array[BytecodeType],
+    field_id: ClassFieldId,
+): Int32 {
     let writer = ci.get_byte_writer();
     writer.emit_int32(cls_id.0);
     encode_bytecode_type_array(writer, type_params);
@@ -99,14 +188,21 @@ pub fn get_field_offset(ci: CompilationInfo, cls_id: ClassId, type_params: Array
     get_field_offset_raw(writer.to_array())
 }
 
-pub fn get_class_size(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
+pub fn get_class_size(
+    ci: CompilationInfo,
+    cls_id: ClassId,
+    type_params: Array[BytecodeType],
+): Int32 {
     let writer = ci.get_byte_writer();
     writer.emit_int32(cls_id.0);
     encode_bytecode_type_array(writer, type_params);
     get_class_size_raw(writer.to_array())
 }
 
-pub fn get_class_shape_key(cls_id: ClassId, type_params: Array[BytecodeType]): AotShapeKey {
+pub fn get_class_shape_key(
+    cls_id: ClassId,
+    type_params: Array[BytecodeType],
+): AotShapeKey {
     if cls_id == config.string_class_id {
         AotShapeKey::String
     } else if cls_id == config.array_class_id {
@@ -116,7 +212,11 @@ pub fn get_class_shape_key(cls_id: ClassId, type_params: Array[BytecodeType]): A
     }
 }
 
-pub fn get_class_shape_key_for_enum_variant(id: EnumId, type_params: Array[BytecodeType], variant: Int32): AotShapeKey {
+pub fn get_class_shape_key_for_enum_variant(
+    id: EnumId,
+    type_params: Array[BytecodeType],
+    variant: Int32,
+): AotShapeKey {
     AotShapeKey::EnumVariant(id, type_params, variant)
 }
 
@@ -128,11 +228,19 @@ pub fn get_global_initializer_function_id(id: GlobalId): FunctionId {
     FunctionId(get_global_initializer_function_id_raw(id.0))
 }
 
-pub fn get_string_by_const_pool_id(fct_id: FunctionId, const_pool_id: ConstPoolId): String {
+pub fn get_string_by_const_pool_id(
+    fct_id: FunctionId,
+    const_pool_id: ConstPoolId,
+): String {
     get_string_by_const_pool_id_raw(fct_id.0, const_pool_id.0)
 }
 
-pub fn find_trait_impl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type_params: Array[BytecodeType], object_ty: BytecodeType): (FunctionId, Array[BytecodeType]) {
+pub fn find_trait_impl(
+    ci: CompilationInfo,
+    trait_fct_id: FunctionId,
+    trait_type_params: Array[BytecodeType],
+    object_ty: BytecodeType,
+): (FunctionId, Array[BytecodeType]) {
     let writer = ci.get_byte_writer();
     writer.emit_int32(trait_fct_id.0);
     encode_bytecode_type_array(writer, trait_type_params);
@@ -145,7 +253,11 @@ pub fn find_trait_impl(ci: CompilationInfo, trait_fct_id: FunctionId, trait_type
     (fct_id, type_params)
 }
 
-pub fn find_trait_ty_impl(ci: CompilationInfo, trait_ty: BytecodeTraitType, object_ty: BytecodeType): (ImplId, Array[BytecodeType]) {
+pub fn find_trait_ty_impl(
+    ci: CompilationInfo,
+    trait_ty: BytecodeTraitType,
+    object_ty: BytecodeType,
+): (ImplId, Array[BytecodeType]) {
     let writer = ci.get_byte_writer();
     encode_bytecode_trait_type(writer, trait_ty);
     encode_bytecode_type(writer, object_ty);
@@ -157,7 +269,11 @@ pub fn find_trait_ty_impl(ci: CompilationInfo, trait_ty: BytecodeTraitType, obje
     (impl_id, bindings)
 }
 
-pub fn get_assoc_type_in_impl(ci: CompilationInfo, impl_id: ImplId, trait_alias_id: AliasId): BytecodeType {
+pub fn get_assoc_type_in_impl(
+    ci: CompilationInfo,
+    impl_id: ImplId,
+    trait_alias_id: AliasId,
+): BytecodeType {
     let writer = ci.get_byte_writer();
     writer.emit_int32(impl_id.0);
     writer.emit_int32(trait_alias_id.0);
@@ -168,7 +284,12 @@ pub fn get_assoc_type_in_impl(ci: CompilationInfo, impl_id: ImplId, trait_alias_
     ty
 }
 
-pub fn specialize_assoc_ty(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], ty: BytecodeType, type_params: Array[BytecodeType]): BytecodeType {
+pub fn specialize_assoc_ty(
+    ci: CompilationInfo,
+    specialize_self: Option[SpecializeSelf],
+    ty: BytecodeType,
+    type_params: Array[BytecodeType],
+): BytecodeType {
     let writer = ci.get_byte_writer();
     encode_optional_specialize_self(writer, specialize_self);
     encode_bytecode_type(writer, ty);
@@ -180,7 +301,12 @@ pub fn specialize_assoc_ty(ci: CompilationInfo, specialize_self: Option[Speciali
     ty
 }
 
-pub fn find_impl(ci: CompilationInfo, fct_id: FunctionId, ty: BytecodeType, trait_ty: BytecodeTraitType): Option[(ImplId, Array[BytecodeType])] {
+pub fn find_impl(
+    ci: CompilationInfo,
+    fct_id: FunctionId,
+    ty: BytecodeType,
+    trait_ty: BytecodeTraitType,
+): Option[(ImplId, Array[BytecodeType])] {
     let writer = ci.get_byte_writer();
     writer.emit_int32(fct_id.0);
     encode_bytecode_type(writer, ty);
@@ -208,7 +334,12 @@ pub fn get_enum_data(enum_id: EnumId): EnumData {
     enum_data
 }
 
-pub fn get_class_data_for_enum_variant(ci: CompilationInfo, id: EnumId, type_params: Array[BytecodeType], variant: Int32): Int32 {
+pub fn get_class_data_for_enum_variant(
+    ci: CompilationInfo,
+    id: EnumId,
+    type_params: Array[BytecodeType],
+    variant: Int32,
+): Int32 {
     let writer = ci.get_byte_writer();
     writer.emit_int32(id.0);
     encode_bytecode_type_array(writer, type_params);
@@ -222,7 +353,13 @@ pub fn get_class_data_for_enum_variant(ci: CompilationInfo, id: EnumId, type_par
     size
 }
 
-pub fn get_field_offset_for_enum_variant(ci: CompilationInfo, enum_id: EnumId, type_params: Array[BytecodeType], variant_id: Int32, field_id: Int32): Int32 {
+pub fn get_field_offset_for_enum_variant(
+    ci: CompilationInfo,
+    enum_id: EnumId,
+    type_params: Array[BytecodeType],
+    variant_id: Int32,
+    field_id: Int32,
+): Int32 {
     let writer = ci.get_byte_writer();
     writer.emit_int32(enum_id.0);
     encode_bytecode_type_array(writer, type_params);
@@ -231,7 +368,11 @@ pub fn get_field_offset_for_enum_variant(ci: CompilationInfo, enum_id: EnumId, t
     get_field_offset_for_enum_variant_raw(writer.to_array())
 }
 
-pub fn get_element_size(ci: CompilationInfo, cls_id: ClassId, type_params: Array[BytecodeType]): Int32 {
+pub fn get_element_size(
+    ci: CompilationInfo,
+    cls_id: ClassId,
+    type_params: Array[BytecodeType],
+): Int32 {
     let writer = ci.get_byte_writer();
     writer.emit_int32(cls_id.0);
     encode_bytecode_type_array(writer, type_params);
@@ -352,9 +493,7 @@ pub class CommentTable {
 
 impl CommentTable {
     pub static fn new(): CommentTable {
-        CommentTable(
-            entries = Vec[(Int32, String)]::new(),
-        )
+        CommentTable(entries = Vec[(Int32, String)]::new())
     }
 
     pub fn insert(offset: Int32, comment: String) {
@@ -400,9 +539,7 @@ pub class LocationTable {
 
 impl LocationTable {
     pub static fn new(): LocationTable {
-        LocationTable(
-            entries = Vec[(Int32, InlinedLocation)]::new(),
-        )
+        LocationTable(entries = Vec[(Int32, InlinedLocation)]::new())
     }
 
     pub fn insert(offset: Int32, loc: InlinedLocation) {
@@ -421,6 +558,7 @@ impl LocationTable {
 
 impl std::traits::IntoIterator for LocationTable {
     type IteratorType = VecIter[(Int32, InlinedLocation)];
+
     fn iter(): Self::IteratorType {
         self.entries.iter()
     }
@@ -432,9 +570,7 @@ pub class RelocationTable {
 
 impl RelocationTable {
     pub static fn new(): RelocationTable {
-        RelocationTable(
-            entries = Vec[RelocationEntry]::new(),
-        )
+        RelocationTable(entries = Vec[RelocationEntry]::new())
     }
 
     pub fn insert(offset: Int32, target: RelocationKind, form: RelocationForm) {
@@ -442,11 +578,7 @@ impl RelocationTable {
             assert(last.offset <= offset);
         }
 
-        self.entries.push(RelocationEntry(
-            offset,
-            target,
-            form,
-        ));
+        self.entries.push(RelocationEntry(offset, target, form));
     }
 
     pub fn size(): Int64 {
@@ -456,6 +588,7 @@ impl RelocationTable {
 
 impl std::traits::IntoIterator for RelocationTable {
     type IteratorType = VecIter[RelocationEntry];
+
     fn iter(): Self::IteratorType {
         self.entries.iter()
     }
@@ -496,12 +629,30 @@ pub enum RelocationKind {
 pub enum RelocationForm {
     AbsoluteAddress,
     X64CallRel32,
-    X64RipRelativeLoad64 { disp_offset: Int32, dst_reg: Int32 },
-    X64RipRelativeLoad32 { disp_offset: Int32, dst_reg: Int32 },
-    X64RipRelativeLea { disp_offset: Int32, dst_reg: Int32 },
+    X64RipRelativeLoad64 {
+        disp_offset: Int32,
+        dst_reg: Int32,
+    },
+    X64RipRelativeLoad32 {
+        disp_offset: Int32,
+        dst_reg: Int32,
+    },
+    X64RipRelativeLea {
+        disp_offset: Int32,
+        dst_reg: Int32,
+    },
     Arm64Branch26,
-    Arm64AdrpLdr { page_reg: Int32, base_reg: Int32, dst_reg: Int32, width: Arm64LoadWidth },
-    Arm64AdrpAdd { page_reg: Int32, base_reg: Int32, dst_reg: Int32 },
+    Arm64AdrpLdr {
+        page_reg: Int32,
+        base_reg: Int32,
+        dst_reg: Int32,
+        width: Arm64LoadWidth,
+    },
+    Arm64AdrpAdd {
+        page_reg: Int32,
+        base_reg: Int32,
+        dst_reg: Int32,
+    },
 }
 
 pub enum Arm64LoadWidth {
@@ -539,9 +690,7 @@ pub class GcPointTable {
 
 impl GcPointTable {
     pub static fn new(): GcPointTable {
-        GcPointTable(
-            entries = Vec[(Int32, GcPoint)]::new(),
-        )
+        GcPointTable(entries = Vec[(Int32, GcPoint)]::new())
     }
 
     pub fn insert(offset: Int32, point: GcPoint) {
@@ -560,6 +709,7 @@ impl GcPointTable {
 
 impl std::traits::IntoIterator for GcPointTable {
     type IteratorType = VecIter[(Int32, GcPoint)];
+
     fn iter(): Self::IteratorType {
         self.entries.iter()
     }
@@ -571,9 +721,7 @@ pub class GcPoint {
 
 impl GcPoint {
     pub static fn new(): GcPoint {
-        GcPoint(
-            offsets = Vec[Int32]::new(),
-        )
+        GcPoint(offsets = Vec[Int32]::new())
     }
 
     pub static fn from(offsets: Vec[Int32]): GcPoint {
@@ -595,6 +743,7 @@ impl GcPoint {
 
 impl std::traits::IntoIterator for GcPoint {
     type IteratorType = VecIter[Int32];
+
     fn iter(): Self::IteratorType {
         self.offsets.iter()
     }

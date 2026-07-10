@@ -1,4 +1,4 @@
-use std::string::{Stringable, StringBuffer};
+use std::string::{StringBuffer, Stringable};
 
 pub trait Default {
     static fn default(): Self;
@@ -27,10 +27,10 @@ pub trait Hash {
 //   (lazy allocation, lazy zeroing, copy on write, etc.), unlike implementations of the `Default` trait –
 //   which invoke an user-defined function to initialize each individual element (malloc & loop with function calls).
 
-
 // @restricted / @internal
 pub trait Zero {
     static fn zero(): Self; // should be `let` instead of `fn`
+
 }
 
 pub enum Ordering {
@@ -63,8 +63,8 @@ impl Ordering {
 
     pub fn is_ne(): Bool {
         match self {
-          Ordering::Less | Ordering::Greater => true,
-          Ordering::Equal => false,
+            Ordering::Less | Ordering::Greater => true,
+            Ordering::Equal => false,
         }
     }
 
@@ -145,16 +145,17 @@ pub trait Neg {
 
 pub trait Iterator {
     type Item;
+
     fn next(): Option[Self::Item];
 
     fn count(): Int64 {
-      let mut result = 0;
+        let mut result = 0;
 
-      while self.next() is Some(_) {
-        result += 1;
-      }
+        while self.next() is Some(_) {
+            result += 1;
+        }
 
-      result
+        result
     }
 
     @TraitObjectIgnore
@@ -174,19 +175,21 @@ pub trait Iterator {
 
     @TraitObjectIgnore
     fn fold[R](init: R, f: (R, Self::Item): R): R {
-      let mut result = init;
+        let mut result = init;
 
-      while self.next() is Some(value) {
-        result = f(result, value);
-      }
+        while self.next() is Some(value) {
+            result = f(result, value);
+        }
 
-      result
+        result
     }
 
     @TraitObjectIgnore
     fn reduce(f: (Self::Item, Self::Item): Self::Item): Option[Self::Item] {
         let init = self.next();
-        if init.is_none() { return None[Self::Item]; }
+        if init.is_none() {
+            return None[Self::Item];
+        }
 
         let mut result = init.get_or_panic();
 
@@ -226,6 +229,7 @@ pub trait DoubleEndedIterator: Iterator {
 
 pub trait IntoIterator {
     type IteratorType: Iterator;
+
     fn iter(): Self::IteratorType;
 }
 
@@ -284,11 +288,13 @@ pub trait FromIterator[A] {
 pub trait IndexGet {
     type Index;
     type Item;
+
     fn get(index: Self::Index): Self::Item;
 }
 
 pub trait IndexSet {
     type Index;
     type Item;
+
     fn set(index: Self::Index, value: Self::Item);
 }

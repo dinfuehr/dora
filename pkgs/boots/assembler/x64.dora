@@ -1,7 +1,7 @@
 use package::assembler::AssemblerBuffer;
 use package::assembler::Label;
 use package::assembler::MachineCode;
-use package::assembler::{Register, FloatRegister};
+use package::assembler::{FloatRegister, Register};
 
 pub let RAX: Register = Register(0u8);
 pub let RCX: Register = Register(1u8);
@@ -21,11 +21,25 @@ pub let R13: Register = Register(13u8);
 pub let R14: Register = Register(14u8);
 pub let R15: Register = Register(15u8);
 
-pub let REG_NAMES: Array[String] = Array[String]::new(
-    "RAX", "RCX", "RDX", "RBX",
-    "RSP", "RBP", "RSI", "RDI",
-    "R8" , "R9" , "R10", "R11",
-    "R12", "R13", "R14", "R15",
+pub let REG_NAMES: Array[
+    String
+] = Array[String]::new(
+    "RAX",
+    "RCX",
+    "RDX",
+    "RBX",
+    "RSP",
+    "RBP",
+    "RSI",
+    "RDI",
+    "R8",
+    "R9",
+    "R10",
+    "R11",
+    "R12",
+    "R13",
+    "R14",
+    "R15",
 );
 
 pub fn register_name(register: Register): String {
@@ -55,8 +69,13 @@ pub let XMM14: FloatRegister = FloatRegister(14u8);
 pub let XMM15: FloatRegister = FloatRegister(15u8);
 
 impl FloatRegister {
-    pub fn low_bits(): Int32 { self.0.to_int32() & 0b111i32 }
-    pub fn needs_rex_bit(): Bool { self.0.to_int32() > 7i32 }
+    pub fn low_bits(): Int32 {
+        self.0.to_int32() & 0b111i32
+    }
+
+    pub fn needs_rex_bit(): Bool {
+        self.0.to_int32() > 7i32
+    }
 }
 
 enum JumpDistance {
@@ -1826,7 +1845,12 @@ impl AssemblerX64 {
         self.emit_mod_rm(0b11i32, dest.low_bits(), rhs.low_bits());
     }
 
-    pub fn vroundsd_ri(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister, mode: UInt8) {
+    pub fn vroundsd_ri(
+        dest: FloatRegister,
+        lhs: FloatRegister,
+        rhs: FloatRegister,
+        mode: UInt8,
+    ) {
         assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
@@ -1843,7 +1867,12 @@ impl AssemblerX64 {
         self.emit_byte(mode);
     }
 
-    pub fn vroundss_ri(dest: FloatRegister, lhs: FloatRegister, rhs: FloatRegister, mode: UInt8) {
+    pub fn vroundss_ri(
+        dest: FloatRegister,
+        lhs: FloatRegister,
+        rhs: FloatRegister,
+        mode: UInt8,
+    ) {
         assert(self.has_avx2);
         self.emit_vex(
             dest.needs_rex_bit(),
@@ -2134,7 +2163,12 @@ impl AssemblerX64 {
         self.emit_mod_rm_reg(src, dest);
     }
 
-    fn emit_alu64_imm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8) {
+    fn emit_alu64_imm(
+        reg: Register,
+        imm: Immediate,
+        modrm_reg: Int32,
+        rax_opcode: UInt8,
+    ) {
         assert(imm.is_int32());
         self.emit_rex64_rm_field(reg);
 
@@ -2166,7 +2200,12 @@ impl AssemblerX64 {
         }
     }
 
-    fn emit_alu32_imm(reg: Register, imm: Immediate, modrm_reg: Int32, rax_opcode: UInt8) {
+    fn emit_alu32_imm(
+        reg: Register,
+        imm: Immediate,
+        modrm_reg: Int32,
+        rax_opcode: UInt8,
+    ) {
         assert(imm.is_int32());
         self.emit_rex32_rm_field_optional(reg);
 
@@ -2204,32 +2243,64 @@ impl AssemblerX64 {
 
     fn emit_rex32_mod_rm_optional(modrm_reg: Register, modrm_rm: Register) {
         if modrm_reg.needs_rex_bit() || modrm_rm.needs_rex_bit() {
-            self.emit_rex(false, modrm_reg.needs_rex_bit(), false, modrm_rm.needs_rex_bit());
+            self.emit_rex(
+                false,
+                modrm_reg.needs_rex_bit(),
+                false,
+                modrm_rm.needs_rex_bit(),
+            );
         }
     }
 
     fn emit_rex32_mod_rm_byte_optional(modrm_reg: Register, modrm_rm: Register) {
         if modrm_reg.needs_rex_bit() || modrm_rm.needs_rex_bit() || modrm_rm.0 > 3u8 {
-            self.emit_rex(false, modrm_reg.needs_rex_bit(), false, modrm_rm.needs_rex_bit());
+            self.emit_rex(
+                false,
+                modrm_reg.needs_rex_bit(),
+                false,
+                modrm_rm.needs_rex_bit(),
+            );
         }
     }
 
     fn emit_rex_byte_mod_rm_optional(modrm_reg: Register, modrm_rm: Register) {
-        if modrm_reg.needs_rex_bit() || modrm_reg.0 > 3u8 || modrm_rm.needs_rex_bit() || modrm_rm.0 > 3u8 {
-            self.emit_rex(false, modrm_reg.needs_rex_bit(), false, modrm_rm.needs_rex_bit());
+        if (
+            modrm_reg.needs_rex_bit() ||
+            modrm_reg.0 > 3u8 ||
+            modrm_rm.needs_rex_bit() ||
+            modrm_rm.0 > 3u8
+        ) {
+            self.emit_rex(
+                false,
+                modrm_reg.needs_rex_bit(),
+                false,
+                modrm_rm.needs_rex_bit(),
+            );
         }
     }
 
     fn emit_rex32_mod_rm_address_optional(reg: Register, address: Address) {
         if address.rex != 0u8 || reg.needs_rex_bit() {
-            let rex = 0x40i32 | address.rex.to_int32() | if reg.needs_rex_bit() { 0x04i32 } else { 0i32 };
+            let rex = 0x40i32 |
+            address.rex.to_int32() |
+            if reg.needs_rex_bit() {
+                0x04i32
+            } else {
+                0i32
+            };
             self.emit_byte(rex.to_uint8());
         };
     }
 
     fn emit_rex32_mod_rm_address_byte_optional(reg: Register, address: Address) {
         if address.rex != 0u8 || reg.0 > 3u8 {
-            let rex = 0x40i32 | address.rex.to_int32() | if reg.needs_rex_bit() { 0x04i32 } else { 0i32 };
+            let rex = 0x40i32 |
+            address.rex.to_int32() |
+            if reg.needs_rex_bit() {
+                0x04i32
+            } else {
+                0i32
+            };
             self.emit_byte(rex.to_uint8());
         };
     }
@@ -2241,7 +2312,13 @@ impl AssemblerX64 {
     }
 
     fn emit_rex64_mod_rm_address(reg: Register, address: Address) {
-        let rex = 0x48i32 | address.rex.to_int32() | if reg.needs_rex_bit() { 0x04i32 } else { 0i32 };
+        let rex = 0x48i32 |
+        address.rex.to_int32() |
+        if reg.needs_rex_bit() {
+            0x04i32
+        } else {
+            0i32
+        };
         self.emit_byte(rex.to_uint8());
     }
 
@@ -2261,7 +2338,13 @@ impl AssemblerX64 {
 
     fn emit_rex_sse_address_optional(reg: FloatRegister, address: Address) {
         if reg.needs_rex_bit() || address.rex != 0u8 {
-            let value = 0x40i32 | address.rex.to_int32() | if reg.needs_rex_bit() { 0x04i32 } else { 0i32 };
+            let value = 0x40i32 |
+            address.rex.to_int32() |
+            if reg.needs_rex_bit() {
+                0x04i32
+            } else {
+                0i32
+            };
             self.emit_byte(value.to_uint8());
         }
     }
@@ -2277,14 +2360,20 @@ impl AssemblerX64 {
         // r - extension of modrm-reg field
         // x - extension of sib index field
         // b - extension of modrm-rm/sib base/opcode reg field
-        let opcode = 0x40i32 | w.to_int32() << 3i32 | r.to_int32() << 2i32 | x.to_int32() << 1i32 | b.to_int32();
+        let opcode = 0x40i32 |
+        w.to_int32() << 3i32 |
+        r.to_int32() << 2i32 |
+        x.to_int32() << 1i32 |
+        b.to_int32();
         self.emit_byte(opcode.to_uint8());
     }
 
     fn emit_address(reg_or_opcode: Int32, address: Address) {
         assert(reg_or_opcode < 8i32);
 
-        self.emit_byte((reg_or_opcode << 3i32 | address.bytes(0i64).to_int32()).to_uint8());
+        self.emit_byte(
+            (reg_or_opcode << 3i32 | address.bytes(0i64).to_int32()).to_uint8()
+        );
 
         let mut i = 1i64;
 
@@ -2319,7 +2408,16 @@ impl AssemblerX64 {
     //       - 01 --> 66
     //       - 10 --> F3
     //       - 11 --> F2
-    fn emit_vex(r: Bool, x: Bool, b: Bool, mmmmm: Int32, w: Int32, vvvv: Int32, l: Int32, pp: Int32) {
+    fn emit_vex(
+        r: Bool,
+        x: Bool,
+        b: Bool,
+        mmmmm: Int32,
+        w: Int32,
+        vvvv: Int32,
+        l: Int32,
+        pp: Int32,
+    ) {
         assert(self.has_avx2);
         assert(fits_u5(mmmmm));
         assert(fits_u4(vvvv));
@@ -2343,7 +2441,16 @@ impl AssemblerX64 {
     // vvvv - register specifier (4 bits)
     // l - vector length (1 bit)
     // pp - simd prefix (2 bits)
-    fn emit_vex3(r: Bool, x: Bool, b: Bool, mmmmm: Int32, w: Int32, vvvv: Int32, l: Int32, pp: Int32) {
+    fn emit_vex3(
+        r: Bool,
+        x: Bool,
+        b: Bool,
+        mmmmm: Int32,
+        w: Int32,
+        vvvv: Int32,
+        l: Int32,
+        pp: Int32,
+    ) {
         assert(self.has_avx2);
         assert(fits_u5(mmmmm));
         assert(fits_u4(vvvv));
@@ -2352,7 +2459,10 @@ impl AssemblerX64 {
         assert(fits_bit(w));
         self.emit_byte(0xC4u8);
 
-        let byte = (!r).to_int32() << 7i32 | (!x).to_int32() << 6i32 | (!b).to_int32() << 5i32 | mmmmm;
+        let byte = (!r).to_int32() << 7i32 |
+        (!x).to_int32() << 6i32 |
+        (!b).to_int32() << 5i32 |
+        mmmmm;
         self.emit_byte(byte.to_uint8());
 
         let vvvv = !vvvv & 0b1111i32;
@@ -2609,11 +2719,7 @@ pub class Address {
 
 impl Address {
     static fn new(): Address {
-        Address(
-            rex = 0u8,
-            length = 0,
-            bytes = Array[UInt8]::zero(6i64)
-        )
+        Address(rex = 0u8, length = 0, bytes = Array[UInt8]::zero(6i64))
     }
 
     fn set_modrm(mode: Int32, reg: Register) {
@@ -2639,7 +2745,8 @@ impl Address {
             self.rex = (self.rex.to_int32() | 0x42i32).to_uint8();
         }
 
-        self.bytes(1i64) = (scale.value() << 6i32 | index.low_bits() << 3i32 | base.low_bits()).to_uint8();
+        self.bytes(1i64) =
+        (scale.value() << 6i32 | index.low_bits() << 3i32 | base.low_bits()).to_uint8();
         self.length = self.length + 1i64;
     }
 
@@ -2700,7 +2807,12 @@ impl Address {
         address
     }
 
-    pub static fn array(base: Register, index: Register, factor: ScaleFactor, disp: Int32): Address {
+    pub static fn array(
+        base: Register,
+        index: Register,
+        factor: ScaleFactor,
+        disp: Int32,
+    ): Address {
         let address = Address::new();
 
         let mode = if disp == 0i32 && base != RBP && base != R13 {
@@ -2873,13 +2985,18 @@ fn assert_neg_cond_code(cond: Condition) {
 }
 
 impl Register {
-    fn low_bits(): Int32 { self.0.to_int32() & 0b111i32 }
-    fn needs_rex_bit(): Bool { self.0 > 7u8 }
+    fn low_bits(): Int32 {
+        self.0.to_int32() & 0b111i32
+    }
+
+    fn needs_rex_bit(): Bool {
+        self.0 > 7u8
+    }
 }
 
 mod tests {
     use super::{Address, AssemblerX64, Condition, Immediate, MachineCode, ScaleFactor};
-    use super::{RAX, RCX, RDX, RBX, RSP, RBP, RSI, RDI};
+    use super::{RAX, RBP, RBX, RCX, RDI, RDX, RSI, RSP};
     use super::{R8, R9, R10, R11, R12, R13, R14, R15};
     use super::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6};
     use super::{XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13};
@@ -2996,9 +3113,13 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x83u8, 0xc0u8, 0x01u8); // add eax, 1
+
         assert_asm(buffer, 0x83u8, 0xc1u8, 0x01u8); // add ecx, 1
+
         assert_asm(buffer, 0x05u8, 0x80u8, 0u8, 0u8, 0u8); // add eax, 128
+
         assert_asm(buffer, 0x81u8, 0xc1u8, 0x80u8, 0u8, 0u8, 0u8); // add ecx, 128
+
         assert_asm_end(buffer);
     }
 
@@ -3413,7 +3534,17 @@ mod tests {
         assert_asm(buffer, 0x4Cu8, 0x8Bu8, 0x7Cu8, 0x24u8, 0x80u8);
 
         assert_asm(buffer, 0x4Cu8, 0x8Bu8, 0xBCu8, 0x24u8, 0x80u8, 0u8, 0u8, 0u8);
-        assert_asm(buffer, 0x4Cu8, 0x8Bu8, 0xBCu8, 0x24u8, 0x7Fu8, 0xFFu8, 0xFFu8, 0xFFu8);
+        assert_asm(
+            buffer,
+            0x4Cu8,
+            0x8Bu8,
+            0xBCu8,
+            0x24u8,
+            0x7Fu8,
+            0xFFu8,
+            0xFFu8,
+            0xFFu8,
+        );
 
         assert_asm(buffer, 0x48u8, 0x8Bu8, 0x45u8, 0u8);
         assert_asm(buffer, 0x48u8, 0x8Bu8, 0x45u8, 1u8);
@@ -5002,8 +5133,29 @@ mod tests {
         asm.andps_ra(XMM15, Address::rip(8i32));
         let buffer = asm.finalize_testing();
 
-        assert_asm(buffer, 0x0fu8, 0x54u8, 0x05u8, 0xfcu8, 0xffu8, 0xffu8, 0xffu8); // andps xmm0, xmmword ptr [rip - 4] ## 0x3 <_main+0x3>
-        assert_asm(buffer, 0x44u8, 0x0fu8, 0x54u8, 0x3du8, 0x08u8, 0u8, 0u8, 0u8); // andps xmm15, xmmword ptr [rip + 8] ## 0x17 <_main+0x17>
+        assert_asm(
+            buffer,
+            0x0fu8,
+            0x54u8,
+            0x05u8,
+            0xfcu8,
+            0xffu8,
+            0xffu8,
+            0xffu8,
+        ); // andps xmm0, xmmword ptr [rip - 4] ## 0x3 <_main+0x3>
+
+        assert_asm(
+            buffer,
+            0x44u8,
+            0x0fu8,
+            0x54u8,
+            0x3du8,
+            0x08u8,
+            0u8,
+            0u8,
+            0u8,
+        ); // andps xmm15, xmmword ptr [rip + 8] ## 0x17 <_main+0x17>
+
         assert_asm_end(buffer);
     }
 
@@ -5016,10 +5168,38 @@ mod tests {
         asm.cmpxchgq_ar(Address::offset(RDI, 0i32), R15);
         let buffer = asm.finalize_testing();
 
-        assert_asm(buffer, 0x48u8, 0x0fu8, 0xb1u8, 0x38u8); // cmpxchg qword ptr [rax], rdi
-        assert_asm(buffer, 0x48u8, 0x0fu8, 0xb1u8, 0x07u8); // cmpxchg qword ptr [rdi], rax
-        assert_asm(buffer, 0x49u8, 0x0fu8, 0xb1u8, 0x3fu8); // cmpxchg qword ptr [r15], rdi
-        assert_asm(buffer, 0x4cu8, 0x0fu8, 0xb1u8, 0x3fu8); // cmpxchg qword ptr [rdi], r15
+        assert_asm(
+            buffer,
+            0x48u8,
+            0x0fu8,
+            0xb1u8,
+            0x38u8,
+        ); // cmpxchg qword ptr [rax], rdi
+
+        assert_asm(
+            buffer,
+            0x48u8,
+            0x0fu8,
+            0xb1u8,
+            0x07u8,
+        ); // cmpxchg qword ptr [rdi], rax
+
+        assert_asm(
+            buffer,
+            0x49u8,
+            0x0fu8,
+            0xb1u8,
+            0x3fu8,
+        ); // cmpxchg qword ptr [r15], rdi
+
+        assert_asm(
+            buffer,
+            0x4cu8,
+            0x0fu8,
+            0xb1u8,
+            0x3fu8,
+        ); // cmpxchg qword ptr [rdi], r15
+
         assert_asm_end(buffer);
     }
 
@@ -5032,10 +5212,42 @@ mod tests {
         asm.lock_cmpxchgq_ar(Address::offset(RDI, 0i32), R15);
         let buffer = asm.finalize_testing();
 
-        assert_asm(buffer, 0xF0u8, 0x48u8, 0x0fu8, 0xb1u8, 0x38u8); // lock cmpxchg qword ptr [rax], rdi
-        assert_asm(buffer, 0xF0u8, 0x48u8, 0x0fu8, 0xb1u8, 0x07u8); // lock cmpxchg qword ptr [rdi], rax
-        assert_asm(buffer, 0xF0u8, 0x49u8, 0x0fu8, 0xb1u8, 0x3fu8); // lock cmpxchg qword ptr [r15], rdi
-        assert_asm(buffer, 0xF0u8, 0x4cu8, 0x0fu8, 0xb1u8, 0x3fu8); // lock cmpxchg qword ptr [rdi], r15
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x48u8,
+            0x0fu8,
+            0xb1u8,
+            0x38u8,
+        ); // lock cmpxchg qword ptr [rax], rdi
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x48u8,
+            0x0fu8,
+            0xb1u8,
+            0x07u8,
+        ); // lock cmpxchg qword ptr [rdi], rax
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x49u8,
+            0x0fu8,
+            0xb1u8,
+            0x3fu8,
+        ); // lock cmpxchg qword ptr [r15], rdi
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x4cu8,
+            0x0fu8,
+            0xb1u8,
+            0x3fu8,
+        ); // lock cmpxchg qword ptr [rdi], r15
+
         assert_asm_end(buffer);
     }
 
@@ -5049,9 +5261,25 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x0fu8, 0xb1u8, 0x38u8); // cmpxchg dword ptr [rax], edi
+
         assert_asm(buffer, 0x0fu8, 0xb1u8, 0x07u8); // cmpxchg dword ptr [rdi], eax
-        assert_asm(buffer, 0x41u8, 0x0fu8, 0xb1u8, 0x3fu8); // cmpxchg dword ptr [r15], edi
-        assert_asm(buffer, 0x44u8, 0x0fu8, 0xb1u8, 0x3fu8); // cmpxchg dword ptr [rdi], r15d
+
+        assert_asm(
+            buffer,
+            0x41u8,
+            0x0fu8,
+            0xb1u8,
+            0x3fu8,
+        ); // cmpxchg dword ptr [r15], edi
+
+        assert_asm(
+            buffer,
+            0x44u8,
+            0x0fu8,
+            0xb1u8,
+            0x3fu8,
+        ); // cmpxchg dword ptr [rdi], r15d
+
         assert_asm_end(buffer);
     }
 
@@ -5064,10 +5292,40 @@ mod tests {
         asm.lock_cmpxchgl_ar(Address::offset(RDI, 0i32), R15);
         let buffer = asm.finalize_testing();
 
-        assert_asm(buffer, 0xF0u8, 0x0fu8, 0xb1u8, 0x38u8); // lock cmpxchg dword ptr [rax], edi
-        assert_asm(buffer, 0xF0u8, 0x0fu8, 0xb1u8, 0x07u8); // lock cmpxchg dword ptr [rdi], eax
-        assert_asm(buffer, 0xF0u8, 0x41u8, 0x0fu8, 0xb1u8, 0x3fu8); // lock cmpxchg dword ptr [r15], edi
-        assert_asm(buffer, 0xF0u8, 0x44u8, 0x0fu8, 0xb1u8, 0x3fu8); // lock cmpxchg dword ptr [rdi], r15d
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x0fu8,
+            0xb1u8,
+            0x38u8,
+        ); // lock cmpxchg dword ptr [rax], edi
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x0fu8,
+            0xb1u8,
+            0x07u8,
+        ); // lock cmpxchg dword ptr [rdi], eax
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x41u8,
+            0x0fu8,
+            0xb1u8,
+            0x3fu8,
+        ); // lock cmpxchg dword ptr [r15], edi
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x44u8,
+            0x0fu8,
+            0xb1u8,
+            0x3fu8,
+        ); // lock cmpxchg dword ptr [rdi], r15d
+
         assert_asm_end(buffer);
     }
 
@@ -5081,9 +5339,13 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x0fu8, 0xc1u8, 0x38u8); // xadd dword ptr [rax], edi
+
         assert_asm(buffer, 0x0fu8, 0xc1u8, 0x07u8); // xadd dword ptr [rdi], eax
+
         assert_asm(buffer, 0x41u8, 0x0fu8, 0xc1u8, 0x3fu8); // xadd dword ptr [r15], edi
+
         assert_asm(buffer, 0x44u8, 0x0fu8, 0xc1u8, 0x3fu8); // xadd dword ptr [rdi], r15d
+
         assert_asm_end(buffer);
     }
 
@@ -5097,9 +5359,13 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x48u8, 0x0fu8, 0xc1u8, 0x38u8); // xadd qword ptr [rax], rdi
+
         assert_asm(buffer, 0x48u8, 0x0fu8, 0xc1u8, 0x07u8); // xadd qword ptr [rdi], rax
+
         assert_asm(buffer, 0x49u8, 0x0fu8, 0xc1u8, 0x3fu8); // xadd qword ptr [r15], rdi
+
         assert_asm(buffer, 0x4cu8, 0x0fu8, 0xc1u8, 0x3fu8); // xadd qword ptr [rdi], r15
+
         assert_asm_end(buffer);
     }
 
@@ -5112,10 +5378,40 @@ mod tests {
         asm.lock_xaddl_ar(Address::offset(RDI, 0i32), R15);
         let buffer = asm.finalize_testing();
 
-        assert_asm(buffer, 0xF0u8, 0x0fu8, 0xc1u8, 0x38u8); // lock xadd dword ptr [rax], edi
-        assert_asm(buffer, 0xF0u8, 0x0fu8, 0xc1u8, 0x07u8); // lock xadd dword ptr [rdi], eax
-        assert_asm(buffer, 0xF0u8, 0x41u8, 0x0fu8, 0xc1u8, 0x3fu8); // lock xadd dword ptr [r15], edi
-        assert_asm(buffer, 0xF0u8, 0x44u8, 0x0fu8, 0xc1u8, 0x3fu8); // lock xadd dword ptr [rdi], r15d
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x0fu8,
+            0xc1u8,
+            0x38u8,
+        ); // lock xadd dword ptr [rax], edi
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x0fu8,
+            0xc1u8,
+            0x07u8,
+        ); // lock xadd dword ptr [rdi], eax
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x41u8,
+            0x0fu8,
+            0xc1u8,
+            0x3fu8,
+        ); // lock xadd dword ptr [r15], edi
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x44u8,
+            0x0fu8,
+            0xc1u8,
+            0x3fu8,
+        ); // lock xadd dword ptr [rdi], r15d
+
         assert_asm_end(buffer);
     }
 
@@ -5128,10 +5424,42 @@ mod tests {
         asm.lock_xaddq_ar(Address::offset(RDI, 0i32), R15);
         let buffer = asm.finalize_testing();
 
-        assert_asm(buffer, 0xF0u8, 0x48u8, 0x0fu8, 0xc1u8, 0x38u8); // lock xadd qword ptr [rax], rdi
-        assert_asm(buffer, 0xF0u8, 0x48u8, 0x0fu8, 0xc1u8, 0x07u8); // lock xadd qword ptr [rdi], rax
-        assert_asm(buffer, 0xF0u8, 0x49u8, 0x0fu8, 0xc1u8, 0x3fu8); // lock xadd qword ptr [r15], rdi
-        assert_asm(buffer, 0xF0u8, 0x4cu8, 0x0fu8, 0xc1u8, 0x3fu8); // lock xadd qword ptr [rdi], r15
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x48u8,
+            0x0fu8,
+            0xc1u8,
+            0x38u8,
+        ); // lock xadd qword ptr [rax], rdi
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x48u8,
+            0x0fu8,
+            0xc1u8,
+            0x07u8,
+        ); // lock xadd qword ptr [rdi], rax
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x49u8,
+            0x0fu8,
+            0xc1u8,
+            0x3fu8,
+        ); // lock xadd qword ptr [r15], rdi
+
+        assert_asm(
+            buffer,
+            0xF0u8,
+            0x4cu8,
+            0x0fu8,
+            0xc1u8,
+            0x3fu8,
+        ); // lock xadd qword ptr [rdi], r15
+
         assert_asm_end(buffer);
     }
 
@@ -5142,10 +5470,13 @@ mod tests {
         asm.movb_ra(RSI, Address::offset(RSP, 0i32));
         asm.movb_ra(R8, Address::offset(RSP, 0i32));
         let buffer = asm.finalize_testing();
-    
+
         assert_asm(buffer, 0x8au8, 0x04u8, 0x24u8); // mov al, byte ptr [rsp]
+
         assert_asm(buffer, 0x40u8, 0x8au8, 0x34u8, 0x24u8); // mov sil, byte ptr [rsp]
+
         assert_asm(buffer, 0x44u8, 0x8au8, 0x04u8, 0x24u8); // mov r8b, byte ptr [rsp]
+
         assert_asm_end(buffer);
     }
 
@@ -5158,10 +5489,50 @@ mod tests {
         asm.roundss_ri(XMM15, XMM0, 11u8);
         let buffer = asm.finalize_testing();
 
-        assert_asm(buffer, 0x66u8, 0x41u8, 0x0fu8, 0x3au8, 0x0au8, 0xc7u8, 0x08u8); // roundss xmm0, xmm15, 8
-        assert_asm(buffer, 0x66u8, 0x41u8, 0x0fu8, 0x3au8, 0x0au8, 0xf8u8, 0x09u8); // roundss xmm7, xmm8, 9
-        assert_asm(buffer, 0x66u8, 0x44u8, 0x0fu8, 0x3au8, 0x0au8, 0xc7u8, 0x0au8); // roundss xmm8, xmm7, 10
-        assert_asm(buffer, 0x66u8, 0x44u8, 0x0fu8, 0x3au8, 0x0au8, 0xf8u8, 0x0bu8); // roundss xmm15, xmm0, 11
+        assert_asm(
+            buffer,
+            0x66u8,
+            0x41u8,
+            0x0fu8,
+            0x3au8,
+            0x0au8,
+            0xc7u8,
+            0x08u8,
+        ); // roundss xmm0, xmm15, 8
+
+        assert_asm(
+            buffer,
+            0x66u8,
+            0x41u8,
+            0x0fu8,
+            0x3au8,
+            0x0au8,
+            0xf8u8,
+            0x09u8,
+        ); // roundss xmm7, xmm8, 9
+
+        assert_asm(
+            buffer,
+            0x66u8,
+            0x44u8,
+            0x0fu8,
+            0x3au8,
+            0x0au8,
+            0xc7u8,
+            0x0au8,
+        ); // roundss xmm8, xmm7, 10
+
+        assert_asm(
+            buffer,
+            0x66u8,
+            0x44u8,
+            0x0fu8,
+            0x3au8,
+            0x0au8,
+            0xf8u8,
+            0x0bu8,
+        ); // roundss xmm15, xmm0, 11
+
         assert_asm_end(buffer);
     }
 
@@ -5174,10 +5545,50 @@ mod tests {
         asm.roundsd_ri(XMM15, XMM0, 11u8);
         let buffer = asm.finalize_testing();
 
-        assert_asm(buffer, 0x66u8, 0x41u8, 0x0fu8, 0x3au8, 0x0bu8, 0xc7u8, 0x08u8); // roundsd xmm0, xmm15, 8
-        assert_asm(buffer, 0x66u8, 0x41u8, 0x0fu8, 0x3au8, 0x0bu8, 0xf8u8, 0x09u8); // roundsd xmm7, xmm8, 9
-        assert_asm(buffer, 0x66u8, 0x44u8, 0x0fu8, 0x3au8, 0x0bu8, 0xc7u8, 0x0au8); // roundsd xmm8, xmm7, 10
-        assert_asm(buffer, 0x66u8, 0x44u8, 0x0fu8, 0x3au8, 0x0bu8, 0xf8u8, 0x0bu8); // roundsd xmm15, xmm0, 11
+        assert_asm(
+            buffer,
+            0x66u8,
+            0x41u8,
+            0x0fu8,
+            0x3au8,
+            0x0bu8,
+            0xc7u8,
+            0x08u8,
+        ); // roundsd xmm0, xmm15, 8
+
+        assert_asm(
+            buffer,
+            0x66u8,
+            0x41u8,
+            0x0fu8,
+            0x3au8,
+            0x0bu8,
+            0xf8u8,
+            0x09u8,
+        ); // roundsd xmm7, xmm8, 9
+
+        assert_asm(
+            buffer,
+            0x66u8,
+            0x44u8,
+            0x0fu8,
+            0x3au8,
+            0x0bu8,
+            0xc7u8,
+            0x0au8,
+        ); // roundsd xmm8, xmm7, 10
+
+        assert_asm(
+            buffer,
+            0x66u8,
+            0x44u8,
+            0x0fu8,
+            0x3au8,
+            0x0bu8,
+            0xf8u8,
+            0x0bu8,
+        ); // roundsd xmm15, xmm0, 11
+
         assert_asm_end(buffer);
     }
 
@@ -5191,9 +5602,13 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x48u8, 0x87u8, 0x38u8); // xchg qword ptr [rax], rdi
+
         assert_asm(buffer, 0x48u8, 0x87u8, 0x07u8); // xchg qword ptr [rdi], rax
+
         assert_asm(buffer, 0x49u8, 0x87u8, 0x3fu8); // xchg qword ptr [r15], rdi
+
         assert_asm(buffer, 0x4cu8, 0x87u8, 0x3fu8); // xchg qword ptr [rdi], r15
+
         assert_asm_end(buffer);
     }
 
@@ -5207,9 +5622,13 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x87u8, 0x38u8); // xchg dword ptr [rax], edi
+
         assert_asm(buffer, 0x87u8, 0x07u8); // xchg dword ptr [rdi], eax
+
         assert_asm(buffer, 0x41u8, 0x87u8, 0x3fu8); // xchg dword ptr [r15], edi
+
         assert_asm(buffer, 0x44u8, 0x87u8, 0x3fu8); // xchg dword ptr [rdi], r15d
+
         assert_asm_end(buffer);
     }
 
@@ -5223,9 +5642,13 @@ mod tests {
         let buffer = asm.finalize_testing();
 
         assert_asm(buffer, 0x40u8, 0x86u8, 0x38u8); // xchg byte ptr [rax], dil
+
         assert_asm(buffer, 0x86u8, 0x07u8); // xchg byte ptr [rdi], al
+
         assert_asm(buffer, 0x41u8, 0x86u8, 0x3fu8); // xchg byte ptr [r15], dil
+
         assert_asm(buffer, 0x44u8, 0x86u8, 0x3fu8); // xchg byte ptr [rdi], r15b
+
         assert_asm_end(buffer);
     }
 
@@ -5892,13 +6315,18 @@ mod tests {
             let got = code.bytes(code.start + idx);
 
             if exp != got {
-                println("expected ${exp.to_string_hex()} at index ${code.start + idx} but got ${got.to_string_hex()}");
+                println(
+                    "expected ${exp.to_string_hex(
+                        )} at index ${code.start + idx} but got ${got.to_string_hex()}"
+                );
 
                 let mut i = 0i64;
                 print("expected: ");
 
                 while i < bytes.size() {
-                    if i > 0i64 { print(" "); }
+                    if i > 0i64 {
+                        print(" ");
+                    }
                     let value = bytes(i);
                     print("${value.to_string_hex()}");
                     i = i + 1i64;
@@ -5909,7 +6337,9 @@ mod tests {
                 print("buffer:   ");
 
                 while i < bytes.size() {
-                    if i > 0i64 { print(" "); }
+                    if i > 0i64 {
+                        print(" ");
+                    }
                     let value = code.bytes(code.start + i);
                     print("${value.to_string_hex()}");
                     i = i + 1i64;

@@ -3,12 +3,19 @@ use package::codegen::{create_code_gen, generate_code};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::dead_code_elimination::perform_dead_code_elimination;
 use package::dominator::build_dominator_tree;
-use package::graph::{create_goto_inst, Block, Edge, Graph, Op};
+use package::graph::{Block, Edge, Graph, Op, create_goto_inst};
 use package::graph::dump::dump_graph;
 use package::graph::verifier::verify_graph;
 use package::graph_builder::{analyze_bytecode, create_graph};
 use package::inlining::perform_inlining;
-use package::interface::{Architecture, CodeDescriptor, CommentTable, GcPointTable, GcPoint, LocationTable};
+use package::interface::{
+    Architecture,
+    CodeDescriptor,
+    CommentTable,
+    GcPoint,
+    GcPointTable,
+    LocationTable,
+};
 use package::interface::config;
 use package::late_escape_analysis::perform_late_escape_analysis;
 use package::load_elimination::perform_load_elimination;
@@ -47,7 +54,10 @@ mod specialize;
 mod stackalloc;
 mod store_elimination;
 
-pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): CodeDescriptor {
+pub fn compile_function(
+    ci: CompilationInfo,
+    fct: FunctionCompilationInfo,
+): CodeDescriptor {
     ci.init_html_writer();
 
     // Analyze basic block starts/ends.
@@ -61,16 +71,65 @@ pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): Code
 
     let codegen = create_code_gen(ci, graph);
 
-    pass(ci, graph, "graph building", || { });
+    pass(ci, graph, "graph building", || {});
 
     if ci.optimize {
-        pass(ci, graph, "inlining", || { perform_inlining(ci, graph); });
-        pass(ci, graph, "simplification", || { perform_simplification(ci, graph); });
-        pass(ci, graph, "cfg simplification", || { perform_cfg_simplification(ci, graph); });
-        pass(ci, graph, "load elimination", || { perform_load_elimination(ci, graph); });
-        pass(ci, graph, "store elimination", || { perform_store_elimination(ci, graph); });
-        pass(ci, graph, "late escape analysis", || { perform_late_escape_analysis(ci, graph); });
-        pass(ci, graph, "dead code elimination", || { perform_dead_code_elimination(ci, graph); });
+        pass(
+            ci,
+            graph,
+            "inlining",
+            || {
+                perform_inlining(ci, graph);
+            },
+        );
+        pass(
+            ci,
+            graph,
+            "simplification",
+            || {
+                perform_simplification(ci, graph);
+            },
+        );
+        pass(
+            ci,
+            graph,
+            "cfg simplification",
+            || {
+                perform_cfg_simplification(ci, graph);
+            },
+        );
+        pass(
+            ci,
+            graph,
+            "load elimination",
+            || {
+                perform_load_elimination(ci, graph);
+            },
+        );
+        pass(
+            ci,
+            graph,
+            "store elimination",
+            || {
+                perform_store_elimination(ci, graph);
+            },
+        );
+        pass(
+            ci,
+            graph,
+            "late escape analysis",
+            || {
+                perform_late_escape_analysis(ci, graph);
+            },
+        );
+        pass(
+            ci,
+            graph,
+            "dead code elimination",
+            || {
+                perform_dead_code_elimination(ci, graph);
+            },
+        );
 
         if ci.emit_final_graph {
             println("Function ${ci.get_display_name()}: final");
@@ -84,7 +143,7 @@ pub fn compile_function(ci: CompilationInfo, fct: FunctionCompilationInfo): Code
     build_dominator_tree(graph);
     compute_liveness(graph, ci);
 
-    pass(ci, graph, "before register allocation", || { });
+    pass(ci, graph, "before register allocation", || {});
 
     perform_register_allocation(graph, codegen, ci, fct);
 
@@ -175,7 +234,12 @@ fn split_critical_edge(graph: Graph, edge: Edge) {
         _ => unreachable[()](),
     }
 
-    let predecessor_to_intermediate_edge = Edge::new(edge.source, edge.source_idx, intermediate, 0);
+    let predecessor_to_intermediate_edge = Edge::new(
+        edge.source,
+        edge.source_idx,
+        intermediate,
+        0,
+    );
     assert(intermediate.predecessors.is_empty());
     intermediate.predecessors.push(predecessor_to_intermediate_edge);
 

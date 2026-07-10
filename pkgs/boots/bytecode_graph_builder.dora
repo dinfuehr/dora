@@ -1,28 +1,65 @@
 use std::BitSet;
 
 use package::bytecode::opcode as opc;
-use package::compilation::{FunctionCompilationInfo, CompilationInfo, SpecializeSelf};
+use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
 use package::graph;
 use package::graph::{AllocationData, Block, Graph, Inst, InstExtraData, Op};
 use package::graph::ty::Type;
-use package::graph::{ClassInfo, FunctionInfo, CallKind, VirtualFunctionInfo, LambdaFunctionInfo, StructInfo, TraitObjectInfo};
-use package::bytecode::{BytecodeFunction, BytecodeRegister, BytecodeTraitType, BytecodeType, ClassId, ConstValue, EnumId, FunctionId, ClassFieldId};
-use package::bytecode::{AliasId, ConstId, ConstPoolId, ConstPoolEntry, GlobalId, StructId, StructFieldId, TraitId};
+use package::graph::{
+    CallKind,
+    ClassInfo,
+    FunctionInfo,
+    LambdaFunctionInfo,
+    StructInfo,
+    TraitObjectInfo,
+    VirtualFunctionInfo,
+};
+use package::bytecode::{
+    BytecodeFunction,
+    BytecodeRegister,
+    BytecodeTraitType,
+    BytecodeType,
+    ClassFieldId,
+    ClassId,
+    ConstValue,
+    EnumId,
+    FunctionId,
+};
+use package::bytecode::{
+    AliasId,
+    ConstId,
+    ConstPoolEntry,
+    ConstPoolId,
+    GlobalId,
+    StructFieldId,
+    StructId,
+    TraitId,
+};
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;
 use package::interface as iface;
-use package::interface::{config, InlinedLocation, InlinedFunctionId, RuntimeFunction};
-use package::regalloc::{EnumLayout, is_reference, RecordLayout};
+use package::interface::{InlinedFunctionId, InlinedLocation, RuntimeFunction, config};
+use package::regalloc::{EnumLayout, RecordLayout, is_reference};
 use package::regalloc;
 use package::specialize::{specialize_array, specialize_ty};
 
-pub fn compute_inline_return_type(ci: CompilationInfo, fct: FunctionCompilationInfo): Option[Type] {
-    let return_type = specialize_ty(ci, fct.specialize_self, fct.return_type, fct.type_params);
+pub fn compute_inline_return_type(
+    ci: CompilationInfo,
+    fct: FunctionCompilationInfo,
+): Option[Type] {
+    let return_type = specialize_ty(
+        ci,
+        fct.specialize_self,
+        fct.return_type,
+        fct.type_params,
+    );
 
     if return_type.is_unit() || return_type.is_struct() || return_type.is_tuple() {
         None[Type]
     } else {
-        Some[Type](bytecode_graph_ty(ci, fct.specialize_self, fct.type_params, return_type))
+        Some[Type](
+            bytecode_graph_ty(ci, fct.specialize_self, fct.type_params, return_type)
+        )
     }
 }
 
@@ -49,7 +86,12 @@ pub class BytecodeGraphBuilder {
 }
 
 impl BytecodeGraphBuilder {
-    pub static fn new(ci: CompilationInfo, graph: Graph, fct: FunctionCompilationInfo, analysis: BytecodeAnalysis): BytecodeGraphBuilder {
+    pub static fn new(
+        ci: CompilationInfo,
+        graph: Graph,
+        fct: FunctionCompilationInfo,
+        analysis: BytecodeAnalysis,
+    ): BytecodeGraphBuilder {
         BytecodeGraphBuilder(
             ci,
             graph,
@@ -70,7 +112,16 @@ impl BytecodeGraphBuilder {
         )
     }
 
-    pub static fn new_for_inlining(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, analysis: BytecodeAnalysis, inline_return_type: Option[Type], entry_block: Block, exit_block: Block): BytecodeGraphBuilder {
+    pub static fn new_for_inlining(
+        ci: CompilationInfo,
+        graph: Graph,
+        inlined_function_id: InlinedFunctionId,
+        fct: FunctionCompilationInfo,
+        analysis: BytecodeAnalysis,
+        inline_return_type: Option[Type],
+        entry_block: Block,
+        exit_block: Block,
+    ): BytecodeGraphBuilder {
         BytecodeGraphBuilder(
             ci,
             graph,
@@ -127,7 +178,12 @@ impl BytecodeGraphBuilder {
 
     fn setup_arguments(block: Block) {
         let mut arg_idx = 0i32;
-        let ret_ty = specialize_ty(self.ci, None[SpecializeSelf], self.return_type, self.type_params);
+        let ret_ty = specialize_ty(
+            self.ci,
+            None[SpecializeSelf],
+            self.return_type,
+            self.type_params,
+        );
 
         if ret_ty.is_struct() || ret_ty.is_tuple() {
             let arg_inst = graph::create_arg_inst(arg_idx, Type::Address);
@@ -236,7 +292,11 @@ impl BytecodeGraphBuilder {
     fn append_local_set(block: Block, register: BytecodeRegister, value: Inst) {
         assert(!self.reg(register).is_unit());
         assert(value.has_id());
-        let inst = graph::create_local_set_inst(register.0, value, self.reg_graph_ty(register));
+        let inst = graph::create_local_set_inst(
+            register.0,
+            value,
+            self.reg_graph_ty(register),
+        );
         block.append_inst(inst);
     }
 
@@ -249,7 +309,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn process_instruction(start: Int64, size: Int64, inst: BytecodeInstruction): Bool {
-       match inst {
+        match inst {
             BytecodeInstruction::Add(dest, lhs, rhs) => {
                 self.emit_bin(dest, lhs, rhs, Op::Add);
                 false
@@ -330,7 +390,7 @@ impl BytecodeGraphBuilder {
                 self.emit_mov(dest, src);
                 false
             }
-            BytecodeInstruction::LoadEnumElement(dest, src, idx) => {                
+            BytecodeInstruction::LoadEnumElement(dest, src, idx) => {
                 self.emit_load_enum_element(dest, src, idx);
                 false
             }
@@ -374,7 +434,9 @@ impl BytecodeGraphBuilder {
                 false
             }
             BytecodeInstruction::ConstChar(dest, idx) => {
-                let value = self.bc.const_pool_entry(idx).to_char().get_or_panic().to_int32();
+                let value = self.bc.const_pool_entry(
+                    idx
+                ).to_char().get_or_panic().to_int32();
                 let inst = self.graph.ensure_const_int32_inst(value);
                 self.emit_local_set(dest, inst);
                 false
@@ -599,7 +661,12 @@ impl BytecodeGraphBuilder {
                     let type_params = self.specialize_array(type_params);
                     let info = ClassInfo(class_id = cls_id, type_params);
                     let info = InstExtraData::ClassInfo(info);
-                    let offset = iface::get_field_offset(self.ci, cls_id, type_params, field_id);
+                    let offset = iface::get_field_offset(
+                        self.ci,
+                        cls_id,
+                        type_params,
+                        field_id,
+                    );
                     let value = self.load_field(dest_type, obj_inst, info, offset);
                     self.emit_local_set(dest, value);
                 }
@@ -607,10 +674,18 @@ impl BytecodeGraphBuilder {
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                 if !dest_type.is_unit() {
                     let src_inst = self.emit_local_get(obj);
-                    let struct_layout = self.compute_struct_layout(struct_id, type_params);
+                    let struct_layout = self.compute_struct_layout(
+                        struct_id,
+                        type_params,
+                    );
                     let field = struct_layout.fields(field_id.0.to_int64());
 
-                    let inst = self.load_field(dest_type, src_inst, InstExtraData::None, field.offset);
+                    let inst = self.load_field(
+                        dest_type,
+                        src_inst,
+                        InstExtraData::None,
+                        field.offset,
+                    );
                     self.emit_local_set(dest, inst);
                 }
             }
@@ -623,7 +698,12 @@ impl BytecodeGraphBuilder {
                     let tuple_layout = self.compute_tuple_layout(subtypes);
                     let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
 
-                    let inst = self.load_field(dest_type, src_inst, InstExtraData::None, offset);
+                    let inst = self.load_field(
+                        dest_type,
+                        src_inst,
+                        InstExtraData::None,
+                        offset,
+                    );
                     self.emit_local_set(dest, inst);
                 }
             }
@@ -642,7 +722,12 @@ impl BytecodeGraphBuilder {
                     let src_inst = self.emit_local_get(src);
                     let obj_inst = self.emit_local_get(obj);
 
-                    let offset = iface::get_field_offset(self.ci, cls_id, type_params, field_id);
+                    let offset = iface::get_field_offset(
+                        self.ci,
+                        cls_id,
+                        type_params,
+                        field_id,
+                    );
                     let info = ClassInfo(class_id = cls_id, type_params);
                     let info = InstExtraData::ClassInfo(info);
                     self.store_field(src_type, obj_inst, info, offset, src_inst, true);
@@ -652,10 +737,20 @@ impl BytecodeGraphBuilder {
                 if !src_type.is_unit() {
                     let src_inst = self.emit_local_get(src);
                     let obj_inst = self.emit_local_get(obj);
-                    let struct_layout = self.compute_struct_layout(struct_id, type_params);
+                    let struct_layout = self.compute_struct_layout(
+                        struct_id,
+                        type_params,
+                    );
                     let field = struct_layout.fields(field_id.0.to_int64());
 
-                    self.store_field(src_type, obj_inst, InstExtraData::None, field.offset, src_inst, false);
+                    self.store_field(
+                        src_type,
+                        obj_inst,
+                        InstExtraData::None,
+                        field.offset,
+                        src_inst,
+                        false,
+                    );
                 }
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
@@ -668,23 +763,44 @@ impl BytecodeGraphBuilder {
                     let tuple_layout = self.compute_tuple_layout(subtypes);
                     let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
 
-                    self.store_field(src_type, obj_inst, InstExtraData::None, offset, src_inst, false);
+                    self.store_field(
+                        src_type,
+                        obj_inst,
+                        InstExtraData::None,
+                        offset,
+                        src_inst,
+                        false,
+                    );
                 }
             }
             _ => unreachable[()](),
         }
     }
 
-    fn emit_get_field_address(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
+    fn emit_get_field_address(
+        dest: BytecodeRegister,
+        obj: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
         let obj_inst = self.emit_local_get(obj);
 
         match self.bc.const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 let type_params = self.specialize_array(type_params);
-                let offset = iface::get_field_offset(self.ci, cls_id, type_params, field_id);
+                let offset = iface::get_field_offset(
+                    self.ci,
+                    cls_id,
+                    type_params,
+                    field_id,
+                );
 
                 let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
-                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                let address_inst = graph::create_binary_inst(
+                    Op::Add,
+                    Type::Address,
+                    obj_inst,
+                    offset_const,
+                );
                 self.current().append_inst(address_inst);
                 self.emit_local_set(dest, address_inst);
             }
@@ -692,8 +808,15 @@ impl BytecodeGraphBuilder {
                 let struct_layout = self.compute_struct_layout(struct_id, type_params);
                 let field = struct_layout.fields(field_id.0.to_int64());
 
-                let offset_const = self.graph.ensure_const_int64_inst(field.offset.to_int64());
-                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                let offset_const = self.graph.ensure_const_int64_inst(
+                    field.offset.to_int64()
+                );
+                let address_inst = graph::create_binary_inst(
+                    Op::Add,
+                    Type::Address,
+                    obj_inst,
+                    offset_const,
+                );
                 self.current().append_inst(address_inst);
                 self.emit_local_set(dest, address_inst);
             }
@@ -704,7 +827,12 @@ impl BytecodeGraphBuilder {
                 let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
 
                 let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
-                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                let address_inst = graph::create_binary_inst(
+                    Op::Add,
+                    Type::Address,
+                    obj_inst,
+                    offset_const,
+                );
                 self.current().append_inst(address_inst);
                 self.emit_local_set(dest, address_inst);
             }
@@ -721,7 +849,14 @@ impl BytecodeGraphBuilder {
         let src_inst = self.emit_local_get(src);
         let address_inst = self.emit_local_get(address);
 
-        self.store_field(src_type, address_inst, InstExtraData::None, 0i32, src_inst, false);
+        self.store_field(
+            src_type,
+            address_inst,
+            InstExtraData::None,
+            0i32,
+            src_inst,
+            false,
+        );
     }
 
     fn emit_load_address(dest: BytecodeRegister, address: BytecodeRegister) {
@@ -735,16 +870,30 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, value);
     }
 
-    fn emit_get_field_ref(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
+    fn emit_get_field_ref(
+        dest: BytecodeRegister,
+        obj: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
         let obj_inst = self.emit_local_get(obj);
 
         match self.bc.const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 let type_params = self.specialize_array(type_params);
-                let offset = iface::get_field_offset(self.ci, cls_id, type_params, field_id);
+                let offset = iface::get_field_offset(
+                    self.ci,
+                    cls_id,
+                    type_params,
+                    field_id,
+                );
 
                 let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
-                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                let address_inst = graph::create_binary_inst(
+                    Op::Add,
+                    Type::Address,
+                    obj_inst,
+                    offset_const,
+                );
                 self.current().append_inst(address_inst);
                 self.emit_local_set(dest, address_inst);
             }
@@ -752,8 +901,15 @@ impl BytecodeGraphBuilder {
                 let struct_layout = self.compute_struct_layout(struct_id, type_params);
                 let field = struct_layout.fields(field_id.0.to_int64());
 
-                let offset_const = self.graph.ensure_const_int64_inst(field.offset.to_int64());
-                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                let offset_const = self.graph.ensure_const_int64_inst(
+                    field.offset.to_int64()
+                );
+                let address_inst = graph::create_binary_inst(
+                    Op::Add,
+                    Type::Address,
+                    obj_inst,
+                    offset_const,
+                );
                 self.current().append_inst(address_inst);
                 self.emit_local_set(dest, address_inst);
             }
@@ -764,7 +920,12 @@ impl BytecodeGraphBuilder {
                 let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
 
                 let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
-                let address_inst = graph::create_binary_inst(Op::Add, Type::Address, obj_inst, offset_const);
+                let address_inst = graph::create_binary_inst(
+                    Op::Add,
+                    Type::Address,
+                    obj_inst,
+                    offset_const,
+                );
                 self.current().append_inst(address_inst);
                 self.emit_local_set(dest, address_inst);
             }
@@ -799,7 +960,11 @@ impl BytecodeGraphBuilder {
         unreachable[()]();
     }
 
-    fn emit_load_enum_variant(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
+    fn emit_load_enum_variant(
+        dest: BytecodeRegister,
+        src: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
         let ConstPoolEntry::Enum(enum_id, type_params) = self.bc.const_pool_entry(idx);
         let layout = self.compute_enum_layout(enum_id, type_params);
 
@@ -833,7 +998,13 @@ impl BytecodeGraphBuilder {
             EnumLayout::Tagged => {
                 let src = self.emit_local_get(src);
 
-                let inst = graph::create_load_inst(src, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int32, true);
+                let inst = graph::create_load_inst(
+                    src,
+                    iface::OBJECT_HEADER_LENGTH,
+                    InstExtraData::None,
+                    Type::Int32,
+                    true,
+                );
                 self.set_current_inlined_location(inst);
                 self.current().append_inst(inst);
 
@@ -842,8 +1013,17 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_load_enum_element(dest: BytecodeRegister, src: BytecodeRegister, idx: ConstPoolId) {
-        let ConstPoolEntry::EnumElement(enum_id, type_params, variant_id, field_id) = self.bc.const_pool_entry(idx);
+    fn emit_load_enum_element(
+        dest: BytecodeRegister,
+        src: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
+        let ConstPoolEntry::EnumElement(
+            enum_id,
+            type_params,
+            variant_id,
+            field_id,
+        ) = self.bc.const_pool_entry(idx);
         let layout = self.compute_enum_layout(enum_id, type_params);
         let type_params = self.specialize_array(type_params);
 
@@ -855,7 +1035,11 @@ impl BytecodeGraphBuilder {
             EnumLayout::PtrOrNull(layout) => {
                 let src = self.emit_local_get(src);
 
-                let null_idx = if layout.null_is_first { 0i32 } else { 1i32 };
+                let null_idx = if layout.null_is_first {
+                    0i32
+                } else {
+                    1i32
+                };
                 assert(variant_id != null_idx);
                 assert(field_id == 0i32);
 
@@ -868,8 +1052,19 @@ impl BytecodeGraphBuilder {
                 if !dest_ty.is_unit() {
                     let src = self.emit_local_get(src);
 
-                    let offset = iface::get_field_offset_for_enum_variant(self.ci, enum_id, type_params, variant_id, field_id);
-                    let result = self.load_field(dest_ty, src, InstExtraData::None, offset);
+                    let offset = iface::get_field_offset_for_enum_variant(
+                        self.ci,
+                        enum_id,
+                        type_params,
+                        variant_id,
+                        field_id,
+                    );
+                    let result = self.load_field(
+                        dest_ty,
+                        src,
+                        InstExtraData::None,
+                        offset,
+                    );
 
                     self.emit_local_set(dest, result);
                 }
@@ -877,7 +1072,11 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_test_identity(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    fn emit_test_identity(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         let ty = self.reg_graph_ty(lhs);
         assert(ty == Type::Ptr);
 
@@ -889,7 +1088,12 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, dest_inst);
     }
 
-    fn emit_bin(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
+    fn emit_bin(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+        op: Op,
+    ) {
         let ty = self.reg_graph_ty(lhs);
 
         let mut lhs_inst = self.emit_local_get(lhs);
@@ -902,20 +1106,31 @@ impl BytecodeGraphBuilder {
         }
 
         let dest_inst = graph::create_binary_inst(op, ty, lhs_inst, rhs_inst);
-        if op == Op::CheckedDiv || op == Op::CheckedMod || op == Op::CheckedAdd || op == Op::CheckedSub || op == Op::CheckedMul {
+        if (
+            op == Op::CheckedDiv ||
+            op == Op::CheckedMod ||
+            op == Op::CheckedAdd ||
+            op == Op::CheckedSub ||
+            op == Op::CheckedMul
+        ) {
             self.set_current_inlined_location(dest_inst);
         }
         self.current().append_inst(dest_inst);
         self.emit_local_set(dest, dest_inst);
     }
 
-    fn emit_compare(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
+    fn emit_compare(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+        op: Op,
+    ) {
         let ty = self.reg_graph_ty(lhs);
 
         let mut lhs_inst = self.emit_local_get(lhs);
         let mut rhs_inst = self.emit_local_get(rhs);
 
-        let op = if  ty == Type::UInt8 {
+        let op = if ty == Type::UInt8 {
             match op {
                 Op::Greater => Op::UnsignedGreater,
                 Op::GreaterOrEqual => Op::UnsignedGreaterOrEqual,
@@ -953,7 +1168,12 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, dest_inst);
     }
 
-    fn emit_shift(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
+    fn emit_shift(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+        op: Op,
+    ) {
         let ty = self.reg_graph_ty(lhs);
         let lhs_inst = self.emit_local_get(lhs);
         let rhs_inst = self.emit_local_get(rhs);
@@ -967,7 +1187,12 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, dest_inst);
     }
 
-    fn emit_div_mod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister, op: Op) {
+    fn emit_div_mod(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+        op: Op,
+    ) {
         let register_type = self.reg(dest);
 
         let ty = match register_type {
@@ -1037,14 +1262,20 @@ impl BytecodeGraphBuilder {
 
             ConstValue::Int(value) => {
                 match dest_type {
-                    BytecodeType::UInt8 => self.graph.ensure_const_uint8_inst(value.to_uint8()),
-                    BytecodeType::Int32 => self.graph.ensure_const_int32_inst(value.to_int32()),
+                    BytecodeType::UInt8 => self.graph.ensure_const_uint8_inst(
+                        value.to_uint8()
+                    ),
+                    BytecodeType::Int32 => self.graph.ensure_const_int32_inst(
+                        value.to_int32()
+                    ),
                     BytecodeType::Int64 => self.graph.ensure_const_int64_inst(value),
                     _ => unreachable[Inst](),
                 }
             }
 
-            ConstValue::Char(value) => self.graph.ensure_const_int32_inst(value.to_int32()),
+            ConstValue::Char(
+                value
+            ) => self.graph.ensure_const_int32_inst(value.to_int32()),
 
             ConstValue::Bool(value) => {
                 if value {
@@ -1085,7 +1316,12 @@ impl BytecodeGraphBuilder {
         self.current().add_successor(target_block);
     }
 
-    fn emit_conditional_jump(opnd: BytecodeRegister, value: Bool, target: Int64, fallthrough: Int64) {
+    fn emit_conditional_jump(
+        opnd: BytecodeRegister,
+        value: Bool,
+        target: Int64,
+        fallthrough: Int64,
+    ) {
         let opnd_inst = self.emit_local_get(opnd);
         let target_block = self.ensure_block_at(target);
         let fallthrough_block = self.ensure_block_at(fallthrough);
@@ -1107,12 +1343,19 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_load_array(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
+    fn emit_load_array(
+        dest: BytecodeRegister,
+        arr: BytecodeRegister,
+        idx: BytecodeRegister,
+    ) {
         let arr_inst = self.emit_local_get(arr);
         let idx_inst = self.emit_local_get(idx);
 
         let array_length_inst = self.load_array_length(arr_inst);
-        let check_inst = graph::create_check_array_bounds_inst(idx_inst, array_length_inst);
+        let check_inst = graph::create_check_array_bounds_inst(
+            idx_inst,
+            array_length_inst,
+        );
         self.set_current_inlined_location(check_inst);
         self.current().append_inst(check_inst);
 
@@ -1124,13 +1367,20 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_store_array(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
+    fn emit_store_array(
+        src: BytecodeRegister,
+        arr: BytecodeRegister,
+        idx: BytecodeRegister,
+    ) {
         let arr_inst = self.emit_local_get(arr);
         let idx_inst = self.emit_local_get(idx);
 
         let array_length_inst = self.load_array_length(arr_inst);
 
-        let check_inst = graph::create_check_array_bounds_inst(idx_inst, array_length_inst);
+        let check_inst = graph::create_check_array_bounds_inst(
+            idx_inst,
+            array_length_inst,
+        );
         self.set_current_inlined_location(check_inst);
         self.current().append_inst(check_inst);
 
@@ -1142,7 +1392,13 @@ impl BytecodeGraphBuilder {
     }
 
     fn load_array_length(obj: Inst): Inst {
-        let inst = graph::create_load_inst(obj, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int64, true);
+        let inst = graph::create_load_inst(
+            obj,
+            iface::OBJECT_HEADER_LENGTH,
+            InstExtraData::None,
+            Type::Int64,
+            true,
+        );
         self.current().append_inst(inst);
         inst
     }
@@ -1169,15 +1425,36 @@ impl BytecodeGraphBuilder {
             } else if ty.is_struct() {
                 let src = self.emit_local_get(opnd);
                 let dest = self.return_value_arg_inst.get_or_panic();
-                self.copy_struct(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
+                self.copy_struct(
+                    ty,
+                    dest,
+                    InstExtraData::None,
+                    0i32,
+                    src,
+                    InstExtraData::None,
+                    0i32,
+                    false,
+                );
             } else if ty.is_tuple() {
                 let src = self.emit_local_get(opnd);
                 let dest = self.return_value_arg_inst.get_or_panic();
-                self.copy_tuple(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
+                self.copy_tuple(
+                    ty,
+                    dest,
+                    InstExtraData::None,
+                    0i32,
+                    src,
+                    InstExtraData::None,
+                    0i32,
+                    false,
+                );
             } else {
                 let value = self.emit_local_get(opnd);
                 assert(value.get_value_type() == self.inline_return_type.get_or_panic());
-                let inst = graph::create_inline_return_inst(value, value.get_value_type());
+                let inst = graph::create_inline_return_inst(
+                    value,
+                    value.get_value_type(),
+                );
                 self.current().append_inst(inst);
             }
 
@@ -1191,13 +1468,31 @@ impl BytecodeGraphBuilder {
             } else if ty.is_struct() {
                 let src = self.emit_local_get(opnd);
                 let dest = self.return_value_arg_inst.get_or_panic();
-                self.copy_struct(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
+                self.copy_struct(
+                    ty,
+                    dest,
+                    InstExtraData::None,
+                    0i32,
+                    src,
+                    InstExtraData::None,
+                    0i32,
+                    false,
+                );
                 let inst = graph::create_return_void_inst();
                 self.current().append_inst(inst);
             } else if ty.is_tuple() {
                 let src = self.emit_local_get(opnd);
                 let dest = self.return_value_arg_inst.get_or_panic();
-                self.copy_tuple(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
+                self.copy_tuple(
+                    ty,
+                    dest,
+                    InstExtraData::None,
+                    0i32,
+                    src,
+                    InstExtraData::None,
+                    0i32,
+                    false,
+                );
                 let inst = graph::create_return_void_inst();
                 self.current().append_inst(inst);
             } else {
@@ -1209,7 +1504,11 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_invoke_direct(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]): Bool {
+    fn emit_invoke_direct(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ): Bool {
         let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.const_pool_entry(idx);
         let intrinsic = iface::get_intrinsic_for_function(fct_id);
 
@@ -1221,7 +1520,11 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_invoke_static(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]): Bool {
+    fn emit_invoke_static(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ): Bool {
         let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.const_pool_entry(idx);
 
         let intrinsic = iface::get_intrinsic_for_function(fct_id);
@@ -1247,7 +1550,11 @@ impl BytecodeGraphBuilder {
 
         let default_block = self.ensure_block_at(default.to_int64());
 
-        let switch_inst = graph::create_switch_inst(opnd_inst, target_blocks.to_array(), default_block);
+        let switch_inst = graph::create_switch_inst(
+            opnd_inst,
+            target_blocks.to_array(),
+            default_block,
+        );
         self.current().append_inst(switch_inst);
 
         for target_block in target_blocks {
@@ -1257,7 +1564,13 @@ impl BytecodeGraphBuilder {
         self.current().add_successor(default_block);
     }
 
-    fn emit_call(dest: BytecodeRegister, kind: CallKind, fct_id: FunctionId, type_params: Array[BytecodeType], arguments: Array[BytecodeRegister]) {
+    fn emit_call(
+        dest: BytecodeRegister,
+        kind: CallKind,
+        fct_id: FunctionId,
+        type_params: Array[BytecodeType],
+        arguments: Array[BytecodeRegister],
+    ) {
         let args = Vec[Inst]::new();
         args.reserve(arguments.size());
         let dest_ty = self.reg(dest);
@@ -1306,7 +1619,10 @@ impl BytecodeGraphBuilder {
                 return;
             }
 
-            if self.graph.inlined_bytecode_size + info.bytecode_size > self.ci.max_total_inlined_bytecode_size {
+            if (
+                self.graph.inlined_bytecode_size + info.bytecode_size >
+                self.ci.max_total_inlined_bytecode_size
+            ) {
                 return;
             }
         }
@@ -1314,7 +1630,12 @@ impl BytecodeGraphBuilder {
         self.graph.inlinable_calls.push((inst, info));
     }
 
-    fn emit_invoke_virtual(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister], kind: CallKind) {
+    fn emit_invoke_virtual(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+        kind: CallKind,
+    ) {
         let args = Vec[Inst]::new();
         args.reserve(arguments.size());
         let dest_ty = self.reg(dest);
@@ -1334,15 +1655,28 @@ impl BytecodeGraphBuilder {
 
         let inst = match kind {
             CallKind::Virtual => {
-                let ConstPoolEntry::TraitObjectMethod(trait_object_ty, trait_fct_id) = self.bc.const_pool_entry(idx);
+                let ConstPoolEntry::TraitObjectMethod(
+                    trait_object_ty,
+                    trait_fct_id,
+                ) = self.bc.const_pool_entry(idx);
                 let BytecodeType::TraitObject(trait_id, ..) = trait_object_ty;
-                let vtable_index = iface::get_function_vtable_index(trait_id, trait_fct_id);
-                let info = VirtualFunctionInfo(receiver_is_first, trait_object_ty, vtable_index);
+                let vtable_index = iface::get_function_vtable_index(
+                    trait_id,
+                    trait_fct_id,
+                );
+                let info = VirtualFunctionInfo(
+                    receiver_is_first,
+                    trait_object_ty,
+                    vtable_index,
+                );
                 graph::create_invoke_virtual_inst(info, args, return_ty)
             }
 
             CallKind::Lambda => {
-                let ConstPoolEntry::Lambda(params, return_type) = self.bc.const_pool_entry(idx);
+                let ConstPoolEntry::Lambda(
+                    params,
+                    return_type,
+                ) = self.bc.const_pool_entry(idx);
                 let params = self.specialize_array(params);
                 let return_type = self.specialize_ty(return_type);
                 let info = LambdaFunctionInfo(params, return_type, receiver_is_first);
@@ -1367,11 +1701,11 @@ impl BytecodeGraphBuilder {
             let layout = match dest_ty {
                 BytecodeType::Struct(struct_id, type_params) => {
                     self.compute_struct_layout(struct_id, type_params)
-                },
+                }
 
                 BytecodeType::Tuple(subtypes) => {
                     self.compute_tuple_layout(subtypes)
-                },
+                }
 
                 _ => unreachable[RecordLayout](),
             };
@@ -1384,7 +1718,13 @@ impl BytecodeGraphBuilder {
                 self.current().append_inst(zero);
 
                 for ref_ in layout.refs {
-                    let inst = graph::create_store_inst(alloc_inst, InstExtraData::None, ref_, zero, Type::Ptr);
+                    let inst = graph::create_store_inst(
+                        alloc_inst,
+                        InstExtraData::None,
+                        ref_,
+                        zero,
+                        Type::Ptr,
+                    );
                     self.current().append_inst(inst);
                 }
             };
@@ -1395,8 +1735,18 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_invoke_generic(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister], kind: CallKind): Bool {
-        let (object_ty, trait_fct_id, trait_type_params, pure_fct_type_params) = match self.bc.const_pool_entry(idx) {
+    fn emit_invoke_generic(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+        kind: CallKind,
+    ): Bool {
+        let (
+            object_ty,
+            trait_fct_id,
+            trait_type_params,
+            pure_fct_type_params,
+        ) = match self.bc.const_pool_entry(idx) {
             ConstPoolEntry::Generic(object_type, trait_ty, fct_id, fct_type_params) => {
                 match object_type {
                     BytecodeType::TypeParam(id) => {
@@ -1407,27 +1757,60 @@ impl BytecodeGraphBuilder {
 
                     BytecodeType::This => {
                         let extended_ty = self.specialize_self.get_or_panic().extended_ty;
-                        let extended_ty = specialize_ty(self.ci, None[SpecializeSelf], extended_ty, self.type_params);
+                        let extended_ty = specialize_ty(
+                            self.ci,
+                            None[SpecializeSelf],
+                            extended_ty,
+                            self.type_params,
+                        );
                         (extended_ty, fct_id, trait_ty.type_params, fct_type_params)
                     }
 
                     BytecodeType::Assoc(ty, trait_ty = assoc_trait_ty, assoc_id) => {
                         let object_ty = self.specialize_ty(ty);
                         let assoc_trait_ty = self.specialize_trait_ty(assoc_trait_ty);
-                        let (impl_id, bindings) = iface::find_trait_ty_impl(self.ci, assoc_trait_ty, object_ty);
+                        let (
+                            impl_id,
+                            bindings,
+                        ) = iface::find_trait_ty_impl(self.ci, assoc_trait_ty, object_ty);
 
-                        let assoc_ty = iface::get_assoc_type_in_impl(self.ci, impl_id, assoc_id);
-                        let assoc_ty = specialize_ty(self.ci, None[SpecializeSelf], assoc_ty, bindings);
-                        let assoc_ty = specialize_ty(self.ci, None[SpecializeSelf], assoc_ty, self.type_params);
+                        let assoc_ty = iface::get_assoc_type_in_impl(
+                            self.ci,
+                            impl_id,
+                            assoc_id,
+                        );
+                        let assoc_ty = specialize_ty(
+                            self.ci,
+                            None[SpecializeSelf],
+                            assoc_ty,
+                            bindings,
+                        );
+                        let assoc_ty = specialize_ty(
+                            self.ci,
+                            None[SpecializeSelf],
+                            assoc_ty,
+                            self.type_params,
+                        );
 
                         (assoc_ty, fct_id, trait_ty.type_params, fct_type_params)
                     }
 
-                    _ => std::unreachable[(BytecodeType, FunctionId, Array[BytecodeType], Array[BytecodeType])](),
+                    _ => std::unreachable[
+                        (
+                            BytecodeType,
+                            FunctionId,
+                            Array[BytecodeType],
+                            Array[BytecodeType],
+                        )
+                    ](
+                        ),
                 }
             }
 
-            _ => unreachable[(BytecodeType, FunctionId, Array[BytecodeType], Array[BytecodeType])](),
+            _ => unreachable[
+                (BytecodeType, FunctionId, Array[BytecodeType], Array[BytecodeType])
+            ](
+                ),
         };
 
         assert(!object_ty.is_generic());
@@ -1438,7 +1821,10 @@ impl BytecodeGraphBuilder {
         let pure_fct_type_params = self.specialize_array(pure_fct_type_params);
         assert(!pure_fct_type_params.is_generic());
 
-        let (callee_id, container_bindings) = iface::find_trait_impl(self.ci, trait_fct_id, trait_type_params, object_ty);
+        let (
+            callee_id,
+            container_bindings,
+        ) = iface::find_trait_impl(self.ci, trait_fct_id, trait_type_params, object_ty);
         let combined_type_params = container_bindings.append(pure_fct_type_params);
         assert(!combined_type_params.is_generic());
 
@@ -1453,21 +1839,38 @@ impl BytecodeGraphBuilder {
     }
 
     fn is_intrinsic(intrinsic: Int32): Bool {
-        intrinsic >= 0i32 &&
-        intrinsic != opc::INTRINSIC_OPTION_GET_OR_PANIC
+        intrinsic >= 0i32 && intrinsic != opc::INTRINSIC_OPTION_GET_OR_PANIC
     }
 
-    fn emit_intrinsic(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId, type_params: Array[BytecodeType]): Bool {
-        if intrinsic == opc::INTRINSIC_INT64_WRAPPING_ADD || intrinsic == opc::INTRINSIC_INT32_WRAPPING_ADD {
+    fn emit_intrinsic(
+        intrinsic: Int32,
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        idx: ConstPoolId,
+        type_params: Array[BytecodeType],
+    ): Bool {
+        if (
+            intrinsic == opc::INTRINSIC_INT64_WRAPPING_ADD ||
+            intrinsic == opc::INTRINSIC_INT32_WRAPPING_ADD
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::Add);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_WRAPPING_SUB || intrinsic == opc::INTRINSIC_INT32_WRAPPING_SUB {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_WRAPPING_SUB ||
+            intrinsic == opc::INTRINSIC_INT32_WRAPPING_SUB
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::Sub);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_WRAPPING_MUL || intrinsic == opc::INTRINSIC_INT32_WRAPPING_MUL {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_WRAPPING_MUL ||
+            intrinsic == opc::INTRINSIC_INT32_WRAPPING_MUL
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::Mul);
             false
-        } else if intrinsic == opc::INTRINSIC_INT32_WRAPPING_NEG || intrinsic == opc::INTRINSIC_INT64_WRAPPING_NEG {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_WRAPPING_NEG ||
+            intrinsic == opc::INTRINSIC_INT64_WRAPPING_NEG
+        ) {
             self.emit_intrinsic_un(dest, args, Op::Neg);
             false
         } else if intrinsic == opc::INTRINSIC_THREAD_CURRENT {
@@ -1482,7 +1885,10 @@ impl BytecodeGraphBuilder {
         } else if intrinsic == opc::INTRINSIC_ASSERT {
             self.emit_intrinsic_assert(dest, args);
             false
-        } else if intrinsic == opc::INTRINSIC_OPTION_IS_SOME || intrinsic == opc::INTRINSIC_OPTION_IS_NONE {
+        } else if (
+            intrinsic == opc::INTRINSIC_OPTION_IS_SOME ||
+            intrinsic == opc::INTRINSIC_OPTION_IS_NONE
+        ) {
             self.emit_intrinsic_option_is_some_and_is_none(intrinsic, dest, args);
             false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_TO_INT32 {
@@ -1503,7 +1909,10 @@ impl BytecodeGraphBuilder {
         } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT64 {
             self.emit_intrinsic_convert(dest, args, Type::Float64, Type::Int32);
             false
-        } else if intrinsic == opc::INTRINSIC_INT32_TO_INT64 || intrinsic == opc::INTRINSIC_CHAR_TO_INT64 {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_TO_INT64 ||
+            intrinsic == opc::INTRINSIC_CHAR_TO_INT64
+        ) {
             self.emit_intrinsic_convert(dest, args, Type::Int64, Type::Int32);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT32 {
@@ -1512,7 +1921,10 @@ impl BytecodeGraphBuilder {
         } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT64 {
             self.emit_intrinsic_convert(dest, args, Type::Float64, Type::Int64);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_TO_INT32 || intrinsic == opc::INTRINSIC_INT64_TO_CHAR_UNCHECKED {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_TO_INT32 ||
+            intrinsic == opc::INTRINSIC_INT64_TO_CHAR_UNCHECKED
+        ) {
             self.emit_intrinsic_convert(dest, args, Type::Int32, Type::Int64);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_TO_UINT8 {
@@ -1524,22 +1936,40 @@ impl BytecodeGraphBuilder {
         } else if intrinsic == opc::INTRINSIC_DEMOTE_FLOAT64_TO_FLOAT32 {
             self.emit_intrinsic_convert(dest, args, Type::Float32, Type::Float64);
             false
-        } else if intrinsic == opc::INTRINSIC_FLOAT64_ADD || intrinsic == opc::INTRINSIC_FLOAT32_ADD {
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_ADD ||
+            intrinsic == opc::INTRINSIC_FLOAT32_ADD
+        ) {
             self.emit_bin(dest, args(0), args(1), Op::Add);
             false
-        } else if intrinsic == opc::INTRINSIC_FLOAT64_SUB || intrinsic == opc::INTRINSIC_FLOAT32_SUB {
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_SUB ||
+            intrinsic == opc::INTRINSIC_FLOAT32_SUB
+        ) {
             self.emit_bin(dest, args(0), args(1), Op::Sub);
             false
-        } else if intrinsic == opc::INTRINSIC_FLOAT64_MUL || intrinsic == opc::INTRINSIC_FLOAT32_MUL {
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_MUL ||
+            intrinsic == opc::INTRINSIC_FLOAT32_MUL
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::Mul);
             false
-        } else if intrinsic == opc::INTRINSIC_FLOAT64_DIV || intrinsic == opc::INTRINSIC_FLOAT32_DIV {
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_DIV ||
+            intrinsic == opc::INTRINSIC_FLOAT32_DIV
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::Div);
             false
-        } else if intrinsic == opc::INTRINSIC_FLOAT64_NEG || intrinsic == opc::INTRINSIC_FLOAT32_NEG {
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_NEG ||
+            intrinsic == opc::INTRINSIC_FLOAT32_NEG
+        ) {
             self.emit_intrinsic_un(dest, args, Op::Neg);
             false
-        } else if intrinsic == opc::INTRINSIC_FLOAT64_EQ || intrinsic == opc::INTRINSIC_FLOAT32_EQ {
+        } else if (
+            intrinsic == opc::INTRINSIC_FLOAT64_EQ ||
+            intrinsic == opc::INTRINSIC_FLOAT32_EQ
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::Equal);
             false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ABS {
@@ -1548,55 +1978,95 @@ impl BytecodeGraphBuilder {
         } else if intrinsic == opc::INTRINSIC_FLOAT32_ABS {
             self.emit_intrinsic_abs(dest, args, Type::Float32);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_ADD || intrinsic == opc::INTRINSIC_INT32_CHECKED_ADD {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_CHECKED_ADD ||
+            intrinsic == opc::INTRINSIC_INT32_CHECKED_ADD
+        ) {
             self.emit_bin(dest, args(0), args(1), Op::CheckedAdd);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_SUB || intrinsic == opc::INTRINSIC_INT32_CHECKED_SUB {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_CHECKED_SUB ||
+            intrinsic == opc::INTRINSIC_INT32_CHECKED_SUB
+        ) {
             self.emit_bin(dest, args(0), args(1), Op::CheckedSub);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_MUL || intrinsic == opc::INTRINSIC_INT32_CHECKED_MUL {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_CHECKED_MUL ||
+            intrinsic == opc::INTRINSIC_INT32_CHECKED_MUL
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::CheckedMul);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_DIV || intrinsic == opc::INTRINSIC_INT32_CHECKED_DIV {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_CHECKED_DIV ||
+            intrinsic == opc::INTRINSIC_INT32_CHECKED_DIV
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::CheckedDiv);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_MOD || intrinsic == opc::INTRINSIC_INT32_CHECKED_MOD {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_CHECKED_MOD ||
+            intrinsic == opc::INTRINSIC_INT32_CHECKED_MOD
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::CheckedMod);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_AND || intrinsic == opc::INTRINSIC_INT32_AND {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_AND || intrinsic == opc::INTRINSIC_INT32_AND
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::And);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_OR || intrinsic == opc::INTRINSIC_INT32_OR {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_OR || intrinsic == opc::INTRINSIC_INT32_OR
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::Or);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_XOR || intrinsic == opc::INTRINSIC_INT32_XOR {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_XOR || intrinsic == opc::INTRINSIC_INT32_XOR
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::Xor);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_SAR || intrinsic == opc::INTRINSIC_INT32_SAR {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_SAR || intrinsic == opc::INTRINSIC_INT32_SAR
+        ) {
             self.emit_intrinsic_shift(dest, args, Op::Sar);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_SHL || intrinsic == opc::INTRINSIC_INT32_SHL {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_SHL || intrinsic == opc::INTRINSIC_INT32_SHL
+        ) {
             self.emit_intrinsic_shift(dest, args, Op::Shl);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_SHR || intrinsic == opc::INTRINSIC_INT32_SHR {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_SHR || intrinsic == opc::INTRINSIC_INT32_SHR
+        ) {
             self.emit_intrinsic_shift(dest, args, Op::Shr);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_CHECKED_NEG || intrinsic == opc::INTRINSIC_INT32_CHECKED_NEG {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_CHECKED_NEG ||
+            intrinsic == opc::INTRINSIC_INT32_CHECKED_NEG
+        ) {
             self.emit_intrinsic_un(dest, args, Op::CheckedNeg);
             false
-        } else if intrinsic == opc::INTRINSIC_INT64_EQ || intrinsic == opc::INTRINSIC_INT32_EQ {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT64_EQ || intrinsic == opc::INTRINSIC_INT32_EQ
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::Equal);
             false
-        } else if intrinsic == opc::INTRINSIC_BOOL_NOT || intrinsic == opc::INTRINSIC_INT64_NOT || intrinsic == opc::INTRINSIC_INT32_NOT {
+        } else if (
+            intrinsic == opc::INTRINSIC_BOOL_NOT ||
+            intrinsic == opc::INTRINSIC_INT64_NOT ||
+            intrinsic == opc::INTRINSIC_INT32_NOT
+        ) {
             self.emit_intrinsic_un(dest, args, Op::Not);
             false
-        } else if intrinsic == opc::INTRINSIC_BOOL_EQ || intrinsic == opc::INTRINSIC_U_INT8_EQ {
+        } else if (
+            intrinsic == opc::INTRINSIC_BOOL_EQ || intrinsic == opc::INTRINSIC_U_INT8_EQ
+        ) {
             self.emit_intrinsic_bin(dest, args, Op::Equal);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_CMP {
             self.emit_intrinsic_compare_ordering(dest, args, Type::Int64);
             false
-        } else if intrinsic == opc::INTRINSIC_INT32_CMP || intrinsic == opc::INTRINSIC_CHAR_CMP {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_CMP || intrinsic == opc::INTRINSIC_CHAR_CMP
+        ) {
             self.emit_intrinsic_compare_ordering(dest, args, Type::Int32);
             false
         } else if intrinsic == opc::INTRINSIC_U_INT8_CMP {
@@ -1650,13 +2120,19 @@ impl BytecodeGraphBuilder {
         } else if intrinsic == opc::INTRINSIC_FLOAT32_SQRT {
             self.emit_intrinsic_rounding(dest, args, Op::Sqrt, Type::Float32);
             false
-        } else if intrinsic == opc::INTRINSIC_INT32_TO_CHAR_UNCHECKED || intrinsic == opc::INTRINSIC_CHAR_TO_INT32 {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_TO_CHAR_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_CHAR_TO_INT32
+        ) {
             self.emit_intrinsic_cast_between_int32_and_char(dest, args);
             false
         } else if intrinsic == opc::INTRINSIC_INT32_TO_UINT8 {
             self.emit_intrinsic_convert(dest, args, Type::UInt8, Type::Int32);
             false
-        } else if intrinsic == opc::INTRINSIC_U_INT8_TO_INT32 || intrinsic == opc::INTRINSIC_U_INT8_TO_CHAR {
+        } else if (
+            intrinsic == opc::INTRINSIC_U_INT8_TO_INT32 ||
+            intrinsic == opc::INTRINSIC_U_INT8_TO_CHAR
+        ) {
             self.emit_intrinsic_convert(dest, args, Type::Int32, Type::UInt8);
             false
         } else if intrinsic == opc::INTRINSIC_BOOL_TO_INT32 {
@@ -1752,44 +2228,53 @@ impl BytecodeGraphBuilder {
         } else if intrinsic == opc::INTRINSIC_UNSAFE_KILL_REFS {
             self.emit_intrinsic_unsafe_kill_refs(dest, args, type_params);
             false
-
-        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_ADD
-            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_ADD {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_ADD ||
+            intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_ADD
+        ) {
             self.emit_intrinsic_overflowing_add(dest, args);
             false
-
-        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_SUB
-            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_SUB {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_SUB ||
+            intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_SUB
+        ) {
             self.emit_intrinsic_overflowing_sub(dest, args);
             false
-
-        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MUL
-            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MUL {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MUL ||
+            intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MUL
+        ) {
             self.emit_intrinsic_overflowing_mul(dest, args);
             false
-
-        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_DIV
-            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_DIV {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_DIV ||
+            intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_DIV
+        ) {
             self.emit_intrinsic_overflowing_div(dest, args);
             false
-
-        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MOD
-            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MOD {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_MOD ||
+            intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_MOD
+        ) {
             self.emit_intrinsic_overflowing_mod(dest, args);
             false
-
-        } else if intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_NEG
-            || intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_NEG {
+        } else if (
+            intrinsic == opc::INTRINSIC_INT32_OVERFLOWING_NEG ||
+            intrinsic == opc::INTRINSIC_INT64_OVERFLOWING_NEG
+        ) {
             self.emit_intrinsic_overflowing_neg(dest, args);
             false
-
         } else {
             let name = opc::intrinsic_name(intrinsic);
             std::fatal_error[Bool]("unknown intrinsic ${name}")
         }
     }
 
-    fn emit_intrinsic_unsafe_kill_refs(dest: BytecodeRegister, args: Array[BytecodeRegister], type_params: Array[BytecodeType]) {
+    fn emit_intrinsic_unsafe_kill_refs(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        type_params: Array[BytecodeType],
+    ) {
         assert(args.size() == 2);
         assert(self.reg_graph_ty(dest) == Type::Unit);
         assert(type_params.size() == 1);
@@ -1798,15 +2283,15 @@ impl BytecodeGraphBuilder {
         let ty = self.specialize_ty(type_params(0));
 
         match ty {
-            BytecodeType::Unit |
-            BytecodeType::Bool |
-            BytecodeType::UInt8 |
-            BytecodeType::Float32 |
-            BytecodeType::Int32 |
-            BytecodeType::Char |
-            BytecodeType::Int64 |
-            BytecodeType::Float64 |
-            BytecodeType::Address => {
+            BytecodeType::Unit
+            | BytecodeType::Bool
+            | BytecodeType::UInt8
+            | BytecodeType::Float32
+            | BytecodeType::Int32
+            | BytecodeType::Char
+            | BytecodeType::Int64
+            | BytecodeType::Float64
+            | BytecodeType::Address => {
                 // No need to clear any reference.
             }
             BytecodeType::Class(..)
@@ -1823,8 +2308,7 @@ impl BytecodeGraphBuilder {
                         // No need to clear any reference.
                     }
 
-                    EnumLayout::PtrOrNull(_)
-                    | EnumLayout::Tagged => {
+                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => {
                         self.clear_array_element_pointer(array, index);
                     }
                 }
@@ -1857,17 +2341,31 @@ impl BytecodeGraphBuilder {
             let null = graph::create_null_const();
             self.current().append_inst(null);
 
-            let array_element = graph::create_get_element_ptr_inst(arr, index, layout.size.to_int64());
+            let array_element = graph::create_get_element_ptr_inst(
+                arr,
+                index,
+                layout.size.to_int64(),
+            );
             self.current().append_inst(array_element);
 
             for ref_ in layout.refs {
-                let inst = graph::create_store_inst(array_element, InstExtraData::None, ref_, null, Type::Ptr);
+                let inst = graph::create_store_inst(
+                    array_element,
+                    InstExtraData::None,
+                    ref_,
+                    null,
+                    Type::Ptr,
+                );
                 self.current().append_inst(inst);
             }
         }
     }
 
-    fn emit_intrinsic_abs(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+    fn emit_intrinsic_abs(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
         assert(args.size() == 1);
         assert(self.reg_graph_ty(dest) == ty);
         assert(self.reg_graph_ty(args(0)) == ty);
@@ -1877,7 +2375,12 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, inst);
     }
 
-    fn emit_intrinsic_count_bits(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type, count_set_bits: Bool) {
+    fn emit_intrinsic_count_bits(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+        count_set_bits: Bool,
+    ) {
         assert(args.size() == 1);
         assert(self.reg_graph_ty(dest) == Type::Int32);
         assert(self.reg_graph_ty(args(0)) == ty);
@@ -1894,7 +2397,12 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, inst);
     }
 
-    fn emit_intrinsic_count_leading(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type, count_set_bits: Bool) {
+    fn emit_intrinsic_count_leading(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+        count_set_bits: Bool,
+    ) {
         assert(args.size() == 1);
         assert(self.reg_graph_ty(dest) == Type::Int32);
         assert(self.reg_graph_ty(args(0)) == ty);
@@ -1911,7 +2419,12 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, inst);
     }
 
-    fn emit_intrinsic_count_trailing(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type, count_set_bits: Bool) {
+    fn emit_intrinsic_count_trailing(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+        count_set_bits: Bool,
+    ) {
         assert(args.size() == 1);
         assert(self.reg_graph_ty(dest) == Type::Int32);
         assert(self.reg_graph_ty(args(0)) == ty);
@@ -1928,7 +2441,11 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, inst);
     }
 
-    fn emit_intrinsic_atomic_load(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+    fn emit_intrinsic_atomic_load(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
         assert(args.size() == 1);
         assert(self.reg_graph_ty(dest) == ty);
         assert(self.reg_graph_ty(args(0)) == Type::Ptr);
@@ -1938,7 +2455,11 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, inst);
     }
 
-    fn emit_intrinsic_atomic_store(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+    fn emit_intrinsic_atomic_store(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
         assert(args.size() == 2);
         assert(self.reg_graph_ty(dest) == Type::Unit);
         assert(self.reg_graph_ty(args(0)) == Type::Ptr);
@@ -1949,7 +2470,11 @@ impl BytecodeGraphBuilder {
         self.current().append_inst(inst);
     }
 
-    fn emit_intrinsic_atomic_exchange(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+    fn emit_intrinsic_atomic_exchange(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
         assert(args.size() == 2);
         assert(self.reg_graph_ty(dest) == ty);
         assert(self.reg_graph_ty(args(0)) == Type::Ptr);
@@ -1961,7 +2486,11 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, inst);
     }
 
-    fn emit_intrinsic_atomic_compare_exchange(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+    fn emit_intrinsic_atomic_compare_exchange(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
         assert(args.size() == 3);
         assert(self.reg_graph_ty(dest) == ty);
         assert(self.reg_graph_ty(args(0)) == Type::Ptr);
@@ -1970,12 +2499,21 @@ impl BytecodeGraphBuilder {
         let obj = self.emit_local_get(args(0));
         let expected = self.emit_local_get(args(1));
         let new_value = self.emit_local_get(args(2));
-        let inst = graph::create_atomic_compare_exchange_inst(ty, obj, expected, new_value);
+        let inst = graph::create_atomic_compare_exchange_inst(
+            ty,
+            obj,
+            expected,
+            new_value,
+        );
         self.current().append_inst(inst);
         self.emit_local_set(dest, inst);
     }
 
-    fn emit_intrinsic_atomic_fetch_add(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+    fn emit_intrinsic_atomic_fetch_add(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
         assert(args.size() == 2);
         assert(self.reg_graph_ty(dest) == ty);
         assert(self.reg_graph_ty(args(0)) == Type::Ptr);
@@ -1993,7 +2531,12 @@ impl BytecodeGraphBuilder {
         self.current().append_inst(inst);
     }
 
-    fn emit_intrinsic_rotate(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type, is_left: Bool) {
+    fn emit_intrinsic_rotate(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+        is_left: Bool,
+    ) {
         assert(args.size() == 2);
         let src = args(0);
         let by = args(1);
@@ -2010,7 +2553,10 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, inst);
     }
 
-    fn emit_intrinsic_cast_between_int32_and_char(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+    fn emit_intrinsic_cast_between_int32_and_char(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
         assert(args.size() == 1);
         let src = args(0);
         assert(self.reg_graph_ty(dest) == Type::Int32);
@@ -2019,7 +2565,12 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, value);
     }
 
-    fn emit_intrinsic_rounding(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op, ty: Type) {
+    fn emit_intrinsic_rounding(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        op: Op,
+        ty: Type,
+    ) {
         assert(args.size() == 1);
         let src = args(0);
         assert(ty == self.reg_graph_ty(dest));
@@ -2031,7 +2582,11 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, result);
     }
 
-    fn emit_intrinsic_compare_ordering(dest: BytecodeRegister, args: Array[BytecodeRegister], ty: Type) {
+    fn emit_intrinsic_compare_ordering(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        ty: Type,
+    ) {
         assert(args.size() == 2);
         assert(ty == self.reg_graph_ty(args(0)));
         assert(ty == self.reg_graph_ty(args(1)));
@@ -2052,12 +2607,19 @@ impl BytecodeGraphBuilder {
         self.emit_bin(dest, args(0), args(1), op);
     }
 
-    fn emit_intrinsic_shift(dest: BytecodeRegister, args: Array[BytecodeRegister], op: Op) {
+    fn emit_intrinsic_shift(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        op: Op,
+    ) {
         assert(args.size() == 2);
         self.emit_shift(dest, args(0), args(1), op);
     }
 
-    fn emit_intrinsic_overflowing_add(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+    fn emit_intrinsic_overflowing_add(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
         assert(args.size() == 2);
 
         let lhs = self.emit_local_get(args(0));
@@ -2067,13 +2629,21 @@ impl BytecodeGraphBuilder {
         let value_inst = graph::create_binary_inst(Op::Add, value_ty, lhs, rhs);
         self.current().append_inst(value_inst);
 
-        let overflow_inst = graph::create_binary_inst(Op::IsAddOverflowing, value_ty, lhs, rhs);
+        let overflow_inst = graph::create_binary_inst(
+            Op::IsAddOverflowing,
+            value_ty,
+            lhs,
+            rhs,
+        );
         self.current().append_inst(overflow_inst);
 
         self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
-    fn emit_intrinsic_overflowing_sub(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+    fn emit_intrinsic_overflowing_sub(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
         assert(args.size() == 2);
 
         let lhs = self.emit_local_get(args(0));
@@ -2083,13 +2653,21 @@ impl BytecodeGraphBuilder {
         let value_inst = graph::create_binary_inst(Op::Sub, value_ty, lhs, rhs);
         self.current().append_inst(value_inst);
 
-        let overflow_inst = graph::create_binary_inst(Op::IsSubOverflowing, value_ty, lhs, rhs);
+        let overflow_inst = graph::create_binary_inst(
+            Op::IsSubOverflowing,
+            value_ty,
+            lhs,
+            rhs,
+        );
         self.current().append_inst(overflow_inst);
 
         self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
-    fn emit_intrinsic_overflowing_mul(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+    fn emit_intrinsic_overflowing_mul(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
         assert(args.size() == 2);
 
         let lhs = self.emit_local_get(args(0));
@@ -2099,13 +2677,21 @@ impl BytecodeGraphBuilder {
         let value_inst = graph::create_binary_inst(Op::Mul, value_ty, lhs, rhs);
         self.current().append_inst(value_inst);
 
-        let overflow_inst = graph::create_binary_inst(Op::IsMulOverflowing, value_ty, lhs, rhs);
+        let overflow_inst = graph::create_binary_inst(
+            Op::IsMulOverflowing,
+            value_ty,
+            lhs,
+            rhs,
+        );
         self.current().append_inst(overflow_inst);
 
         self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
-    fn emit_intrinsic_overflowing_div(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+    fn emit_intrinsic_overflowing_div(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
         assert(args.size() == 2);
 
         let lhs = self.emit_local_get(args(0));
@@ -2119,13 +2705,21 @@ impl BytecodeGraphBuilder {
         let value_inst = graph::create_binary_inst(Op::Div, value_ty, lhs, rhs);
         self.current().append_inst(value_inst);
 
-        let overflow_inst = graph::create_binary_inst(Op::IsDivOverflowing, value_ty, lhs, rhs);
+        let overflow_inst = graph::create_binary_inst(
+            Op::IsDivOverflowing,
+            value_ty,
+            lhs,
+            rhs,
+        );
         self.current().append_inst(overflow_inst);
 
         self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
-    fn emit_intrinsic_overflowing_mod(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+    fn emit_intrinsic_overflowing_mod(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
         assert(args.size() == 2);
 
         let lhs = self.emit_local_get(args(0));
@@ -2139,13 +2733,21 @@ impl BytecodeGraphBuilder {
         let value_inst = graph::create_binary_inst(Op::Mod, value_ty, lhs, rhs);
         self.current().append_inst(value_inst);
 
-        let overflow_inst = graph::create_binary_inst(Op::IsModOverflowing, value_ty, lhs, rhs);
+        let overflow_inst = graph::create_binary_inst(
+            Op::IsModOverflowing,
+            value_ty,
+            lhs,
+            rhs,
+        );
         self.current().append_inst(overflow_inst);
 
         self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
-    fn emit_intrinsic_overflowing_neg(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+    fn emit_intrinsic_overflowing_neg(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
         assert(args.size() == 1);
 
         let value = self.emit_local_get(args(0));
@@ -2154,13 +2756,21 @@ impl BytecodeGraphBuilder {
         let value_inst = graph::create_unary_inst(Op::Neg, value_ty, value);
         self.current().append_inst(value_inst);
 
-        let overflow_inst = graph::create_unary_inst(Op::IsNegOverflowing, value_ty, value);
+        let overflow_inst = graph::create_unary_inst(
+            Op::IsNegOverflowing,
+            value_ty,
+            value,
+        );
         self.current().append_inst(overflow_inst);
 
         self.emit_overflowing_result(dest, value_inst, overflow_inst);
     }
 
-    fn emit_overflowing_result(dest: BytecodeRegister, value_inst: Inst, overflow_inst: Inst) {
+    fn emit_overflowing_result(
+        dest: BytecodeRegister,
+        value_inst: Inst,
+        overflow_inst: Inst,
+    ) {
         let ty = self.reg(dest);
         let BytecodeType::Tuple(subtypes) = ty;
         let layout = self.compute_tuple_layout(subtypes);
@@ -2169,11 +2779,30 @@ impl BytecodeGraphBuilder {
         self.current().append_inst(alloc_inst);
         self.emit_local_set(dest, alloc_inst);
 
-        self.store_field(layout.fields(0).ty, alloc_inst, InstExtraData::None, layout.fields(0).offset, value_inst, false);
-        self.store_field(layout.fields(1).ty, alloc_inst, InstExtraData::None, layout.fields(1).offset, overflow_inst, false);
+        self.store_field(
+            layout.fields(0).ty,
+            alloc_inst,
+            InstExtraData::None,
+            layout.fields(0).offset,
+            value_inst,
+            false,
+        );
+        self.store_field(
+            layout.fields(1).ty,
+            alloc_inst,
+            InstExtraData::None,
+            layout.fields(1).offset,
+            overflow_inst,
+            false,
+        );
     }
 
-    fn emit_intrinsic_convert(dest: BytecodeRegister, args: Array[BytecodeRegister], dest_ty: Type, src_ty: Type) {
+    fn emit_intrinsic_convert(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        dest_ty: Type,
+        src_ty: Type,
+    ) {
         assert(args.size() == 1);
         let src = args(0);
         assert(dest_ty == self.reg_graph_ty(dest));
@@ -2185,7 +2814,12 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, result);
     }
 
-    fn emit_intrinsic_bitcast(dest: BytecodeRegister, args: Array[BytecodeRegister], dest_ty: Type, src_ty: Type) {
+    fn emit_intrinsic_bitcast(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        dest_ty: Type,
+        src_ty: Type,
+    ) {
         assert(args.size() == 1);
         let src = args(0);
         assert(dest_ty == self.reg_graph_ty(dest));
@@ -2197,7 +2831,11 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, result);
     }
 
-    fn emit_intrinsic_option_is_some_and_is_none(intrinsic: Int32, dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+    fn emit_intrinsic_option_is_some_and_is_none(
+        intrinsic: Int32,
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
         assert(args.size() == 1);
         let ty = self.reg(args(0));
         let BytecodeType::Enum(enum_id, type_params) = ty;
@@ -2236,7 +2874,13 @@ impl BytecodeGraphBuilder {
                 self.emit_local_set(dest, result);
             }
             EnumLayout::Tagged => {
-                let variant_field = graph::create_load_inst(obj, iface::OBJECT_HEADER_LENGTH, InstExtraData::None, Type::Int32, true);
+                let variant_field = graph::create_load_inst(
+                    obj,
+                    iface::OBJECT_HEADER_LENGTH,
+                    InstExtraData::None,
+                    Type::Int32,
+                    true,
+                );
                 self.set_current_inlined_location(variant_field);
                 self.current().append_inst(variant_field);
 
@@ -2248,7 +2892,12 @@ impl BytecodeGraphBuilder {
 
                 let some_const = self.graph.ensure_const_int32_inst(some_variant_id);
 
-                let result = graph::create_binary_inst(op, Type::Int32, variant_field, some_const);
+                let result = graph::create_binary_inst(
+                    op,
+                    Type::Int32,
+                    variant_field,
+                    some_const,
+                );
                 self.current().append_inst(result);
 
                 self.emit_local_set(dest, result);
@@ -2256,10 +2905,19 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_intrinsic_unreachable(dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
+    fn emit_intrinsic_unreachable(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        idx: ConstPoolId,
+    ) {
         assert(args.is_empty());
         let info = InstExtraData::RuntimeFunction(RuntimeFunction::UnreachableTrampoline);
-        let inst = graph::create_invoke_inst(info, CallKind::Static, Vec[Inst]::new(), Type::Unit);
+        let inst = graph::create_invoke_inst(
+            info,
+            CallKind::Static,
+            Vec[Inst]::new(),
+            Type::Unit,
+        );
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
 
@@ -2267,7 +2925,11 @@ impl BytecodeGraphBuilder {
         self.current().append_inst(inst);
     }
 
-    fn emit_intrinsic_fatal_error(dest: BytecodeRegister, args: Array[BytecodeRegister], idx: ConstPoolId) {
+    fn emit_intrinsic_fatal_error(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+        idx: ConstPoolId,
+    ) {
         assert(args.size() == 1);
         let arg = self.emit_local_get(args(0));
         let args = Vec[Inst]::new(arg);
@@ -2290,7 +2952,10 @@ impl BytecodeGraphBuilder {
         self.set_current_inlined_location(inst);
     }
 
-    fn emit_intrinsic_thread_current(dest: BytecodeRegister, args: Array[BytecodeRegister]) {
+    fn emit_intrinsic_thread_current(
+        dest: BytecodeRegister,
+        args: Array[BytecodeRegister],
+    ) {
         assert(args.is_empty());
         let inst = graph::create_thread_current_inst();
         self.current().append_inst(inst);
@@ -2310,7 +2975,11 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, obj_inst);
     }
 
-    fn emit_new_object(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
+    fn emit_new_object(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
         let ConstPoolEntry::Class(class_id, type_params) = self.bc.const_pool_entry(idx);
 
         let type_params = self.specialize_array(type_params);
@@ -2329,7 +2998,12 @@ impl BytecodeGraphBuilder {
             if !arg_ty.is_unit() {
                 let arg = self.emit_local_get(reg);
 
-                let offset = iface::get_field_offset(self.ci, class_id, type_params, ClassFieldId(field_id));
+                let offset = iface::get_field_offset(
+                    self.ci,
+                    class_id,
+                    type_params,
+                    ClassFieldId(field_id),
+                );
                 let info = ClassInfo(class_id, type_params);
                 let info = InstExtraData::ClassInfo(info);
                 self.store_field(arg_ty, obj_inst, info, offset, arg, true);
@@ -2339,7 +3013,11 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_new_lambda(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
+    fn emit_new_lambda(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
         let ConstPoolEntry::Fct(fct_id, type_params) = self.bc.const_pool_entry(idx);
 
         let type_params = self.specialize_array(type_params);
@@ -2362,8 +3040,15 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_new_trait_object(dest: BytecodeRegister, obj: BytecodeRegister, idx: ConstPoolId) {
-        let ConstPoolEntry::TraitObject(trait_ty, actual_object_ty) = self.bc.const_pool_entry(idx);
+    fn emit_new_trait_object(
+        dest: BytecodeRegister,
+        obj: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
+        let ConstPoolEntry::TraitObject(
+            trait_ty,
+            actual_object_ty,
+        ) = self.bc.const_pool_entry(idx);
 
         let info = TraitObjectInfo(trait_ty, actual_object_ty);
         let info = InstExtraData::TraitObjectInfo(info);
@@ -2380,8 +3065,15 @@ impl BytecodeGraphBuilder {
         self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
     }
 
-    fn emit_new_struct(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
-        let ConstPoolEntry::Struct(struct_id, type_params) = self.bc.const_pool_entry(idx);
+    fn emit_new_struct(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
+        let ConstPoolEntry::Struct(
+            struct_id,
+            type_params,
+        ) = self.bc.const_pool_entry(idx);
         let layout = self.compute_struct_layout(struct_id, type_params);
 
         let alloc_inst = graph::create_allocate_stack_inst(layout);
@@ -2409,8 +3101,16 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_new_enum(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
-        let ConstPoolEntry::EnumVariant(enum_id, type_params, variant_id) = self.bc.const_pool_entry(idx);
+    fn emit_new_enum(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
+        let ConstPoolEntry::EnumVariant(
+            enum_id,
+            type_params,
+            variant_id,
+        ) = self.bc.const_pool_entry(idx);
         let layout = self.compute_enum_layout(enum_id, type_params);
         let type_params = self.specialize_array(type_params);
 
@@ -2435,8 +3135,17 @@ impl BytecodeGraphBuilder {
             }
 
             EnumLayout::Tagged => {
-                let size = iface::get_class_data_for_enum_variant(self.ci, enum_id, type_params, variant_id);
-                let shape_key = iface::get_class_shape_key_for_enum_variant(enum_id, type_params, variant_id);
+                let size = iface::get_class_data_for_enum_variant(
+                    self.ci,
+                    enum_id,
+                    type_params,
+                    variant_id,
+                );
+                let shape_key = iface::get_class_shape_key_for_enum_variant(
+                    enum_id,
+                    type_params,
+                    variant_id,
+                );
 
                 let data = AllocationData(shape_key, size);
                 let info = InstExtraData::AllocationData(data);
@@ -2448,15 +3157,35 @@ impl BytecodeGraphBuilder {
                 let mut field_id = 0i32;
 
                 let variant_id_inst = self.graph.ensure_const_int32_inst(variant_id);
-                self.store_field(BytecodeType::Int32, obj_inst, InstExtraData::None, iface::OBJECT_HEADER_LENGTH, variant_id_inst, true);
+                self.store_field(
+                    BytecodeType::Int32,
+                    obj_inst,
+                    InstExtraData::None,
+                    iface::OBJECT_HEADER_LENGTH,
+                    variant_id_inst,
+                    true,
+                );
 
                 for reg in arguments {
                     let arg_ty = self.reg(reg);
 
                     if !arg_ty.is_unit() {
                         let arg = self.emit_local_get(reg);
-                        let offset = iface::get_field_offset_for_enum_variant(self.ci, enum_id, type_params, variant_id, field_id);
-                        self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
+                        let offset = iface::get_field_offset_for_enum_variant(
+                            self.ci,
+                            enum_id,
+                            type_params,
+                            variant_id,
+                            field_id,
+                        );
+                        self.store_field(
+                            arg_ty,
+                            obj_inst,
+                            InstExtraData::None,
+                            offset,
+                            arg,
+                            true,
+                        );
                     }
 
                     field_id += 1i32;
@@ -2465,7 +3194,11 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn emit_new_tuple(dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
+    fn emit_new_tuple(
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
         let ConstPoolEntry::Tuple(subtypes) = self.bc.const_pool_entry(idx);
         let layout = self.compute_tuple_layout(subtypes);
 
@@ -2479,7 +3212,14 @@ impl BytecodeGraphBuilder {
             if !field.ty.is_unit() {
                 let reg = arguments(reg_idx);
                 let arg = self.emit_local_get(reg);
-                self.store_field(field.ty, alloc_inst, InstExtraData::None, field.offset, arg, false);
+                self.store_field(
+                    field.ty,
+                    alloc_inst,
+                    InstExtraData::None,
+                    field.offset,
+                    arg,
+                    false,
+                );
                 reg_idx += 1;
             }
         }
@@ -2488,22 +3228,40 @@ impl BytecodeGraphBuilder {
         assert(reg_idx <= layout.fields.size());
     }
 
-    fn emit_new_array(dest: BytecodeRegister, length: BytecodeRegister, idx: ConstPoolId) {
+    fn emit_new_array(
+        dest: BytecodeRegister,
+        length: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
         let ConstPoolEntry::Class(class_id, type_params) = self.bc.const_pool_entry(idx);
 
         let type_params = self.specialize_array(type_params);
         let element_size = iface::get_element_size(self.ci, class_id, type_params);
-        let element_size_inst = self.graph.ensure_const_int64_inst(element_size.to_int64());
+        let element_size_inst = self.graph.ensure_const_int64_inst(
+            element_size.to_int64()
+        );
 
         let length = self.emit_local_get(length);
 
-        let tmp = graph::create_binary_inst(Op::CheckedMul, Type::Int64, length, element_size_inst);
+        let tmp = graph::create_binary_inst(
+            Op::CheckedMul,
+            Type::Int64,
+            length,
+            element_size_inst,
+        );
         self.set_current_inlined_location(tmp);
         self.current().append_inst(tmp);
 
-        let header_size = self.graph.ensure_const_int64_inst(iface::ARRAY_HEADER_LENGTH.to_int64());
+        let header_size = self.graph.ensure_const_int64_inst(
+            iface::ARRAY_HEADER_LENGTH.to_int64()
+        );
 
-        let unaligned_size = graph::create_binary_inst(Op::CheckedAdd, Type::Int64, tmp, header_size);
+        let unaligned_size = graph::create_binary_inst(
+            Op::CheckedAdd,
+            Type::Int64,
+            tmp,
+            header_size,
+        );
         self.set_current_inlined_location(unaligned_size);
         self.current().append_inst(unaligned_size);
 
@@ -2511,7 +3269,12 @@ impl BytecodeGraphBuilder {
             let ptr_size_minus_1 = (iface::PTR_SIZE - 1i32).to_int64();
             let tmp = self.graph.ensure_const_int64_inst(ptr_size_minus_1);
 
-            let tmp = graph::create_binary_inst(Op::CheckedAdd, Type::Int64, unaligned_size, tmp);
+            let tmp = graph::create_binary_inst(
+                Op::CheckedAdd,
+                Type::Int64,
+                unaligned_size,
+                tmp,
+            );
             self.set_current_inlined_location(tmp);
             self.current().append_inst(tmp);
 
@@ -2542,9 +3305,17 @@ impl BytecodeGraphBuilder {
             self.current().append_inst(dest);
             let src = graph::create_get_global_address_inst(id);
             self.current().append_inst(src);
-            self.copy_struct(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
+            self.copy_struct(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
             dest
-
         } else if ty is BytecodeType::Tuple(subtypes) {
             let layout = self.compute_tuple_layout(subtypes);
 
@@ -2552,10 +3323,18 @@ impl BytecodeGraphBuilder {
             self.current().append_inst(dest);
             let src = graph::create_get_global_address_inst(id);
             self.current().append_inst(src);
-            self.copy_tuple(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
+            self.copy_tuple(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
 
             dest
-
         } else {
             let ty = self.graph_ty(ty);
             let inst = graph::create_load_global_inst(ty, id);
@@ -2570,16 +3349,32 @@ impl BytecodeGraphBuilder {
 
             let dest = graph::create_get_global_address_inst(id);
             self.current().append_inst(dest);
-            self.copy_struct(ty, dest, InstExtraData::None, 0i32, value, InstExtraData::None, 0i32, false);
-
+            self.copy_struct(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                value,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
         } else if ty.is_tuple() {
             let BytecodeType::Tuple(subtypes) = ty;
             let layout = self.compute_tuple_layout(subtypes);
 
             let dest = graph::create_get_global_address_inst(id);
             self.current().append_inst(dest);
-            self.copy_tuple(ty, dest, InstExtraData::None, 0i32, value, InstExtraData::None, 0i32, false);
-
+            self.copy_tuple(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                value,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
         } else {
             let ty = self.graph_ty(ty);
             let inst = graph::create_store_global_inst(ty, id, value);
@@ -2587,21 +3382,43 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn load_field(ty: BytecodeType, src: Inst, src_info: InstExtraData, src_offset: Int32): Inst {
+    fn load_field(
+        ty: BytecodeType,
+        src: Inst,
+        src_info: InstExtraData,
+        src_offset: Int32,
+    ): Inst {
         if ty is BytecodeType::Struct(struct_id, type_params) {
             let layout = self.compute_struct_layout(struct_id, type_params);
 
             let dest = graph::create_allocate_stack_inst(layout);
             self.current().append_inst(dest);
-            self.copy_struct(ty, dest, InstExtraData::None, 0i32, src, src_info, src_offset, false);
+            self.copy_struct(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                src_info,
+                src_offset,
+                false,
+            );
             dest
-
         } else if ty is BytecodeType::Tuple(subtypes) {
             let layout = self.compute_tuple_layout(subtypes);
 
             let dest = graph::create_allocate_stack_inst(layout);
             self.current().append_inst(dest);
-            self.copy_tuple(ty, dest, InstExtraData::None, 0i32, src, src_info, src_offset, false);
+            self.copy_tuple(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                src_info,
+                src_offset,
+                false,
+            );
             dest
         } else {
             let ty = self.graph_ty(ty);
@@ -2619,23 +3436,47 @@ impl BytecodeGraphBuilder {
             let dest = graph::create_allocate_stack_inst(layout);
             self.current().append_inst(dest);
 
-            let src = graph::create_get_element_ptr_inst(arr, index, layout.size.to_int64());
+            let src = graph::create_get_element_ptr_inst(
+                arr,
+                index,
+                layout.size.to_int64(),
+            );
             self.current().append_inst(src);
 
-            self.copy_struct(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
+            self.copy_struct(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
             dest
-
         } else if ty is BytecodeType::Tuple(subtypes) {
             let layout = self.compute_tuple_layout(subtypes);
             let dest = graph::create_allocate_stack_inst(layout);
             self.current().append_inst(dest);
 
-            let src = graph::create_get_element_ptr_inst(arr, index, layout.size.to_int64());
+            let src = graph::create_get_element_ptr_inst(
+                arr,
+                index,
+                layout.size.to_int64(),
+            );
             self.current().append_inst(src);
 
-            self.copy_tuple(ty, dest, InstExtraData::None, 0i32, src, InstExtraData::None, 0i32, false);
+            self.copy_tuple(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
             dest
-
         } else {
             let ty = self.graph_ty(ty);
             assert(!ty.is_unit());
@@ -2648,17 +3489,27 @@ impl BytecodeGraphBuilder {
     fn store_array(ty: BytecodeType, arr: Inst, index: Inst, value: Inst) {
         if ty is BytecodeType::Struct(struct_id, type_params) {
             let struct_layout = self.compute_struct_layout(struct_id, type_params);
-            let dest = graph::create_get_element_ptr_inst(arr, index, struct_layout.size.to_int64());
+            let dest = graph::create_get_element_ptr_inst(
+                arr,
+                index,
+                struct_layout.size.to_int64(),
+            );
             self.current().append_inst(dest);
 
             self.store_array_nested(ty, arr, dest, 0i32, value, 0i32);
         } else if ty is BytecodeType::Tuple(subtypes) {
             let tuple_layout = self.compute_tuple_layout(subtypes);
-            let dest = graph::create_get_element_ptr_inst(arr, index, tuple_layout.size.to_int64());
+            let dest = graph::create_get_element_ptr_inst(
+                arr,
+                index,
+                tuple_layout.size.to_int64(),
+            );
             self.current().append_inst(dest);
 
             self.store_array_nested(ty, arr, dest, 0i32, value, 0i32);
-        } else if config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty) {
+        } else if (
+            config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty)
+        ) {
             let inst = graph::create_store_array_wb_inst(arr, index, value, Type::Ptr);
             self.current().append_inst(inst);
         } else {
@@ -2669,46 +3520,128 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn store_array_nested(ty: BytecodeType, array: Inst, dest: Inst, dest_offset: Int32, src: Inst, src_offset: Int32) {
+    fn store_array_nested(
+        ty: BytecodeType,
+        array: Inst,
+        dest: Inst,
+        dest_offset: Int32,
+        src: Inst,
+        src_offset: Int32,
+    ) {
         if ty is BytecodeType::Struct(struct_id, type_params) {
             let struct_layout = self.compute_struct_layout(struct_id, type_params);
 
             for field in struct_layout.fields {
-                self.store_array_nested(field.ty, array, dest, dest_offset + field.offset, src, src_offset + field.offset);
+                self.store_array_nested(
+                    field.ty,
+                    array,
+                    dest,
+                    dest_offset + field.offset,
+                    src,
+                    src_offset + field.offset,
+                );
             }
         } else if ty is BytecodeType::Tuple(subtypes) {
             let tuple_layout = self.compute_tuple_layout(subtypes);
 
             for field in tuple_layout.fields {
-                self.store_array_nested(field.ty, array, dest, dest_offset + field.offset, src, src_offset + field.offset);
+                self.store_array_nested(
+                    field.ty,
+                    array,
+                    dest,
+                    dest_offset + field.offset,
+                    src,
+                    src_offset + field.offset,
+                );
             }
-        } else if config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty) {
+        } else if (
+            config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty)
+        ) {
             let ty = Type::Ptr;
-            let value = graph::create_load_inst(src, src_offset, InstExtraData::None, ty, false);
+            let value = graph::create_load_inst(
+                src,
+                src_offset,
+                InstExtraData::None,
+                ty,
+                false,
+            );
             self.current().append_inst(value);
 
-            let inst = graph::create_store_array_address_wb_inst(array, dest, dest_offset, value, ty);
+            let inst = graph::create_store_array_address_wb_inst(
+                array,
+                dest,
+                dest_offset,
+                value,
+                ty,
+            );
             self.current().append_inst(inst);
         } else {
             let ty = self.graph_ty(ty);
 
             if !ty.is_unit() {
-                let value = graph::create_load_inst(src, src_offset, InstExtraData::None, ty, false);
+                let value = graph::create_load_inst(
+                    src,
+                    src_offset,
+                    InstExtraData::None,
+                    ty,
+                    false,
+                );
                 self.current().append_inst(value);
 
-                let inst = graph::create_store_inst(dest, InstExtraData::None, dest_offset, value, ty);
+                let inst = graph::create_store_inst(
+                    dest,
+                    InstExtraData::None,
+                    dest_offset,
+                    value,
+                    ty,
+                );
                 self.current().append_inst(inst);
             }
         }
     }
 
-    fn store_field(ty: BytecodeType, dest: Inst, dest_info: InstExtraData, dest_offset: Int32, value: Inst, heap: Bool) {
+    fn store_field(
+        ty: BytecodeType,
+        dest: Inst,
+        dest_info: InstExtraData,
+        dest_offset: Int32,
+        value: Inst,
+        heap: Bool,
+    ) {
         if ty.is_struct() {
-            self.copy_struct(ty, dest, dest_info, dest_offset, value, InstExtraData::None, 0i32, heap);
+            self.copy_struct(
+                ty,
+                dest,
+                dest_info,
+                dest_offset,
+                value,
+                InstExtraData::None,
+                0i32,
+                heap,
+            );
         } else if ty.is_tuple() {
-            self.copy_tuple(ty, dest, dest_info, dest_offset, value, InstExtraData::None, 0i32, heap);
-        } else if heap && config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty) {
-            let inst = graph::create_store_wb_inst(dest, dest_info, dest_offset, value, Type::Ptr);
+            self.copy_tuple(
+                ty,
+                dest,
+                dest_info,
+                dest_offset,
+                value,
+                InstExtraData::None,
+                0i32,
+                heap,
+            );
+        } else if (
+            heap &&
+            config.needs_write_barrier &&
+            is_reference(self.ci, self.specialize_self, ty)
+        ) {
+            let inst = graph::create_store_wb_inst(
+                dest,
+                dest_info,
+                dest_offset,
+                value,
+                Type::Ptr,
+            );
             self.current().append_inst(inst);
         } else {
             let ty = self.graph_ty(ty);
@@ -2718,16 +3651,53 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn copy_field(ty: BytecodeType, dest: Inst, dest_info: InstExtraData, dest_offset: Int32, src: Inst, src_info: InstExtraData, src_offset: Int32, heap: Bool) {
+    fn copy_field(
+        ty: BytecodeType,
+        dest: Inst,
+        dest_info: InstExtraData,
+        dest_offset: Int32,
+        src: Inst,
+        src_info: InstExtraData,
+        src_offset: Int32,
+        heap: Bool,
+    ) {
         if ty.is_struct() {
-            self.copy_struct(ty, dest, InstExtraData::None, dest_offset, src, src_info, src_offset, heap);
+            self.copy_struct(
+                ty,
+                dest,
+                InstExtraData::None,
+                dest_offset,
+                src,
+                src_info,
+                src_offset,
+                heap,
+            );
         } else if ty.is_tuple() {
-            self.copy_tuple(ty, dest, InstExtraData::None, dest_offset, src, src_info, src_offset, heap);
-        } else if heap && config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty) {
+            self.copy_tuple(
+                ty,
+                dest,
+                InstExtraData::None,
+                dest_offset,
+                src,
+                src_info,
+                src_offset,
+                heap,
+            );
+        } else if (
+            heap &&
+            config.needs_write_barrier &&
+            is_reference(self.ci, self.specialize_self, ty)
+        ) {
             let ty = Type::Ptr;
             let value = graph::create_load_inst(src, src_offset, src_info, ty, false);
             self.current().append_inst(value);
-            let inst = graph::create_store_wb_inst(dest, dest_info, dest_offset, value, ty);
+            let inst = graph::create_store_wb_inst(
+                dest,
+                dest_info,
+                dest_offset,
+                value,
+                ty,
+            );
             self.current().append_inst(inst);
         } else {
             let ty = self.graph_ty(ty);
@@ -2735,33 +3705,83 @@ impl BytecodeGraphBuilder {
             if !ty.is_unit() {
                 let value = graph::create_load_inst(src, src_offset, src_info, ty, false);
                 self.current().append_inst(value);
-                let inst = graph::create_store_inst(dest, dest_info, dest_offset, value, ty);
+                let inst = graph::create_store_inst(
+                    dest,
+                    dest_info,
+                    dest_offset,
+                    value,
+                    ty,
+                );
                 self.current().append_inst(inst);
             }
         }
     }
 
-    fn copy_tuple(ty: BytecodeType, dest: Inst, dest_info: InstExtraData, dest_offset: Int32, src: Inst, src_info: InstExtraData, src_offset: Int32, heap: Bool) {
+    fn copy_tuple(
+        ty: BytecodeType,
+        dest: Inst,
+        dest_info: InstExtraData,
+        dest_offset: Int32,
+        src: Inst,
+        src_info: InstExtraData,
+        src_offset: Int32,
+        heap: Bool,
+    ) {
         let BytecodeType::Tuple(subtypes) = ty;
         let tuple_layout = self.compute_tuple_layout(subtypes);
 
         for field in tuple_layout.fields {
-            self.copy_field(field.ty, dest, dest_info, dest_offset + field.offset, src, src_info, src_offset + field.offset, heap);
+            self.copy_field(
+                field.ty,
+                dest,
+                dest_info,
+                dest_offset + field.offset,
+                src,
+                src_info,
+                src_offset + field.offset,
+                heap,
+            );
         }
     }
 
-    fn copy_struct(ty: BytecodeType, dest: Inst, dest_info: InstExtraData, dest_offset: Int32, src: Inst, src_info: InstExtraData, src_offset: Int32, heap: Bool) {
+    fn copy_struct(
+        ty: BytecodeType,
+        dest: Inst,
+        dest_info: InstExtraData,
+        dest_offset: Int32,
+        src: Inst,
+        src_info: InstExtraData,
+        src_offset: Int32,
+        heap: Bool,
+    ) {
         let BytecodeType::Struct(struct_id, type_params) = ty;
         let struct_layout = self.compute_struct_layout(struct_id, type_params);
 
         for field in struct_layout.fields {
-            self.copy_field(field.ty, dest, dest_info, dest_offset + field.offset, src, src_info, src_offset + field.offset, heap);
+            self.copy_field(
+                field.ty,
+                dest,
+                dest_info,
+                dest_offset + field.offset,
+                src,
+                src_info,
+                src_offset + field.offset,
+                heap,
+            );
         }
     }
 
-    fn compute_struct_layout(struct_id: StructId, type_params: Array[BytecodeType]): RecordLayout {
+    fn compute_struct_layout(
+        struct_id: StructId,
+        type_params: Array[BytecodeType],
+    ): RecordLayout {
         let type_params = self.specialize_array(type_params);
-        regalloc::compute_struct_layout(self.ci, None[SpecializeSelf], struct_id, type_params)
+        regalloc::compute_struct_layout(
+            self.ci,
+            None[SpecializeSelf],
+            struct_id,
+            type_params,
+        )
     }
 
     fn compute_tuple_layout(subtypes: Array[BytecodeType]): RecordLayout {
@@ -2769,8 +3789,17 @@ impl BytecodeGraphBuilder {
         regalloc::compute_tuple_layout(self.ci, None[SpecializeSelf], subtypes)
     }
 
-    fn compute_enum_layout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
-        compute_bytecode_enum_layout(self.ci, self.specialize_self, self.type_params, enum_id, type_params)
+    fn compute_enum_layout(
+        enum_id: EnumId,
+        type_params: Array[BytecodeType],
+    ): EnumLayout {
+        compute_bytecode_enum_layout(
+            self.ci,
+            self.specialize_self,
+            self.type_params,
+            enum_id,
+            type_params,
+        )
     }
 
     fn set_current_inlined_location(inst: Inst) {
@@ -2780,10 +3809,7 @@ impl BytecodeGraphBuilder {
 
     fn get_inlined_location(offset: Int32): InlinedLocation {
         let loc = self.bc.get_location_at(offset);
-        InlinedLocation(
-            inlined_function_id = self.inlined_function_id,
-            location = loc
-        )
+        InlinedLocation(inlined_function_id = self.inlined_function_id, location = loc)
     }
 
     fn is_inlining(): Bool {
@@ -2823,7 +3849,11 @@ impl BytecodeGraphBuilder {
             bindings(idx) = (alias_id, self.specialize_ty(ty));
         }
 
-        BytecodeTraitType(trait_id = trait_ty.trait_id, type_params = type_params, bindings = bindings)
+        BytecodeTraitType(
+            trait_id = trait_ty.trait_id,
+            type_params = type_params,
+            bindings = bindings,
+        )
     }
 
     fn graph_ty(ty: BytecodeType): Type {
@@ -2867,15 +3897,15 @@ fn find_block_starts(bc: BytecodeFunction): BitSet {
         match inst.op {
             BytecodeInstruction::Ret(_) => {
                 mark_block_start(next);
-            },
+            }
             BytecodeInstruction::LoopStart => {
                 mark_block_start(start);
-            },
+            }
             BytecodeInstruction::JumpLoop(distance) => {
                 let target = start - distance.to_int64();
                 assert(starts.contains(target));
                 mark_block_start(next);
-            },
+            }
             BytecodeInstruction::JumpIfFalse(_, distance)
             | BytecodeInstruction::JumpIfTrue(_, distance)
             | BytecodeInstruction::Jump(distance) => {
@@ -2884,7 +3914,10 @@ fn find_block_starts(bc: BytecodeFunction): BitSet {
                 mark_block_start(target);
             }
             BytecodeInstruction::Switch(_, idx) => {
-                let ConstPoolEntry::JumpTable(targets, default) = bc.const_pool_entry(idx);
+                let ConstPoolEntry::JumpTable(
+                    targets,
+                    default,
+                ) = bc.const_pool_entry(idx);
 
                 for target in targets {
                     mark_block_start(target.to_int64());
@@ -2894,14 +3927,19 @@ fn find_block_starts(bc: BytecodeFunction): BitSet {
             }
             _ => {
                 // Non-terminator instruction
-            },
+            }
         }
     }
 
     starts
 }
 
-fn bytecode_graph_ty(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], fct_type_params: Array[BytecodeType], ty: BytecodeType): Type {
+fn bytecode_graph_ty(
+    ci: CompilationInfo,
+    specialize_self: Option[SpecializeSelf],
+    fct_type_params: Array[BytecodeType],
+    ty: BytecodeType,
+): Type {
     match ty {
         BytecodeType::Unit => Type::Unit,
         BytecodeType::Bool => Type::Bool,
@@ -2917,20 +3955,36 @@ fn bytecode_graph_ty(ci: CompilationInfo, specialize_self: Option[SpecializeSelf
         | BytecodeType::Lambda(..)
         | BytecodeType::TraitObject(..) => Type::Ptr,
         BytecodeType::Enum(enum_id, enum_type_params) => {
-            let layout = compute_bytecode_enum_layout(ci, specialize_self, fct_type_params, enum_id, enum_type_params);
+            let layout = compute_bytecode_enum_layout(
+                ci,
+                specialize_self,
+                fct_type_params,
+                enum_id,
+                enum_type_params,
+            );
             match layout {
                 EnumLayout::Int32 => Type::Int32,
                 EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
             }
         }
-        BytecodeType::Struct(..)
-        | BytecodeType::Tuple(_) => Type::Address,
+        BytecodeType::Struct(..) | BytecodeType::Tuple(_) => Type::Address,
         BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
         BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
     }
 }
 
-fn compute_bytecode_enum_layout(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], fct_type_params: Array[BytecodeType], enum_id: EnumId, enum_type_params: Array[BytecodeType]): EnumLayout {
-    let enum_type_params = specialize_array(ci, specialize_self, enum_type_params, fct_type_params);
+fn compute_bytecode_enum_layout(
+    ci: CompilationInfo,
+    specialize_self: Option[SpecializeSelf],
+    fct_type_params: Array[BytecodeType],
+    enum_id: EnumId,
+    enum_type_params: Array[BytecodeType],
+): EnumLayout {
+    let enum_type_params = specialize_array(
+        ci,
+        specialize_self,
+        enum_type_params,
+        fct_type_params,
+    );
     regalloc::compute_enum_layout(ci, None[SpecializeSelf], enum_id, enum_type_params)
 }

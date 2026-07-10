@@ -1,6 +1,12 @@
 use std::traits::Iterator;
 
-use package::bytecode::{BytecodeInstruction, BytecodeRegister, GlobalId, ConstPoolId, ConstId};
+use package::bytecode::{
+    BytecodeInstruction,
+    BytecodeRegister,
+    ConstId,
+    ConstPoolId,
+    GlobalId,
+};
 use package::bytecode::opcode as opc;
 
 pub fn decode_bytecode(code: Array[UInt8]): Array[BytecodeInstructionInfo] {
@@ -446,7 +452,9 @@ impl BytecodeIterator {
                 BytecodeInstruction::Ret(opnd)
             }
             _ => {
-                std::fatal_error[BytecodeInstruction]("unkown opcode ${opcode} ${opc::bytecode_name(opcode)}")
+                std::fatal_error[BytecodeInstruction](
+                    "unkown opcode ${opcode} ${opc::bytecode_name(opcode)}"
+                )
             }
         };
 
@@ -460,7 +468,10 @@ impl BytecodeIterator {
 
     fn read_arguments(): Array[BytecodeRegister] {
         let count = self.read_index();
-        let result = Array[BytecodeRegister]::fill(count.to_int64(), BytecodeRegister(0i32));
+        let result = Array[BytecodeRegister]::fill(
+            count.to_int64(),
+            BytecodeRegister(0i32),
+        );
         for idx in std::range(0, count.to_int64()) {
             result(idx) = self.read_register();
         }

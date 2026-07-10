@@ -5,9 +5,13 @@ use package::graph::ty::Type;
 use package::interface::{InlinedFunctionId};
 use package::ssa_construction::SsaConstruction;
 
-pub use package::bytecode_graph_builder::{analyze_bytecode, BytecodeAnalysis};
+pub use package::bytecode_graph_builder::{BytecodeAnalysis, analyze_bytecode};
 
-pub fn create_graph(ci: CompilationInfo, fct: FunctionCompilationInfo, analysis: BytecodeAnalysis): Graph {
+pub fn create_graph(
+    ci: CompilationInfo,
+    fct: FunctionCompilationInfo,
+    analysis: BytecodeAnalysis,
+): Graph {
     let graph = Graph::new();
 
     BytecodeGraphBuilder::new(ci, graph, fct, analysis).run();
@@ -16,11 +20,34 @@ pub fn create_graph(ci: CompilationInfo, fct: FunctionCompilationInfo, analysis:
     graph
 }
 
-pub fn add_to_graph(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, entry_block: Block, exit_block: Block, call_inst: Inst): Option[Inst] {
+pub fn add_to_graph(
+    ci: CompilationInfo,
+    graph: Graph,
+    inlined_function_id: InlinedFunctionId,
+    fct: FunctionCompilationInfo,
+    entry_block: Block,
+    exit_block: Block,
+    call_inst: Inst,
+): Option[Inst] {
     let analysis = analyze_bytecode(fct.bc);
     let inline_return_type = compute_inline_return_type(ci, fct);
-    let builder = BytecodeGraphBuilder::new_for_inlining(ci, graph, inlined_function_id, fct, analysis, inline_return_type, entry_block, exit_block);
+    let builder = BytecodeGraphBuilder::new_for_inlining(
+        ci,
+        graph,
+        inlined_function_id,
+        fct,
+        analysis,
+        inline_return_type,
+        entry_block,
+        exit_block,
+    );
     builder.run_inline(call_inst);
 
-    SsaConstruction::new(ci, graph, fct, inline_return_type, Some[Block](exit_block)).run()
+    SsaConstruction::new(
+        ci,
+        graph,
+        fct,
+        inline_return_type,
+        Some[Block](exit_block),
+    ).run()
 }

@@ -89,7 +89,11 @@ fn remove_unreachable_blocks(graph: Graph, visited: BitSet) {
 
         for edge in block.successors {
             let successor = edge.target;
-            successor.predecessors.remove_if(|e: Edge|: Bool { e === edge });
+            successor.predecessors.remove_if(
+                |e: Edge|: Bool {
+                    e === edge
+                }
+            );
         }
 
         block.remove();

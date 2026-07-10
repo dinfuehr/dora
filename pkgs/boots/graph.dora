@@ -1,16 +1,31 @@
-use std::{BitVec, BitSet};
+use std::{BitSet, BitVec};
 use std::collections::{BitVecIter, HashMap};
 use std::Equals;
 use std::Hash;
 use std::{StringBuffer, Stringable};
 use std::traits::{IndexGet, IntoIterator, Iterator};
 
-use package::assembler::{FloatRegister, Label, Register, RegMap, RegSet};
-use package::bytecode::{BytecodeType, ClassId, ConstPoolId, FunctionId, ClassFieldId, GlobalId, StructId, TraitId};
+use package::assembler::{FloatRegister, Label, RegMap, RegSet, Register};
+use package::bytecode::{
+    BytecodeType,
+    ClassFieldId,
+    ClassId,
+    ConstPoolId,
+    FunctionId,
+    GlobalId,
+    StructId,
+    TraitId,
+};
 use package::dominator::build_dominator_tree;
-use package::interface::{AotShapeKey, GcPoint, InlinedLocation, FunctionInliningInfo, RuntimeFunction};
+use package::interface::{
+    AotShapeKey,
+    FunctionInliningInfo,
+    GcPoint,
+    InlinedLocation,
+    RuntimeFunction,
+};
 use package::interface as iface;
-use package::regalloc::{RegisterTracker, RecordLayout};
+use package::regalloc::{RecordLayout, RegisterTracker};
 
 pub use package::graph::ty::Type;
 
@@ -61,7 +76,7 @@ impl Graph {
             const_true = None[Inst],
             const_false = None[Inst],
             inlinable_calls = Vec[(Inst, FunctionInliningInfo)]::new(),
-            inlined_bytecode_size =  0i32,
+            inlined_bytecode_size = 0i32,
         )
     }
 
@@ -253,7 +268,6 @@ impl Graph {
     }
 }
 
-
 fn find_reachable_blocks(graph: Graph): BitSet {
     let worklist = Vec[Block]::new();
     let reachable = BitSet::new(graph.block_count().to_int64());
@@ -336,7 +350,7 @@ fn remove_unreachable_inst(graph: Graph, inst: Inst) {
 class InsertionOrderIterator {
     blocks: Array[Option[Block]],
     idx: Int64,
-} 
+}
 
 impl InsertionOrderIterator {
     static fn new(blocks: Array[Option[Block]]): InsertionOrderIterator {
@@ -543,7 +557,9 @@ impl Block {
         let mut current = other.get_dominator();
 
         while current is Some(c) {
-            if self === c { return true; }
+            if self === c {
+                return true;
+            }
             current = c.get_dominator();
         }
 
@@ -752,11 +768,15 @@ impl Block {
 }
 
 impl Hash for Block {
-  fn hash(): Int32 { self.id().hash() }
+    fn hash(): Int32 {
+        self.id().hash()
+    }
 }
 
 impl Equals for Block {
-  fn equals(other: Block): Bool { self === other }
+    fn equals(other: Block): Bool {
+        self === other
+    }
 }
 
 impl Stringable for Block {
@@ -893,7 +913,8 @@ impl Input {
 
 impl Stringable for Input {
     fn to_string(): String {
-        "Input(used_by:%${self.get_used_by().id()}, idx:${self.get_idx()}, value:%${self.get_value().id()})"
+        "Input(used_by:%${self.get_used_by(
+            ).id()}, idx:${self.get_idx()}, value:%${self.get_value().id()})"
     }
 }
 
@@ -902,7 +923,7 @@ pub enum Op {
 
     TrueConst,
     FalseConst,
-    
+
     UInt8Const,
     Int32Const,
     Int64Const,
@@ -1053,7 +1074,7 @@ impl Op {
             Op::IsAddOverflowing => true,
             Op::CheckedMul => true,
             Op::IsMulOverflowing => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -1064,7 +1085,7 @@ impl Op {
             Op::Int64Const => true,
             Op::Float32Const => true,
             Op::Float64Const => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -1091,11 +1112,7 @@ impl Op {
 
     pub fn is_terminator(): Bool {
         match self {
-            Op::Goto
-            | Op::If
-            | Op::Switch
-            | Op::Return
-            | Op::Unreachable => true,
+            Op::Goto | Op::If | Op::Switch | Op::Return | Op::Unreachable => true,
             _ => false,
         }
     }
@@ -1354,7 +1371,7 @@ impl Inst {
 
         while idx < self.inputs.size() {
             let input = self.inputs(idx);
-            input.idx -=1;
+            input.idx -= 1;
             idx += 1;
         }
     }
@@ -1851,7 +1868,12 @@ impl Inst {
     }
 
     pub fn get_offset(): Int32 {
-        assert(self.op() == Op::Load || self.op() == Op::Store  || self.op() == Op::StoreWb || self.op() == Op::StoreArrayAddressWb);
+        assert(
+            self.op() == Op::Load ||
+            self.op() == Op::Store ||
+            self.op() == Op::StoreWb ||
+            self.op() == Op::StoreArrayAddressWb
+        );
         self.aux.to_int32()
     }
 
@@ -1940,7 +1962,7 @@ impl Inst {
         match self.extra {
             InstExtraData::If(then_block, else_block) => {
                 self.extra = InstExtraData::If(block, else_block);
-            },
+            }
             _ => unreachable[()](),
         }
     }
@@ -1962,7 +1984,7 @@ impl Inst {
                 } else {
                     else_block
                 }
-            },
+            }
             _ => unreachable[Block](),
         }
     }
@@ -1988,7 +2010,7 @@ impl Inst {
         match self.extra {
             InstExtraData::Switch(targets, _) => {
                 targets(idx) = block;
-            },
+            }
             _ => unreachable[()](),
         }
     }
@@ -1998,7 +2020,7 @@ impl Inst {
         match self.extra {
             InstExtraData::Switch(targets, _) => {
                 self.extra = InstExtraData::Switch(targets, block);
-            },
+            }
             _ => unreachable[()](),
         }
     }
@@ -2008,7 +2030,7 @@ impl Inst {
         match self.extra {
             InstExtraData::If(then_block, else_block) => {
                 self.extra = InstExtraData::If(then_block, block);
-            },
+            }
             _ => unreachable[()](),
         }
     }
@@ -2079,16 +2101,16 @@ impl Inst {
             Op::Invoke => true,
             Op::InvokeVirtual => true,
             Op::InvokeLambda => true,
-            Op::Equal |
-                Op::NotEqual |
-                Op::Greater |
-                Op::UnsignedGreater |
-                Op::GreaterOrEqual |
-                Op::UnsignedGreaterOrEqual |
-                Op::Less |
-                Op::UnsignedLess |
-                Op::LessOrEqual |
-                Op::UnsignedLessOrEqual => false,
+            Op::Equal
+            | Op::NotEqual
+            | Op::Greater
+            | Op::UnsignedGreater
+            | Op::GreaterOrEqual
+            | Op::UnsignedGreaterOrEqual
+            | Op::Less
+            | Op::UnsignedLess
+            | Op::LessOrEqual
+            | Op::UnsignedLessOrEqual => false,
             Op::Phi => true,
             Op::CheckDivZero => true,
             Op::CheckShiftAmount => true,
@@ -2106,10 +2128,7 @@ impl Inst {
             Op::NewArray => false,
             Op::AllocateStack => false,
             Op::Load => false,
-            Op::Store
-            | Op::StoreWb
-            | Op::StoreArrayWb
-            | Op::StoreArrayAddressWb => true,
+            Op::Store | Op::StoreWb | Op::StoreArrayWb | Op::StoreArrayAddressWb => true,
             Op::ThreadCurrent => false,
             Op::Convert => false,
             Op::CompareOrdering => false,
@@ -2214,7 +2233,6 @@ impl InstExtraData {
             _ => false,
         }
     }
-
 }
 
 pub enum CallKind {
@@ -2334,10 +2352,7 @@ impl LocationData {
 
     pub fn init_output(operand: Location) {
         assert(self.output.is_none());
-        self.output = Some(Operand(
-            policy = Policy::None,
-            location = operand,
-        ));
+        self.output = Some(Operand(policy = Policy::None, location = operand));
     }
 
     pub fn has_input_at(idx: Int64): Bool {
@@ -2557,16 +2572,16 @@ impl Equals for Location {
         match self {
             Location::None => {
                 other.is_none()
-            },
+            }
             Location::Reg(reg) => {
                 other.is_register() && reg == other.get_register()
-            },
+            }
             Location::FloatReg(reg) => {
                 other.is_float_register() && reg == other.get_float_register()
-            },
+            }
             Location::Stack(slot) => {
                 other.is_stack() && slot == other.get_stack()
-            },
+            }
         }
     }
 }
@@ -2577,7 +2592,9 @@ impl Hash for Location {
             Location::None => 1i32,
             Location::Reg(reg) => reg.to_int32() << 1i32,
             Location::FloatReg(reg) => reg.to_int32() << 1i32,
-            Location::Stack(slot) => slot.get_offset() << 2i32 + slot.is_fp().to_int32() << 1i32 + 1i32,
+            Location::Stack(
+                slot
+            ) => slot.get_offset() << 2i32 + slot.is_fp().to_int32() << 1i32 + 1i32,
         }
     }
 }
@@ -2638,7 +2655,10 @@ impl Policy {
     }
 
     pub fn is_any_fixed(): Bool {
-        self == Policy::FixedReg || self == Policy::FixedFloatReg || self == Policy::FixedStack || self == Policy::FixedFloatStack
+        self == Policy::FixedReg ||
+        self == Policy::FixedFloatReg ||
+        self == Policy::FixedStack ||
+        self == Policy::FixedFloatStack
     }
 
     pub fn is_any_fixed_reg(): Bool {
@@ -2920,7 +2940,6 @@ pub fn create_store_global_inst(ty: Type, global: GlobalId, value: Inst): Inst {
     inst
 }
 
-
 pub fn create_unary_inst(op: Op, ty: Type, opnd: Inst): Inst {
     let inst = Inst::new();
     inst._op = Some(op);
@@ -3040,7 +3059,13 @@ pub fn create_store_array_wb_inst(array: Inst, index: Inst, value: Inst, ty: Typ
     inst
 }
 
-pub fn create_store_array_address_wb_inst(array: Inst, dest: Inst, dest_offset: Int32, value: Inst, ty: Type): Inst {
+pub fn create_store_array_address_wb_inst(
+    array: Inst,
+    dest: Inst,
+    dest_offset: Int32,
+    value: Inst,
+    ty: Type,
+): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreArrayAddressWb);
     inst.ty = ty;
@@ -3183,7 +3208,12 @@ pub fn create_goto_inst(block: Block): Inst {
     inst
 }
 
-pub fn create_invoke_inst(extra: InstExtraData, kind: CallKind, args: Vec[Inst], return_ty: Type): Inst {
+pub fn create_invoke_inst(
+    extra: InstExtraData,
+    kind: CallKind,
+    args: Vec[Inst],
+    return_ty: Type,
+): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Invoke);
     inst.extra = extra;
@@ -3196,7 +3226,11 @@ pub fn create_invoke_inst(extra: InstExtraData, kind: CallKind, args: Vec[Inst],
     inst
 }
 
-pub fn create_invoke_virtual_inst(info: VirtualFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
+pub fn create_invoke_virtual_inst(
+    info: VirtualFunctionInfo,
+    args: Vec[Inst],
+    return_ty: Type,
+): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeVirtual);
     inst.extra = InstExtraData::VirtualFunctionInfo(info);
@@ -3209,7 +3243,11 @@ pub fn create_invoke_virtual_inst(info: VirtualFunctionInfo,  args: Vec[Inst], r
     inst
 }
 
-pub fn create_invoke_lambda_inst(info: LambdaFunctionInfo,  args: Vec[Inst], return_ty: Type): Inst {
+pub fn create_invoke_lambda_inst(
+    info: LambdaFunctionInfo,
+    args: Vec[Inst],
+    return_ty: Type,
+): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::InvokeLambda);
     inst.extra = InstExtraData::LambdaFunctionInfo(info);
@@ -3238,7 +3276,13 @@ pub fn create_allocate_stack_inst(layout: RecordLayout): Inst {
     inst
 }
 
-pub fn create_load_inst(obj: Inst, field: Int32, info: InstExtraData, ty: Type, is_immutable: Bool): Inst {
+pub fn create_load_inst(
+    obj: Inst,
+    field: Int32,
+    info: InstExtraData,
+    ty: Type,
+    is_immutable: Bool,
+): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Load);
     inst.ty = ty;
@@ -3249,7 +3293,13 @@ pub fn create_load_inst(obj: Inst, field: Int32, info: InstExtraData, ty: Type, 
     inst
 }
 
-pub fn create_store_inst(obj: Inst, info: InstExtraData, field: Int32, value: Inst, ty: Type): Inst {
+pub fn create_store_inst(
+    obj: Inst,
+    info: InstExtraData,
+    field: Int32,
+    value: Inst,
+    ty: Type,
+): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Store);
     inst.aux = field.to_int64();
@@ -3261,7 +3311,13 @@ pub fn create_store_inst(obj: Inst, info: InstExtraData, field: Int32, value: In
     inst
 }
 
-pub fn create_store_wb_inst(obj: Inst, info: InstExtraData, field: Int32, value: Inst, ty: Type): Inst {
+pub fn create_store_wb_inst(
+    obj: Inst,
+    info: InstExtraData,
+    field: Int32,
+    value: Inst,
+    ty: Type,
+): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreWb);
     inst.aux = field.to_int64();
@@ -3358,7 +3414,12 @@ pub fn create_atomic_exchange_inst(ty: Type, obj: Inst, new_value: Inst): Inst {
     inst
 }
 
-pub fn create_atomic_compare_exchange_inst(ty: Type, obj: Inst, expected: Inst, new_value: Inst): Inst {
+pub fn create_atomic_compare_exchange_inst(
+    ty: Type,
+    obj: Inst,
+    expected: Inst,
+    new_value: Inst,
+): Inst {
     let inst = Inst::new();
     inst.ty = ty;
     inst._op = Some(Op::AtomicCompareExchange);
@@ -3522,7 +3583,7 @@ impl InstLinkedList {
 }
 
 class InstIterator {
-    current: Option[Inst]
+    current: Option[Inst],
 }
 
 impl InstIterator {
@@ -3596,17 +3657,16 @@ pub class Edge {
     pub target: Block,
     pub target_idx: Int64,
     backward: Bool,
-} 
+}
 
 impl Edge {
-    pub static fn new(source: Block, source_idx: Int64, target: Block, target_idx: Int64): Edge {
-        Edge(
-            source,
-            source_idx,
-            target,
-            target_idx,
-            backward = false,
-        )
+    pub static fn new(
+        source: Block,
+        source_idx: Int64,
+        target: Block,
+        target_idx: Int64,
+    ): Edge {
+        Edge(source, source_idx, target, target_idx, backward = false)
     }
 
     pub fn mark_as_backward_edge() {
@@ -3697,29 +3757,29 @@ impl std::string::Stringable for InstSet {
 }
 
 impl std::traits::IntoIterator for InstSet {
-  type IteratorType = InstSetIter;
+    type IteratorType = InstSetIter;
 
-  fn iter(): Self::IteratorType {
-    InstSetIter(graph = self.graph, iter = self.data.iter())
-  }
+    fn iter(): Self::IteratorType {
+        InstSetIter(graph = self.graph, iter = self.data.iter())
+    }
 }
 
 pub class InstSetIter {
-  graph: Graph,
-  iter: BitVecIter,
+    graph: Graph,
+    iter: BitVecIter,
 }
 
 impl Iterator for InstSetIter {
-  type Item = Inst;
+    type Item = Inst;
 
-  fn next(): Option[Inst] {
-    let it = self.iter.next();
+    fn next(): Option[Inst] {
+        let it = self.iter.next();
 
-    if it is Some(it) {
-        let id = InstId(it.to_int32());
-        Some[Inst](self.graph.get_inst_by_id(id))
-    } else {
-        None[Inst]
+        if it is Some(it) {
+            let id = InstId(it.to_int32());
+            Some[Inst](self.graph.get_inst_by_id(id))
+        } else {
+            None[Inst]
+        }
     }
-  }
 }

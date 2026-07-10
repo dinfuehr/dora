@@ -1,5 +1,15 @@
-use package::bytecode::{ClassId, Location, GlobalId, FunctionId, ClassFieldId, ConstPoolId,
-    ConstPoolEntry, BytecodeRegister, BytecodeFunction, BytecodeType};
+use package::bytecode::{
+    BytecodeFunction,
+    BytecodeRegister,
+    BytecodeType,
+    ClassFieldId,
+    ClassId,
+    ConstPoolEntry,
+    ConstPoolId,
+    FunctionId,
+    GlobalId,
+    Location,
+};
 use package::bytecode::opcode as opc;
 
 pub class BytecodeBuilder {
@@ -17,7 +27,7 @@ impl BytecodeBuilder {
             const_pool = Vec[ConstPoolEntry]::new(),
             registers = Vec[BytecodeType]::new(),
             unresolved_jumps = Vec[UnresolvedJump]::new(),
-            arguments = 0i32
+            arguments = 0i32,
         )
     }
 
@@ -59,11 +69,19 @@ impl BytecodeBuilder {
         self.arguments = arguments;
     }
 
-    pub fn emit_add(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_add(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_ADD, dest, lhs, rhs);
     }
 
-    pub fn emit_sub(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_sub(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_SUB, dest, lhs, rhs);
     }
 
@@ -71,23 +89,43 @@ impl BytecodeBuilder {
         self.emit_reg2(opc::BYTECODE_OPCODE_NEG, dest, src);
     }
 
-    pub fn emit_mul(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_mul(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_MUL, dest, lhs, rhs);
     }
 
-    pub fn emit_div(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_div(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_DIV, dest, lhs, rhs);
     }
 
-    pub fn emit_mod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_mod(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_MOD, dest, lhs, rhs);
     }
 
-    pub fn emit_checked_add(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_checked_add(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_CHECKED_ADD, dest, lhs, rhs);
     }
 
-    pub fn emit_checked_sub(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_checked_sub(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_CHECKED_SUB, dest, lhs, rhs);
     }
 
@@ -95,19 +133,35 @@ impl BytecodeBuilder {
         self.emit_reg2(opc::BYTECODE_OPCODE_CHECKED_NEG, dest, src);
     }
 
-    pub fn emit_checked_mul(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_checked_mul(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_CHECKED_MUL, dest, lhs, rhs);
     }
 
-    pub fn emit_checked_div(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_checked_div(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_CHECKED_DIV, dest, lhs, rhs);
     }
 
-    pub fn emit_checked_mod(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_checked_mod(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_CHECKED_MOD, dest, lhs, rhs);
     }
 
-    pub fn emit_and(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_and(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_AND, dest, lhs, rhs);
     }
 
@@ -115,7 +169,11 @@ impl BytecodeBuilder {
         self.emit_reg3(opc::BYTECODE_OPCODE_OR, dest, lhs, rhs);
     }
 
-    pub fn emit_xor(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_xor(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_XOR, dest, lhs, rhs);
     }
 
@@ -123,15 +181,27 @@ impl BytecodeBuilder {
         self.emit_reg2(opc::BYTECODE_OPCODE_NOT, dest, src);
     }
 
-    pub fn emit_shl(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_shl(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_SHL, dest, lhs, rhs);
     }
 
-    pub fn emit_shr(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_shr(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_SHR, dest, lhs, rhs);
     }
 
-    pub fn emit_sar(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_sar(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_SAR, dest, lhs, rhs);
     }
 
@@ -139,11 +209,21 @@ impl BytecodeBuilder {
         self.emit_reg2(opc::BYTECODE_OPCODE_MOV, dest, src);
     }
 
-    pub fn emit_load_field(dest: BytecodeRegister, obj: BytecodeRegister, cls: ClassId, field: ClassFieldId) {
+    pub fn emit_load_field(
+        dest: BytecodeRegister,
+        obj: BytecodeRegister,
+        cls: ClassId,
+        field: ClassFieldId,
+    ) {
         self.emit_field(opc::BYTECODE_OPCODE_LOAD_FIELD, dest, obj, cls, field);
     }
 
-    pub fn emit_store_field(src: BytecodeRegister, obj: BytecodeRegister, cls: ClassId, field: ClassFieldId) {
+    pub fn emit_store_field(
+        src: BytecodeRegister,
+        obj: BytecodeRegister,
+        cls: ClassId,
+        field: ClassFieldId,
+    ) {
         self.emit_field(opc::BYTECODE_OPCODE_STORE_FIELD, src, obj, cls, field);
     }
 
@@ -196,27 +276,51 @@ impl BytecodeBuilder {
         self.emit_reg1_and_idx(opc::BYTECODE_OPCODE_CONST_STRING, dest, idx);
     }
 
-    pub fn emit_test_eq(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_test_eq(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_TEST_EQ, dest, lhs, rhs);
     }
 
-    pub fn emit_test_ne(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_test_ne(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_TEST_NE, dest, lhs, rhs);
     }
 
-    pub fn emit_test_gt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_test_gt(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_TEST_GT, dest, lhs, rhs);
     }
 
-    pub fn emit_test_ge(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_test_ge(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_TEST_GE, dest, lhs, rhs);
     }
 
-    pub fn emit_test_lt(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_test_lt(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_TEST_LT, dest, lhs, rhs);
     }
 
-    pub fn emit_test_le(dest: BytecodeRegister, lhs: BytecodeRegister, rhs: BytecodeRegister) {
+    pub fn emit_test_le(
+        dest: BytecodeRegister,
+        lhs: BytecodeRegister,
+        rhs: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_TEST_LE, dest, lhs, rhs);
     }
 
@@ -232,12 +336,20 @@ impl BytecodeBuilder {
 
     pub fn emit_jump_if_false(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.is_bound());
-        self.emit_jmp_forward(opc::BYTECODE_OPCODE_JUMP_IF_FALSE, Some[BytecodeRegister](opnd), lbl);
+        self.emit_jmp_forward(
+            opc::BYTECODE_OPCODE_JUMP_IF_FALSE,
+            Some[BytecodeRegister](opnd),
+            lbl,
+        );
     }
 
     pub fn emit_jump_if_true(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.is_bound());
-        self.emit_jmp_forward(opc::BYTECODE_OPCODE_JUMP_IF_TRUE, Some[BytecodeRegister](opnd), lbl);
+        self.emit_jmp_forward(
+            opc::BYTECODE_OPCODE_JUMP_IF_TRUE,
+            Some[BytecodeRegister](opnd),
+            lbl,
+        );
     }
 
     pub fn emit_jump(lbl: BytecodeLabel) {
@@ -245,15 +357,30 @@ impl BytecodeBuilder {
         self.emit_jmp_forward(opc::BYTECODE_OPCODE_JUMP, None[BytecodeRegister], lbl);
     }
 
-    pub fn emit_invoke_direct(dest: BytecodeRegister, fct: FunctionId, start: BytecodeRegister, count: Int32) {
+    pub fn emit_invoke_direct(
+        dest: BytecodeRegister,
+        fct: FunctionId,
+        start: BytecodeRegister,
+        count: Int32,
+    ) {
         self.emit_fct(opc::BYTECODE_OPCODE_INVOKE_DIRECT, dest, fct, start, count);
     }
 
-    pub fn emit_invoke_virtual(dest: BytecodeRegister, fct: FunctionId, start: BytecodeRegister, count: Int32) {
+    pub fn emit_invoke_virtual(
+        dest: BytecodeRegister,
+        fct: FunctionId,
+        start: BytecodeRegister,
+        count: Int32,
+    ) {
         self.emit_fct(opc::BYTECODE_OPCODE_INVOKE_VIRTUAL, dest, fct, start, count);
     }
 
-    pub fn emit_invoke_static(dest: BytecodeRegister, fct: FunctionId, start: BytecodeRegister, count: Int32) {
+    pub fn emit_invoke_static(
+        dest: BytecodeRegister,
+        fct: FunctionId,
+        start: BytecodeRegister,
+        count: Int32,
+    ) {
         self.emit_fct(opc::BYTECODE_OPCODE_INVOKE_STATIC, dest, fct, start, count);
     }
 
@@ -265,11 +392,19 @@ impl BytecodeBuilder {
         self.emit_reg1(opc::BYTECODE_OPCODE_ARRAY_LENGTH, dest);
     }
 
-    pub fn emit_load_array(dest: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
+    pub fn emit_load_array(
+        dest: BytecodeRegister,
+        arr: BytecodeRegister,
+        idx: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_LOAD_ARRAY, dest, arr, idx);
     }
 
-    pub fn emit_store_array(src: BytecodeRegister, arr: BytecodeRegister, idx: BytecodeRegister) {
+    pub fn emit_store_array(
+        src: BytecodeRegister,
+        arr: BytecodeRegister,
+        idx: BytecodeRegister,
+    ) {
         self.emit_reg3(opc::BYTECODE_OPCODE_STORE_ARRAY, src, arr, idx);
     }
 
@@ -285,13 +420,7 @@ impl BytecodeBuilder {
         let locations = Array[(Int32, Location)]::new();
         let arguments = self.arguments;
         assert(arguments.to_int64() <= registers.size());
-        BytecodeFunction(
-            code,
-            const_pool,
-            registers,
-            locations,
-            arguments
-        )
+        BytecodeFunction(code, const_pool, registers, locations, arguments)
     }
 
     fn resolve_jumps() {
@@ -309,11 +438,22 @@ impl BytecodeBuilder {
         self.unresolved_jumps.clear();
     }
 
-    fn emit_fct_void(inst: Int32, fct: FunctionId, start: BytecodeRegister, count: Int32) {
+    fn emit_fct_void(
+        inst: Int32,
+        fct: FunctionId,
+        start: BytecodeRegister,
+        count: Int32,
+    ) {
         self.emit_val4(inst, fct.0, start.0, count);
     }
 
-    fn emit_fct(inst: Int32, dest: BytecodeRegister, fct: FunctionId, start: BytecodeRegister, count: Int32) {
+    fn emit_fct(
+        inst: Int32,
+        dest: BytecodeRegister,
+        fct: FunctionId,
+        start: BytecodeRegister,
+        count: Int32,
+    ) {
         self.emit_val5(inst, dest.0, fct.0, start.0, count);
     }
 
@@ -364,11 +504,21 @@ impl BytecodeBuilder {
         self.emit_val3(inst, r1.0, r2.0);
     }
 
-    fn emit_reg2_and_cls(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, cls: ClassId) {
+    fn emit_reg2_and_cls(
+        inst: Int32,
+        r1: BytecodeRegister,
+        r2: BytecodeRegister,
+        cls: ClassId,
+    ) {
         self.emit_val4(inst, r1.0, r2.0, cls.0);
     }
 
-    fn emit_reg3(inst: Int32, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
+    fn emit_reg3(
+        inst: Int32,
+        r1: BytecodeRegister,
+        r2: BytecodeRegister,
+        r3: BytecodeRegister,
+    ) {
         self.emit_val4(inst, r1.0, r2.0, r3.0);
     }
 
@@ -443,7 +593,9 @@ impl BytecodeBuilder {
 
             self.code.push(byte.to_uint8());
 
-            if value == 0i32 { break; }
+            if value == 0i32 {
+                break;
+            }
         }
     }
 
@@ -483,5 +635,5 @@ impl BytecodeLabel {
 class UnresolvedJump {
     inst: Int32,
     target: Int32,
-    label: BytecodeLabel
+    label: BytecodeLabel,
 }

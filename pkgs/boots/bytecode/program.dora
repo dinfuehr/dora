@@ -221,7 +221,6 @@ pub class SourceFileData {
     path: String,
 }
 
-
 pub struct ExtensionId(pub Int32)
 
 pub class ExtensionData {

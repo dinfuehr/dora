@@ -1,6 +1,16 @@
 pub use std::collections::{Array, BitSet, BitVec, HashMap, HashSet, Queue, Vec};
 pub use std::traits::{Comparable, Default, Equals, Hash, Ordering, Zero};
-pub use std::primitives::{Bool, Char, Float32, Float64, Int32, Int64, Option, range, Result};
+pub use std::primitives::{
+    Bool,
+    Char,
+    Float32,
+    Float64,
+    Int32,
+    Int64,
+    Option,
+    Result,
+    range,
+};
 pub use std::rand::Random;
 pub use std::string::{CodepointIterator, String, StringBuffer, Stringable};
 pub use std::thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
@@ -13,189 +23,211 @@ pub mod string;
 pub mod thread;
 pub mod traits;
 
-pub @internal fn fatal_error[T](msg: String): T;
-pub @native fn abort();
-pub @native fn exit(status: Int32);
-pub @internal fn unreachable[T](): T;
+@internal
+pub fn fatal_error[T](msg: String): T;
+
+@native
+pub fn abort();
+
+@native
+pub fn exit(status: Int32);
+
+@internal
+pub fn unreachable[T](): T;
 
 @NeverInline
 pub fn unimplemented[T](): T {
-  fatal_error[T]("not yet implemented")
+    fatal_error[T]("not yet implemented")
 }
 
-pub @internal fn assert(val: Bool);
-pub @internal fn debug();
-pub @native fn argc(): Int32;
-pub @native fn argv(idx: Int32): String;
-pub @native fn force_collect();
-pub @native fn force_minor_collect();
+@internal
+pub fn assert(val: Bool);
 
-pub @native fn timestamp(): Int64;
+@internal
+pub fn debug();
+
+@native
+pub fn argc(): Int32;
+
+@native
+pub fn argv(idx: Int32): String;
+
+@native
+pub fn force_collect();
+
+@native
+pub fn force_minor_collect();
+
+@native
+pub fn timestamp(): Int64;
 
 fn is_valid_utf8(data: Array[UInt8]): Bool {
-  let mut i = 0i64;
+    let mut i = 0i64;
 
-  while i < data.size() {
-    let by = data(i).to_int32();
-    let mut codepoint = 0i32;
-    let mut bytes = 0i32;
-    let mut min = 0i32;
-    let mut max = 0i32;
+    while i < data.size() {
+        let by = data(i).to_int32();
+        let mut codepoint = 0i32;
+        let mut bytes = 0i32;
+        let mut min = 0i32;
+        let mut max = 0i32;
 
-    if by & 0x80i32 == 0i32 {
-      bytes = 0;
-      i = i + 1i64;
-      continue;
+        if by & 0x80i32 == 0i32 {
+            bytes = 0;
+            i = i + 1i64;
+            continue;
+        } else if by & 0xC0i32 == 0x80i32 {
+            return false;
+        } else if by & 0xE0i32 == 0xC0i32 {
+            codepoint = by & 0x1Fi32;
+            bytes = 1;
+            min = 0x80;
+            max = 0x7FFi32;
+        } else if by & 0xF0i32 == 0xE0i32 {
+            codepoint = by & 0xFi32;
+            bytes = 2i32;
+            min = 0x800i32;
+            max = 0xFFFFi32;
+        } else if by & 0xF8i32 == 0xF0i32 {
+            codepoint = by & 0x7i32;
+            bytes = 3;
+            min = 0x10000;
+            max = 0x10FFFFi32;
+        }
 
-    } else if by & 0xC0i32 == 0x80i32 {
-      return false;
+        while bytes > 0i32 {
+            bytes = bytes - 1i32;
+            i = i + 1i64;
 
-    } else if by & 0xE0i32 == 0xC0i32 {
-      codepoint = by & 0x1Fi32;
-      bytes = 1;
-      min = 0x80;
-      max = 0x7FFi32;
+            if i >= data.size() {
+                return false;
+            }
 
-    } else if by & 0xF0i32 == 0xE0i32 {
-      codepoint = by & 0xFi32;
-      bytes = 2i32;
-      min = 0x800i32;
-      max = 0xFFFFi32;
+            let by = data(i).to_int32();
 
-    } else if by & 0xF8i32 == 0xF0i32 {
-      codepoint = by & 0x7i32;
-      bytes = 3;
-      min = 0x10000;
-      max = 0x10FFFFi32;
+            if by & 0xC0i32 != 0x80i32 {
+                return false;
+            }
+
+            codepoint = (codepoint << 6i32) | (by & 0x3Fi32);
+        }
+
+        if codepoint < min || codepoint > max {
+            return false;
+        }
+
+        i = i + 1i64;
     }
 
-    while bytes > 0i32 {
-      bytes = bytes - 1i32;
-      i = i + 1i64;
-
-      if i >= data.size() {
-        return false;
-      }
-
-      let by = data(i).to_int32();
-
-      if by & 0xC0i32 != 0x80i32 {
-        return false;
-      }
-
-      codepoint = (codepoint << 6i32) | (by & 0x3Fi32);
-    }
-
-    if codepoint < min || codepoint > max {
-      return false;
-    }
-
-    i = i + 1i64;
-  }
-
-  return true;
+    return true;
 }
 
-@internal fn unsafe_kill_refs[T](arr: Array[T], idx: Int64);
+@internal
+fn unsafe_kill_refs[T](arr: Array[T], idx: Int64);
 
-pub @native fn sleep(seconds: Int32);
+@native
+pub fn sleep(seconds: Int32);
 
 pub class Stacktrace {
-  backtrace: Option[Array[Int32]],
-  symbolized_backtrace: Option[Array[StacktraceElement]],
+    backtrace: Option[Array[Int32]],
+    symbolized_backtrace: Option[Array[StacktraceElement]],
 }
 
 impl Stacktrace {
-  pub static fn new(): Stacktrace {
-    let trace = Stacktrace(
-      backtrace = None[Array[Int32]],
-      symbolized_backtrace = None[Array[StacktraceElement]]
-    );
-    trace.capture();
-    trace
-  }
-
-  pub fn symbolize(): Array[StacktraceElement] {
-    if self.symbolized_backtrace.is_some() {
-      return self.symbolized_backtrace.get_or_panic();
+    pub static fn new(): Stacktrace {
+        let trace = Stacktrace(
+            backtrace = None[Array[Int32]],
+            symbolized_backtrace = None[Array[StacktraceElement]],
+        );
+        trace.capture();
+        trace
     }
 
-    if self.backtrace.is_none() {
-      let symbolized_backtrace = Array[StacktraceElement]::new();
-      self.symbolized_backtrace = Some[Array[StacktraceElement]](symbolized_backtrace);
-      return symbolized_backtrace;
+    pub fn symbolize(): Array[StacktraceElement] {
+        if self.symbolized_backtrace.is_some() {
+            return self.symbolized_backtrace.get_or_panic();
+        }
+
+        if self.backtrace.is_none() {
+            let symbolized_backtrace = Array[StacktraceElement]::new();
+            self.symbolized_backtrace =
+            Some[Array[StacktraceElement]](symbolized_backtrace);
+            return symbolized_backtrace;
+        }
+
+        let backtrace = self.backtrace.get_or_panic();
+        let mut i = 0i64;
+        let symbolized_backtrace = Vec[StacktraceElement]::new();
+        symbolized_backtrace.reserve(backtrace.size());
+        let iterator = StacktraceIterator(
+            code_id = 0i32,
+            offset = 0i32,
+            text = None[String],
+            inlined_function_id = -1i32,
+        );
+
+        while i < backtrace.size() {
+            let code_id = backtrace(i);
+            let offset = backtrace(i + 1);
+            iterator.code_id = code_id;
+            iterator.offset = offset;
+            iterator.text = None[String];
+            iterator.inlined_function_id = -1i32;
+            symbolize_stacktrace_element(iterator);
+            let element = StacktraceElement(text = iterator.text.get_or_panic());
+            symbolized_backtrace.push(element);
+
+            while iterator.inlined_function_id != -1i32 {
+                symbolize_stacktrace_element(iterator);
+                let element = StacktraceElement(text = iterator.text.get_or_panic());
+                symbolized_backtrace.push(element);
+            }
+
+            assert(iterator.inlined_function_id == -1i32);
+            i = i + 2;
+        }
+
+        // Do not add Stacktrace::new() and Stacktrace::capture() to stack trace.
+        for _ in std::range(0, 2) {
+            symbolized_backtrace.remove_at(0);
+        }
+
+        let symbolized_backtrace = symbolized_backtrace.to_array();
+        self.symbolized_backtrace = Some(symbolized_backtrace);
+        symbolized_backtrace
     }
 
-    let backtrace = self.backtrace.get_or_panic();
-    let mut i = 0i64;
-    let symbolized_backtrace = Vec[StacktraceElement]::new();
-    symbolized_backtrace.reserve(backtrace.size());
-    let iterator = StacktraceIterator(
-      code_id = 0i32,
-      offset = 0i32,
-      text = None[String],
-      inlined_function_id = -1i32
-    );
-
-    while i < backtrace.size() {
-      let code_id = backtrace(i);
-      let offset = backtrace(i + 1);
-      iterator.code_id = code_id;
-      iterator.offset = offset;
-      iterator.text = None[String];
-      iterator.inlined_function_id = -1i32;
-      symbolize_stacktrace_element(iterator);
-      let element = StacktraceElement(text = iterator.text.get_or_panic());
-      symbolized_backtrace.push(element);
-
-      while iterator.inlined_function_id != -1i32 {
-        symbolize_stacktrace_element(iterator);
-        let element = StacktraceElement(text = iterator.text.get_or_panic());
-        symbolized_backtrace.push(element);
-      }
-
-      assert(iterator.inlined_function_id == -1i32);
-      i = i + 2;
+    pub fn print() {
+        for frame in self.symbolize() {
+            println(frame.to_string());
+        }
     }
 
-    // Do not add Stacktrace::new() and Stacktrace::capture() to stack trace.
-    for _ in std::range(0, 2) {
-      symbolized_backtrace.remove_at(0);
-    }
-
-    let symbolized_backtrace = symbolized_backtrace.to_array();
-    self.symbolized_backtrace = Some(symbolized_backtrace);
-    symbolized_backtrace
-  }
-
-  pub fn print() {
-    for frame in self.symbolize() {
-      println(frame.to_string());
-    }
-  }
-
-  @native fn capture();
+    @native
+    fn capture();
 }
 
 @native
 fn symbolize_stacktrace_element(iterator: StacktraceIterator);
 
 class StacktraceIterator {
-  code_id: Int32,
-  offset: Int32,
-  text: Option[String],
-  inlined_function_id: Int32,
+    code_id: Int32,
+    offset: Int32,
+    text: Option[String],
+    inlined_function_id: Int32,
 }
 
 class StacktraceElement {
-  text: String,
+    text: String,
 }
 
 impl StacktraceElement {
-  fn to_string(): String {
-    self.text
-  }
+    fn to_string(): String {
+        self.text
+    }
 }
 
-@native pub fn take_heap_snapshot();
-@native pub fn take_heap_snapshot_for_testing();
+@native
+pub fn take_heap_snapshot();
+
+@native
+pub fn take_heap_snapshot_for_testing();

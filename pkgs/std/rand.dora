@@ -3,50 +3,52 @@ const RANDOM_INCREMENT: Int64 = 11i64;
 const RANDOM_MASK: Int64 = 0xFF_FF_FF_FF_FF_FFi64;
 
 pub class Random {
-  seed: Int64
+    seed: Int64,
 }
 
 impl Random {
-  pub static fn new(seed: Int64): Random {
-    Random(seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK)
-  }
-
-  pub fn next_int32_with_bound(bound: Int32): Int32 {
-    assert(bound > 0i32);
-    let bound_minus_1 = bound - 1i32;
-
-    if (bound & bound_minus_1) == 0i32 {
-      let num = self.next_int31().to_int64();
-      return ((bound.to_int64().wrapping_mul(num)) >>> 31i32).to_int32();
+    pub static fn new(seed: Int64): Random {
+        Random(seed = (seed ^ RANDOM_MULTIPLIER) & RANDOM_MASK)
     }
 
-    let mut modulo = 0i32;
+    pub fn next_int32_with_bound(bound: Int32): Int32 {
+        assert(bound > 0i32);
+        let bound_minus_1 = bound - 1i32;
 
-    while true {
-      let num = self.next_int31();
-      modulo = num % bound;
+        if (bound & bound_minus_1) == 0i32 {
+            let num = self.next_int31().to_int64();
+            return ((bound.to_int64().wrapping_mul(num)) >>> 31i32).to_int32();
+        }
 
-      if num - modulo + bound_minus_1 >= 0i32 {
-        break;
-      }
+        let mut modulo = 0i32;
+
+        while true {
+            let num = self.next_int31();
+            modulo = num % bound;
+
+            if num - modulo + bound_minus_1 >= 0i32 {
+                break;
+            }
+        }
+
+        return modulo;
     }
 
-    return modulo;
-  }
+    pub fn next_int32(): Int32 {
+        self.seed =
+        self.seed.wrapping_mul(RANDOM_MULTIPLIER).wrapping_add(RANDOM_INCREMENT) &
+        RANDOM_MASK;
+        return (self.seed >>> 16i32).to_int32();
+    }
 
-  pub fn next_int32(): Int32 {
-    self.seed = self.seed.wrapping_mul(RANDOM_MULTIPLIER).wrapping_add(RANDOM_INCREMENT) & RANDOM_MASK;
-    return (self.seed >>> 16i32).to_int32();
-  }
+    pub fn next_int31(): Int32 {
+        return self.next_int32() & 0x7F_FF_FF_FFi32;
+    }
 
-  pub fn next_int31(): Int32 {
-    return self.next_int32() & 0x7F_FF_FF_FFi32;
-  }
+    pub fn next_int64(): Int64 {
+        let w1 = self.next_int32();
+        let w2 = self.next_int32();
 
-  pub fn next_int64(): Int64 {
-    let w1 = self.next_int32();
-    let w2 = self.next_int32();
-
-    return (w1.to_int64() << 32i32) | w2.to_int64();
-  }
+        return (w1.to_int64() << 32i32) | w2.to_int64();
+    }
 }

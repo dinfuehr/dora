@@ -1,16 +1,34 @@
 use package::codegen::{CodeGen, STACK_FRAME_ALIGNMENT};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo};
-use package::graph::{Block, Graph, Inst, InstId, InstSet, Location, Op, Operand, Policy, Type};
+use package::graph::{
+    Block,
+    Graph,
+    Inst,
+    InstId,
+    InstSet,
+    Location,
+    Op,
+    Operand,
+    Policy,
+    Type,
+};
 use package::location::ensure_location_data;
 
-pub fn perform_stack_slot_allocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo, max_outgoing_args_size: Int32) {
+pub fn perform_stack_slot_allocation(
+    graph: Graph,
+    codegen: CodeGen,
+    ci: CompilationInfo,
+    fct: FunctionCompilationInfo,
+    max_outgoing_args_size: Int32,
+) {
     let allocator = StackSlotAllocator(graph, codegen, ci, stack_size = 0i32);
     allocator.run();
 
     let stack_alignment = STACK_FRAME_ALIGNMENT.to_int32();
 
     let final_stack_size = allocator.stack_size + max_outgoing_args_size;
-    let final_aligned_stack_size = (final_stack_size + (stack_alignment - 1i32)) & !(stack_alignment - 1i32);
+    let final_aligned_stack_size = (final_stack_size + (stack_alignment - 1i32)) &
+    !(stack_alignment - 1i32);
 
     graph.set_stack_size(final_aligned_stack_size);
 }
@@ -55,7 +73,6 @@ impl StackSlotAllocator {
             let slot = value.get_location_data().get_spill_slot();
             let location = Location::fp(slot);
             inst.get_location_data().init_input(0, Operand::new(Policy::None, location));
-
         } else if inst.op() == Op::StoreReg {
             unreachable[()]();
         }
@@ -130,7 +147,10 @@ fn compute_live_in(block: Block): InstSet {
             let input = phi.get_input(idx);
             let value = input.get_value();
 
-            if value.get_location_data().needs_spill_slot() || value.op() == Op::AllocateStack {
+            if (
+                value.get_location_data().needs_spill_slot() ||
+                value.op() == Op::AllocateStack
+            ) {
                 live.insert(value);
             }
         }
@@ -142,7 +162,10 @@ fn compute_live_in(block: Block): InstSet {
         for input in inst.get_inputs() {
             let value = input.get_value();
 
-            if value.get_location_data().needs_spill_slot() || value.op() == Op::AllocateStack {
+            if (
+                value.get_location_data().needs_spill_slot() ||
+                value.op() == Op::AllocateStack
+            ) {
                 live.insert(value);
             }
         }
@@ -158,9 +181,12 @@ fn compute_live_in(block: Block): InstSet {
 }
 
 fn build_interference_graph(graph: Graph): Array[Vec[InstId]] {
-    let interference = Array[Vec[InstId]]::fill_with(graph.inst_count().to_int64(), |i: Int64|: Vec[InstId] {
-        Vec[InstId]::new()
-    });
+    let interference = Array[Vec[InstId]]::fill_with(
+        graph.inst_count().to_int64(),
+        |i: Int64|: Vec[InstId] {
+            Vec[InstId]::new()
+        },
+    );
 
     for block in graph.linear_order_iterator() {
         let live = InstSet::new(block.get_graph());
@@ -173,7 +199,10 @@ fn build_interference_graph(graph: Graph): Array[Vec[InstId]] {
                 let input = phi.get_input(idx);
                 let value = input.get_value();
 
-                if value.get_location_data().needs_spill_slot() || value.op() == Op::AllocateStack {
+                if (
+                    value.get_location_data().needs_spill_slot() ||
+                    value.op() == Op::AllocateStack
+                ) {
                     live.insert(value);
                 }
             }
@@ -182,7 +211,10 @@ fn build_interference_graph(graph: Graph): Array[Vec[InstId]] {
         }
 
         for inst in block.reverse_instructions_iterator() {
-            if inst.get_location_data().needs_spill_slot() || inst.op() == Op::AllocateStack {
+            if (
+                inst.get_location_data().needs_spill_slot() ||
+                inst.op() == Op::AllocateStack
+            ) {
                 live.remove(inst);
 
                 for x in live {
@@ -194,7 +226,10 @@ fn build_interference_graph(graph: Graph): Array[Vec[InstId]] {
             for input in inst.get_inputs() {
                 let value = input.get_value();
 
-                if value.get_location_data().needs_spill_slot() || value.op() == Op::AllocateStack {
+                if (
+                    value.get_location_data().needs_spill_slot() ||
+                    value.op() == Op::AllocateStack
+                ) {
                     live.insert(value);
                 }
             }

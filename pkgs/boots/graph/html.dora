@@ -5,19 +5,31 @@ use package::assembler::arm64::register_name as register_name_on_arm64;
 use package::assembler::x64::register_name as register_name_on_x64;
 use package::assembler::arm64::float_register_name as float_register_name_on_arm64;
 use package::assembler::x64::float_register_name as float_register_name_on_x64;
-use package::bytecode::{BytecodeDumper, BytecodeFunction, BytecodeInstructionInfo, BytecodeIterator, BytecodeRegister, ConstId, ConstPoolEntry, ConstPoolId, dump_instruction, GlobalId};
+use package::bytecode::{
+    BytecodeDumper,
+    BytecodeFunction,
+    BytecodeInstructionInfo,
+    BytecodeIterator,
+    BytecodeRegister,
+    ConstId,
+    ConstPoolEntry,
+    ConstPoolId,
+    GlobalId,
+    dump_instruction,
+};
 use package::graph::{Block, Graph, Inst, Location, Op, Operand};
 use package::graph_builder::BytecodeAnalysis;
 use package::compilation::CompilationInfo;
-use package::interface::{Architecture, config, get_function_display_name, get_function_display_name_with_type_params};
+use package::interface::{
+    Architecture,
+    config,
+    get_function_display_name,
+    get_function_display_name_with_type_params,
+};
 
 pub fn create_html_writer(ci: CompilationInfo): HtmlWriter {
     let file = File::create("ssa.html");
-    let html = HtmlWriter(
-        ci,
-        file,
-        writer = BufferedWriter::new(file)
-    );
+    let html = HtmlWriter(ci, file, writer = BufferedWriter::new(file));
     html.start();
     html
 }
@@ -30,7 +42,8 @@ pub class HtmlWriter {
 
 impl HtmlWriter {
     fn start() {
-        self.write("<!doctype html>
+        self.write(
+            "<!doctype html>
 <html>
     <head>
         <meta charset=\"utf-8\">
@@ -234,17 +247,23 @@ function pass_collapse(element, event) {
     <body>
 
     <div id=\"main\">
-");
+"
+        );
     }
 
     pub fn dump_bytecode(bc: BytecodeFunction, analysis: BytecodeAnalysis) {
         self.write("<div class=\"pass\">");
         self.write("<div class=\"pass-name\">bytecode</div>");
         self.write("<div class=\"graph\"><code>");
-        let dumper = HtmlBytecodeDumper(writer = self.writer as Write, bc) as BytecodeDumper;
+        let dumper = HtmlBytecodeDumper(
+            writer = self.writer as Write,
+            bc,
+        ) as BytecodeDumper;
 
         for block_start in analysis.starts {
-            self.write("<div class=\"bc-block${block_start} bytecode-block block-use block-name selectable\">block at ${block_start}:</div>");
+            self.write(
+                "<div class=\"bc-block${block_start} bytecode-block block-use block-name selectable\">block at ${block_start}:</div>"
+            );
             self.write("<div class=\"block\">");
 
             for inst in BytecodeIterator::new_at_pos(bc.code, block_start) {
@@ -252,7 +271,10 @@ function pass_collapse(element, event) {
                     break;
                 }
 
-                self.write("<div class=\"bc${inst.start} bytecode-inst inst-use selectable\">${inst.start}: ");
+                self.write(
+                    "<div class=\"bc${inst
+                        .start} bytecode-inst inst-use selectable\">${inst.start}: "
+                );
                 dump_instruction(inst, dumper);
                 self.write("</div>");
             }
@@ -264,7 +286,11 @@ function pass_collapse(element, event) {
         self.write("<div class=\"section-name\">const pool:</div>");
         self.write("<div class=\"constpool\">");
         for entry in bc.const_pool {
-            self.write("<div class=\"cp${i} const-use selectable\">@${i} = ${escape_html(format_const_pool_entry(entry))}</div>");
+            self.write(
+                "<div class=\"cp${i} const-use selectable\">@${i} = ${escape_html(
+                    format_const_pool_entry(entry)
+                )}</div>"
+            );
             i = i + 1i64;
         }
         self.write("</div>");
@@ -273,13 +299,19 @@ function pass_collapse(element, event) {
         self.write("<div class=\"section-name\">registers:</div>");
         self.write("<div class=\"registers\">");
         for register in bc.registers {
-            self.write("<div class=\"r${i} register-use selectable\">r${i} = ${escape_html(register.to_string())}</div>");
+            self.write(
+                "<div class=\"r${i} register-use selectable\">r${i} = ${escape_html(
+                    register.to_string()
+                )}</div>"
+            );
             i = i + 1;
         }
         self.write("</div>");
 
         self.write("</code></div>"); // end of div.graph
+
         self.write("</div>\n"); // end of div.pass
+
     }
 
     pub fn dump_graph(title: String, graph: Graph) {
@@ -292,12 +324,16 @@ function pass_collapse(element, event) {
         }
 
         self.write("</code></div>\n"); // end of div.graph
+
         self.write("</div>\n"); // end of div.pass
+
     }
 
     fn dump_block(block: Block) {
         let block_id = block.id();
-        self.write("<div class=\"block${block_id} ssa-block block-use block-name selectable\">@${block_id}:</div>");
+        self.write(
+            "<div class=\"block${block_id} ssa-block block-use block-name selectable\">@${block_id}:</div>"
+        );
         self.write("<div class=\"block\">");
 
         for inst in block.phis_iterator() {
@@ -312,21 +348,31 @@ function pass_collapse(element, event) {
     }
 
     fn dump_inst(inst: Inst) {
-        self.write("<div class=\"inst${inst.id()} ssa-inst inst-use inst selectable\">%${inst.id()}");
+        self.write(
+            "<div class=\"inst${inst.id(
+                )} ssa-inst inst-use inst selectable\">%${inst.id()}"
+        );
 
         let ty = inst.get_maybe_value_type();
 
         if ty.is_some() {
             let ty = ty.get_or_panic();
             if !ty.is_unit() {
-                self.write("&nbsp;<span class=\"inst-value-type\">&lt;${escape_html(ty.to_string())}&gt;</span>");
+                self.write(
+                    "&nbsp;<span class=\"inst-value-type\">&lt;${escape_html(
+                        ty.to_string()
+                    )}&gt;</span>"
+                );
             }
         }
 
         if inst.has_inlined_location() {
             let inlined_location = inst.get_inlined_location();
             let loc = inlined_location.location;
-            self.write("&nbsp;<span class=\"line-number\">&lt;${loc.line}:${loc.column}&gt;</span>");
+            self.write(
+                "&nbsp;<span class=\"line-number\">&lt;${loc
+                    .line}:${loc.column}&gt;</span>"
+            );
         }
 
         self.write(": ");
@@ -345,14 +391,23 @@ function pass_collapse(element, event) {
         match op {
             Op::Goto => {
                 let target = inst.get_target_block();
-                self.write("&nbsp;<span class=\"block${target.id()} block-use selectable\">${target}</span>");
+                self.write(
+                    "&nbsp;<span class=\"block${target.id(
+                        )} block-use selectable\">${target}</span>"
+                );
             }
 
             Op::If => {
                 let true_block = inst.get_true_block();
                 let false_block = inst.get_false_block();
-                self.write("&nbsp;<span class=\"block${true_block.id()} block-use selectable\">${true_block}</span>");
-                self.write("&nbsp;<span class=\"block${false_block.id()} block-use selectable\">${false_block}</span>");
+                self.write(
+                    "&nbsp;<span class=\"block${true_block.id(
+                        )} block-use selectable\">${true_block}</span>"
+                );
+                self.write(
+                    "&nbsp;<span class=\"block${false_block.id(
+                        )} block-use selectable\">${false_block}</span>"
+                );
             }
 
             Op::UInt8Const => {
@@ -376,7 +431,9 @@ function pass_collapse(element, event) {
             }
 
             Op::StringConst => {
-                self.write("&nbsp;&quot;${escape_html(inst.get_value_as_string())}&quot;");
+                self.write(
+                    "&nbsp;&quot;${escape_html(inst.get_value_as_string())}&quot;"
+                );
             }
 
             Op::Rematerialize => {
@@ -457,7 +514,9 @@ function pass_collapse(element, event) {
                 self.write(" (temps: ");
                 let mut first = true;
                 for temp in loc.get_temps() {
-                    if !first { self.write(", "); }
+                    if !first {
+                        self.write(", ");
+                    }
                     self.write(opnd(temp));
                     first = false;
                 }
@@ -473,7 +532,14 @@ function pass_collapse(element, event) {
     fn emit_invoke_target(inst: Inst) {
         if inst.has_function_info() {
             let info = inst.get_function_info();
-            self.write(" # ${escape_html(get_function_display_name_with_type_params(info.fct_id, info.type_params))}");
+            self.write(
+                " # ${escape_html(
+                    get_function_display_name_with_type_params(
+                        info.fct_id,
+                        info.type_params,
+                    )
+                )}"
+            );
         } else if inst.has_runtime_function() {
             self.write(" # ${escape_html(inst.get_runtime_function().to_string())}");
         }
@@ -532,15 +598,32 @@ impl BytecodeDumper for HtmlBytecodeDumper {
         self.write(name);
     }
 
-    fn emit_reg3(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, r3: BytecodeRegister) {
+    fn emit_reg3(
+        inst: BytecodeInstructionInfo,
+        name: String,
+        r1: BytecodeRegister,
+        r2: BytecodeRegister,
+        r3: BytecodeRegister,
+    ) {
         self.write("${name} ${reg(r1)}, ${reg(r2)}, ${reg(r3)}");
     }
 
-    fn emit_reg2(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister) {
+    fn emit_reg2(
+        inst: BytecodeInstructionInfo,
+        name: String,
+        r1: BytecodeRegister,
+        r2: BytecodeRegister,
+    ) {
         self.write("${name} ${reg(r1)}, ${reg(r2)}");
     }
 
-    fn emit_reg2_and_idx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, r2: BytecodeRegister, idx: ConstPoolId) {
+    fn emit_reg2_and_idx(
+        inst: BytecodeInstructionInfo,
+        name: String,
+        r1: BytecodeRegister,
+        r2: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
         self.write("${name} ${reg(r1)}, ${reg(r2)}, ${cp(idx)}");
     }
 
@@ -548,20 +631,39 @@ impl BytecodeDumper for HtmlBytecodeDumper {
         self.write("${name} ${reg(r1)}");
     }
 
-    fn emit_reg1_and_int(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, value: Int32) {
+    fn emit_reg1_and_int(
+        inst: BytecodeInstructionInfo,
+        name: String,
+        r1: BytecodeRegister,
+        value: Int32,
+    ) {
         self.write("${name} ${reg(r1)}, ${value}");
     }
 
-    fn emit_reg1_and_idx(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, idx: ConstPoolId) {
+    fn emit_reg1_and_idx(
+        inst: BytecodeInstructionInfo,
+        name: String,
+        r1: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
         self.write("${name} ${reg(r1)}, ${cp(idx)}");
     }
 
-    fn emit_conditional_jump(inst: BytecodeInstructionInfo, name: String, r: BytecodeRegister, offset: Int32) {
+    fn emit_conditional_jump(
+        inst: BytecodeInstructionInfo,
+        name: String,
+        r: BytecodeRegister,
+        offset: Int32,
+    ) {
         let target = inst.start + offset.to_int64();
         self.write("${name} ${reg(r)}, ${bc_inst_ref(target)} (+${offset})");
     }
 
-    fn emit_switch(inst: BytecodeInstructionInfo, opnd: BytecodeRegister, idx: ConstPoolId) {
+    fn emit_switch(
+        inst: BytecodeInstructionInfo,
+        opnd: BytecodeRegister,
+        idx: ConstPoolId,
+    ) {
         self.write("Switch ${reg(opnd)}, ${cp(idx)}");
     }
 
@@ -575,31 +677,64 @@ impl BytecodeDumper for HtmlBytecodeDumper {
         self.write("${name} ${bc_inst_ref(target)} (+${offset})");
     }
 
-    fn emit_global(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, gid: GlobalId) {
+    fn emit_global(
+        inst: BytecodeInstructionInfo,
+        name: String,
+        r1: BytecodeRegister,
+        gid: GlobalId,
+    ) {
         self.write("${name} ${reg(r1)}, ${gid}");
     }
 
-    fn emit_const(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister, cid: ConstId) {
+    fn emit_const(
+        inst: BytecodeInstructionInfo,
+        name: String,
+        r1: BytecodeRegister,
+        cid: ConstId,
+    ) {
         self.write("${name} ${reg(r1)}, ${cid}");
     }
 
-    fn emit_invoke(inst: BytecodeInstructionInfo, name: String, dest: BytecodeRegister, idx: ConstPoolId, arguments: Array[BytecodeRegister]) {
+    fn emit_invoke(
+        inst: BytecodeInstructionInfo,
+        name: String,
+        dest: BytecodeRegister,
+        idx: ConstPoolId,
+        arguments: Array[BytecodeRegister],
+    ) {
         let mut result = "${name} ${reg(dest)}, ${cp(idx)}";
         for arg in arguments {
             result = "${result}, ${reg(arg)}";
         }
-        result = "${result} # ${escape_html(format_const_pool_entry(self.bc.const_pool_entry(idx)))}";
+        result =
+        "${result} # ${escape_html(
+            format_const_pool_entry(self.bc.const_pool_entry(idx))
+        )}";
         self.write(result);
     }
 }
 
 fn format_const_pool_entry(entry: ConstPoolEntry): String {
     match entry {
-        ConstPoolEntry::Fct(id, type_params) => "Fct ${get_function_display_name_with_type_params(id, type_params)}",
-        ConstPoolEntry::TraitObjectMethod(ty, id) => "TraitObjectMethod ${ty} ${get_function_display_name(id)}",
-        ConstPoolEntry::Generic(object_type = object_type, trait_ty = trait_ty, fct_id = fct_id, fct_type_params = fct_type_params) => {
-            "Generic ${get_function_display_name_with_type_params(fct_id, fct_type_params)} on ${object_type} as Trait ${trait_ty.trait_id}${trait_ty.type_params}"
-        },
+        ConstPoolEntry::Fct(
+            id,
+            type_params,
+        ) => "Fct ${get_function_display_name_with_type_params(id, type_params)}",
+        ConstPoolEntry::TraitObjectMethod(
+            ty,
+            id,
+        ) => "TraitObjectMethod ${ty} ${get_function_display_name(id)}",
+        ConstPoolEntry::Generic(
+            object_type = object_type,
+            trait_ty = trait_ty,
+            fct_id = fct_id,
+            fct_type_params = fct_type_params,
+        ) => {
+            "Generic ${get_function_display_name_with_type_params(
+                fct_id,
+                fct_type_params,
+            )} on ${object_type} as Trait ${trait_ty.trait_id}${trait_ty.type_params}"
+        }
         _ => "${entry}",
     }
 }
@@ -628,16 +763,18 @@ fn location(loc: Location): String {
                 Architecture::X64 => register_name_on_x64(reg),
             };
 
-            "<span class=\"cpu-reg${reg.0} register-use cpu-register-use selectable\">${name}</span>"
-        },
+            "<span class=\"cpu-reg${reg
+                .0} register-use cpu-register-use selectable\">${name}</span>"
+        }
         Location::FloatReg(reg) => {
             let name = match config.architecture {
                 Architecture::Arm64 => float_register_name_on_arm64(reg),
                 Architecture::X64 => float_register_name_on_x64(reg),
             };
 
-            "<span class=\"cpu-freg${reg.0} register-use cpu-register-use selectable\">${name}</span>"
-        },
+            "<span class=\"cpu-freg${reg
+                .0} register-use cpu-register-use selectable\">${name}</span>"
+        }
 
         Location::Stack(slot) => {
             if slot.is_fp() {
@@ -645,7 +782,7 @@ fn location(loc: Location): String {
             } else {
                 "SP:${slot.get_offset()}"
             }
-        },
+        }
 
         Location::None => "NONE",
     }

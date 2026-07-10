@@ -65,7 +65,11 @@ impl LateEscapeAnalysisPass {
 
 fn is_store_op(op: Op): Bool {
     match op {
-        Op::Store | Op::StoreWb | Op::StoreArray | Op::StoreArrayWb | Op::StoreArrayAddressWb => true,
+        Op::Store
+        | Op::StoreWb
+        | Op::StoreArray
+        | Op::StoreArrayWb
+        | Op::StoreArrayAddressWb => true,
         _ => false,
     }
 }

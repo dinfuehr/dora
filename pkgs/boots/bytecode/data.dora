@@ -3,7 +3,16 @@ use std::StringBuffer;
 use std::Equals;
 use std::Hash;
 
-use package::bytecode::{AliasId, ClassId, ClassFieldId, EnumId, FunctionId, StructId, StructFieldId, TraitId};
+use package::bytecode::{
+    AliasId,
+    ClassFieldId,
+    ClassId,
+    EnumId,
+    FunctionId,
+    StructFieldId,
+    StructId,
+    TraitId,
+};
 use package::bytecode::opcode as opc;
 use package::graph::Block;
 
@@ -17,11 +26,12 @@ pub class BytecodeFunction {
 
 impl BytecodeFunction {
     static fn new(
-            code: Array[UInt8],
-            const_pool: Array[ConstPoolEntry],
-            registers: Array[BytecodeType],
-            locations: Array[(Int32, Location)],
-            arguments: Int32): BytecodeFunction {
+        code: Array[UInt8],
+        const_pool: Array[ConstPoolEntry],
+        registers: Array[BytecodeType],
+        locations: Array[(Int32, Location)],
+        arguments: Int32,
+    ): BytecodeFunction {
         BytecodeFunction(code, const_pool, registers, locations, arguments)
     }
 
@@ -35,9 +45,9 @@ impl BytecodeFunction {
 
     pub fn code_int32_at(idx: Int32): Int32 {
         let byte1 = self.code_at(idx);
-        let byte2 = self.code_at(idx+1i32);
-        let byte3 = self.code_at(idx+2i32);
-        let byte4 = self.code_at(idx+3i32);
+        let byte2 = self.code_at(idx + 1i32);
+        let byte3 = self.code_at(idx + 2i32);
+        let byte4 = self.code_at(idx + 3i32);
 
         (byte4 << 24i32) | (byte3 << 16i32) | (byte2 << 8i32) | byte1
     }
@@ -57,13 +67,13 @@ impl BytecodeFunction {
 
         while i < size {
             if at < self.locations(i).0 {
-                return self.locations(i-1).1;
+                return self.locations(i - 1).1;
             }
 
             i = i + 1;
         }
 
-        self.locations(size-1).1
+        self.locations(size - 1).1
     }
 }
 
@@ -78,7 +88,12 @@ pub enum ConstPoolEntry {
     ClassField(ClassId, Array[BytecodeType], ClassFieldId),
     Fct(FunctionId, Array[BytecodeType]),
     TraitObjectMethod(BytecodeType, FunctionId),
-    Generic { object_type: BytecodeType, trait_ty: BytecodeTraitType, fct_id: FunctionId, fct_type_params: Array[BytecodeType] },
+    Generic {
+        object_type: BytecodeType,
+        trait_ty: BytecodeTraitType,
+        fct_id: FunctionId,
+        fct_type_params: Array[BytecodeType],
+    },
     Enum(EnumId, Array[BytecodeType]),
     EnumVariant(EnumId, Array[BytecodeType], Int32),
     EnumElement(EnumId, Array[BytecodeType], Int32, Int32),
@@ -88,7 +103,10 @@ pub enum ConstPoolEntry {
     TupleElement(BytecodeType, Int32),
     Tuple(Array[BytecodeType]),
     Lambda(Array[BytecodeType], BytecodeType),
-    JumpTable { targets: Array[Int32], default: Int32 },
+    JumpTable {
+        targets: Array[Int32],
+        default: Int32,
+    },
 }
 
 impl ConstPoolEntry {
@@ -145,16 +163,36 @@ impl Stringable for ConstPoolEntry {
             ConstPoolEntry::Char(value) => "Char ${value}",
             ConstPoolEntry::String(value) => "String ${value}",
             ConstPoolEntry::Class(id, type_params) => "Class ${id}${type_params}",
-            ConstPoolEntry::ClassField(id, type_params, field_id) => "Field ${id}${type_params}.${field_id}",
+            ConstPoolEntry::ClassField(
+                id,
+                type_params,
+                field_id,
+            ) => "Field ${id}${type_params}.${field_id}",
             ConstPoolEntry::Fct(id, type_params) => "Fct ${id}${type_params}",
             ConstPoolEntry::TraitObjectMethod(ty, id) => "TraitObjectMethod ${ty} ${id}",
             ConstPoolEntry::Generic(..) => unimplemented[String](),
             ConstPoolEntry::Enum(id, type_params) => "Enum ${id}${type_params}",
-            ConstPoolEntry::EnumVariant(id, type_params, variant) => "EnumVariant ${id}${type_params}::${variant}",
-            ConstPoolEntry::EnumElement(id, type_params, variant, element) => "EnumVariant ${id}${type_params}::${variant}.${element}",
+            ConstPoolEntry::EnumVariant(
+                id,
+                type_params,
+                variant,
+            ) => "EnumVariant ${id}${type_params}::${variant}",
+            ConstPoolEntry::EnumElement(
+                id,
+                type_params,
+                variant,
+                element,
+            ) => "EnumVariant ${id}${type_params}::${variant}.${element}",
             ConstPoolEntry::Struct(id, type_params) => "Struct ${id}${type_params}",
-            ConstPoolEntry::StructField(id, type_params, field_id) => "StructField ${id}${type_params}.${field_id}",
-            ConstPoolEntry::TraitObject(trait_ty, actual_object_ty) => "Trait ${trait_ty}.${actual_object_ty}",
+            ConstPoolEntry::StructField(
+                id,
+                type_params,
+                field_id,
+            ) => "StructField ${id}${type_params}.${field_id}",
+            ConstPoolEntry::TraitObject(
+                trait_ty,
+                actual_object_ty,
+            ) => "Trait ${trait_ty}.${actual_object_ty}",
             ConstPoolEntry::TupleElement(ty, idx) => "TupleElement ${ty}.${idx}",
             ConstPoolEntry::Tuple(types) => "Tuple ${types}",
             ConstPoolEntry::Lambda(params, ret) => "Lambda ${params}:${ret}",
@@ -190,7 +228,9 @@ impl Hash for BytecodeRegister {
 }
 
 impl Stringable for BytecodeRegister {
-    fn to_string(): String { "r${self.0}" }
+    fn to_string(): String {
+        "r${self.0}"
+    }
 }
 
 pub struct ConstPoolId(pub Int32)
@@ -221,7 +261,11 @@ pub enum BytecodeType {
     TypeParam(Int32),
     Lambda(Array[BytecodeType], BytecodeType),
     TypeAlias(AliasId),
-    Assoc { ty: BytecodeType, trait_ty: BytecodeTraitType, assoc_id: AliasId },
+    Assoc {
+        ty: BytecodeType,
+        trait_ty: BytecodeTraitType,
+        assoc_id: AliasId,
+    },
 }
 
 impl BytecodeType {
@@ -255,7 +299,11 @@ impl BytecodeType {
             BytecodeType::Struct(struct_id, type_params) => type_params.is_generic(),
             BytecodeType::Enum(enum_id, type_params) => type_params.is_generic(),
             BytecodeType::Class(class_id, type_params) => type_params.is_generic(),
-            BytecodeType::TraitObject(trait_id, type_params, _assocTypes) => type_params.is_generic(),
+            BytecodeType::TraitObject(
+                trait_id,
+                type_params,
+                _assocTypes,
+            ) => type_params.is_generic(),
             BytecodeType::Tuple(subtypes) => subtypes.is_generic(),
             BytecodeType::TypeParam(idx) => true,
             BytecodeType::Lambda(params, ret) => params.is_generic() || ret.is_generic(),
@@ -374,28 +422,43 @@ impl Equals for BytecodeType {
 
             BytecodeType::Struct(id, type_params) => {
                 match other {
-                    BytecodeType::Struct(other_id, other_type_params) => id == other_id && type_params == other_type_params,
+                    BytecodeType::Struct(
+                        other_id,
+                        other_type_params,
+                    ) => id == other_id && type_params == other_type_params,
                     _ => false,
                 }
             }
 
             BytecodeType::Enum(id, type_params) => {
                 match other {
-                    BytecodeType::Enum(other_id, other_type_params) => id == other_id && type_params == other_type_params,
+                    BytecodeType::Enum(
+                        other_id,
+                        other_type_params,
+                    ) => id == other_id && type_params == other_type_params,
                     _ => false,
                 }
             }
 
             BytecodeType::Class(id, type_params) => {
                 match other {
-                    BytecodeType::Class(other_id, other_type_params) => id == other_id && type_params == other_type_params,
+                    BytecodeType::Class(
+                        other_id,
+                        other_type_params,
+                    ) => id == other_id && type_params == other_type_params,
                     _ => false,
                 }
             }
 
             BytecodeType::TraitObject(id, type_params, assoc_types) => {
                 match other {
-                    BytecodeType::TraitObject(other_id, other_type_params, other_assoc_types) => id == other_id && type_params == other_type_params && assoc_types == other_assoc_types,
+                    BytecodeType::TraitObject(
+                        other_id,
+                        other_type_params,
+                        other_assoc_types,
+                    ) => id == other_id &&
+                    type_params == other_type_params &&
+                    assoc_types == other_assoc_types,
                     _ => false,
                 }
             }
@@ -416,7 +479,10 @@ impl Equals for BytecodeType {
 
             BytecodeType::Lambda(params, ret) => {
                 match other {
-                    BytecodeType::Lambda(other_params, other_ret) => params == other_params && ret == other_ret,
+                    BytecodeType::Lambda(
+                        other_params,
+                        other_ret,
+                    ) => params == other_params && ret == other_ret,
                     _ => false,
                 }
             }
@@ -447,10 +513,26 @@ impl Hash for BytecodeType {
             BytecodeType::Float32 => opc::BYTECODE_TYPE_FLOAT32,
             BytecodeType::Float64 => opc::BYTECODE_TYPE_FLOAT64,
             BytecodeType::This => opc::BYTECODE_TYPE_THIS,
-            BytecodeType::Struct(id, type_params) => opc::BYTECODE_TYPE_STRUCT ^ id.hash() ^ type_params.hash(),
-            BytecodeType::Enum(id, type_params) => opc::BYTECODE_TYPE_ENUM ^ id.hash() ^ type_params.hash(),
-            BytecodeType::Class(id, type_params) => opc::BYTECODE_TYPE_CLASS ^ id.hash() ^ type_params.hash(),
-            BytecodeType::TraitObject(id, type_params, assoc_types) => opc::BYTECODE_TYPE_TRAIT_OBJECT ^ id.hash() ^ type_params.hash() ^ assoc_types.hash(),
+            BytecodeType::Struct(
+                id,
+                type_params,
+            ) => opc::BYTECODE_TYPE_STRUCT ^ id.hash() ^ type_params.hash(),
+            BytecodeType::Enum(
+                id,
+                type_params,
+            ) => opc::BYTECODE_TYPE_ENUM ^ id.hash() ^ type_params.hash(),
+            BytecodeType::Class(
+                id,
+                type_params,
+            ) => opc::BYTECODE_TYPE_CLASS ^ id.hash() ^ type_params.hash(),
+            BytecodeType::TraitObject(
+                id,
+                type_params,
+                assoc_types,
+            ) => opc::BYTECODE_TYPE_TRAIT_OBJECT ^
+            id.hash() ^
+            type_params.hash() ^
+            assoc_types.hash(),
             BytecodeType::Tuple(subtypes) => opc::BYTECODE_TYPE_TUPLE ^ subtypes.hash(),
             BytecodeType::TypeParam(id) => opc::BYTECODE_TYPE_TYPE_PARAM ^ id,
             BytecodeType::Lambda(params, ret) => params.hash() ^ ret.hash(),
@@ -477,7 +559,11 @@ impl Stringable for BytecodeType {
             BytecodeType::Struct(id, params) => "Struct(${id}, ${params})",
             BytecodeType::Enum(id, params) => "Enum(${id}, ${params})",
             BytecodeType::Class(id, params) => "Class(${id}, ${params})",
-            BytecodeType::TraitObject(id, params, assoc) => "TraitObject(${id}, ${params}, ${assoc})",
+            BytecodeType::TraitObject(
+                id,
+                params,
+                assoc,
+            ) => "TraitObject(${id}, ${params}, ${assoc})",
             BytecodeType::Tuple(types) => "Tuple(${types})",
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
             BytecodeType::Lambda(params, ty) => "Lambda(${params}, ${ty})",
@@ -489,6 +575,7 @@ impl Stringable for BytecodeType {
 
 pub trait BytecodeTypeArrayExt {
     fn is_generic(): Bool;
+
     fn append(other: Array[BytecodeType]): Array[BytecodeType];
 }
 
@@ -504,7 +591,10 @@ impl BytecodeTypeArrayExt for Array[BytecodeType] {
     }
 
     fn append(other: Array[BytecodeType]): Array[BytecodeType] {
-        let result = Array[BytecodeType]::fill(self.size() + other.size(), BytecodeType::Unit);
+        let result = Array[BytecodeType]::fill(
+            self.size() + other.size(),
+            BytecodeType::Unit,
+        );
         let mut target = 0;
 
         for value in self {

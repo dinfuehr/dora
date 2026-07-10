@@ -1,28 +1,110 @@
-use package::bytecode::{ConstPoolId, FunctionId, BytecodeType};
+use package::bytecode::{BytecodeType, ConstPoolId, FunctionId};
 use package::compilation::CompilationInfo;
-use package::interface::{AotShapeKey, Architecture, config, InlinedFunction, JumpTable};
-use package::interface::{THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET, THREAD_LOCAL_DATA_STATE_OFFSET, THREAD_LOCAL_DATA_MARKING_OFFSET, THREAD_LOCAL_DATA_SHAPE_BASE_OFFSET, OBJECT_HEADER_LENGTH, OBJECT_METADATA_OFFSET, METADATA_REMEMBERED_BIT, ARRAY_HEADER_LENGTH, LAMBDA_SIZE};
-use package::interface::{THREAD_LOCAL_DATA_TLAB_TOP_OFFSET, THREAD_LOCAL_DATA_TLAB_END_OFFSET, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET};
-use package::interface::{PTR_SIZE, GLOBAL_STATE_INITIALIZED, InlinedLocation, InlinedFunctionId};
+use package::interface::{AotShapeKey, Architecture, InlinedFunction, JumpTable, config};
+use package::interface::{
+    ARRAY_HEADER_LENGTH,
+    LAMBDA_SIZE,
+    METADATA_REMEMBERED_BIT,
+    OBJECT_HEADER_LENGTH,
+    OBJECT_METADATA_OFFSET,
+    THREAD_LOCAL_DATA_MARKING_OFFSET,
+    THREAD_LOCAL_DATA_SHAPE_BASE_OFFSET,
+    THREAD_LOCAL_DATA_STACK_LIMIT_OFFSET,
+    THREAD_LOCAL_DATA_STATE_OFFSET,
+};
+use package::interface::{
+    THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET,
+    THREAD_LOCAL_DATA_TLAB_END_OFFSET,
+    THREAD_LOCAL_DATA_TLAB_TOP_OFFSET,
+};
+use package::interface::{
+    GLOBAL_STATE_INITIALIZED,
+    InlinedFunctionId,
+    InlinedLocation,
+    PTR_SIZE,
+};
 use package::interface as iface;
-use package::codegen::{CODE_SIZE_ALIGNMENT, CodeGen, EmbeddedConstant, compute_offsets_in_live_set, get_live_values_without_current_inst, get_register_snapshot_without};
+use package::codegen::{
+    CODE_SIZE_ALIGNMENT,
+    CodeGen,
+    EmbeddedConstant,
+    compute_offsets_in_live_set,
+    get_live_values_without_current_inst,
+    get_register_snapshot_without,
+};
 use package::assembler::arm64;
-use package::assembler::arm64::{F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, F13, F14, F15, F31};
-use package::assembler::arm64::{AssemblerArm64, Cond, Extend, Shift, register_name, fits_movz, fits_movn};
+use package::assembler::arm64::{
+    F0,
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
+    F13,
+    F14,
+    F15,
+    F31,
+};
+use package::assembler::arm64::{
+    AssemblerArm64,
+    Cond,
+    Extend,
+    Shift,
+    fits_movn,
+    fits_movz,
+    register_name,
+};
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7};
 use package::assembler::arm64::{R8, R9, R10, R11, R12, R13, R14};
 use package::assembler::arm64::{R15, R16, R19, R20, R21, R22, R23};
 use package::assembler::arm64::{R24, R25, R26, R27, R28};
-use package::assembler::arm64::{REG_FP, REG_SP, REG_LR, REG_ZERO};
+use package::assembler::arm64::{REG_FP, REG_LR, REG_SP, REG_ZERO};
 use package::assembler::{FloatRegister, Label, RegSet, Register};
-use package::graph::{Block, Graph, InputOutputOverlap, Inst, InstSet, Op, Location, LocationData, RegisterSnapshot, RegisterTrackers, Type};
+use package::graph::{
+    Block,
+    Graph,
+    InputOutputOverlap,
+    Inst,
+    InstSet,
+    Location,
+    LocationData,
+    Op,
+    RegisterSnapshot,
+    RegisterTrackers,
+    Type,
+};
 use package::regalloc::is_reference;
-use package::location::{ArgumentLocations, use_input_float_register_fixed, use_input_register, use_input_float_register, use_input_register_fixed, use_output_register, use_output_float_register, set_output_overlaps};
+use package::location::{
+    ArgumentLocations,
+    set_output_overlaps,
+    use_input_float_register,
+    use_input_float_register_fixed,
+    use_input_register,
+    use_input_register_fixed,
+    use_output_float_register,
+    use_output_register,
+};
 use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LocationTable};
-use package::interface::{Arm64LoadWidth, RelocationEntry, RelocationForm, RelocationKind, RelocationTable, RuntimeFunction};
+use package::interface::{
+    Arm64LoadWidth,
+    RelocationEntry,
+    RelocationForm,
+    RelocationKind,
+    RelocationTable,
+    RuntimeFunction,
+};
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
-let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(F0, F1, F2, F3, F4, F5, F6, F7);
+let FLOAT_REG_PARAMS: Array[
+    FloatRegister
+] = Array[FloatRegister]::new(F0, F1, F2, F3, F4, F5, F6, F7);
 
 let CCALL_REG_PARAMS: Array[Register] = REG_PARAMS;
 
@@ -31,10 +113,21 @@ let REG_TEMP2: Register = R27;
 let FREG_TEMP: FloatRegister = F31;
 let REG_THREAD: Register = R28;
 
-let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
-    R0 , R1 , R2 , R3 ,
-    R4 , R5 , R6 , R7 ,
-    R8 , R9 , R10, R11,
+let ALLOCATABLE_REGS: RegSet[
+    Register
+] = RegSet[Register]::new(
+    R0,
+    R1,
+    R2,
+    R3,
+    R4,
+    R5,
+    R6,
+    R7,
+    R8,
+    R9,
+    R10,
+    R11,
     // R12, R13, R14, R15, (disabled for testing for now)
     //                R19, (disabled for testing for now)
     // R16 is REG_TEMP
@@ -51,13 +144,13 @@ let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
 // Only use 10 registers for now for testing (otherwise 31).
 let ALLOCATABLE_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::first_n(10i32);
 
-let CALLEE_SAVED_REGS: RegSet[Register] = RegSet[Register]::new(
-    R19, R20, R21, R22, R23, R24, R25, R26, R27, R28
-);
+let CALLEE_SAVED_REGS: RegSet[
+    Register
+] = RegSet[Register]::new(R19, R20, R21, R22, R23, R24, R25, R26, R27, R28);
 
-let CALLEE_SAVED_FREGS: RegSet[FloatRegister] = RegSet[FloatRegister]::new(
-    F8, F9, F10, F11, F12, F13, F14, F15,
-);
+let CALLEE_SAVED_FREGS: RegSet[
+    FloatRegister
+] = RegSet[FloatRegister]::new(F8, F9, F10, F11, F12, F13, F14, F15);
 
 pub class CodeGenArm64 {
     ci: CompilationInfo,
@@ -110,25 +203,43 @@ impl CodeGenArm64 {
         self.emit_relocation(offset, target, RelocationForm::Arm64Branch26);
     }
 
-    fn emit_adrp_ldr_relocation(offset: Int32, target: RelocationKind, reg: Register, width: Arm64LoadWidth) {
+    fn emit_adrp_ldr_relocation(
+        offset: Int32,
+        target: RelocationKind,
+        reg: Register,
+        width: Arm64LoadWidth,
+    ) {
         let reg = reg.0.to_int32();
         self.emit_relocation(
             offset,
             target,
-            RelocationForm::Arm64AdrpLdr(page_reg = reg, base_reg = reg, dst_reg = reg, width = width),
+            RelocationForm::Arm64AdrpLdr(
+                page_reg = reg,
+                base_reg = reg,
+                dst_reg = reg,
+                width = width,
+            ),
         );
     }
 
     fn emit_adrp_add_relocation(offset: Int32, target: RelocationKind, reg: Register) {
         let reg = reg.0.to_int32();
-        self.emit_relocation(offset, target, RelocationForm::Arm64AdrpAdd(page_reg = reg, base_reg = reg, dst_reg = reg));
+        self.emit_relocation(
+            offset,
+            target,
+            RelocationForm::Arm64AdrpAdd(page_reg = reg, base_reg = reg, dst_reg = reg),
+        );
     }
 
     fn load_shape(shape_reg: Register, base_reg: Register, shape_key: AotShapeKey) {
         let pos = self.asm.position();
         self.asm.adrp_imm(shape_reg, 0);
         self.asm.add_imm(shape_reg, shape_reg, 0i32);
-        self.emit_adrp_add_relocation(pos, RelocationKind::ShapeAddress(shape_key), shape_reg);
+        self.emit_adrp_add_relocation(
+            pos,
+            RelocationKind::ShapeAddress(shape_key),
+            shape_reg,
+        );
 
         let pos = self.asm.position();
         self.asm.adrp_imm(base_reg, 0);
@@ -142,14 +253,20 @@ impl CodeGenArm64 {
         self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
         let pos = self.asm.position();
         self.asm.bl_imm(0i32);
-        self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::TrapTrampoline));
+        self.emit_branch_relocation(
+            pos,
+            RelocationKind::RuntimeFunction(RuntimeFunction::TrapTrampoline),
+        );
         self.locations.insert(self.asm.position(), inlined_location);
     }
 
     fn emit_runtime_function_call(runtime_function: RuntimeFunction) {
         let pos = self.asm.position();
         self.asm.bl_imm(0i32);
-        self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(runtime_function));
+        self.emit_branch_relocation(
+            pos,
+            RelocationKind::RuntimeFunction(runtime_function),
+        );
     }
 
     fn mov_imm(dest: Register, imm: Int64) {
@@ -301,12 +418,18 @@ impl CodeGenArm64 {
             }
         }
 
-        self.deferred.push(|| {
-            let op = if is_div { "CheckedDiv" } else { "CheckedMod" };
-            self.emit_comment("slow path for ${op} overflow");
-            self.asm.bind_label(lbl_overflow);
-            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
-        });
+        self.deferred.push(
+            || {
+                let op = if is_div {
+                    "CheckedDiv"
+                } else {
+                    "CheckedMod"
+                };
+                self.emit_comment("slow path for ${op} overflow");
+                self.asm.bind_label(lbl_overflow);
+                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
+            }
+        );
     }
 
     fn emit_is_div_mod_overflowing_common(inst: Inst) {
@@ -334,7 +457,13 @@ impl CodeGenArm64 {
         }
     }
 
-    fn emit_write_barrier(host: Register, value: Register, scratch: Register, snapshot: RegisterTrackers, live: InstSet) {
+    fn emit_write_barrier(
+        host: Register,
+        value: Register,
+        scratch: Register,
+        snapshot: RegisterTrackers,
+        live: InstSet,
+    ) {
         let lbl_object_slow_path = self.asm.create_label();
         let lbl_marking_slow_path = self.asm.create_label();
 
@@ -345,29 +474,46 @@ impl CodeGenArm64 {
         self.asm.tbz(scratch, METADATA_REMEMBERED_BIT, lbl_object_slow_path);
         let lbl_return = self.asm.create_and_bind_label();
 
-        self.deferred.push(|| {
-            self.emit_comment("marking barrier slow path");
-            self.asm.bind_label(lbl_marking_slow_path);
-            self.asm.brk(0i32);
-            self.asm.b(lbl_return);
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("marking barrier slow path");
+                self.asm.bind_label(lbl_marking_slow_path);
+                self.asm.brk(0i32);
+                self.asm.b(lbl_return);
+            }
+        );
 
-        self.deferred.push(|| {
-            self.emit_comment("object barrier slow path");
-            self.asm.bind_label(lbl_object_slow_path);
-            self.asm.cbz(value, lbl_return);
-            self.save_registers_for_call(snapshot, live);
-            self.asm.mov(CCALL_REG_PARAMS(0), host);
-            self.asm.mov(CCALL_REG_PARAMS(1), value);
-            let pos = self.asm.position();
-            self.asm.bl_imm(0i32);
-            self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::WriteBarrierSlowPath));
-            self.restore_registers_for_call(snapshot);
-            self.asm.b(lbl_return);
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("object barrier slow path");
+                self.asm.bind_label(lbl_object_slow_path);
+                self.asm.cbz(value, lbl_return);
+                self.save_registers_for_call(snapshot, live);
+                self.asm.mov(CCALL_REG_PARAMS(0), host);
+                self.asm.mov(CCALL_REG_PARAMS(1), value);
+                let pos = self.asm.position();
+                self.asm.bl_imm(0i32);
+                self.emit_branch_relocation(
+                    pos,
+                    RelocationKind::RuntimeFunction(
+                        RuntimeFunction::WriteBarrierSlowPath
+                    ),
+                );
+                self.restore_registers_for_call(snapshot);
+                self.asm.b(lbl_return);
+            }
+        );
     }
 
-    fn emit_object_allocate(obj: Register, size: Int32, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: InlinedLocation) {
+    fn emit_object_allocate(
+        obj: Register,
+        size: Int32,
+        tmp1: Register,
+        tmp2: Register,
+        snapshot: RegisterTrackers,
+        live: InstSet,
+        location: InlinedLocation,
+    ) {
         let lbl_alloc_slow_path = self.asm.create_label();
 
         self.asm.ldr_imm(obj, REG_THREAD, THREAD_LOCAL_DATA_TLAB_TOP_OFFSET);
@@ -380,24 +526,39 @@ impl CodeGenArm64 {
 
         let lbl_return = self.asm.create_and_bind_label();
 
-        self.deferred.push(|| {
-            self.emit_comment("object allocation slow path");
-            self.asm.bind_label(lbl_alloc_slow_path);
-            let gc_point = self.save_registers_for_call(snapshot, live);
-            self.mov_imm(CCALL_REG_PARAMS(0), size.to_int64());
-            let pos = self.asm.position();
-            self.asm.bl_imm(0i32);
-            self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::AllocationSlowTrampoline));
-            let pos = self.asm.position();
-            self.gc_points.insert(pos, gc_point);
-            self.locations.insert(pos, location);
-            self.asm.mov(obj, R0);
-            self.restore_registers_for_call(snapshot);
-            self.asm.b(lbl_return);
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("object allocation slow path");
+                self.asm.bind_label(lbl_alloc_slow_path);
+                let gc_point = self.save_registers_for_call(snapshot, live);
+                self.mov_imm(CCALL_REG_PARAMS(0), size.to_int64());
+                let pos = self.asm.position();
+                self.asm.bl_imm(0i32);
+                self.emit_branch_relocation(
+                    pos,
+                    RelocationKind::RuntimeFunction(
+                        RuntimeFunction::AllocationSlowTrampoline
+                    ),
+                );
+                let pos = self.asm.position();
+                self.gc_points.insert(pos, gc_point);
+                self.locations.insert(pos, location);
+                self.asm.mov(obj, R0);
+                self.restore_registers_for_call(snapshot);
+                self.asm.b(lbl_return);
+            }
+        );
     }
 
-    fn emit_array_allocate(obj: Register, size: Register, tmp1: Register, tmp2: Register, snapshot: RegisterTrackers, live: InstSet, location: InlinedLocation) {
+    fn emit_array_allocate(
+        obj: Register,
+        size: Register,
+        tmp1: Register,
+        tmp2: Register,
+        snapshot: RegisterTrackers,
+        live: InstSet,
+        location: InlinedLocation,
+    ) {
         let lbl_alloc_slow_path = self.asm.create_label();
 
         if config.is_debug {
@@ -422,24 +583,36 @@ impl CodeGenArm64 {
 
         let lbl_return = self.asm.create_and_bind_label();
 
-        self.deferred.push(|| {
-            self.emit_comment("array allocation slow path");
-            self.asm.bind_label(lbl_alloc_slow_path);
-            let gc_point = self.save_registers_for_call(snapshot, live);
-            self.asm.mov(CCALL_REG_PARAMS(0), size);
-            let pos = self.asm.position();
-            self.asm.bl_imm(0i32);
-            self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::AllocationSlowTrampoline));
-            let pos = self.asm.position();
-            self.gc_points.insert(pos, gc_point);
-            self.locations.insert(pos, location);
-            self.asm.mov(obj, R0);
-            self.restore_registers_for_call(snapshot);
-            self.asm.b(lbl_return);
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("array allocation slow path");
+                self.asm.bind_label(lbl_alloc_slow_path);
+                let gc_point = self.save_registers_for_call(snapshot, live);
+                self.asm.mov(CCALL_REG_PARAMS(0), size);
+                let pos = self.asm.position();
+                self.asm.bl_imm(0i32);
+                self.emit_branch_relocation(
+                    pos,
+                    RelocationKind::RuntimeFunction(
+                        RuntimeFunction::AllocationSlowTrampoline
+                    ),
+                );
+                let pos = self.asm.position();
+                self.gc_points.insert(pos, gc_point);
+                self.locations.insert(pos, location);
+                self.asm.mov(obj, R0);
+                self.restore_registers_for_call(snapshot);
+                self.asm.b(lbl_return);
+            }
+        );
     }
 
-    fn emit_object_initialization(obj: Register, size: Int32, shape_key: AotShapeKey, tmp: Register) {
+    fn emit_object_initialization(
+        obj: Register,
+        size: Int32,
+        shape_key: AotShapeKey,
+        tmp: Register,
+    ) {
         let mut metadata_part = 0xFF_FF_FF_FCi32;
 
         if size < iface::LARGE_OBJECT_SIZE {
@@ -455,11 +628,21 @@ impl CodeGenArm64 {
         if size > OBJECT_HEADER_LENGTH {
             assert(size % PTR_SIZE == 0i32);
             self.asm.add_imm(tmp, obj, OBJECT_HEADER_LENGTH);
-            self.zero_memory(tmp, (size.to_int64() - OBJECT_HEADER_LENGTH.to_int64()) / PTR_SIZE.to_int64());
+            self.zero_memory(
+                tmp,
+                (size.to_int64() - OBJECT_HEADER_LENGTH.to_int64()) / PTR_SIZE.to_int64(),
+            );
         }
     }
 
-    fn emit_array_initialization(obj: Register, size: Register, length: Register, shape_key: AotShapeKey, tmp1: Register, tmp2: Register) {
+    fn emit_array_initialization(
+        obj: Register,
+        size: Register,
+        length: Register,
+        shape_key: AotShapeKey,
+        tmp1: Register,
+        tmp2: Register,
+    ) {
         // Store shape word (lower 32 bits of header).
         self.load_shape(tmp1, tmp2, shape_key);
         self.asm.str_imm_w(tmp1, obj, 0i32);
@@ -639,7 +822,12 @@ impl CodeGenArm64 {
         }
     }
 
-    fn emit_call(fct_id: FunctionId, type_params: Array[BytecodeType], inlined_location: InlinedLocation, gc_point: GcPoint) {
+    fn emit_call(
+        fct_id: FunctionId,
+        type_params: Array[BytecodeType],
+        inlined_location: InlinedLocation,
+        gc_point: GcPoint,
+    ) {
         let pos = self.asm.position();
         self.asm.bl_imm(0i32);
         self.emit_branch_relocation(pos, RelocationKind::DirectCall(fct_id, type_params));
@@ -649,7 +837,13 @@ impl CodeGenArm64 {
         self.gc_points.insert(pos, gc_point);
     }
 
-    fn emit_virtual_call(obj: Register, tmp1: Register, tmp2: Register, inst: Inst, vtable_index: Int32) {
+    fn emit_virtual_call(
+        obj: Register,
+        tmp1: Register,
+        tmp2: Register,
+        inst: Inst,
+        vtable_index: Int32,
+    ) {
         self.asm.ldr_imm_w(tmp1, obj, 0i32);
 
         self.asm.ldr_imm(tmp2, REG_THREAD, THREAD_LOCAL_DATA_SHAPE_BASE_OFFSET);
@@ -747,15 +941,15 @@ impl CodeGenArm64 {
         match ty {
             Type::Bool | Type::UInt8 => {
                 self.ldrb(dest, src, offset);
-            },
+            }
 
             Type::Int32 => {
                 self.ldr_w(dest, src, offset);
-            },
+            }
 
             Type::Ptr | Type::Int64 | Type::Address => {
                 self.ldr(dest, src, offset);
-            },
+            }
 
             _ => {
                 unimplemented[()]();
@@ -934,16 +1128,18 @@ impl CodeGen for CodeGenArm64 {
         self.asm.cmp_ext(REG_SP, REG_TEMP, Extend::UXTX, 0i32);
         self.asm.bc(Cond::CC, lbl_stack_overflow);
 
-        self.deferred.push(|| {
-            self.emit_comment("slow path for stack limit check");
-            self.asm.bind_label(lbl_stack_overflow);
-            let iloc = InlinedLocation(
-                inlined_function_id = None[InlinedFunctionId],
-                location = self.ci.loc
-            );
-            self.emit_runtime_function_call(RuntimeFunction::StackOverflowTrampoline);
-            self.locations.insert(self.asm.position(), iloc);
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("slow path for stack limit check");
+                self.asm.bind_label(lbl_stack_overflow);
+                let iloc = InlinedLocation(
+                    inlined_function_id = None[InlinedFunctionId],
+                    location = self.ci.loc,
+                );
+                self.emit_runtime_function_call(RuntimeFunction::StackOverflowTrampoline);
+                self.locations.insert(self.asm.position(), iloc);
+            }
+        );
     }
 
     fn emit_comment(comment: String) {
@@ -1061,7 +1257,12 @@ impl CodeGen for CodeGenArm64 {
         let pos = self.asm.position();
         self.asm.adrp_imm(dest, 0);
         self.asm.ldr_imm(dest, dest, 0i32);
-        self.emit_adrp_ldr_relocation(pos, RelocationKind::StringConst(fct_id, const_pool_id), dest, Arm64LoadWidth::U64);
+        self.emit_adrp_ldr_relocation(
+            pos,
+            RelocationKind::StringConst(fct_id, const_pool_id),
+            dest,
+            Arm64LoadWidth::U64,
+        );
     }
 
     fn annotate_add(inst: Inst) {
@@ -1103,8 +1304,6 @@ impl CodeGen for CodeGenArm64 {
                 self.asm.add(output, lhs, rhs);
             }
         }
-
-
     }
 
     fn annotate_sub(inst: Inst) {
@@ -1465,11 +1664,13 @@ impl CodeGen for CodeGenArm64 {
 
         self.asm.bc(Cond::VS, lbl_overflow);
 
-        self.deferred.push(|| {
-            self.emit_comment("slow path for CheckedAdd overflow");
-            self.asm.bind_label(lbl_overflow);
-            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("slow path for CheckedAdd overflow");
+                self.asm.bind_label(lbl_overflow);
+                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
+            }
+        );
     }
 
     fn annotate_is_add_overflowing(inst: Inst) {
@@ -1539,11 +1740,13 @@ impl CodeGen for CodeGenArm64 {
 
         self.asm.bc(Cond::VS, lbl_overflow);
 
-        self.deferred.push(|| {
-            self.emit_comment("slow path for CheckedSub overflow");
-            self.asm.bind_label(lbl_overflow);
-            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("slow path for CheckedSub overflow");
+                self.asm.bind_label(lbl_overflow);
+                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
+            }
+        );
     }
 
     fn annotate_is_mul_overflowing(inst: Inst) {
@@ -1598,11 +1801,13 @@ impl CodeGen for CodeGenArm64 {
             self.asm.bc(Cond::NE, lbl_overflow);
         }
 
-        self.deferred.push(|| {
-            self.emit_comment("slow path for CheckedMul overflow");
-            self.asm.bind_label(lbl_overflow);
-            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("slow path for CheckedMul overflow");
+                self.asm.bind_label(lbl_overflow);
+                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
+            }
+        );
     }
 
     fn annotate_checked_div(inst: Inst) {
@@ -1672,11 +1877,13 @@ impl CodeGen for CodeGenArm64 {
         let lbl_failure = self.asm.create_label();
         self.asm.cbz(op, lbl_failure);
 
-        self.deferred.push(|| {
-            self.emit_comment("slow path for div-by-0 check");
-            self.asm.bind_label(lbl_failure);
-            self.trap(REG_TEMP, iface::TRAP_DIV0, inst.get_inlined_location());
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("slow path for div-by-0 check");
+                self.asm.bind_label(lbl_failure);
+                self.trap(REG_TEMP, iface::TRAP_DIV0, inst.get_inlined_location());
+            }
+        );
     }
 
     fn annotate_check_shift_amount(inst: Inst) {
@@ -1688,15 +1895,21 @@ impl CodeGen for CodeGenArm64 {
         let shift = loc.get_input(0).get_register();
 
         let lbl_failure = self.asm.create_label();
-        let max_shift = if inst.get_operation_type() == Type::Int64 { 64i32 } else { 32i32 };
+        let max_shift = if inst.get_operation_type() == Type::Int64 {
+            64i32
+        } else {
+            32i32
+        };
         self.asm.cmp_imm_w(shift, max_shift);
         self.asm.bc(Cond::HS, lbl_failure);
 
-        self.deferred.push(|| {
-            self.emit_comment("slow path for CheckShiftAmount");
-            self.asm.bind_label(lbl_failure);
-            self.trap(REG_TEMP, iface::TRAP_SHIFT, inst.get_inlined_location());
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("slow path for CheckShiftAmount");
+                self.asm.bind_label(lbl_failure);
+                self.trap(REG_TEMP, iface::TRAP_SHIFT, inst.get_inlined_location());
+            }
+        );
     }
 
     fn emit_checked_neg(inst: Inst) {
@@ -1715,11 +1928,13 @@ impl CodeGen for CodeGenArm64 {
 
         self.asm.bc(Cond::VS, lbl_overflow);
 
-        self.deferred.push(|| {
-            self.emit_comment("slow path for CheckedNeg overflow");
-            self.asm.bind_label(lbl_overflow);
-            self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("slow path for CheckedNeg overflow");
+                self.asm.bind_label(lbl_overflow);
+                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
+            }
+        );
     }
 
     fn emit_if(inst: Inst) {
@@ -1777,17 +1992,20 @@ impl CodeGen for CodeGenArm64 {
             if current_block.linear_order_idx + 1i32 == true_block.linear_order_idx {
                 self.asm.bc(condition.invert(), false_block.get_label());
             } else {
-                assert(current_block.linear_order_idx + 1i32 == false_block.linear_order_idx);
+                assert(
+                    current_block.linear_order_idx + 1i32 == false_block.linear_order_idx
+                );
                 self.asm.bc(condition, true_block.get_label());
             }
-
         } else {
             let opnd = loc.get_input(0).get_register();
 
             if current_block.linear_order_idx + 1i32 == true_block.linear_order_idx {
                 self.asm.cbz(opnd, false_block.get_label());
             } else {
-                assert(current_block.linear_order_idx + 1i32 == false_block.linear_order_idx);
+                assert(
+                    current_block.linear_order_idx + 1i32 == false_block.linear_order_idx
+                );
                 self.asm.cbnz(opnd, true_block.get_label());
             }
         }
@@ -1808,7 +2026,11 @@ impl CodeGen for CodeGenArm64 {
         let pos = self.asm.position();
         self.asm.adrp_imm(REG_TEMP, 0);
         self.asm.add_imm(REG_TEMP, REG_TEMP, 0i32);
-        self.emit_adrp_add_relocation(pos, RelocationKind::JumpTableAddress(table_id), REG_TEMP);
+        self.emit_adrp_add_relocation(
+            pos,
+            RelocationKind::JumpTableAddress(table_id),
+            REG_TEMP,
+        );
         self.asm.ldr_reg(REG_TEMP, REG_TEMP, opnd, Extend::LSL, 3i32);
         self.asm.b_r(REG_TEMP);
     }
@@ -1898,7 +2120,11 @@ impl CodeGen for CodeGenArm64 {
             // Spill
             assert(dest.is_stack());
             let slot = dest.get_stack();
-            let stack_reg = if slot.is_fp() { REG_FP } else { REG_SP };
+            let stack_reg = if slot.is_fp() {
+                REG_FP
+            } else {
+                REG_SP
+            };
             let offset = slot.get_offset();
 
             if src.is_float_register() {
@@ -1931,7 +2157,12 @@ impl CodeGen for CodeGenArm64 {
                 } else if ty == Type::Int32 || ty == Type::Float32 {
                     self.ldr_w(REG_TEMP2, REG_FP, src_offset);
                     self.str_w(REG_TEMP2, stack_reg, offset);
-                } else if ty == Type::Int64 || ty == Type::Ptr || ty == Type::Float64 || ty == Type::Address {
+                } else if (
+                    ty == Type::Int64 ||
+                    ty == Type::Ptr ||
+                    ty == Type::Float64 ||
+                    ty == Type::Address
+                ) {
                     self.ldr(REG_TEMP2, REG_FP, src_offset);
                     self.str(REG_TEMP2, stack_reg, offset);
                 } else {
@@ -1961,7 +2192,6 @@ impl CodeGen for CodeGenArm64 {
                 assert(ty == Type::Bool || ty == Type::UInt8);
                 self.ldrb(dest.get_register(), REG_FP, offset);
             }
-
         } else {
             assert(dest.is_float_register());
 
@@ -1982,7 +2212,11 @@ impl CodeGen for CodeGenArm64 {
 
         assert(dest.is_stack());
         let slot = dest.get_stack();
-        let stack_reg = if slot.is_fp() { REG_FP } else { REG_SP };
+        let stack_reg = if slot.is_fp() {
+            REG_FP
+        } else {
+            REG_SP
+        };
         let offset = slot.get_offset();
 
         if src.is_float_register() {
@@ -2042,7 +2276,8 @@ impl CodeGen for CodeGenArm64 {
 
                 Op::AllocateStack => {
                     let dest = loc.get_output().get_register();
-                    let stack_offset = value.get_location_data().get_stack_slot().to_int64();
+                    let stack_offset = value.get_location_data(
+                        ).get_stack_slot().to_int64();
                     self.add_imm(dest, REG_FP, stack_offset);
                 }
 
@@ -2051,7 +2286,11 @@ impl CodeGen for CodeGenArm64 {
         } else {
             assert(dest.is_stack());
             let slot = dest.get_stack();
-            let stack_reg = if slot.is_fp() { REG_FP } else { REG_SP };
+            let stack_reg = if slot.is_fp() {
+                REG_FP
+            } else {
+                REG_SP
+            };
             let offset = slot.get_offset();
 
             match value.op() {
@@ -2066,7 +2305,11 @@ impl CodeGen for CodeGenArm64 {
                 }
 
                 Op::UInt8Const => {
-                    self.asm.movz_w(REG_TEMP2, value.get_value_as_uint8().to_int32(), 0i32);
+                    self.asm.movz_w(
+                        REG_TEMP2,
+                        value.get_value_as_uint8().to_int32(),
+                        0i32,
+                    );
                     self.strb(REG_TEMP2, stack_reg, offset);
                 }
 
@@ -2081,7 +2324,8 @@ impl CodeGen for CodeGenArm64 {
                 }
 
                 Op::AllocateStack => {
-                    let stack_offset = value.get_location_data().get_stack_slot().to_int64();
+                    let stack_offset = value.get_location_data(
+                        ).get_stack_slot().to_int64();
                     self.add_imm(REG_TEMP2, REG_FP, stack_offset);
                     self.str(REG_TEMP2, stack_reg, offset);
                 }
@@ -2147,7 +2391,9 @@ impl CodeGen for CodeGenArm64 {
     }
 
     fn emit_invoke(inst: Inst) {
-        let gc_point = GcPoint::from(compute_offsets_in_live_set(inst.get_location_data().get_live_values()));
+        let gc_point = GcPoint::from(
+            compute_offsets_in_live_set(inst.get_location_data().get_live_values())
+        );
 
         if inst.has_runtime_function() {
             self.emit_runtime_function_call(inst.get_runtime_function());
@@ -2157,7 +2403,12 @@ impl CodeGen for CodeGenArm64 {
             self.gc_points.insert(pos, gc_point);
         } else if inst.has_function_info() {
             let fct_info = inst.get_function_info();
-            self.emit_call(fct_info.fct_id, fct_info.type_params, inst.get_inlined_location(), gc_point);
+            self.emit_call(
+                fct_info.fct_id,
+                fct_info.type_params,
+                inst.get_inlined_location(),
+                gc_point,
+            );
         } else {
             unreachable[()]();
         }
@@ -2165,7 +2416,11 @@ impl CodeGen for CodeGenArm64 {
 
     fn emit_invoke_virtual(inst: Inst) {
         let fct_info = inst.get_virtual_function_info();
-        let receiver_idx = if fct_info.receiver_is_first { 0 } else { 1 };
+        let receiver_idx = if fct_info.receiver_is_first {
+            0
+        } else {
+            1
+        };
         let loc = inst.get_location_data();
         let obj = loc.get_input(receiver_idx).get_register();
         let tmp = loc.get_temp(0).get_register();
@@ -2177,7 +2432,11 @@ impl CodeGen for CodeGenArm64 {
 
     fn emit_invoke_lambda(inst: Inst) {
         let fct_info = inst.get_lambda_function_info();
-        let receiver_idx = if fct_info.receiver_is_first { 0 } else { 1 };
+        let receiver_idx = if fct_info.receiver_is_first {
+            0
+        } else {
+            1
+        };
         let loc = inst.get_location_data();
         let obj = loc.get_input(receiver_idx).get_register();
         let tmp = loc.get_temp(0).get_register();
@@ -2195,11 +2454,17 @@ impl CodeGen for CodeGenArm64 {
         self.asm.cmp(idx, length);
         self.asm.bc(Cond::HS, label_oob);
 
-        self.deferred.push(|| {
-            self.emit_comment("slow path for CheckArrayBounds");
-            self.asm.bind_label(label_oob);
-            self.trap(REG_TEMP, iface::TRAP_INDEX_OUT_OF_BOUNDS, inst.get_inlined_location());
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("slow path for CheckArrayBounds");
+                self.asm.bind_label(label_oob);
+                self.trap(
+                    REG_TEMP,
+                    iface::TRAP_INDEX_OUT_OF_BOUNDS,
+                    inst.get_inlined_location(),
+                );
+            }
+        );
     }
 
     fn emit_load_array(inst: Inst) {
@@ -2214,31 +2479,31 @@ impl CodeGen for CodeGenArm64 {
                 let dest = loc.get_output().get_register();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.ldrb_reg(dest, REG_TEMP, idx, Extend::LSL, 0i32);
-            },
+            }
 
             Type::Int32 => {
                 let dest = loc.get_output().get_register();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.ldr_reg_w(dest, REG_TEMP, idx, Extend::LSL, 2i32);
-            },
+            }
 
             Type::Int64 | Type::Ptr => {
                 let dest = loc.get_output().get_register();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.ldr_reg(dest, REG_TEMP, idx, Extend::LSL, 3i32);
-            },
+            }
 
             Type::Float32 => {
                 let dest = loc.get_output().get_float_register();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.ldr_reg_s(dest, REG_TEMP, idx, Extend::LSL, 2i32);
-            },
+            }
 
             Type::Float64 => {
                 let dest = loc.get_output().get_float_register();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.ldr_reg_d(dest, REG_TEMP, idx, Extend::LSL, 3i32);
-            },
+            }
 
             _ => {
                 unimplemented[()]();
@@ -2258,33 +2523,31 @@ impl CodeGen for CodeGenArm64 {
                 let value = loc.get_input(2).get_register();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.strb_reg(value, REG_TEMP, idx, Extend::LSL, 0i32);
-            },
+            }
 
             Type::Int32 => {
                 let value = loc.get_input(2).get_register();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.str_reg_w(value, REG_TEMP, idx, Extend::LSL, 2i32);
-            },
+            }
 
             Type::Int64 | Type::Ptr => {
                 let value = loc.get_input(2).get_register();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.str_reg(value, REG_TEMP, idx, Extend::LSL, 3i32);
-            },
+            }
 
             Type::Float32 => {
                 let value = loc.get_input(2).get_float_register();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.str_reg_s(value, REG_TEMP, idx, Extend::LSL, 2i32);
-
-            },
+            }
 
             Type::Float64 => {
                 let value = loc.get_input(2).get_float_register();
                 self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
                 self.asm.str_reg_d(value, REG_TEMP, idx, Extend::LSL, 3i32);
-
-            },
+            }
 
             _ => {
                 unimplemented[()]();
@@ -2318,7 +2581,8 @@ impl CodeGen for CodeGenArm64 {
         } else if inst.has_function_info() {
             let info = inst.get_function_info();
             size = LAMBDA_SIZE;
-            shape_key = iface::get_class_shape_key_for_lambda(info.fct_id, info.type_params);
+            shape_key =
+            iface::get_class_shape_key_for_lambda(info.fct_id, info.type_params);
         } else if inst.has_trait_object_info() {
             let info = inst.get_trait_object_info();
             size = iface::get_class_size_for_trait_object(self.ci, info);
@@ -2367,7 +2631,11 @@ impl CodeGen for CodeGenArm64 {
         let pos = self.asm.position();
         self.asm.adrp_imm(REG_TEMP, 0);
         self.asm.add_imm(REG_TEMP, REG_TEMP, 0i32);
-        self.emit_adrp_add_relocation(pos, RelocationKind::GlobalValueAddress(global_id), REG_TEMP);
+        self.emit_adrp_add_relocation(
+            pos,
+            RelocationKind::GlobalValueAddress(global_id),
+            REG_TEMP,
+        );
 
         let ty = inst.get_value_type();
 
@@ -2375,28 +2643,27 @@ impl CodeGen for CodeGenArm64 {
             Type::UInt8 | Type::Bool => {
                 let dest = loc.get_output().get_register();
                 self.asm.ldrb_imm(dest, REG_TEMP, 0i32);
-            },
+            }
 
             Type::Int32 => {
                 let dest = loc.get_output().get_register();
                 self.asm.ldr_imm_w(dest, REG_TEMP, 0i32);
-            },
+            }
 
             Type::Int64 | Type::Ptr => {
                 let dest = loc.get_output().get_register();
                 self.asm.ldr_imm(dest, REG_TEMP, 0i32);
-            },
+            }
 
             Type::Float32 => {
                 let dest = loc.get_output().get_float_register();
                 self.asm.ldr_imm_s(dest, REG_TEMP, 0i32);
-
-            },
+            }
 
             Type::Float64 => {
                 let dest = loc.get_output().get_float_register();
                 self.asm.ldr_imm_d(dest, REG_TEMP, 0i32);
-            },
+            }
 
             _ => {
                 unimplemented[()]();
@@ -2412,7 +2679,11 @@ impl CodeGen for CodeGenArm64 {
         let pos = self.asm.position();
         self.asm.adrp_imm(dest, 0);
         self.asm.add_imm(dest, dest, 0i32);
-        self.emit_adrp_add_relocation(pos, RelocationKind::GlobalValueAddress(global_id), dest);
+        self.emit_adrp_add_relocation(
+            pos,
+            RelocationKind::GlobalValueAddress(global_id),
+            dest,
+        );
     }
 
     fn emit_ensure_global_initialized(inst: Inst) {
@@ -2425,7 +2696,11 @@ impl CodeGen for CodeGenArm64 {
         let pos = self.asm.position();
         self.asm.adrp_imm(REG_TEMP, 0);
         self.asm.add_imm(REG_TEMP, REG_TEMP, 0i32);
-        self.emit_adrp_add_relocation(pos, RelocationKind::GlobalStateAddress(global_id), REG_TEMP);
+        self.emit_adrp_add_relocation(
+            pos,
+            RelocationKind::GlobalStateAddress(global_id),
+            REG_TEMP,
+        );
         self.asm.ldrb_imm(REG_TEMP, REG_TEMP, 0i32);
         self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
         self.asm.cmp(REG_TEMP, tmp);
@@ -2434,72 +2709,94 @@ impl CodeGen for CodeGenArm64 {
 
         let snapshot = loc.get_register_snapshot();
 
-        self.deferred.push(|| {
-            self.emit_comment("slow path for global initializer");
-            self.asm.bind_label(lbl_global_slow_path);
+        self.deferred.push(
+            || {
+                self.emit_comment("slow path for global initializer");
+                self.asm.bind_label(lbl_global_slow_path);
 
-            let gc_point = self.save_registers_for_call(snapshot, loc.get_live_values());
-            let ty = inst.get_operation_type();
+                let gc_point = self.save_registers_for_call(
+                    snapshot,
+                    loc.get_live_values(),
+                );
+                let ty = inst.get_operation_type();
 
-            if ty == Type::Address {
-                // Pass address of global to function as first argument.
-                let pos = self.asm.position();
-                self.asm.adrp_imm(REG_PARAMS(0), 0);
-                self.asm.add_imm(REG_PARAMS(0), REG_PARAMS(0), 0i32);
-                self.emit_adrp_add_relocation(pos, RelocationKind::GlobalValueAddress(global_id), REG_PARAMS(0));
-            }
+                if ty == Type::Address {
+                    // Pass address of global to function as first argument.
+                    let pos = self.asm.position();
+                    self.asm.adrp_imm(REG_PARAMS(0), 0);
+                    self.asm.add_imm(REG_PARAMS(0), REG_PARAMS(0), 0i32);
+                    self.emit_adrp_add_relocation(
+                        pos,
+                        RelocationKind::GlobalValueAddress(global_id),
+                        REG_PARAMS(0),
+                    );
+                }
 
-            // Compute initial value.
-            let fct_id = iface::get_global_initializer_function_id(global_id);
-            let type_params = Array[BytecodeType]::new();
-            self.emit_call(fct_id, type_params, inst.get_inlined_location(), gc_point);
+                // Compute initial value.
+                let fct_id = iface::get_global_initializer_function_id(global_id);
+                let type_params = Array[BytecodeType]::new();
+                self.emit_call(
+                    fct_id,
+                    type_params,
+                    inst.get_inlined_location(),
+                    gc_point,
+                );
 
-            if ty != Type::Address && ty != Type::Unit {
-                // Store initial value in global variable.
+                if ty != Type::Address && ty != Type::Unit {
+                    // Store initial value in global variable.
+                    let pos = self.asm.position();
+                    self.asm.adrp_imm(REG_TEMP, 0);
+                    self.asm.add_imm(REG_TEMP, REG_TEMP, 0i32);
+                    self.emit_adrp_add_relocation(
+                        pos,
+                        RelocationKind::GlobalValueAddress(global_id),
+                        REG_TEMP,
+                    );
+
+                    match inst.get_operation_type() {
+                        Type::UInt8 | Type::Bool => {
+                            self.asm.strb_imm(R0, REG_TEMP, 0i32);
+                        }
+
+                        Type::Int32 => {
+                            self.asm.str_imm_w(R0, REG_TEMP, 0i32);
+                        }
+
+                        Type::Int64 | Type::Ptr => {
+                            self.asm.str_imm(R0, REG_TEMP, 0i32);
+                        }
+
+                        Type::Float32 => {
+                            self.asm.str_imm_s(F0, REG_TEMP, 0i32);
+                        }
+
+                        Type::Float64 => {
+                            self.asm.str_imm_d(F0, REG_TEMP, 0i32);
+                        }
+
+                        _ => {
+                            unimplemented[()]();
+                        }
+                    }
+                }
+
+                // Set global variable state to INITIALIZED.
                 let pos = self.asm.position();
                 self.asm.adrp_imm(REG_TEMP, 0);
                 self.asm.add_imm(REG_TEMP, REG_TEMP, 0i32);
-                self.emit_adrp_add_relocation(pos, RelocationKind::GlobalValueAddress(global_id), REG_TEMP);
+                self.emit_adrp_add_relocation(
+                    pos,
+                    RelocationKind::GlobalStateAddress(global_id),
+                    REG_TEMP,
+                );
+                self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
+                self.asm.strb_imm(tmp, REG_TEMP, 0i32);
 
-                match inst.get_operation_type() {
-                    Type::UInt8 | Type::Bool => {
-                        self.asm.strb_imm(R0, REG_TEMP, 0i32);
-                    },
+                self.restore_registers_for_call(snapshot);
 
-                    Type::Int32 => {
-                        self.asm.str_imm_w(R0, REG_TEMP, 0i32);
-                    },
-
-                    Type::Int64 | Type::Ptr => {
-                        self.asm.str_imm(R0, REG_TEMP, 0i32);
-                    },
-
-                    Type::Float32 => {
-                        self.asm.str_imm_s(F0, REG_TEMP, 0i32);
-                    },
-
-                    Type::Float64 => {
-                        self.asm.str_imm_d(F0, REG_TEMP, 0i32);
-                    },
-
-                    _ => {
-                        unimplemented[()]();
-                    }
-                }
+                self.asm.b(lbl_return);
             }
-
-            // Set global variable state to INITIALIZED.
-            let pos = self.asm.position();
-            self.asm.adrp_imm(REG_TEMP, 0);
-            self.asm.add_imm(REG_TEMP, REG_TEMP, 0i32);
-            self.emit_adrp_add_relocation(pos, RelocationKind::GlobalStateAddress(global_id), REG_TEMP);
-            self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
-            self.asm.strb_imm(tmp, REG_TEMP, 0i32);
-
-            self.restore_registers_for_call(snapshot);
-
-            self.asm.b(lbl_return);
-        });
+        );
     }
 
     fn emit_store_global(inst: Inst) {
@@ -2510,33 +2807,37 @@ impl CodeGen for CodeGenArm64 {
         let pos = self.asm.position();
         self.asm.adrp_imm(REG_TEMP, 0);
         self.asm.add_imm(REG_TEMP, REG_TEMP, 0i32);
-        self.emit_adrp_add_relocation(pos, RelocationKind::GlobalValueAddress(global_id), REG_TEMP);
+        self.emit_adrp_add_relocation(
+            pos,
+            RelocationKind::GlobalValueAddress(global_id),
+            REG_TEMP,
+        );
 
         match inst.get_operation_type() {
             Type::UInt8 | Type::Bool => {
                 let src = loc.get_input(0).get_register();
                 self.asm.strb_imm(src, REG_TEMP, 0i32);
-            },
+            }
 
             Type::Int32 => {
                 let src = loc.get_input(0).get_register();
                 self.asm.str_imm_w(src, REG_TEMP, 0i32);
-            },
+            }
 
             Type::Int64 | Type::Ptr => {
                 let src = loc.get_input(0).get_register();
                 self.asm.str_imm(src, REG_TEMP, 0i32);
-            },
+            }
 
             Type::Float32 => {
                 let src = loc.get_input(0).get_float_register();
                 self.asm.str_imm_s(src, REG_TEMP, 0i32);
-            },
+            }
 
             Type::Float64 => {
                 let src = loc.get_input(0).get_float_register();
                 self.asm.str_imm_d(src, REG_TEMP, 0i32);
-            },
+            }
 
             _ => {
                 unimplemented[()]();
@@ -2554,7 +2855,11 @@ impl CodeGen for CodeGenArm64 {
         let pos = self.asm.position();
         self.asm.adrp_imm(REG_TEMP, 0);
         self.asm.add_imm(REG_TEMP, REG_TEMP, 0i32);
-        self.emit_adrp_add_relocation(pos, RelocationKind::GlobalStateAddress(global_id), REG_TEMP);
+        self.emit_adrp_add_relocation(
+            pos,
+            RelocationKind::GlobalStateAddress(global_id),
+            REG_TEMP,
+        );
         self.asm.movz(tmp, GLOBAL_STATE_INITIALIZED, 0i32);
         self.asm.strb_imm(tmp, REG_TEMP, 0i32);
     }
@@ -2562,7 +2867,11 @@ impl CodeGen for CodeGenArm64 {
     fn emit_thread_current(inst: Inst) {
         let loc = inst.get_location_data();
         let dest = loc.get_output().get_register();
-        self.asm.ldr_imm(REG_TEMP, REG_THREAD, THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET);
+        self.asm.ldr_imm(
+            REG_TEMP,
+            REG_THREAD,
+            THREAD_LOCAL_DATA_MANAGED_THREAD_HANDLE_OFFSET,
+        );
         self.asm.ldr_imm(dest, REG_TEMP, 0i32);
     }
 
@@ -2583,27 +2892,27 @@ impl CodeGen for CodeGenArm64 {
             Type::Bool | Type::UInt8 => {
                 let dest = loc.get_output().get_register();
                 self.asm.ldrb_imm(dest, src, offset);
-            },
+            }
 
             Type::Int32 => {
                 let dest = loc.get_output().get_register();
                 self.ldr_w(dest, src, offset);
-            },
+            }
 
             Type::Ptr | Type::Int64 => {
                 let dest = loc.get_output().get_register();
                 self.ldr(dest, src, offset);
-            },
+            }
 
             Type::Float32 => {
                 let dest = loc.get_output().get_float_register();
                 self.asm.ldr_imm_s(dest, src, offset);
-            },
+            }
 
             Type::Float64 => {
                 let dest = loc.get_output().get_float_register();
                 self.asm.ldr_imm_d(dest, src, offset);
-            },
+            }
 
             _ => {
                 unimplemented[()]();
@@ -2622,27 +2931,27 @@ impl CodeGen for CodeGenArm64 {
             Type::Bool | Type::UInt8 => {
                 let src = loc.get_input(1).get_register();
                 self.strb(src, obj, offset);
-            },
+            }
 
             Type::Int32 => {
                 let src = loc.get_input(1).get_register();
                 self.str_w(src, obj, offset);
-            },
+            }
 
             Type::Int64 | Type::Ptr => {
                 let src = loc.get_input(1).get_register();
                 self.str(src, obj, offset);
-            },
+            }
 
             Type::Float32 => {
                 let src = loc.get_input(1).get_float_register();
                 self.asm.str_imm_s(src, obj, offset);
-            },
+            }
 
             Type::Float64 => {
                 let src = loc.get_input(1).get_float_register();
                 self.asm.str_imm_d(src, obj, offset);
-            },
+            }
 
             _ => {
                 unimplemented[()]();
@@ -2661,7 +2970,13 @@ impl CodeGen for CodeGenArm64 {
 
         let src = loc.get_input(1).get_register();
         self.str(src, obj, offset);
-        self.emit_write_barrier(obj, src, REG_TEMP, loc.get_register_snapshot(), loc.get_live_values());
+        self.emit_write_barrier(
+            obj,
+            src,
+            REG_TEMP,
+            loc.get_register_snapshot(),
+            loc.get_live_values(),
+        );
     }
 
     fn emit_store_array_wb(inst: Inst) {
@@ -2676,7 +2991,13 @@ impl CodeGen for CodeGenArm64 {
         let value = loc.get_input(2).get_register();
         self.asm.add_imm(REG_TEMP, array, ARRAY_HEADER_LENGTH);
         self.asm.str_reg(value, REG_TEMP, idx, Extend::LSL, 3i32);
-        self.emit_write_barrier(array, value, REG_TEMP, loc.get_register_snapshot(), loc.get_live_values());
+        self.emit_write_barrier(
+            array,
+            value,
+            REG_TEMP,
+            loc.get_register_snapshot(),
+            loc.get_live_values(),
+        );
     }
 
     fn emit_store_array_address_wb(inst: Inst) {
@@ -2691,7 +3012,13 @@ impl CodeGen for CodeGenArm64 {
 
         let src = loc.get_input(2).get_register();
         self.asm.str_imm(src, dest, offset);
-        self.emit_write_barrier(array, src, REG_TEMP, loc.get_register_snapshot(), loc.get_live_values());
+        self.emit_write_barrier(
+            array,
+            src,
+            REG_TEMP,
+            loc.get_register_snapshot(),
+            loc.get_live_values(),
+        );
     }
 
     fn emit_abort(inst: Inst) {
@@ -2705,11 +3032,13 @@ impl CodeGen for CodeGenArm64 {
         let lbl_failure = self.asm.create_label();
         self.asm.cbz(condition, lbl_failure);
 
-        self.deferred.push(|| {
-            self.emit_comment("marking barrier slow path");
-            self.asm.bind_label(lbl_failure);
-            self.trap(REG_TEMP, iface::TRAP_ASSERT, inst.get_inlined_location());
-        });
+        self.deferred.push(
+            || {
+                self.emit_comment("marking barrier slow path");
+                self.asm.bind_label(lbl_failure);
+                self.trap(REG_TEMP, iface::TRAP_ASSERT, inst.get_inlined_location());
+            }
+        );
     }
 
     fn emit_convert(inst: Inst) {
@@ -3281,8 +3610,7 @@ impl CodeGen for CodeGenArm64 {
                     self.asm.ldaxr_w(dest, REG_TEMP);
                     self.asm.cmp_w(dest, expected);
                     self.asm.bc(Cond::NE, loop_end);
-                    self.asm
-                        .stlxr_w(state, new_value, REG_TEMP);
+                    self.asm.stlxr_w(state, new_value, REG_TEMP);
                     self.asm.cbnz_w(state, loop_start);
                     self.asm.bind_label(loop_end);
                 }
@@ -3300,8 +3628,7 @@ impl CodeGen for CodeGenArm64 {
                     self.asm.ldaxr(dest, REG_TEMP);
                     self.asm.cmp_w(dest, expected);
                     self.asm.bc(Cond::NE, loop_end);
-                    self.asm
-                        .stlxr(state, new_value, REG_TEMP);
+                    self.asm.stlxr(state, new_value, REG_TEMP);
                     self.asm.cbnz(state, loop_start);
                     self.asm.bind_label(loop_end);
                 }
@@ -3440,27 +3767,35 @@ impl CodeGen for CodeGenArm64 {
 
         let snapshot = loc.get_register_snapshot();
 
-        self.deferred.push(|| {
-            self.emit_comment("slow path safepoint");
-            self.asm.bind_label(lbl_safepoint);
+        self.deferred.push(
+            || {
+                self.emit_comment("slow path safepoint");
+                self.asm.bind_label(lbl_safepoint);
 
-            let gc_point = self.save_registers_for_call(snapshot, loc.get_live_values());
+                let gc_point = self.save_registers_for_call(
+                    snapshot,
+                    loc.get_live_values(),
+                );
 
-            let pos = self.asm.position();
-            self.asm.bl_imm(0i32);
-            self.emit_branch_relocation(pos, RelocationKind::RuntimeFunction(RuntimeFunction::SafepointTrampoline));
-            let pos = self.asm.position();
-            self.gc_points.insert(pos, gc_point);
-            let iloc = InlinedLocation(
-                inlined_function_id = None[InlinedFunctionId],
-                location = self.ci.loc
-            );
-            self.locations.insert(pos, iloc);
+                let pos = self.asm.position();
+                self.asm.bl_imm(0i32);
+                self.emit_branch_relocation(
+                    pos,
+                    RelocationKind::RuntimeFunction(RuntimeFunction::SafepointTrampoline),
+                );
+                let pos = self.asm.position();
+                self.gc_points.insert(pos, gc_point);
+                let iloc = InlinedLocation(
+                    inlined_function_id = None[InlinedFunctionId],
+                    location = self.ci.loc,
+                );
+                self.locations.insert(pos, iloc);
 
-            self.restore_registers_for_call(snapshot);
+                self.restore_registers_for_call(snapshot);
 
-            self.asm.b(lbl_return);
-        });
+                self.asm.b(lbl_return);
+            }
+        );
     }
 
     fn finalize(): CodeDescriptor {

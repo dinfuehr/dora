@@ -31,7 +31,13 @@ pub class SsaConstruction {
 }
 
 impl SsaConstruction {
-    pub static fn new(ci: CompilationInfo, graph: Graph, fct: FunctionCompilationInfo, inline_return_type: Option[Type], exit_block: Option[Block]): SsaConstruction {
+    pub static fn new(
+        ci: CompilationInfo,
+        graph: Graph,
+        fct: FunctionCompilationInfo,
+        inline_return_type: Option[Type],
+        exit_block: Option[Block],
+    ): SsaConstruction {
         SsaConstruction(
             ci,
             graph,
@@ -88,7 +94,9 @@ impl SsaConstruction {
 
                 Op::InlineReturn => {
                     let value = inst.get_input(0).get_value();
-                    assert(value.get_value_type() == self.inline_return_type.get_or_panic());
+                    assert(
+                        value.get_value_type() == self.inline_return_type.get_or_panic()
+                    );
                     assert(self.inline_return_values.insert(block, value).is_none());
                     inst.remove();
                 }
@@ -325,7 +333,10 @@ impl SsaConstruction {
         specialize_array(self.ci, self.specialize_self, array, self.type_params)
     }
 
-    fn compute_enum_layout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
+    fn compute_enum_layout(
+        enum_id: EnumId,
+        type_params: Array[BytecodeType],
+    ): EnumLayout {
         let type_params = self.specialize_array(type_params);
         regalloc::compute_enum_layout(self.ci, None[SpecializeSelf], enum_id, type_params)
     }
@@ -352,8 +363,7 @@ impl SsaConstruction {
                     EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
                 }
             }
-            BytecodeType::Struct(..)
-            | BytecodeType::Tuple(_) => Type::Address,
+            BytecodeType::Struct(..) | BytecodeType::Tuple(_) => Type::Address,
             BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
             BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
         }

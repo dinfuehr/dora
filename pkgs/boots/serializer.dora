@@ -1,7 +1,22 @@
-use package::bytecode::{BytecodeType, BytecodeTraitType};
+use package::bytecode::{BytecodeTraitType, BytecodeType};
 use package::bytecode::opcode as opc;
 use package::compilation::SpecializeSelf;
-use package::interface::{AotShapeKey, Arm64LoadWidth, CodeDescriptor, CommentTable, GcPoint, GcPointTable, InlinedFunction, JumpTable, LocationTable, InlinedLocation, RelocationForm, RelocationKind, RelocationTable, RuntimeFunction};
+use package::interface::{
+    AotShapeKey,
+    Arm64LoadWidth,
+    CodeDescriptor,
+    CommentTable,
+    GcPoint,
+    GcPointTable,
+    InlinedFunction,
+    InlinedLocation,
+    JumpTable,
+    LocationTable,
+    RelocationForm,
+    RelocationKind,
+    RelocationTable,
+    RuntimeFunction,
+};
 
 pub fn encode_code_descriptor(writer: ByteWriter, descriptor: CodeDescriptor) {
     encode_array_uint8(writer, descriptor.code);
@@ -56,48 +71,66 @@ fn encode_relocation_form(writer: ByteWriter, form: RelocationForm) {
     match form {
         RelocationForm::AbsoluteAddress => {
             writer.emit_byte(opc::RELOCATION_FORM_ABSOLUTE_ADDRESS.to_uint8());
-        },
+        }
 
         RelocationForm::X64CallRel32 => {
             writer.emit_byte(opc::RELOCATION_FORM_X64_CALL_REL32.to_uint8());
-        },
+        }
 
-        RelocationForm::X64RipRelativeLoad64(disp_offset = disp_offset, dst_reg = dst_reg) => {
+        RelocationForm::X64RipRelativeLoad64(
+            disp_offset = disp_offset,
+            dst_reg = dst_reg,
+        ) => {
             writer.emit_byte(opc::RELOCATION_FORM_X64_RIP_RELATIVE_LOAD64.to_uint8());
             writer.emit_byte(disp_offset.to_uint8());
             writer.emit_byte(dst_reg.to_uint8());
-        },
+        }
 
-        RelocationForm::X64RipRelativeLoad32(disp_offset = disp_offset, dst_reg = dst_reg) => {
+        RelocationForm::X64RipRelativeLoad32(
+            disp_offset = disp_offset,
+            dst_reg = dst_reg,
+        ) => {
             writer.emit_byte(opc::RELOCATION_FORM_X64_RIP_RELATIVE_LOAD32.to_uint8());
             writer.emit_byte(disp_offset.to_uint8());
             writer.emit_byte(dst_reg.to_uint8());
-        },
+        }
 
-        RelocationForm::X64RipRelativeLea(disp_offset = disp_offset, dst_reg = dst_reg) => {
+        RelocationForm::X64RipRelativeLea(
+            disp_offset = disp_offset,
+            dst_reg = dst_reg,
+        ) => {
             writer.emit_byte(opc::RELOCATION_FORM_X64_RIP_RELATIVE_LEA.to_uint8());
             writer.emit_byte(disp_offset.to_uint8());
             writer.emit_byte(dst_reg.to_uint8());
-        },
+        }
 
         RelocationForm::Arm64Branch26 => {
             writer.emit_byte(opc::RELOCATION_FORM_ARM64_BRANCH26.to_uint8());
-        },
+        }
 
-        RelocationForm::Arm64AdrpLdr(page_reg = page_reg, base_reg = base_reg, dst_reg = dst_reg, width = width) => {
+        RelocationForm::Arm64AdrpLdr(
+            page_reg = page_reg,
+            base_reg = base_reg,
+            dst_reg = dst_reg,
+            width = width,
+        ) => {
             writer.emit_byte(opc::RELOCATION_FORM_ARM64_ADRP_LDR.to_uint8());
             writer.emit_byte(page_reg.to_uint8());
             writer.emit_byte(base_reg.to_uint8());
             writer.emit_byte(dst_reg.to_uint8());
             encode_arm64_load_width(writer, width);
-        },
+        }
 
-        RelocationForm::Arm64AdrpAdd(page_reg = page_reg, base_reg = base_reg, dst_reg = dst_reg) => {
+        RelocationForm::Arm64AdrpAdd(
+            page_reg = page_reg,
+            base_reg = base_reg,
+            dst_reg = dst_reg,
+        ) => {
             writer.emit_byte(opc::RELOCATION_FORM_ARM64_ADRP_ADD.to_uint8());
             writer.emit_byte(page_reg.to_uint8());
             writer.emit_byte(base_reg.to_uint8());
             writer.emit_byte(dst_reg.to_uint8());
-        },
+        }
     }
 }
 
@@ -113,43 +146,43 @@ fn encode_relocation_kind(writer: ByteWriter, kind: RelocationKind) {
         RelocationKind::JumpTableAddress(table_id) => {
             writer.emit_byte(opc::RELOCATION_KIND_JUMP_TABLE_ADDRESS.to_uint8());
             writer.emit_int32(table_id);
-        },
+        }
 
         RelocationKind::StringConst(fct_id, const_pool_id) => {
             writer.emit_byte(opc::RELOCATION_KIND_STRING_CONST.to_uint8());
             writer.emit_int32(fct_id.0);
             writer.emit_int32(const_pool_id.0);
-        },
+        }
 
         RelocationKind::RuntimeFunction(runtime_function) => {
             writer.emit_byte(opc::RELOCATION_KIND_RUNTIME_FUNCTION.to_uint8());
             encode_runtime_function(writer, runtime_function);
-        },
+        }
 
         RelocationKind::ShapeAddress(key) => {
             writer.emit_byte(opc::RELOCATION_KIND_SHAPE_ADDRESS.to_uint8());
             encode_aot_shape_key(writer, key);
-        },
+        }
 
         RelocationKind::ShapeBase => {
             writer.emit_byte(opc::RELOCATION_KIND_SHAPE_BASE.to_uint8());
-        },
+        }
 
         RelocationKind::GlobalValueAddress(global_id) => {
             writer.emit_byte(opc::RELOCATION_KIND_GLOBAL_VALUE_ADDRESS.to_uint8());
             writer.emit_int32(global_id.0);
-        },
+        }
 
         RelocationKind::GlobalStateAddress(global_id) => {
             writer.emit_byte(opc::RELOCATION_KIND_GLOBAL_STATE_ADDRESS.to_uint8());
             writer.emit_int32(global_id.0);
-        },
+        }
 
         RelocationKind::DirectCall(fct_id, type_params) => {
             writer.emit_byte(opc::RELOCATION_KIND_DIRECT_CALL.to_uint8());
             writer.emit_int32(fct_id.0);
             encode_bytecode_type_array(writer, type_params);
-        },
+        }
 
         RelocationKind::CodeTarget | RelocationKind::Object => unreachable[()](),
     }
@@ -159,45 +192,45 @@ fn encode_aot_shape_key(writer: ByteWriter, key: AotShapeKey) {
     match key {
         AotShapeKey::FillerWord => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_FILLER_WORD.to_uint8());
-        },
+        }
         AotShapeKey::String => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_STRING.to_uint8());
-        },
+        }
         AotShapeKey::Class(cls_id, type_params) => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_CLASS.to_uint8());
             writer.emit_int32(cls_id.0);
             encode_bytecode_type_array(writer, type_params);
-        },
+        }
         AotShapeKey::Array(cls_id, type_params) => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_ARRAY.to_uint8());
             writer.emit_int32(cls_id.0);
             encode_bytecode_type_array(writer, type_params);
-        },
+        }
         AotShapeKey::EnumVariant(enum_id, type_params, variant_id) => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_ENUM_VARIANT.to_uint8());
             writer.emit_int32(enum_id.0);
             encode_bytecode_type_array(writer, type_params);
             writer.emit_int32(variant_id);
-        },
+        }
         AotShapeKey::Lambda(fct_id, type_params) => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_LAMBDA.to_uint8());
             writer.emit_int32(fct_id.0);
             encode_bytecode_type_array(writer, type_params);
-        },
+        }
         AotShapeKey::TraitObject(trait_ty, actual_object_ty) => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_TRAIT_OBJECT.to_uint8());
             encode_bytecode_type(writer, trait_ty);
             encode_bytecode_type(writer, actual_object_ty);
-        },
+        }
         AotShapeKey::FillerArray => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_FILLER_ARRAY.to_uint8());
-        },
+        }
         AotShapeKey::FreeSpace => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_FREE_SPACE.to_uint8());
-        },
+        }
         AotShapeKey::Code => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_CODE.to_uint8());
-        },
+        }
     }
 }
 
@@ -205,25 +238,25 @@ fn encode_runtime_function(writer: ByteWriter, runtime_function: RuntimeFunction
     match runtime_function {
         RuntimeFunction::TrapTrampoline => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_TRAP_TRAMPOLINE.to_uint8());
-        },
+        }
         RuntimeFunction::SafepointTrampoline => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_SAFEPOINT_TRAMPOLINE.to_uint8());
-        },
+        }
         RuntimeFunction::AllocationSlowTrampoline => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_ALLOCATION_SLOW_TRAMPOLINE.to_uint8());
-        },
+        }
         RuntimeFunction::WriteBarrierSlowPath => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_WRITE_BARRIER_SLOW_PATH.to_uint8());
-        },
+        }
         RuntimeFunction::UnreachableTrampoline => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_UNREACHABLE_TRAMPOLINE.to_uint8());
-        },
+        }
         RuntimeFunction::FatalErrorTrampoline => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_FATAL_ERROR_TRAMPOLINE.to_uint8());
-        },
+        }
         RuntimeFunction::StackOverflowTrampoline => {
             writer.emit_byte(opc::RUNTIME_FUNCTION_STACK_OVERFLOW_TRAMPOLINE.to_uint8());
-        },
+        }
     }
 }
 
@@ -298,71 +331,71 @@ pub fn encode_bytecode_type(writer: ByteWriter, ty: BytecodeType) {
     match ty {
         BytecodeType::Unit => {
             writer.emit_byte(opc::BYTECODE_TYPE_UNIT.to_uint8());
-        },
+        }
         BytecodeType::Bool => {
             writer.emit_byte(opc::BYTECODE_TYPE_BOOL.to_uint8());
-        },
+        }
         BytecodeType::Char => {
             writer.emit_byte(opc::BYTECODE_TYPE_CHAR.to_uint8());
-        },
+        }
         BytecodeType::UInt8 => {
             writer.emit_byte(opc::BYTECODE_TYPE_U_INT8.to_uint8());
-        },
+        }
         BytecodeType::Int32 => {
             writer.emit_byte(opc::BYTECODE_TYPE_INT32.to_uint8());
-        },
+        }
         BytecodeType::Int64 => {
             writer.emit_byte(opc::BYTECODE_TYPE_INT64.to_uint8());
-        },
+        }
         BytecodeType::Float32 => {
             writer.emit_byte(opc::BYTECODE_TYPE_FLOAT32.to_uint8());
-        },
+        }
         BytecodeType::Float64 => {
             writer.emit_byte(opc::BYTECODE_TYPE_FLOAT64.to_uint8());
-        },
+        }
         BytecodeType::Ptr => {
             writer.emit_byte(opc::BYTECODE_TYPE_PTR.to_uint8());
-        },
+        }
         BytecodeType::Address => {
             writer.emit_byte(opc::BYTECODE_TYPE_ADDRESS.to_uint8());
-        },
+        }
         BytecodeType::This => {
             writer.emit_byte(opc::BYTECODE_TYPE_THIS.to_uint8());
-        },
+        }
         BytecodeType::Tuple(subtypes) => {
             writer.emit_byte(opc::BYTECODE_TYPE_TUPLE.to_uint8());
             encode_bytecode_type_array(writer, subtypes);
-        },
+        }
         BytecodeType::TypeParam(type_param_id) => {
             writer.emit_byte(opc::BYTECODE_TYPE_TYPE_PARAM.to_uint8());
             writer.emit_int32(type_param_id);
-        },
+        }
         BytecodeType::Enum(enum_id, source_type_array) => {
             writer.emit_byte(opc::BYTECODE_TYPE_ENUM.to_uint8());
             writer.emit_int32(enum_id.0);
             encode_bytecode_type_array(writer, source_type_array);
-        },
+        }
         BytecodeType::Struct(struct_id, source_type_array) => {
             writer.emit_byte(opc::BYTECODE_TYPE_STRUCT.to_uint8());
             writer.emit_int32(struct_id.0);
             encode_bytecode_type_array(writer, source_type_array);
-        },
+        }
         BytecodeType::Class(class_id, source_type_array) => {
             writer.emit_byte(opc::BYTECODE_TYPE_CLASS.to_uint8());
             writer.emit_int32(class_id.0);
             encode_bytecode_type_array(writer, source_type_array);
-        },
+        }
         BytecodeType::TraitObject(trait_id, source_type_array, assoc_types) => {
             writer.emit_byte(opc::BYTECODE_TYPE_TRAIT_OBJECT.to_uint8());
             writer.emit_int32(trait_id.0);
             encode_bytecode_type_array(writer, source_type_array);
             encode_bytecode_type_array(writer, assoc_types);
-        },
+        }
         BytecodeType::Lambda(params, ret) => {
             writer.emit_byte(opc::BYTECODE_TYPE_LAMBDA.to_uint8());
             encode_bytecode_type_array(writer, params);
             encode_bytecode_type(writer, ret);
-        },
+        }
         BytecodeType::Assoc(ty, trait_ty, assoc_id) => {
             writer.emit_byte(opc::BYTECODE_TYPE_ASSOC.to_uint8());
             encode_bytecode_type(writer, ty);
@@ -386,7 +419,10 @@ pub fn encode_bytecode_trait_type(writer: ByteWriter, trait_ty: BytecodeTraitTyp
     }
 }
 
-pub fn encode_optional_specialize_self(writer: ByteWriter, specialize_self: Option[SpecializeSelf]) {
+pub fn encode_optional_specialize_self(
+    writer: ByteWriter,
+    specialize_self: Option[SpecializeSelf],
+) {
     if specialize_self is Some(specialize_self) {
         writer.emit_bool(true);
         writer.emit_int32(specialize_self.impl_id.0);
@@ -404,9 +440,7 @@ pub class ByteWriter {
 
 impl ByteWriter {
     pub static fn new(): ByteWriter {
-        ByteWriter(
-            buffer = Vec[UInt8]::new(),
-        )
+        ByteWriter(buffer = Vec[UInt8]::new())
     }
 
     pub fn emit_int64(value: Int64) {
@@ -426,7 +460,11 @@ impl ByteWriter {
     }
 
     pub fn emit_bool(value: Bool) {
-        let value = if value { 1u8 } else { 0u8 };
+        let value = if value {
+            1u8
+        } else {
+            0u8
+        };
         self.emit_byte(value);
     }
 

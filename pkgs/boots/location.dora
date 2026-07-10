@@ -2,11 +2,27 @@ use package::assembler::{FloatRegister, Register};
 use package::bytecode::data::BytecodeType;
 use package::codegen::CodeGen;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
-use package::graph::{Graph, InputOutputOverlap, Inst, Location, LocationData, Op, Operand, Policy, StackSlot, Type};
-use package::interface::{config, PTR_SIZE, Architecture};
+use package::graph::{
+    Graph,
+    InputOutputOverlap,
+    Inst,
+    Location,
+    LocationData,
+    Op,
+    Operand,
+    Policy,
+    StackSlot,
+    Type,
+};
+use package::interface::{Architecture, PTR_SIZE, config};
 use package::specialize::specialize_ty;
 
-pub fn ensure_location_data(graph: Graph, codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo): Int32 {
+pub fn ensure_location_data(
+    graph: Graph,
+    codegen: CodeGen,
+    ci: CompilationInfo,
+    fct: FunctionCompilationInfo,
+): Int32 {
     let argument_locations = compute_argument_locations(codegen, ci, fct);
     codegen.set_argument_locations(argument_locations);
 
@@ -15,7 +31,7 @@ pub fn ensure_location_data(graph: Graph, codegen: CodeGen, ci: CompilationInfo,
         codegen,
         ci,
         max_outgoing_args_size = 0i32,
-        argument_locations
+        argument_locations,
     );
     annotator.annotate();
     annotator.max_outgoing_args_size
@@ -46,7 +62,10 @@ impl LocationAnnotation {
         for block in self.graph.insertion_order_iterator() {
             for inst in block.phis_iterator() {
                 let loc_data = inst.get_location_data();
-                loc_data.set_output(Operand::new(Policy::None, Location::None), InputOutputOverlap::NoOverlap);
+                loc_data.set_output(
+                    Operand::new(Policy::None, Location::None),
+                    InputOutputOverlap::NoOverlap,
+                );
             }
 
             for inst in block.instructions_iterator() {
@@ -62,25 +81,34 @@ impl LocationAnnotation {
 
         match inst.op() {
             Op::Arg => {
-                let location = self.argument_locations.locations(inst.get_arg_index().to_int64());
+                let location = self.argument_locations.locations(
+                    inst.get_arg_index().to_int64()
+                );
 
                 if inst.get_value_type().is_any_float() {
                     if location.is_float_register() {
-                        use_output_float_register_fixed(inst, location.get_float_register(), InputOutputOverlap::NoOverlap);
-                    } else  {
+                        use_output_float_register_fixed(
+                            inst,
+                            location.get_float_register(),
+                            InputOutputOverlap::NoOverlap,
+                        );
+                    } else {
                         use_output_float_stack(inst, location);
                     }
                 } else {
                     if location.is_register() {
-                        use_output_register_fixed(inst, location.get_register(), InputOutputOverlap::NoOverlap);
-                    } else  {
+                        use_output_register_fixed(
+                            inst,
+                            location.get_register(),
+                            InputOutputOverlap::NoOverlap,
+                        );
+                    } else {
                         use_output_fixed_stack(inst, location);
                     }
                 }
             }
 
-            Op::TrueConst |
-            Op::FalseConst => {
+            Op::TrueConst | Op::FalseConst => {
                 use_output_register(inst, InputOutputOverlap::NoOverlap);
             }
 
@@ -92,8 +120,7 @@ impl LocationAnnotation {
                 use_output_register(inst, InputOutputOverlap::NoOverlap);
             }
 
-            Op::Float32Const
-            | Op::Float64Const => {
+            Op::Float32Const | Op::Float64Const => {
                 use_output_float_register(inst, InputOutputOverlap::NoOverlap);
             }
 
@@ -238,12 +265,10 @@ impl LocationAnnotation {
                 self.codegen.annotate_return(inst);
             }
 
-            Op::Invoke
-            | Op::InvokeVirtual
-            | Op::InvokeLambda
-            => {
+            Op::Invoke | Op::InvokeVirtual | Op::InvokeLambda => {
                 let outgoing_args_size = annotate_call(inst, loc, self.codegen, self.ci);
-                self.max_outgoing_args_size = Int32::max(self.max_outgoing_args_size, outgoing_args_size);
+                self.max_outgoing_args_size =
+                Int32::max(self.max_outgoing_args_size, outgoing_args_size);
             }
 
             Op::CheckArrayBounds => {
@@ -291,9 +316,9 @@ impl LocationAnnotation {
 
             Op::LoadGlobal => {
                 if inst.get_operation_type().is_any_float() {
-                    use_output_float_register(inst,  InputOutputOverlap::NoOverlap);
+                    use_output_float_register(inst, InputOutputOverlap::NoOverlap);
                 } else {
-                    use_output_register(inst,  InputOutputOverlap::NoOverlap);
+                    use_output_register(inst, InputOutputOverlap::NoOverlap);
                 }
             }
 
@@ -502,7 +527,11 @@ pub class ArgumentLocations {
     pub locations: Array[Location],
 }
 
-fn compute_argument_locations(codegen: CodeGen, ci: CompilationInfo, fct: FunctionCompilationInfo): ArgumentLocations {
+fn compute_argument_locations(
+    codegen: CodeGen,
+    ci: CompilationInfo,
+    fct: FunctionCompilationInfo,
+): ArgumentLocations {
     let arguments = fct.bc.arguments.to_int64();
     let locations = Vec[Location]::new();
     locations.reserve(arguments);
@@ -513,7 +542,12 @@ fn compute_argument_locations(codegen: CodeGen, ci: CompilationInfo, fct: Functi
     let gp_argument_registers = codegen.argument_registers();
     let fp_argument_registers = codegen.argument_float_registers();
 
-    let ret_ty = specialize_ty(ci, None[SpecializeSelf], fct.return_type, fct.type_params);
+    let ret_ty = specialize_ty(
+        ci,
+        None[SpecializeSelf],
+        fct.return_type,
+        fct.type_params,
+    );
 
     if ret_ty.is_struct() || ret_ty.is_tuple() {
         locations.push(gp_argument_registers(gp_idx).to_location());
@@ -570,11 +604,15 @@ fn compute_argument_locations(codegen: CodeGen, ci: CompilationInfo, fct: Functi
         }
     }
 
-
     ArgumentLocations(locations = locations.to_array())
 }
 
-fn annotate_call(inst: Inst, loc: LocationData, codegen: CodeGen, ci: CompilationInfo): Int32 {
+fn annotate_call(
+    inst: Inst,
+    loc: LocationData,
+    codegen: CodeGen,
+    ci: CompilationInfo,
+): Int32 {
     let mut idx = 0;
     let mut gp_idx = 0;
     let mut fp_idx = 0;
@@ -640,7 +678,11 @@ pub fn use_output_float_register(inst: Inst, overlap: InputOutputOverlap) {
     loc.set_output(Operand::new(Policy::AnyFloatReg, Location::None), overlap);
 }
 
-pub fn use_output_float_register_fixed(inst: Inst, reg: FloatRegister, overlap: InputOutputOverlap) {
+pub fn use_output_float_register_fixed(
+    inst: Inst,
+    reg: FloatRegister,
+    overlap: InputOutputOverlap,
+) {
     let loc = inst.get_location_data();
     loc.set_output(Operand::new(Policy::FixedFloatReg, Location::FloatReg(reg)), overlap);
 }
@@ -679,13 +721,19 @@ pub fn use_input_float_stack(inst: Inst, idx: Int64, stack: StackSlot) {
 
 pub fn use_output_same_as_first_input(inst: Inst) {
     let loc = inst.get_location_data();
-    loc.set_output(Operand::new(Policy::SameAsFirstInput, Location::None), InputOutputOverlap::Overlap);
+    loc.set_output(
+        Operand::new(Policy::SameAsFirstInput, Location::None),
+        InputOutputOverlap::Overlap,
+    );
 }
 
 pub fn use_output_float_stack(inst: Inst, stack: Location) {
     assert(stack.is_stack());
     let loc = inst.get_location_data();
-    loc.set_output(Operand::new(Policy::FixedFloatStack, stack), InputOutputOverlap::Overlap);
+    loc.set_output(
+        Operand::new(Policy::FixedFloatStack, stack),
+        InputOutputOverlap::Overlap,
+    );
 }
 
 pub fn use_output_fixed_stack(inst: Inst, stack: Location) {

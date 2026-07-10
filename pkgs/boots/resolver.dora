@@ -3,25 +3,46 @@ use std::traits::{IntoIterator, Iterator};
 
 use package::assembler::{FloatRegister, Register, RegisterType};
 use package::codegen::CodeGen;
-use package::graph::{Block, create_move_inst, create_rematerialize_inst, Edge, Graph, Inst, Location, RegisterTrackers, Type};
+use package::graph::{
+    Block,
+    Edge,
+    Graph,
+    Inst,
+    Location,
+    RegisterTrackers,
+    Type,
+    create_move_inst,
+    create_rematerialize_inst,
+};
 use package::regalloc::RegisterTracker;
 
 pub fn resolve_moves(graph: Graph, codegen: CodeGen) {
     for block in graph.insertion_order_iterator() {
         let block_trackers = block.get_tracker_in();
-        
+
         for predecessor_edge in block.predecessors {
             let predecessor = predecessor_edge.source;
             let moves = ParallelMoveResolver::new();
 
             let predecessor_trackers = predecessor.get_tracker_out();
 
-            process_live_registers[Register](block_trackers.gp, predecessor_trackers.gp, moves);
-            process_live_registers[FloatRegister](block_trackers.fp, predecessor_trackers.fp, moves);
+            process_live_registers[Register](
+                block_trackers.gp,
+                predecessor_trackers.gp,
+                moves,
+            );
+            process_live_registers[FloatRegister](
+                block_trackers.fp,
+                predecessor_trackers.fp,
+                moves,
+            );
 
             process_phis(block, predecessor_edge, predecessor_trackers, moves);
 
-            moves.resolve(codegen.get_scratch_register(), codegen.get_float_scratch_register());
+            moves.resolve(
+                codegen.get_scratch_register(),
+                codegen.get_float_scratch_register(),
+            );
 
             if predecessor.successors.size() == 1 {
                 moves.emit_moves_at_end(predecessor);
@@ -33,7 +54,13 @@ pub fn resolve_moves(graph: Graph, codegen: CodeGen) {
     }
 }
 
-fn process_live_registers[T: RegisterType](registers: RegisterTracker[T], predecessor_registers: RegisterTracker[T], moves: ParallelMoveResolver) {
+fn process_live_registers[
+    T: RegisterType
+](
+    registers: RegisterTracker[T],
+    predecessor_registers: RegisterTracker[T],
+    moves: ParallelMoveResolver,
+) {
     for (reg, inst) in registers.data {
         let inst_register = predecessor_registers.get_register(inst);
 
@@ -47,20 +74,37 @@ fn process_live_registers[T: RegisterType](registers: RegisterTracker[T], predec
     }
 }
 
-fn process_phis(block: Block, predecessor_edge: Edge, predecessor_registers: RegisterTrackers, moves: ParallelMoveResolver) {
+fn process_phis(
+    block: Block,
+    predecessor_edge: Edge,
+    predecessor_registers: RegisterTrackers,
+    moves: ParallelMoveResolver,
+) {
     for phi in block.phis_iterator() {
         // Critical edges should already be split.
         assert(predecessor_edge.source.successors.size() == 1);
 
         if phi.get_value_type().is_any_float() {
-            process_phi[FloatRegister](phi, predecessor_edge, predecessor_registers.fp, moves);
+            process_phi[FloatRegister](
+                phi,
+                predecessor_edge,
+                predecessor_registers.fp,
+                moves,
+            );
         } else {
             process_phi[Register](phi, predecessor_edge, predecessor_registers.gp, moves);
         }
     }
 }
 
-fn process_phi[T: RegisterType](phi: Inst, predecessor_edge: Edge, predecessor_registers: RegisterTracker[T], moves: ParallelMoveResolver) {
+fn process_phi[
+    T: RegisterType
+](
+    phi: Inst,
+    predecessor_edge: Edge,
+    predecessor_registers: RegisterTracker[T],
+    moves: ParallelMoveResolver,
+) {
     let loc = phi.get_location_data();
 
     let value = phi.get_input(predecessor_edge.target_idx).get_value();
@@ -103,7 +147,6 @@ fn process_phi[T: RegisterType](phi: Inst, predecessor_edge: Edge, predecessor_r
     }
 }
 
-
 struct Move {
     ty: Type,
     dest: Location,
@@ -143,7 +186,9 @@ impl ParallelMoveResolver {
     }
 
     fn add(ty: Type, dest: Location, src: Location) {
-        if dest == src { return; }
+        if dest == src {
+            return;
+        }
         self.parallel_moves.push(Move(ty, dest, src));
     }
 
@@ -287,10 +332,13 @@ fn test_register_moves_with_dependency() {
     moves.add(Type::Int64, r(2), r(1));
     moves.resolve(Register(10u8), FloatRegister(100u8));
 
-    expect_moves(moves, Array[Move]::new(
-        Move(ty = Type::Int64, dest = r(2), src = r(1)),
-        Move(ty = Type::Int64, dest = r(1), src = r(0)),
-    ));
+    expect_moves(
+        moves,
+        Array[Move]::new(
+            Move(ty = Type::Int64, dest = r(2), src = r(1)),
+            Move(ty = Type::Int64, dest = r(1), src = r(0)),
+        ),
+    );
 }
 
 @Test
@@ -300,10 +348,13 @@ fn test_register_moves_with_dependency_and_different_types() {
     moves.add(Type::Int64, r(2), r(1));
     moves.resolve(Register(10u8), FloatRegister(100u8));
 
-    expect_moves(moves, Array[Move]::new(
-        Move(ty = Type::Int64, dest = r(2), src = r(1)),
-        Move(ty = Type::Int32, dest = r(1), src = r(0)),
-    ));
+    expect_moves(
+        moves,
+        Array[Move]::new(
+            Move(ty = Type::Int64, dest = r(2), src = r(1)),
+            Move(ty = Type::Int32, dest = r(1), src = r(0)),
+        ),
+    );
 }
 
 @Test
@@ -313,10 +364,13 @@ fn test_float_register_moves_with_dependency() {
     moves.add(Type::Float64, f(2), f(1));
     moves.resolve(Register(10u8), FloatRegister(100u8));
 
-    expect_moves(moves, Array[Move]::new(
-        Move(ty = Type::Float64, dest = f(2), src = f(1)),
-        Move(ty = Type::Float64, dest = f(1), src = f(0)),
-    ));
+    expect_moves(
+        moves,
+        Array[Move]::new(
+            Move(ty = Type::Float64, dest = f(2), src = f(1)),
+            Move(ty = Type::Float64, dest = f(1), src = f(0)),
+        ),
+    );
 }
 
 @Test
@@ -326,10 +380,13 @@ fn test_stack_moves_with_dependency() {
     moves.add(Type::Int32, r(2), s(1));
     moves.resolve(Register(10u8), FloatRegister(1u8));
 
-    expect_moves(moves, Array[Move]::new(
-        Move(ty = Type::Int32, dest = r(2), src = s(1)),
-        Move(ty = Type::Int32, dest = s(1), src = r(0)),
-    ));
+    expect_moves(
+        moves,
+        Array[Move]::new(
+            Move(ty = Type::Int32, dest = r(2), src = s(1)),
+            Move(ty = Type::Int32, dest = s(1), src = r(0)),
+        ),
+    );
 }
 
 @Test
@@ -340,12 +397,15 @@ fn test_register_moves_with_cycle() {
     moves.add(Type::Int64, r(0), r(2));
     moves.resolve(Register(100u8), FloatRegister(100u8));
 
-    expect_moves(moves, Array[Move]::new(
-        Move(ty = Type::Int64, dest = r(100), src = r(2)),
-        Move(ty = Type::Int64, dest = r(2), src = r(1)),
-        Move(ty = Type::Int64, dest = r(1), src = r(0)),
-        Move(ty = Type::Int64, dest = r(0), src = r(100)),
-    ));
+    expect_moves(
+        moves,
+        Array[Move]::new(
+            Move(ty = Type::Int64, dest = r(100), src = r(2)),
+            Move(ty = Type::Int64, dest = r(2), src = r(1)),
+            Move(ty = Type::Int64, dest = r(1), src = r(0)),
+            Move(ty = Type::Int64, dest = r(0), src = r(100)),
+        ),
+    );
 }
 
 @Test
@@ -356,12 +416,15 @@ fn test_float_register_moves_with_cycle() {
     moves.add(Type::Float64, f(0), f(2));
     moves.resolve(Register(100u8), FloatRegister(5u8));
 
-    expect_moves(moves, Array[Move]::new(
-        Move(ty = Type::Float64, dest = f(5), src = f(2)),
-        Move(ty = Type::Float64, dest = f(2), src = f(1)),
-        Move(ty = Type::Float64, dest = f(1), src = f(0)),
-        Move(ty = Type::Float64, dest = f(0), src = f(5)),
-    ));
+    expect_moves(
+        moves,
+        Array[Move]::new(
+            Move(ty = Type::Float64, dest = f(5), src = f(2)),
+            Move(ty = Type::Float64, dest = f(2), src = f(1)),
+            Move(ty = Type::Float64, dest = f(1), src = f(0)),
+            Move(ty = Type::Float64, dest = f(0), src = f(5)),
+        ),
+    );
 }
 
 @Test
@@ -372,12 +435,15 @@ fn test_stack_moves_with_cycle() {
     moves.add(Type::Int64, s(0), s(2));
     moves.resolve(Register(100u8), FloatRegister(100u8));
 
-    expect_moves(moves, Array[Move]::new(
-        Move(ty = Type::Int64, dest = r(100), src = s(2)),
-        Move(ty = Type::Int64, dest = s(2), src = s(1)),
-        Move(ty = Type::Int64, dest = s(1), src = s(0)),
-        Move(ty = Type::Int64, dest = s(0),src =  r(100)),
-    ));
+    expect_moves(
+        moves,
+        Array[Move]::new(
+            Move(ty = Type::Int64, dest = r(100), src = s(2)),
+            Move(ty = Type::Int64, dest = s(2), src = s(1)),
+            Move(ty = Type::Int64, dest = s(1), src = s(0)),
+            Move(ty = Type::Int64, dest = s(0), src = r(100)),
+        ),
+    );
 }
 
 fn expect_moves(moves: ParallelMoveResolver, expected: Array[Move]) {

@@ -91,7 +91,7 @@ impl AssemblerBuffer {
 }
 
 pub class Label {
-    offset: Int64
+    offset: Int64,
 }
 
 impl Label {
@@ -139,7 +139,9 @@ fn test_assembler_buffer_emit_int() {
 
 pub trait RegisterType: Equals {
     static fn from_int32(value: Int32): Self;
+
     fn to_int32(): Int32;
+
     fn to_location(): Location;
 }
 
@@ -162,7 +164,9 @@ impl Hash for Register {
 }
 
 impl Equals for Register {
-  fn equals(other: Register): Bool { self.0 == other.0 }
+    fn equals(other: Register): Bool {
+        self.0 == other.0
+    }
 }
 
 impl RegisterType for Register {
@@ -221,7 +225,6 @@ impl RegisterType for FloatRegister {
     }
 }
 
-
 impl std::Stringable for FloatRegister {
     fn to_string(): String {
         "FloatReg(${self.value()})"
@@ -229,7 +232,9 @@ impl std::Stringable for FloatRegister {
 }
 
 impl Equals for Register {
-  fn equals(other: Register): Bool { self.0 == other.0 }
+    fn equals(other: Register): Bool {
+        self.0 == other.0
+    }
 }
 
 class MachineCode {
@@ -244,9 +249,9 @@ impl MachineCode {
 
     fn get_int32(idx: Int64): Int32 {
         self.bytes(idx).to_int32() |
-            self.bytes(idx+1i64).to_int32() << 8i32 |
-            self.bytes(idx+2i64).to_int32() << 16i32 |
-            self.bytes(idx+3i64).to_int32() << 24i32
+        self.bytes(idx + 1i64).to_int32() << 8i32 |
+        self.bytes(idx + 2i64).to_int32() << 16i32 |
+        self.bytes(idx + 3i64).to_int32() << 24i32
     }
 }
 
@@ -261,7 +266,7 @@ impl[T: RegisterType, V] RegMap[T, V] {
         RegMap(
             allocatable = rs.value,
             in_use = 0,
-            data = Array[Option[V]]::fill(64, None[V])
+            data = Array[Option[V]]::fill(64, None[V]),
         )
     }
 
@@ -269,7 +274,7 @@ impl[T: RegisterType, V] RegMap[T, V] {
         RegMap(
             allocatable = self.allocatable,
             in_use = self.in_use,
-            data = self.data.clone()
+            data = self.data.clone(),
         )
     }
 
@@ -314,6 +319,7 @@ impl[T: RegisterType, V] RegMap[T, V] {
 
 impl[T: RegisterType, V] std::traits::IntoIterator for RegMap[T, V] {
     type IteratorType = RegMapIterator[T, V];
+
     fn iter(): Self::IteratorType {
         RegMapIterator(map = self, idx = 0)
     }
@@ -447,9 +453,7 @@ impl[T: RegisterType] RegSet[T] {
     }
 
     pub fn clone(): RegSet[T] {
-        RegSet(
-            value = self.value,
-        )
+        RegSet(value = self.value)
     }
 
     pub fn size(): Int64 {
@@ -472,6 +476,7 @@ impl[T: RegisterType] RegSet[T] {
 
 impl[T: RegisterType] std::traits::IntoIterator for RegSet[T] {
     type IteratorType = RegSetIterator[T];
+
     fn iter(): Self::IteratorType {
         RegSetIterator(value = self.value, idx = 0i32)
     }

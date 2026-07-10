@@ -1,105 +1,129 @@
-use std::traits::{Comparable, Hash, Equals, Default, DoubleEndedIterator, FromIterator, Zero, IndexGet, IndexSet, IntoIterator, Iterator};
-use std::string::{Stringable, StringBuffer};
+use std::traits::{
+    Comparable,
+    Default,
+    DoubleEndedIterator,
+    Equals,
+    FromIterator,
+    Hash,
+    IndexGet,
+    IndexSet,
+    IntoIterator,
+    Iterator,
+    Zero,
+};
+use std::string::{StringBuffer, Stringable};
 use std::{fatal_error, unsafe_kill_refs};
 
-pub @internal class Array[T]
+@internal
+pub class Array[T]
 
 impl[T] Array[T] {
-  pub static @internal fn new(values: T...): Array[T];
+    @internal
+    pub static fn new(values: T...): Array[T];
 
-  pub @internal fn size(): Int64;
+    @internal
+    pub fn size(): Int64;
 
-  pub fn is_empty(): Bool { self.size() == 0i64 }
-
-  pub fn enumerate(): ArrayEnumerator[T] {
-    ArrayEnumerator[T]::new(self)
-  }
-
-  static @internal fn unsafe_new(size: Int64): Array[T];
-
-  pub fn clone(): Array[T] {
-    let array = Array[T]::unsafe_new(self.size());
-    Array[T]::copy(self, 0, array, 0, self.size());
-    array
-  }
-
-  pub static fn fill(len: Int64, value: T): Array[T] {
-    let array = Array[T]::unsafe_new(len);
-    let mut i = 0i64;
-
-    while i < len {
-      array(i) = value;
-      i = i + 1i64;
+    pub fn is_empty(): Bool {
+        self.size() == 0i64
     }
 
-    return array;
-  }
-
-  pub static fn fill_with(len: Int64, fct: (Int64): T): Array[T] {
-    let array = Array[T]::unsafe_new(len);
-    let mut i = 0i64;
-
-    while i < len {
-      array(i) = fct(i);
-      i = i + 1i64;
+    pub fn enumerate(): ArrayEnumerator[T] {
+        ArrayEnumerator[T]::new(self)
     }
 
-    return array;
-  }
+    @internal
+    static fn unsafe_new(size: Int64): Array[T];
 
-  pub static fn copy(src: Array[T], src_pos: Int64, dest: Array[T], dest_pos: Int64, len: Int64) {
-    let mut i = 0i64;
-
-    while i < len {
-      dest.set(dest_pos+i, src.get(src_pos+i));
-      i = i + 1i64;
+    pub fn clone(): Array[T] {
+        let array = Array[T]::unsafe_new(self.size());
+        Array[T]::copy(self, 0, array, 0, self.size());
+        array
     }
-  }
+
+    pub static fn fill(len: Int64, value: T): Array[T] {
+        let array = Array[T]::unsafe_new(len);
+        let mut i = 0i64;
+
+        while i < len {
+            array(i) = value;
+            i = i + 1i64;
+        }
+
+        return array;
+    }
+
+    pub static fn fill_with(len: Int64, fct: (Int64): T): Array[T] {
+        let array = Array[T]::unsafe_new(len);
+        let mut i = 0i64;
+
+        while i < len {
+            array(i) = fct(i);
+            i = i + 1i64;
+        }
+
+        return array;
+    }
+
+    pub static fn copy(
+        src: Array[T],
+        src_pos: Int64,
+        dest: Array[T],
+        dest_pos: Int64,
+        len: Int64,
+    ) {
+        let mut i = 0i64;
+
+        while i < len {
+            dest.set(dest_pos + i, src.get(src_pos + i));
+            i = i + 1i64;
+        }
+    }
 }
 
 impl[T] IndexGet for Array[T] {
-  type Index = Int;
-  type Item = T;
+    type Index = Int;
+    type Item = T;
 
-  @internal
-  fn get(index: Self::Index): Self::Item;
+    @internal
+    fn get(index: Self::Index): Self::Item;
 }
 
 impl[T] IndexSet for Array[T] {
-  type Index = Int;
-  type Item = T;
+    type Index = Int;
+    type Item = T;
 
-  @internal
-  fn set(index: Self::Index, item: Self::Item);
+    @internal
+    fn set(index: Self::Index, item: Self::Item);
 }
 
 impl[T: Default] Array[T] {
-  pub static fn new_default(len: Int64): Array[T] {
-    let array = Array[T]::unsafe_new(len);
-    let mut i = 0i64;
-    let value = T::default();
+    pub static fn new_default(len: Int64): Array[T] {
+        let array = Array[T]::unsafe_new(len);
+        let mut i = 0i64;
+        let value = T::default();
 
-    while i < len {
-      array.set(i, value);
-      i = i + 1i64;
+        while i < len {
+            array.set(i, value);
+            i = i + 1i64;
+        }
+
+        return array;
     }
-
-    return array;
-  }
 }
 
 impl[T: Zero] Array[T] {
-  pub static fn zero(len: Int64): Array[T] {
-    Array[T]::unsafe_new(len)
-  }
+    pub static fn zero(len: Int64): Array[T] {
+        Array[T]::unsafe_new(len)
+    }
 }
 
 impl[T] IntoIterator for Array[T] {
-  type IteratorType = ArrayIter[T];
+    type IteratorType = ArrayIter[T];
 
-  fn iter(): ArrayIter[T] {
-    ArrayIter[T]::new(self)
-  }
+    fn iter(): ArrayIter[T] {
+        ArrayIter[T]::new(self)
+    }
 }
 
 impl[X] FromIterator[X] for Array[X] {
@@ -115,597 +139,599 @@ impl[X] FromIterator[X] for Array[X] {
 }
 
 pub class ArrayIter[T] {
-  array: Array[T],
-  idx: Int64,
-  end: Int64,
+    array: Array[T],
+    idx: Int64,
+    end: Int64,
 }
 
 impl[T] ArrayIter[T] {
-  static fn new(data: Array[T]): ArrayIter[T] {
-    ArrayIter[T](array = data, idx = 0, end = data.size())
-  }
+    static fn new(data: Array[T]): ArrayIter[T] {
+        ArrayIter[T](array = data, idx = 0, end = data.size())
+    }
 }
 
 impl[T] Iterator for ArrayIter[T] {
-  type Item = T;
+    type Item = T;
 
-  fn next(): Option[T] {
-    if self.idx < self.end {
-      let current = self.array(self.idx);
-      self.idx = self.idx + 1;
-      Some[T](current)
-    } else {
-      None[T]
+    fn next(): Option[T] {
+        if self.idx < self.end {
+            let current = self.array(self.idx);
+            self.idx = self.idx + 1;
+            Some[T](current)
+        } else {
+            None[T]
+        }
     }
-  }
 }
 
 impl[T] DoubleEndedIterator for ArrayIter[T] {
-  fn next_back(): Option[T] {
-    if self.idx < self.end {
-      self.end = self.end - 1;
-      Some[T](self.array(self.end))
-    } else {
-      None[T]
+    fn next_back(): Option[T] {
+        if self.idx < self.end {
+            self.end = self.end - 1;
+            Some[T](self.array(self.end))
+        } else {
+            None[T]
+        }
     }
-  }
 }
 
 pub class ArrayEnumerator[T] {
-  array: Array[T],
-  idx: Int64,
+    array: Array[T],
+    idx: Int64,
 }
 
 impl[T] ArrayEnumerator[T] {
-  static fn new(data: Array[T]): ArrayEnumerator[T] {
-    ArrayEnumerator[T](array = data, idx = 0)
-  }
+    static fn new(data: Array[T]): ArrayEnumerator[T] {
+        ArrayEnumerator[T](array = data, idx = 0)
+    }
 }
 
 impl[T] Iterator for ArrayEnumerator[T] {
-  type Item = (Int64, T);
+    type Item = (Int64, T);
 
-  fn next(): Option[(Int64, T)] {
-    if self.idx < self.array.size() {
-      let current_idx = self.idx;
-      self.idx = self.idx + 1i64;
-      Some[(Int64, T)]((current_idx, self.array(current_idx)))
-    } else {
-      None[(Int64, T)]
+    fn next(): Option[(Int64, T)] {
+        if self.idx < self.array.size() {
+            let current_idx = self.idx;
+            self.idx = self.idx + 1i64;
+            Some[(Int64, T)]((current_idx, self.array(current_idx)))
+        } else {
+            None[(Int64, T)]
+        }
     }
-  }
 }
 
 impl[T: Comparable] Array[T] {
-  // a stable in-place sort, currently implemented by insertion sort
-  pub static fn sort_stable(array: Array[T]) {
-    internal_sort_stable[T](array, 0, array.size());
-  }
+    // a stable in-place sort, currently implemented by insertion sort
+    pub static fn sort_stable(array: Array[T]) {
+        internal_sort_stable[T](array, 0, array.size());
+    }
 }
 
 fn internal_sort_stable[T: Comparable](array: Array[T], start: Int, length: Int) {
-  let mut i = start + 1;
+    let mut i = start + 1;
 
-  while i < length {
-    let mut temp = array.get(i);
-    let mut j = i;
-    while j > 0 && array(j - 1) > temp {
-      array(j) = array(j - 1);
-      j = j - 1;
+    while i < length {
+        let mut temp = array.get(i);
+        let mut j = i;
+        while j > 0 && array(j - 1) > temp {
+            array(j) = array(j - 1);
+            j = j - 1;
+        }
+        array(j) = temp;
+        i = i + 1;
     }
-    array(j) = temp;
-    i = i + 1;
-  }
 }
 
 impl[T: Equals] Equals for Array[T] {
-  fn equals(other: Array[T]): Bool {
-    if self.size() != other.size() {
-      return false;
+    fn equals(other: Array[T]): Bool {
+        if self.size() != other.size() {
+            return false;
+        }
+        let mut i = 0i64;
+        while i < self.size() {
+            if self(i) != other(i) {
+                return false;
+            }
+            i = i + 1i64;
+        }
+        return true;
     }
-    let mut i = 0i64;
-    while i < self.size() {
-      if self(i) != other(i) {
-        return false;
-      }
-      i = i + 1i64;
-    }
-    return true;
-  }
 }
 
 impl[T: Hash] Hash for Array[T] {
-  fn hash(): Int32 {
-    let mut result: Int32 = self.size().hash();
-    let mut i = 0i64;
-    while i < self.size() {
-      result = result ^ self(i).hash();
-      i = i + 1i64;
+    fn hash(): Int32 {
+        let mut result: Int32 = self.size().hash();
+        let mut i = 0i64;
+        while i < self.size() {
+            result = result ^ self(i).hash();
+            i = i + 1i64;
+        }
+        result
     }
-    result
-  }
 }
 
 impl[T: Equals] Array[T] {
-  pub fn contains(value: T): Bool {
-    let mut i = 0i64;
+    pub fn contains(value: T): Bool {
+        let mut i = 0i64;
 
-    while i < self.size() {
-      let x = self.get(i);
-      if x == value {
-        return true;
-      }
-      i = i + 1i64;
-    }
+        while i < self.size() {
+            let x = self.get(i);
+            if x == value {
+                return true;
+            }
+            i = i + 1i64;
+        }
 
-    return false;
-  }
-
-  pub static fn compare(a: Array[T], a_pos: Int64, b: Array[T], b_pos: Int64, len: Int64): Bool {
-    let a_size = a.size() - a_pos;
-    let b_size = b.size() - b_pos;
-    if a_size < len || b_size < len {
-      fatal_error[()]("len ${len} exceeds size of array");
-    }
-    if a_size < 0i64 || b_size < 0i64 {
-      return false;
-    }
-
-    let mut i = 0i64;
-
-    while i < len {
-      if a(a_pos+i) != b(b_pos+i) {
         return false;
-      }
-      i = i + 1i64;
     }
 
-    return true;
-  }
+    pub static fn compare(
+        a: Array[T],
+        a_pos: Int64,
+        b: Array[T],
+        b_pos: Int64,
+        len: Int64,
+    ): Bool {
+        let a_size = a.size() - a_pos;
+        let b_size = b.size() - b_pos;
+        if a_size < len || b_size < len {
+            fatal_error[()]("len ${len} exceeds size of array");
+        }
+        if a_size < 0i64 || b_size < 0i64 {
+            return false;
+        }
+
+        let mut i = 0i64;
+
+        while i < len {
+            if a(a_pos + i) != b(b_pos + i) {
+                return false;
+            }
+            i = i + 1i64;
+        }
+
+        return true;
+    }
 }
 
 impl[T: Stringable] Stringable for Array[T] {
-  fn to_string(): String {
-    let sb = StringBuffer::new();
-    sb.append("Array(");
-    let size = self.size();
-    if size != 0i64 {
-      let mut i = 0i64;
-      while i < size - 1i64 {
-        sb.append(self.get(i).to_string());
-        sb.append(", ");
-        i = i + 1i64;
-      }
-      sb.append(self.get(i).to_string());
+    fn to_string(): String {
+        let sb = StringBuffer::new();
+        sb.append("Array(");
+        let size = self.size();
+        if size != 0i64 {
+            let mut i = 0i64;
+            while i < size - 1i64 {
+                sb.append(self.get(i).to_string());
+                sb.append(", ");
+                i = i + 1i64;
+            }
+            sb.append(self.get(i).to_string());
+        }
+        sb.append(")");
+        return sb.to_string();
     }
-    sb.append(")");
-    return sb.to_string();
-  }
 }
 
 pub class BitSet {
-  data: Array[Int32],
-  capacity: Int64,
+    data: Array[Int32],
+    capacity: Int64,
 }
 
 impl BitSet {
-  pub static fn new(capacity: Int64): BitSet {
-    if capacity == 0 {
-      BitSet(data = Array[Int32]::new(), capacity = 0)
-    } else {
-      let entries = (capacity + 31) / 32;
-      BitSet(data = Array[Int32]::zero(entries), capacity = capacity)
-    }
-  }
-
-  pub fn size(): Int64 {
-    self.capacity
-  }
-
-  pub fn contains(idx: Int64): Bool {
-    if idx < 0i64 || idx >= self.capacity {
-      fatal_error[()]("index out of bounds");
+    pub static fn new(capacity: Int64): BitSet {
+        if capacity == 0 {
+            BitSet(data = Array[Int32]::new(), capacity = 0)
+        } else {
+            let entries = (capacity + 31) / 32;
+            BitSet(data = Array[Int32]::zero(entries), capacity = capacity)
+        }
     }
 
-    let entry_idx = idx / 32i64;
-    let value = self.data.get(entry_idx);
-    let bit_idx = idx & 0x1F;
-
-    return value & (1i32 << bit_idx.to_int32()) != 0i32;
-  }
-
-  pub fn insert(idx: Int64) {
-    if idx < 0i64 || idx >= self.capacity {
-      fatal_error[()]("index out of bounds");
+    pub fn size(): Int64 {
+        self.capacity
     }
 
-    let entry_idx = idx / 32i64;
-    let mut value = self.data.get(entry_idx);
-    let bit_idx = idx & 0x1F;
+    pub fn contains(idx: Int64): Bool {
+        if idx < 0i64 || idx >= self.capacity {
+            fatal_error[()]("index out of bounds");
+        }
 
-    value = value | (1i32 << bit_idx.to_int32());
+        let entry_idx = idx / 32i64;
+        let value = self.data.get(entry_idx);
+        let bit_idx = idx & 0x1F;
 
-    self.data.set(entry_idx, value);
-  }
-
-  pub fn remove(idx: Int64) {
-    if idx < 0i64 || idx >= self.capacity {
-      fatal_error[()]("index out of bounds");
+        return value & (1i32 << bit_idx.to_int32()) != 0i32;
     }
 
-    let entry_idx = idx / 32i64;
-    let mut value = self.data.get(entry_idx);
-    let bit_idx = idx & 0x1F;
+    pub fn insert(idx: Int64) {
+        if idx < 0i64 || idx >= self.capacity {
+            fatal_error[()]("index out of bounds");
+        }
 
-    value = value & !(1i32 << bit_idx.to_int32());
+        let entry_idx = idx / 32i64;
+        let mut value = self.data.get(entry_idx);
+        let bit_idx = idx & 0x1F;
 
-    self.data.set(entry_idx, value);
-  }
+        value = value | (1i32 << bit_idx.to_int32());
 
-  pub fn clear() {
-    for idx in std::range(0, self.data.size()) {
-      self.data(idx) = 0i32;
+        self.data.set(entry_idx, value);
     }
-  }
 
-  pub fn clone(): BitSet {
-    BitSet(
-      data = self.data.clone(),
-      capacity = self.capacity,
-    )
-  }
+    pub fn remove(idx: Int64) {
+        if idx < 0i64 || idx >= self.capacity {
+            fatal_error[()]("index out of bounds");
+        }
+
+        let entry_idx = idx / 32i64;
+        let mut value = self.data.get(entry_idx);
+        let bit_idx = idx & 0x1F;
+
+        value = value & !(1i32 << bit_idx.to_int32());
+
+        self.data.set(entry_idx, value);
+    }
+
+    pub fn clear() {
+        for idx in std::range(0, self.data.size()) {
+            self.data(idx) = 0i32;
+        }
+    }
+
+    pub fn clone(): BitSet {
+        BitSet(data = self.data.clone(), capacity = self.capacity)
+    }
 }
 
 impl std::traits::IntoIterator for BitSet {
-  type IteratorType = BitSetIter;
+    type IteratorType = BitSetIter;
 
-  fn iter(): Self::IteratorType {
-    BitSetIter(bitset = self, idx = 0, mask = !0i32)
-  }
+    fn iter(): Self::IteratorType {
+        BitSetIter(bitset = self, idx = 0, mask = !0i32)
+    }
 }
 
 pub class BitSetIter {
-  bitset: BitSet,
-  idx: Int64,
-  mask: Int32,
+    bitset: BitSet,
+    idx: Int64,
+    mask: Int32,
 }
 
 impl Iterator for BitSetIter {
-  type Item = Int64;
+    type Item = Int64;
 
-  fn next(): Option[Int64] {
-    while self.idx < self.bitset.data.size() {
-      let value = self.bitset.data(self.idx) & self.mask;
-      let bit = value.count_zero_bits_trailing();
+    fn next(): Option[Int64] {
+        while self.idx < self.bitset.data.size() {
+            let value = self.bitset.data(self.idx) & self.mask;
+            let bit = value.count_zero_bits_trailing();
 
-      if bit == 32i32 {
-        self.idx = self.idx + 1;
-        self.mask = !0i32;
-      } else {
-        let result = self.idx * 32 + bit.to_int64();
+            if bit == 32i32 {
+                self.idx = self.idx + 1;
+                self.mask = !0i32;
+            } else {
+                let result = self.idx * 32 + bit.to_int64();
 
-        if bit == 31i32 {
-          self.idx = self.idx + 1;
-          self.mask = !0i32;
-        } else {
-          // Avoid overflow for bit 30 here.
-          self.mask = !((1i32 << (bit + 1i32)).wrapping_sub(1i32));
+                if bit == 31i32 {
+                    self.idx = self.idx + 1;
+                    self.mask = !0i32;
+                } else {
+                    // Avoid overflow for bit 30 here.
+                    self.mask = !((1i32 << (bit + 1i32)).wrapping_sub(1i32));
+                }
+
+                return Some[Int64](result);
+            }
         }
 
-        return Some[Int64](result);
-      }
+        None[Int64]
     }
-
-    None[Int64]
-  }
 }
 
 pub class BitVec {
-  data: Array[Int32],
+    data: Array[Int32],
 }
 
 impl BitVec {
-  pub static fn new(): BitVec {
-    BitVec(data = Array[Int32]::new())
-  }
-
-  pub fn contains(idx: Int64): Bool {
-    if idx < 0i64 {
-      fatal_error[()]("index out of bounds");
+    pub static fn new(): BitVec {
+        BitVec(data = Array[Int32]::new())
     }
 
-    if idx >= self.data.size() * 32i64 {
-      return false;
+    pub fn contains(idx: Int64): Bool {
+        if idx < 0i64 {
+            fatal_error[()]("index out of bounds");
+        }
+
+        if idx >= self.data.size() * 32i64 {
+            return false;
+        }
+
+        let entry_idx = idx >> 5i32;
+        let value = self.data.get(entry_idx);
+        let value_idx = idx & 0x1F;
+
+        return value & (1i32 << value_idx.to_int32()) != 0i32;
     }
 
-    let entry_idx = idx >> 5i32;
-    let value = self.data.get(entry_idx);
-    let value_idx = idx & 0x1F;
+    pub fn insert(idx: Int64): Bool {
+        if idx < 0i64 {
+            fatal_error[()]("index out of bounds");
+        }
 
-    return value & (1i32 << value_idx.to_int32()) != 0i32;
-  }
+        self.ensure_capacity(idx + 1i64);
 
-  pub fn insert(idx: Int64): Bool {
-    if idx < 0i64 {
-      fatal_error[()]("index out of bounds");
+        let entry_idx = idx >> 5i32;
+        let mut value = self.data.get(entry_idx);
+        let value_idx = idx & 0x1F;
+
+        let mask = 1i32 << value_idx.to_int32();
+
+        if value & mask == 0i32 {
+            value = value | (1i32 << value_idx.to_int32());
+            self.data.set(entry_idx, value);
+            true
+        } else {
+            false
+        }
     }
 
-    self.ensure_capacity(idx+1i64);
+    pub fn remove(idx: Int64): Bool {
+        if idx < 0i64 {
+            fatal_error[()]("index out of bounds");
+        }
 
-    let entry_idx = idx >> 5i32;
-    let mut value = self.data.get(entry_idx);
-    let value_idx = idx & 0x1F;
+        if idx >= self.data.size() * 32i64 {
+            return false;
+        }
 
-    let mask = 1i32 << value_idx.to_int32();
+        let entry_idx = idx >> 5i32;
+        let mut value = self.data.get(entry_idx);
+        let value_idx = idx & 0x1F;
 
-    if value & mask == 0i32 {
-      value = value | (1i32 << value_idx.to_int32());
-      self.data.set(entry_idx, value);
-      true
-    } else {
-      false
-    }
-  }
+        let mask = 1i32 << value_idx.to_int32();
 
-  pub fn remove(idx: Int64): Bool {
-    if idx < 0i64 {
-      fatal_error[()]("index out of bounds");
-    }
-
-    if idx >= self.data.size() * 32i64 {
-        return false;
+        if value & mask != 0i32 {
+            value = value & !mask;
+            self.data.set(entry_idx, value);
+            true
+        } else {
+            false
+        }
     }
 
-    let entry_idx = idx >> 5i32;
-    let mut value = self.data.get(entry_idx);
-    let value_idx = idx & 0x1F;
-
-    let mask = 1i32 << value_idx.to_int32();
-
-    if value & mask != 0i32 {
-      value = value & !mask;
-      self.data.set(entry_idx, value);
-      true
-    } else {
-      false
-    }
-  }
-
-  pub fn ensure_capacity(newcap: Int64) {
-    let newsize = (newcap + 31i64) / 32i64;
-    self.ensure_size(newsize);
-  }
-
-  fn ensure_size(newsize: Int64) {
-    if newsize < self.data.size() || newsize == 0 {
-      return;
+    pub fn ensure_capacity(newcap: Int64) {
+        let newsize = (newcap + 31i64) / 32i64;
+        self.ensure_size(newsize);
     }
 
-    let newarray = Array[Int32]::zero(newsize);
-    Array[Int32]::copy(self.data, 0, newarray, 0, self.data.size());
-    self.data = newarray;
-  }
+    fn ensure_size(newsize: Int64) {
+        if newsize < self.data.size() || newsize == 0 {
+            return;
+        }
 
-  pub fn capacity(): Int64 {
-    self.data.size() * 32i64
-  }
-
-  pub fn union_with(other: BitVec): Bool {
-    self.ensure_size(other.data.size());
-
-    let mut idx = 0;
-    let mut size = self.data.size();
-    let mut changed = false;
-
-    if size > other.data.size() {
-      size = other.data.size();
+        let newarray = Array[Int32]::zero(newsize);
+        Array[Int32]::copy(self.data, 0, newarray, 0, self.data.size());
+        self.data = newarray;
     }
 
-    while idx < size {
-      if self.data(idx) != other.data(idx) {
-        changed = true;
-      }
-      self.data(idx) = self.data(idx) | other.data(idx);
-      idx = idx + 1;
+    pub fn capacity(): Int64 {
+        self.data.size() * 32i64
     }
 
-    changed
-  }
+    pub fn union_with(other: BitVec): Bool {
+        self.ensure_size(other.data.size());
 
-  pub fn intersect_with(other: BitVec) {
-    let mut idx = 0;
-    let mut size = Int64::min(self.data.size(), other.data.size());
+        let mut idx = 0;
+        let mut size = self.data.size();
+        let mut changed = false;
 
-    while idx < size {
-      self.data(idx) = self.data(idx) & other.data(idx);
-      idx = idx + 1;
+        if size > other.data.size() {
+            size = other.data.size();
+        }
+
+        while idx < size {
+            if self.data(idx) != other.data(idx) {
+                changed = true;
+            }
+            self.data(idx) = self.data(idx) | other.data(idx);
+            idx = idx + 1;
+        }
+
+        changed
     }
 
-    while idx < self.data.size() {
-      self.data(idx) = 0i32;
-      idx = idx + 1;
-    }
-  }
+    pub fn intersect_with(other: BitVec) {
+        let mut idx = 0;
+        let mut size = Int64::min(self.data.size(), other.data.size());
 
-  pub fn clone(): BitVec {
-    BitVec(data = self.data.clone())
-  }
+        while idx < size {
+            self.data(idx) = self.data(idx) & other.data(idx);
+            idx = idx + 1;
+        }
+
+        while idx < self.data.size() {
+            self.data(idx) = 0i32;
+            idx = idx + 1;
+        }
+    }
+
+    pub fn clone(): BitVec {
+        BitVec(data = self.data.clone())
+    }
 }
 
 impl std::traits::Equals for BitVec {
-  fn equals(other: BitVec): Bool {
-    let mut idx = 0;
-    let mut size = Int::min(self.data.size(), other.data.size());
-    let mut max_size = Int::max(self.data.size(), other.data.size());
+    fn equals(other: BitVec): Bool {
+        let mut idx = 0;
+        let mut size = Int::min(self.data.size(), other.data.size());
+        let mut max_size = Int::max(self.data.size(), other.data.size());
 
-    while idx < size {
-      if self.data(idx) != other.data(idx) {
-        return false;
-      }
+        while idx < size {
+            if self.data(idx) != other.data(idx) {
+                return false;
+            }
 
-      idx += 1;
+            idx += 1;
+        }
+
+        let rest = if self.data.size() > other.data.size() {
+            self
+        } else {
+            other
+        };
+
+        while idx < max_size {
+            if rest.data(idx) != 0i32 {
+                return false;
+            }
+        }
+
+        true
     }
-
-    let rest = if self.data.size() > other.data.size() {
-      self
-    } else {
-      other
-    };
-
-    while idx < max_size {
-      if rest.data(idx) != 0i32 {
-        return false;
-      }
-    }
-
-    true
-  }
 }
 
 impl std::traits::IntoIterator for BitVec {
-  type IteratorType = BitVecIter;
+    type IteratorType = BitVecIter;
 
-  fn iter(): Self::IteratorType {
-    BitVecIter(bitvec = self, idx = 0, mask = !0i32)
-  }
+    fn iter(): Self::IteratorType {
+        BitVecIter(bitvec = self, idx = 0, mask = !0i32)
+    }
 }
 
 pub class BitVecIter {
-  bitvec: BitVec,
-  idx: Int64,
-  mask: Int32,
+    bitvec: BitVec,
+    idx: Int64,
+    mask: Int32,
 }
 
 impl Iterator for BitVecIter {
-  type Item = Int64;
+    type Item = Int64;
 
-  fn next(): Option[Int64] {
-    while self.idx < self.bitvec.data.size() {
-      let value = self.bitvec.data(self.idx) & self.mask;
-      let bit = value.count_zero_bits_trailing();
+    fn next(): Option[Int64] {
+        while self.idx < self.bitvec.data.size() {
+            let value = self.bitvec.data(self.idx) & self.mask;
+            let bit = value.count_zero_bits_trailing();
 
-      if bit == 32i32 {
-        self.idx = self.idx + 1;
-        self.mask = !0i32;
-      } else {
-        let result = self.idx * 32 + bit.to_int64();
+            if bit == 32i32 {
+                self.idx = self.idx + 1;
+                self.mask = !0i32;
+            } else {
+                let result = self.idx * 32 + bit.to_int64();
 
-        if bit == 31i32 {
-          self.idx = self.idx + 1;
-          self.mask = !0i32;
-        } else {
-          // Avoid overflow for bit 30 here.
-          self.mask = !((1i32 << (bit + 1i32)).wrapping_sub(1i32));
+                if bit == 31i32 {
+                    self.idx = self.idx + 1;
+                    self.mask = !0i32;
+                } else {
+                    // Avoid overflow for bit 30 here.
+                    self.mask = !((1i32 << (bit + 1i32)).wrapping_sub(1i32));
+                }
+
+                return Some[Int64](result);
+            }
         }
 
-        return Some[Int64](result);
-      }
+        None[Int64]
     }
-
-    None[Int64]
-  }
 }
 
 pub class Queue[T] {
-  elements: Array[T],
-  front: Int64,
-  count: Int64,
+    elements: Array[T],
+    front: Int64,
+    count: Int64,
 }
 
 impl[T] Queue[T] {
-  pub static fn new(): Queue[T] {
-    Queue[T](elements = Array[T]::unsafe_new(4), front = 0, count = 0)
-  }
-
-  pub fn enqueue(value: T) {
-    if self.count == self.elements.size() {
-      // copy into larger array
-      let newelements = Array[T]::unsafe_new(self.elements.size() * 2i64);
-      let len = self.elements.size() - self.front;
-      Array[T]::copy(self.elements, self.front, newelements, 0i64, len);
-
-      if len < self.count {
-        Array[T]::copy(self.elements, 0i64, newelements, len, self.count - len);
-      }
-
-      self.front = 0i64;
-      // self.count stays the same
-      self.elements = newelements;
+    pub static fn new(): Queue[T] {
+        Queue[T](elements = Array[T]::unsafe_new(4), front = 0, count = 0)
     }
 
-    let end = self.get_end();
-    self.elements.set(end, value);
-    self.count = self.count + 1i64;
-  }
+    pub fn enqueue(value: T) {
+        if self.count == self.elements.size() {
+            // copy into larger array
+            let newelements = Array[T]::unsafe_new(self.elements.size() * 2i64);
+            let len = self.elements.size() - self.front;
+            Array[T]::copy(self.elements, self.front, newelements, 0i64, len);
 
-  pub fn dequeue(): T {
-    assert(self.count > 0i64);
+            if len < self.count {
+                Array[T]::copy(self.elements, 0i64, newelements, len, self.count - len);
+            }
 
-    let value = self.elements.get(self.front);
-    std::unsafe_kill_refs[T](self.elements, self.front);
+            self.front = 0i64;
+            // self.count stays the same
+            self.elements = newelements;
+        }
 
-    self.move_front();
-    self.count = self.count - 1i64;
-
-    return value;
-  }
-
-  fn move_front(): Int64 {
-    self.front = self.front + 1i64;
-
-    if self.front == self.elements.size() {
-      self.front = 0i64;
+        let end = self.get_end();
+        self.elements.set(end, value);
+        self.count = self.count + 1i64;
     }
 
-    return self.front;
-  }
+    pub fn dequeue(): T {
+        assert(self.count > 0i64);
 
-  fn get_end(): Int64 {
-    let end = self.front + self.count;
+        let value = self.elements.get(self.front);
+        std::unsafe_kill_refs[T](self.elements, self.front);
 
-    if end < self.elements.size() {
-      return end;
-    } else {
-      return end - self.elements.size();
+        self.move_front();
+        self.count = self.count - 1i64;
+
+        return value;
     }
-  }
 
-  pub fn size(): Int64 {
-    return self.count;
-  }
+    fn move_front(): Int64 {
+        self.front = self.front + 1i64;
 
-  pub fn is_empty(): Bool {
-    return self.count == 0i64;
-  }
+        if self.front == self.elements.size() {
+            self.front = 0i64;
+        }
+
+        return self.front;
+    }
+
+    fn get_end(): Int64 {
+        let end = self.front + self.count;
+
+        if end < self.elements.size() {
+            return end;
+        } else {
+            return end - self.elements.size();
+        }
+    }
+
+    pub fn size(): Int64 {
+        return self.count;
+    }
+
+    pub fn is_empty(): Bool {
+        return self.count == 0i64;
+    }
 }
 
 pub class HashMap[K: Hash + Equals, V] {
-  inserted_and_deleted: BitSet,
-  keys: Array[K],
-  values: Array[V],
-  entries: Int64,
-  cap: Int64,
+    inserted_and_deleted: BitSet,
+    keys: Array[K],
+    values: Array[V],
+    entries: Int64,
+    cap: Int64,
 }
 
 impl[K: Hash + Equals, V] HashMap[K, V] {
-  pub static fn new(entries: (K, V)...): HashMap[K, V] {
-    // BitSet.size == capacity * 2
-    // [bit 0: inserted; bit 1: deleted] * capacity
-    let map = HashMap[K, V](
-      inserted_and_deleted = BitSet::new(0),
-      keys = Array[K]::new(),
-      values = Array[V]::new(),
-      entries = 0,
-      cap = 0,
-    );
+    pub static fn new(entries: (K, V)...): HashMap[K, V] {
+        // BitSet.size == capacity * 2
+        // [bit 0: inserted; bit 1: deleted] * capacity
+        let map = HashMap[K, V](
+            inserted_and_deleted = BitSet::new(0),
+            keys = Array[K]::new(),
+            values = Array[V]::new(),
+            entries = 0,
+            cap = 0,
+        );
 
-    for entry in entries {
-        map.insert(entry.0, entry.1);
+        for entry in entries {
+            map.insert(entry.0, entry.1);
+        }
+
+        map
     }
-
-    map
-  }
-
 
     pub fn insert(key: K, value: V): Option[V] {
         self.ensure_capacity(1i64);
@@ -725,14 +751,12 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
                     self.values.set(idx, value);
                     return Some[V](old_value);
                 }
-
             } else if self.is_deleted(idx) {
                 if insert_idx < 0 {
                     insert_idx = idx;
                 }
 
                 // There might be live entries after a deleted one.
-
             } else {
                 if insert_idx < 0 {
                     insert_idx = idx;
@@ -854,27 +878,27 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
     }
 
     pub fn retain_if(predicate: (K, V): Bool) {
-      let mut idx = 0;
+        let mut idx = 0;
 
-      while idx < self.cap {
-          if self.is_live(idx) {
-              let key = self.keys.get(idx);
-              let value = self.values.get(idx);
+        while idx < self.cap {
+            if self.is_live(idx) {
+                let key = self.keys.get(idx);
+                let value = self.values.get(idx);
 
-              if !predicate(key, value) {
-                  self.inserted_and_deleted.insert(2i64 * idx + 1i64);
+                if !predicate(key, value) {
+                    self.inserted_and_deleted.insert(2i64 * idx + 1i64);
 
-                  unsafe_kill_refs[K](self.keys, idx);
-                  unsafe_kill_refs[V](self.values, idx);
+                    unsafe_kill_refs[K](self.keys, idx);
+                    unsafe_kill_refs[V](self.values, idx);
 
-                  self.entries = self.entries - 1i64;
-              }
-          }
+                    self.entries = self.entries - 1i64;
+                }
+            }
 
-          idx = idx + 1;
-      }
+            idx = idx + 1;
+        }
 
-      self.shrink();
+        self.shrink();
     }
 
     fn ensure_capacity(elements_to_add: Int64) {
@@ -943,31 +967,31 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
     }
 
     pub fn clear() {
-      self.inserted_and_deleted.clear();
-      self.entries = 0;
+        self.inserted_and_deleted.clear();
+        self.entries = 0;
 
-      for idx in std::range(0, self.keys.size()) {
-        unsafe_kill_refs[K](self.keys, idx);
-      }
+        for idx in std::range(0, self.keys.size()) {
+            unsafe_kill_refs[K](self.keys, idx);
+        }
 
-      for idx in std::range(0, self.values.size()) {
-        unsafe_kill_refs[V](self.values, idx);
-      }
+        for idx in std::range(0, self.values.size()) {
+            unsafe_kill_refs[V](self.values, idx);
+        }
     }
 
     pub fn clone(): HashMap[K, V] {
-      HashMap(
-        inserted_and_deleted = self.inserted_and_deleted.clone(),
-        keys = self.keys.clone(),
-        values = self.values.clone(),
-        entries = self.entries,
-        cap = self.cap,
-      )
+        HashMap(
+            inserted_and_deleted = self.inserted_and_deleted.clone(),
+            keys = self.keys.clone(),
+            values = self.values.clone(),
+            entries = self.entries,
+            cap = self.cap,
+        )
     }
 
     fn is_live(idx: Int64): Bool {
         return self.inserted_and_deleted.contains(2i64 * idx) &&
-               !self.inserted_and_deleted.contains(2i64 * idx + 1i64);
+        !self.inserted_and_deleted.contains(2i64 * idx + 1i64);
     }
 
     fn is_deleted(idx: Int64): Bool {
@@ -1002,7 +1026,7 @@ pub class HashMapIter[K: Hash + Equals, V] {
 
 impl[K: Hash + Equals, V] HashMapIter[K, V] {
     pub static fn new(map: HashMap[K, V]): HashMapIter[K, V] {
-      HashMapIter[K, V](map = map, idx = 0)
+        HashMapIter[K, V](map = map, idx = 0)
     }
 }
 
@@ -1042,67 +1066,67 @@ pub class HashSet[K: Hash + Equals] {
 }
 
 impl[K: Hash + Equals] HashSet[K] {
-  pub static fn new(keys: K...): HashSet[K] {
-    let map: HashMap[K, ()] = HashMap[K, ()]::new();
+    pub static fn new(keys: K...): HashSet[K] {
+        let map: HashMap[K, ()] = HashMap[K, ()]::new();
 
-    for key in keys {
-        map.insert(key, ());
+        for key in keys {
+            map.insert(key, ());
+        }
+
+        HashSet[K](map = map)
     }
 
-    HashSet[K](map = map)
-  }
+    pub fn insert(key: K): Bool {
+        self.map.insert(key, ()).is_none()
+    }
 
-  pub fn insert(key: K): Bool {
-    self.map.insert(key, ()).is_none()
-  }
+    pub fn contains(key: K): Bool {
+        self.map.contains(key)
+    }
 
-  pub fn contains(key: K): Bool {
-    self.map.contains(key)
-  }
+    pub fn remove(key: K): Bool {
+        self.map.remove(key).is_some()
+    }
 
-  pub fn remove(key: K): Bool {
-    self.map.remove(key).is_some()
-  }
+    pub fn size(): Int64 {
+        self.map.size()
+    }
 
-  pub fn size(): Int64 {
-    self.map.size()
-  }
+    pub fn is_empty(): Bool {
+        self.map.is_empty()
+    }
 
-  pub fn is_empty(): Bool {
-    self.map.is_empty()
-  }
+    pub fn capacity(): Int64 {
+        self.map.capacity()
+    }
 
-  pub fn capacity(): Int64 {
-    self.map.capacity()
-  }
-
-  pub fn clone(): HashSet[K] {
-    HashSet[K](map = self.map.clone())
-  }
+    pub fn clone(): HashSet[K] {
+        HashSet[K](map = self.map.clone())
+    }
 }
 
 impl[K: Hash + Equals] std::traits::IntoIterator for HashSet[K] {
-  type IteratorType = HashSetIter[K];
+    type IteratorType = HashSetIter[K];
 
-  fn iter(): Self::IteratorType {
-    HashSetIter[K](map = self.map, idx = 0)
-  }
+    fn iter(): Self::IteratorType {
+        HashSetIter[K](map = self.map, idx = 0)
+    }
 }
 
 impl[K: Hash + Equals] Equals for HashSet[K] {
-  fn equals(other: HashSet[K]): Bool {
-    if self.size() != other.size() {
-      return false;
-    }
+    fn equals(other: HashSet[K]): Bool {
+        if self.size() != other.size() {
+            return false;
+        }
 
-    for value in self {
-      if !other.contains(value) {
-        return false;
-      }
-    }
+        for value in self {
+            if !other.contains(value) {
+                return false;
+            }
+        }
 
-    true
-  }
+        true
+    }
 }
 
 impl[X: Hash + Equals] FromIterator[X] for HashSet[X] {
@@ -1141,251 +1165,249 @@ impl[K: Hash + Equals] Iterator for HashSetIter[K] {
 }
 
 pub class Vec[T] {
-  array: Array[T],
-  len: Int64,
+    array: Array[T],
+    len: Int64,
 }
 
 impl[T] Vec[T] {
-  pub static fn new(values: T...): Vec[T] {
-    Vec[T](array = values, len = values.size())
-  }
-
-  pub static fn new_with_capacity(capacity: Int64): Vec[T] {
-    let array = Array[T]::unsafe_new(capacity);
-    Vec[T](array = array, len = 0)
-  }
-
-  pub fn reserve(newcap: Int64) {
-    assert(newcap >= 0i64);
-
-    if self.capacity() >= newcap {
-      return;
+    pub static fn new(values: T...): Vec[T] {
+        Vec[T](array = values, len = values.size())
     }
 
-    let newarray = Array[T]::unsafe_new(newcap);
-    Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
-    self.array = newarray;
-  }
-
-  pub fn push(val: T) {
-    let current_capacity = self.capacity();
-
-    if self.len == current_capacity {
-      let new_capacity = self.new_capacity(current_capacity);
-
-      let new_array = Array[T]::unsafe_new(new_capacity);
-      Array[T]::copy(self.array, 0i64, new_array, 0i64, self.len);
-      self.array = new_array;
+    pub static fn new_with_capacity(capacity: Int64): Vec[T] {
+        let array = Array[T]::unsafe_new(capacity);
+        Vec[T](array = array, len = 0)
     }
 
-    self.array.set(self.len, val);
-    self.len = self.len + 1i64;
-  }
+    pub fn reserve(newcap: Int64) {
+        assert(newcap >= 0i64);
 
-  pub fn append(array: Array[T]) {
-    for el in array {
-      self.push(el);
-    }
-  }
+        if self.capacity() >= newcap {
+            return;
+        }
 
-  pub fn append_part(array: Array[T], offset: Int64, len: Int64) {
-    for idx in std::range(offset, offset + len) {
-      self.push(array(idx));
-    }
-  }
-
-  pub fn insert_at(idx: Int64, val: T) {
-    assert(idx <= self.len);
-    if idx == self.len {
-      self.push(val);
-      return;
-    }
-    let current_capacity = self.capacity();
-    let target_array = if self.len == current_capacity {
-      Array[T]::unsafe_new(self.new_capacity(current_capacity))
-    } else {
-      self.array
-    };
-
-    if idx != 0i64 && self.array !== target_array {
-      Array[T]::copy(self.array, 0i64, target_array, 0i64, idx);
-    }
-
-    // not Array::copy as source and target could be aliased
-    let mut i = self.len - 1i64;
-    while idx <= i {
-      target_array.set(i + 1i64, self.array.get(i));
-      i = i - 1i64;
-    }
-
-    target_array.set(idx, val);
-    self.array = target_array;
-    self.len = self.len + 1i64;
-  }
-
-  fn new_capacity(current_capacity: Int64): Int64 {
-    if current_capacity == 0i64 {
-      4i64
-    } else {
-      current_capacity * 2i64
-    }
-  }
-
-  pub fn to_array(): Array[T] {
-    let newarray = Array[T]::unsafe_new(self.len);
-    Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
-    newarray
-  }
-
-  pub fn pop(): Option[T] {
-    if self.len == 0i64 {
-      None[T]
-    } else {
-      let newlength = self.len - 1i64;
-      let temp = self.array(newlength);
-
-      // set popped element to nil so that GC can collect object
-      // not necessary for primitive types
-      unsafe_kill_refs[T](self.array, newlength);
-
-      self.len = newlength;
-      Some[T](temp)
-    }
-  }
-
-  pub fn trim_to_len() {
-    if self.len != self.capacity() {
-      if self.len == 0i64 {
-        self.array = Array[T]::new();
-      } else {
-        let newarray = Array[T]::unsafe_new(self.len);
+        let newarray = Array[T]::unsafe_new(newcap);
         Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
         self.array = newarray;
-      }
-    }
-  }
-
-  pub fn remove_at(ind: Int64): T {
-    let mut ind = ind;
-    assert(ind < self.len);
-    let temp = self.get(ind);
-    let len = self.len;
-
-    while ind < len - 1i64 {
-      self.set(ind, self.get(ind+1i64));
-      ind = ind + 1i64;
     }
 
-    unsafe_kill_refs[T](self.array, ind);
-    self.len = ind;
+    pub fn push(val: T) {
+        let current_capacity = self.capacity();
 
-    temp
-  }
+        if self.len == current_capacity {
+            let new_capacity = self.new_capacity(current_capacity);
 
+            let new_array = Array[T]::unsafe_new(new_capacity);
+            Array[T]::copy(self.array, 0i64, new_array, 0i64, self.len);
+            self.array = new_array;
+        }
 
-  pub fn remove_if(fct: (T): Bool) {
-    let len = self.len;
-    let mut dest_idx = 0i64;
-    let mut src_idx = 0i64;
-
-    while src_idx < len {
-      let current = self.array(src_idx);
-
-      if !fct(current) {
-        self.array(dest_idx) = current;
-        dest_idx = dest_idx + 1i64;
-      }
-
-      src_idx = src_idx + 1i64;
+        self.array.set(self.len, val);
+        self.len = self.len + 1i64;
     }
 
-    self.len = dest_idx;
-
-    while dest_idx < src_idx {
-      unsafe_kill_refs[T](self.array, dest_idx);
-      dest_idx = dest_idx + 1i64;
+    pub fn append(array: Array[T]) {
+        for el in array {
+            self.push(el);
+        }
     }
-  }
 
-
-  pub fn size(): Int64 {
-    return self.len;
-  }
-
-  pub fn is_empty(): Bool {
-    self.len == 0
-  }
-
-  pub fn capacity(): Int64 {
-    self.array.size()
-  }
-
-  pub fn first(): Option[T] {
-    if self.len == 0 {
-      Option[T]::None
-    } else {
-      Option[T]::Some(self.array(0))
+    pub fn append_part(array: Array[T], offset: Int64, len: Int64) {
+        for idx in std::range(offset, offset + len) {
+            self.push(array(idx));
+        }
     }
-  }
 
-  pub fn last(): Option[T] {
-    if self.len == 0 {
-      Option[T]::None
-    } else {
-      Option[T]::Some(self.array(self.len - 1i64))
+    pub fn insert_at(idx: Int64, val: T) {
+        assert(idx <= self.len);
+        if idx == self.len {
+            self.push(val);
+            return;
+        }
+        let current_capacity = self.capacity();
+        let target_array = if self.len == current_capacity {
+            Array[T]::unsafe_new(self.new_capacity(current_capacity))
+        } else {
+            self.array
+        };
+
+        if idx != 0i64 && self.array !== target_array {
+            Array[T]::copy(self.array, 0i64, target_array, 0i64, idx);
+        }
+
+        // not Array::copy as source and target could be aliased
+        let mut i = self.len - 1i64;
+        while idx <= i {
+            target_array.set(i + 1i64, self.array.get(i));
+            i = i - 1i64;
+        }
+
+        target_array.set(idx, val);
+        self.array = target_array;
+        self.len = self.len + 1i64;
     }
-  }
 
-  pub fn clear() {
-    self.len = 0;
-    self.array = Array[T]::new();
-  }
+    fn new_capacity(current_capacity: Int64): Int64 {
+        if current_capacity == 0i64 {
+            4i64
+        } else {
+            current_capacity * 2i64
+        }
+    }
 
-  pub fn make_reverse_iterator(): ReverseVecIter[T] {
-    ReverseVecIter[T]::new(self)
-  }
+    pub fn to_array(): Array[T] {
+        let newarray = Array[T]::unsafe_new(self.len);
+        Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
+        newarray
+    }
 
-  pub fn enumerate(): VecEnumerator[T] {
-    VecEnumerator[T]::new(self)
-  }
+    pub fn pop(): Option[T] {
+        if self.len == 0i64 {
+            None[T]
+        } else {
+            let newlength = self.len - 1i64;
+            let temp = self.array(newlength);
 
-  pub fn clone(): Vec[T] {
-    Vec[T](array = self.array.clone(), len = self.len)
-  }
+            // set popped element to nil so that GC can collect object
+            // not necessary for primitive types
+            unsafe_kill_refs[T](self.array, newlength);
+
+            self.len = newlength;
+            Some[T](temp)
+        }
+    }
+
+    pub fn trim_to_len() {
+        if self.len != self.capacity() {
+            if self.len == 0i64 {
+                self.array = Array[T]::new();
+            } else {
+                let newarray = Array[T]::unsafe_new(self.len);
+                Array[T]::copy(self.array, 0i64, newarray, 0i64, self.len);
+                self.array = newarray;
+            }
+        }
+    }
+
+    pub fn remove_at(ind: Int64): T {
+        let mut ind = ind;
+        assert(ind < self.len);
+        let temp = self.get(ind);
+        let len = self.len;
+
+        while ind < len - 1i64 {
+            self.set(ind, self.get(ind + 1i64));
+            ind = ind + 1i64;
+        }
+
+        unsafe_kill_refs[T](self.array, ind);
+        self.len = ind;
+
+        temp
+    }
+
+    pub fn remove_if(fct: (T): Bool) {
+        let len = self.len;
+        let mut dest_idx = 0i64;
+        let mut src_idx = 0i64;
+
+        while src_idx < len {
+            let current = self.array(src_idx);
+
+            if !fct(current) {
+                self.array(dest_idx) = current;
+                dest_idx = dest_idx + 1i64;
+            }
+
+            src_idx = src_idx + 1i64;
+        }
+
+        self.len = dest_idx;
+
+        while dest_idx < src_idx {
+            unsafe_kill_refs[T](self.array, dest_idx);
+            dest_idx = dest_idx + 1i64;
+        }
+    }
+
+    pub fn size(): Int64 {
+        return self.len;
+    }
+
+    pub fn is_empty(): Bool {
+        self.len == 0
+    }
+
+    pub fn capacity(): Int64 {
+        self.array.size()
+    }
+
+    pub fn first(): Option[T] {
+        if self.len == 0 {
+            Option[T]::None
+        } else {
+            Option[T]::Some(self.array(0))
+        }
+    }
+
+    pub fn last(): Option[T] {
+        if self.len == 0 {
+            Option[T]::None
+        } else {
+            Option[T]::Some(self.array(self.len - 1i64))
+        }
+    }
+
+    pub fn clear() {
+        self.len = 0;
+        self.array = Array[T]::new();
+    }
+
+    pub fn make_reverse_iterator(): ReverseVecIter[T] {
+        ReverseVecIter[T]::new(self)
+    }
+
+    pub fn enumerate(): VecEnumerator[T] {
+        VecEnumerator[T]::new(self)
+    }
+
+    pub fn clone(): Vec[T] {
+        Vec[T](array = self.array.clone(), len = self.len)
+    }
 }
 
 impl[T] IndexGet for Vec[T] {
-  type Index = Int;
-  type Item = T;
+    type Index = Int;
+    type Item = T;
 
-  fn get(index: Self::Index): Self::Item {
-    if index < 0i64 || index >= self.len {
-      fatal_error[()]("index out of bounds for vector");
+    fn get(index: Self::Index): Self::Item {
+        if index < 0i64 || index >= self.len {
+            fatal_error[()]("index out of bounds for vector");
+        }
+
+        self.array(index)
     }
-
-    self.array(index)
-  }
 }
 
 impl[T] IndexSet for Vec[T] {
-  type Index = Int;
-  type Item = T;
+    type Index = Int;
+    type Item = T;
 
-  fn set(index: Self::Index, item: Self::Item) {
-    if index < 0i64 || index >= self.len {
-      fatal_error[()]("index out of bounds for vector");
+    fn set(index: Self::Index, item: Self::Item) {
+        if index < 0i64 || index >= self.len {
+            fatal_error[()]("index out of bounds for vector");
+        }
+
+        self.array.set(index, item);
     }
-
-    self.array.set(index, item);
-  }
 }
 
 impl[T] IntoIterator for Vec[T] {
-  type IteratorType = VecIter[T];
+    type IteratorType = VecIter[T];
 
-  fn iter(): VecIter[T] {
-    VecIter[T]::new(self)
-  }
+    fn iter(): VecIter[T] {
+        VecIter[T]::new(self)
+    }
 }
 
 impl[X] FromIterator[X] for Vec[X] {
@@ -1401,163 +1423,163 @@ impl[X] FromIterator[X] for Vec[X] {
 }
 
 impl[T: Comparable] Vec[T] {
-  pub fn sort() {
-    internal_sort_stable[T](self.array, 0, self.len);
-  }
+    pub fn sort() {
+        internal_sort_stable[T](self.array, 0, self.len);
+    }
 }
 
 pub class VecEnumerator[T] {
-  data: Vec[T],
-  idx: Int64,
+    data: Vec[T],
+    idx: Int64,
 }
 
 impl[T] VecEnumerator[T] {
-  static fn new(data: Vec[T]): VecEnumerator[T] {
-    VecEnumerator[T](data = data, idx = 0)
-  }
+    static fn new(data: Vec[T]): VecEnumerator[T] {
+        VecEnumerator[T](data = data, idx = 0)
+    }
 }
 
 impl[T] Iterator for VecEnumerator[T] {
-  type Item = (Int64, T);
+    type Item = (Int64, T);
 
-  fn next(): Option[(Int64, T)] {
-    if self.idx < self.data.size() {
-      let current_idx = self.idx;
-      self.idx = self.idx + 1i64;
-      Some[(Int64, T)]((current_idx, self.data(current_idx)))
-    } else {
-      None[(Int64, T)]
+    fn next(): Option[(Int64, T)] {
+        if self.idx < self.data.size() {
+            let current_idx = self.idx;
+            self.idx = self.idx + 1i64;
+            Some[(Int64, T)]((current_idx, self.data(current_idx)))
+        } else {
+            None[(Int64, T)]
+        }
     }
-  }
 }
 
 pub class VecIter[T] {
-  data: Vec[T],
-  idx: Int64,
-  end: Int64,
+    data: Vec[T],
+    idx: Int64,
+    end: Int64,
 }
 
 impl[T] VecIter[T] {
-  static fn new(data: Vec[T]): VecIter[T] {
-    VecIter[T](data = data, idx = 0, end = data.size())
-  }
+    static fn new(data: Vec[T]): VecIter[T] {
+        VecIter[T](data = data, idx = 0, end = data.size())
+    }
 }
 
 impl[T] Iterator for VecIter[T] {
-  type Item = T;
+    type Item = T;
 
-  fn next(): Option[T] {
-    if self.idx < self.end {
-      let result = self.data(self.idx);
-      self.idx = self.idx + 1i64;
-      Some[T](result)
-    } else {
-      None[T]
+    fn next(): Option[T] {
+        if self.idx < self.end {
+            let result = self.data(self.idx);
+            self.idx = self.idx + 1i64;
+            Some[T](result)
+        } else {
+            None[T]
+        }
     }
-  }
 }
 
 impl[T] DoubleEndedIterator for VecIter[T] {
-  fn next_back(): Option[T] {
-    if self.idx < self.end {
-      self.end = self.end - 1i64;
-      Some[T](self.data(self.end))
-    } else {
-      None[T]
+    fn next_back(): Option[T] {
+        if self.idx < self.end {
+            self.end = self.end - 1i64;
+            Some[T](self.data(self.end))
+        } else {
+            None[T]
+        }
     }
-  }
 }
 
 pub class ReverseVecIter[T] {
-  data: Vec[T],
-  idx: Int64,
+    data: Vec[T],
+    idx: Int64,
 }
 
 impl[T] ReverseVecIter[T] {
-  static fn new(data: Vec[T]): ReverseVecIter[T] {
-    ReverseVecIter(data = data, idx = data.size() - 1)
-  }
+    static fn new(data: Vec[T]): ReverseVecIter[T] {
+        ReverseVecIter(data = data, idx = data.size() - 1)
+    }
 }
 
 impl[T] Iterator for ReverseVecIter[T] {
-  type Item = T;
+    type Item = T;
 
-  fn next(): Option[T] {
-    if self.idx != -1 {
-      let result = self.data(self.idx);
-      self.idx = self.idx - 1i64;
-      Some[T](result)
-    } else {
-      None[T]
+    fn next(): Option[T] {
+        if self.idx != -1 {
+            let result = self.data(self.idx);
+            self.idx = self.idx - 1i64;
+            Some[T](result)
+        } else {
+            None[T]
+        }
     }
-  }
 }
 
 impl[T: Equals] Equals for Vec[T] {
-  fn equals(other: Vec[T]): Bool {
-    if self.size() != other.size() {
-      return false;
+    fn equals(other: Vec[T]): Bool {
+        if self.size() != other.size() {
+            return false;
+        }
+        let mut i = 0i64;
+        while i < self.size() {
+            if self(i) != other(i) {
+                return false;
+            }
+            i = i + 1i64;
+        }
+        return true;
     }
-    let mut i = 0i64;
-    while i < self.size() {
-      if self(i) != other(i) {
-        return false;
-      }
-      i = i + 1i64;
-    }
-    return true;
-  }
 }
 
 impl[T: Equals] Vec[T] {
-  pub fn contains(value: T): Bool {
-    let mut i = 0i64;
+    pub fn contains(value: T): Bool {
+        let mut i = 0i64;
 
-    while i < self.size() {
-      let x = self.get(i);
-      if x == value {
-        return true;
-      }
-      i = i + 1i64;
+        while i < self.size() {
+            let x = self.get(i);
+            if x == value {
+                return true;
+            }
+            i = i + 1i64;
+        }
+
+        return false;
     }
 
-    return false;
-  }
+    pub fn remove_equals(elem: T) {
+        let mut i = 0i64;
 
-  pub fn remove_equals(elem: T) {
-    let mut i = 0i64;
-
-    while i < self.size() {
-      if self(i) == elem {
-        self.remove_at(i);
-      } else {
-        i = i + 1i64;
-      }
+        while i < self.size() {
+            if self(i) == elem {
+                self.remove_at(i);
+            } else {
+                i = i + 1i64;
+            }
+        }
     }
-  }
 }
 
 impl[T: Stringable] Vec[T] {
-  pub fn to_string(): String {
-    let sb = StringBuffer::new();
-    sb.append("Vec(");
-    let size = self.len;
-    if size != 0i64 {
-      let mut i = 0i64;
-      while i < size - 1i64 {
-        sb.append(self.array(i).to_string());
-        sb.append(", ");
-        i = i + 1i64;
-      }
-      sb.append(self.array(i).to_string());
+    pub fn to_string(): String {
+        let sb = StringBuffer::new();
+        sb.append("Vec(");
+        let size = self.len;
+        if size != 0i64 {
+            let mut i = 0i64;
+            while i < size - 1i64 {
+                sb.append(self.array(i).to_string());
+                sb.append(", ");
+                i = i + 1i64;
+            }
+            sb.append(self.array(i).to_string());
+        }
+        sb.append(")");
+        return sb.to_string();
     }
-    sb.append(")");
-    return sb.to_string();
-  }
 }
 
 impl[T1: Equals, T2: Equals] Equals for (T1, T2) {
-  fn equals(other: Self): Bool {
-    self.0 == other.0 && self.1 == other.1
-  }
+    fn equals(other: Self): Bool {
+        self.0 == other.0 && self.1 == other.1
+    }
 }

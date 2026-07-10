@@ -8,15 +8,18 @@ impl Thread {
         self.id
     }
 
-    pub static @internal fn current(): Thread;
+    @internal
+    pub static fn current(): Thread;
 
-    pub @native fn join();
+    @native
+    pub fn join();
 }
 
-@native pub fn spawn(action: (): ()): Thread;
+@native
+pub fn spawn(action: (): ()): Thread;
 
 pub class AtomicInt32 {
-    value: Int32
+    value: Int32,
 }
 
 impl AtomicInt32 {
@@ -24,15 +27,24 @@ impl AtomicInt32 {
         AtomicInt32(value)
     }
 
-    pub @internal fn get(): Int32;
-    pub @internal fn set(value: Int32);
-    pub @internal fn exchange(value: Int32): Int32;
-    pub @internal fn compare_exchange(expected: Int32, value: Int32): Int32;
-    pub @internal fn fetch_add(value: Int32): Int32;
+    @internal
+    pub fn get(): Int32;
+
+    @internal
+    pub fn set(value: Int32);
+
+    @internal
+    pub fn exchange(value: Int32): Int32;
+
+    @internal
+    pub fn compare_exchange(expected: Int32, value: Int32): Int32;
+
+    @internal
+    pub fn fetch_add(value: Int32): Int32;
 }
 
 pub class AtomicInt64 {
-    value: Int64
+    value: Int64,
 }
 
 impl AtomicInt64 {
@@ -40,11 +52,20 @@ impl AtomicInt64 {
         AtomicInt64(value)
     }
 
-    pub @internal fn get(): Int64;
-    pub @internal fn set(value: Int64);
-    pub @internal fn exchange(value: Int64): Int64;
-    pub @internal fn compare_exchange(expected: Int64, value: Int64): Int64;
-    pub @internal fn fetch_add(value: Int64): Int64;
+    @internal
+    pub fn get(): Int64;
+
+    @internal
+    pub fn set(value: Int64);
+
+    @internal
+    pub fn exchange(value: Int64): Int64;
+
+    @internal
+    pub fn compare_exchange(expected: Int64, value: Int64): Int64;
+
+    @internal
+    pub fn fetch_add(value: Int64): Int64;
 }
 
 const UNLOCKED: Int32 = 0i32;
@@ -115,8 +136,11 @@ impl Mutex {
         self.notify();
     }
 
-    @native fn wait(status: Int32);
-    @native fn notify();
+    @native
+    fn wait(status: Int32);
+
+    @native
+    fn notify();
 }
 
 pub class Condition {
@@ -152,9 +176,15 @@ impl Condition {
         self.wakeup_all();
     }
 
-    @native fn enqueue();
-    @native fn block();
+    @native
+    fn enqueue();
 
-    @native fn wakeup_one();
-    @native fn wakeup_all();
+    @native
+    fn block();
+
+    @native
+    fn wakeup_one();
+
+    @native
+    fn wakeup_all();
 }

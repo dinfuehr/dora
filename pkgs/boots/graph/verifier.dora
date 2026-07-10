@@ -11,10 +11,7 @@ class GraphVerifier {
 
 impl GraphVerifier {
     static fn new(graph: Graph): GraphVerifier {
-        GraphVerifier(
-            graph,
-            current_block = graph.get_entry_block(),
-        )
+        GraphVerifier(graph, current_block = graph.get_entry_block())
     }
 
     fn run() {
@@ -79,13 +76,17 @@ impl GraphVerifier {
         match inst.op() {
             Op::Goto => {
                 assert(self.current_block.successors.size() == 1);
-                assert(self.current_block.successors(0).target === inst.get_target_block());
+                assert(
+                    self.current_block.successors(0).target === inst.get_target_block()
+                );
             }
 
             Op::If => {
                 assert(self.current_block.successors.size() == 2);
                 assert(self.current_block.successors(0).target === inst.get_true_block());
-                assert(self.current_block.successors(1).target === inst.get_false_block());
+                assert(
+                    self.current_block.successors(1).target === inst.get_false_block()
+                );
             }
 
             Op::Switch => {
@@ -98,7 +99,9 @@ impl GraphVerifier {
                     idx += 1i64;
                 }
 
-                assert(self.current_block.successors(idx).target === inst.get_default_block());
+                assert(
+                    self.current_block.successors(idx).target === inst.get_default_block()
+                );
             }
 
             Op::Return | Op::Unreachable => {
@@ -195,7 +198,10 @@ impl GraphVerifier {
             | Op::Sqrt
             | Op::CountBits
             | Op::CountLeadingZeros
-            | Op::CountTrailingZeros => self.assert_unary_input_type(inst, inst.get_operation_type()),
+            | Op::CountTrailingZeros => self.assert_unary_input_type(
+                inst,
+                inst.get_operation_type(),
+            ),
 
             Op::LoadReg | Op::Load | Op::Convert | Op::Bitcast | Op::AtomicLoad => {
                 self.assert_input_count(inst, 1i64);
@@ -227,7 +233,10 @@ impl GraphVerifier {
             | Op::IsModOverflowing
             | Op::And
             | Op::Or
-            | Op::Xor => self.assert_binary_inputs_have_type(inst, inst.get_operation_type()),
+            | Op::Xor => self.assert_binary_inputs_have_type(
+                inst,
+                inst.get_operation_type(),
+            ),
 
             Op::Shl | Op::Shr | Op::Sar => self.assert_shift_inputs(inst),
 
@@ -286,15 +295,17 @@ impl GraphVerifier {
             }
 
             Op::Phi => {
-                assert(inst.get_inputs().size() == self.current_block.predecessors.size());
+                assert(
+                    inst.get_inputs().size() == self.current_block.predecessors.size()
+                );
             }
 
             Op::NewObject => {
                 assert(
-                    inst.has_class_info()
-                    || inst.has_function_info()
-                    || inst.has_trait_object_info()
-                    || inst.has_allocation_data()
+                    inst.has_class_info() ||
+                    inst.has_function_info() ||
+                    inst.has_trait_object_info() ||
+                    inst.has_allocation_data()
                 );
                 self.assert_no_inputs(inst);
             }
@@ -318,7 +329,6 @@ impl GraphVerifier {
                 let value = inst.get_extra_inst();
                 assert(value.get_block().get_graph() === self.graph);
             }
-
         }
 
         assert(inst.get_block() === self.current_block);

@@ -1,9 +1,9 @@
-use std::{Equals, Hash, HashSet, HashMap};
+use std::{Equals, Hash, HashMap, HashSet};
 
 use package::bytecode::{ClassId, GlobalId};
 use package::compilation::CompilationInfo;
 use package::dominator::compute_post_order;
-use package::graph::{create_phi_inst, Block, ClassInfo, Graph, Inst, Op};
+use package::graph::{Block, ClassInfo, Graph, Inst, Op, create_phi_inst};
 
 pub fn perform_load_elimination(ci: CompilationInfo, graph: Graph) {
     LoadEliminationPass::new(graph).run();
@@ -17,7 +17,10 @@ class LoadEliminationPass {
 
 impl LoadEliminationPass {
     static fn new(graph: Graph): LoadEliminationPass {
-        let per_block_data = Array[Option[LoadData]]::fill(graph.blocks.size(), None[LoadData]);
+        let per_block_data = Array[Option[LoadData]]::fill(
+            graph.blocks.size(),
+            None[LoadData],
+        );
 
         LoadEliminationPass(
             graph = graph,
@@ -88,19 +91,40 @@ impl LoadEliminationPass {
         }
 
         for (global, value) in first.global_values {
-            if self.merge_global_value(block, global, value, predecessor_data) is Some(merged) {
+            if (
+                self.merge_global_value(
+                    block,
+                    global,
+                    value,
+                    predecessor_data,
+                ) is Some(merged)
+            ) {
                 result.global_values.insert(global, merged);
             }
         }
 
         for (field, value) in first.class_field_infos {
-            if self.merge_field_value(block, field, value, predecessor_data) is Some(merged) {
+            if (
+                self.merge_field_value(
+                    block,
+                    field,
+                    value,
+                    predecessor_data,
+                ) is Some(merged)
+            ) {
                 result.class_field_infos.insert(field, merged);
             }
         }
 
         for (field, value) in first.immutable_values {
-            if self.merge_immutable_value(block, field, value, predecessor_data) is Some(merged) {
+            if (
+                self.merge_immutable_value(
+                    block,
+                    field,
+                    value,
+                    predecessor_data,
+                ) is Some(merged)
+            ) {
                 result.immutable_values.insert(field, merged);
             }
         }
@@ -108,7 +132,12 @@ impl LoadEliminationPass {
         result
     }
 
-    fn merge_global_value(block: Block, global: Int32, first_value: Inst, predecessor_data: Array[Option[LoadData]]): Option[Inst] {
+    fn merge_global_value(
+        block: Block,
+        global: Int32,
+        first_value: Inst,
+        predecessor_data: Array[Option[LoadData]],
+    ): Option[Inst] {
         let values = Vec[Inst]::new();
         values.push(first_value);
 
@@ -134,7 +163,12 @@ impl LoadEliminationPass {
         Some[Inst](self.create_merged_value(block, first_value, values, same_value))
     }
 
-    fn merge_field_value(block: Block, field: Field, first_value: Inst, predecessor_data: Array[Option[LoadData]]): Option[Inst] {
+    fn merge_field_value(
+        block: Block,
+        field: Field,
+        first_value: Inst,
+        predecessor_data: Array[Option[LoadData]],
+    ): Option[Inst] {
         let values = Vec[Inst]::new();
         values.push(first_value);
 
@@ -160,7 +194,12 @@ impl LoadEliminationPass {
         Some[Inst](self.create_merged_value(block, first_value, values, same_value))
     }
 
-    fn merge_immutable_value(block: Block, field: ObjectWithOffset, first_value: Inst, predecessor_data: Array[Option[LoadData]]): Option[Inst] {
+    fn merge_immutable_value(
+        block: Block,
+        field: ObjectWithOffset,
+        first_value: Inst,
+        predecessor_data: Array[Option[LoadData]],
+    ): Option[Inst] {
         let values = Vec[Inst]::new();
         values.push(first_value);
 
@@ -186,7 +225,12 @@ impl LoadEliminationPass {
         Some[Inst](self.create_merged_value(block, first_value, values, same_value))
     }
 
-    fn create_merged_value(block: Block, first_value: Inst, values: Vec[Inst], same_value: Bool): Inst {
+    fn create_merged_value(
+        block: Block,
+        first_value: Inst,
+        values: Vec[Inst],
+        same_value: Bool,
+    ): Inst {
         if same_value {
             return first_value;
         }
@@ -230,7 +274,6 @@ impl LoadEliminationPass {
                 if !data.initialize_global(id) {
                     inst.remove();
                 }
-
             } else if op == Op::LoadGlobal {
                 let id = inst.get_global_id();
 
@@ -240,12 +283,10 @@ impl LoadEliminationPass {
                 } else {
                     data.set_global_value(id, inst);
                 }
-
             } else if op == Op::StoreGlobal {
                 let id = inst.get_global_id();
                 let value = inst.get_input(0).get_value();
                 data.set_global_value(id, value);
-
             } else if op == Op::Load {
                 if inst.has_class_info() {
                     let class_info = inst.get_class_info();
@@ -269,7 +310,6 @@ impl LoadEliminationPass {
                         data.set_immutable_value(object, offset, inst);
                     }
                 }
-
             } else if op == Op::Store || op == Op::StoreWb {
                 if inst.has_class_info() {
                     let class_info = inst.get_class_info();
@@ -279,9 +319,11 @@ impl LoadEliminationPass {
                     let field = Field(object, class_info, offset = field_offset);
                     let cur_value = data.class_field_infos.get(field);
 
-                    data.class_field_infos.retain_if(|field: Field, value: Inst|: Bool {
-                        field.class_info != class_info || field.offset != field_offset
-                    });
+                    data.class_field_infos.retain_if(
+                        |field: Field, value: Inst|: Bool {
+                            field.class_info != class_info || field.offset != field_offset
+                        }
+                    );
 
                     let new_value = inst.get_input(1).get_value();
                     if cur_value is Some(cur_value) && cur_value == new_value {
@@ -295,7 +337,6 @@ impl LoadEliminationPass {
                     // (e.g., StoreAddress to a computed address within a class object)
                     data.class_field_infos.clear();
                 }
-
             } else if op.is_call() {
                 data.kill();
             }
@@ -328,7 +369,9 @@ struct Field {
 
 impl Equals for Field {
     fn equals(other: Field): Bool {
-        self.object == other.object && self.class_info == other.class_info && self.offset == other.offset
+        self.object == other.object &&
+        self.class_info == other.class_info &&
+        self.offset == other.offset
     }
 }
 

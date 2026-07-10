@@ -1,12 +1,49 @@
-pub use package::bytecode::data::{BytecodeFunction, BytecodeRegister, BytecodeTraitType, BytecodeType, ConstPoolId, ConstPoolEntry, Location};
+pub use package::bytecode::data::{
+    BytecodeFunction,
+    BytecodeRegister,
+    BytecodeTraitType,
+    BytecodeType,
+    ConstPoolEntry,
+    ConstPoolId,
+    Location,
+};
 pub use package::bytecode::dump::{BytecodeDumper, dump_instruction};
-pub use package::bytecode::program::{AliasId, AliasData, ClassId, ClassData, ClassFieldId,
-    ClassField, ConstId, ConstValue, EnumId, EnumData, EnumVariant,
-    ExtensionId, ExtensionData, FunctionId, FunctionData,
-    FunctionKind, ImplId, ImplData, GlobalId, GlobalData,
-    ModuleId, ModuleData, PackageId, PackageData, Program,
-    SourceFileData, StructId, StructData, StructFieldId,
-    StructField, TraitId, TraitData, TypeParamBound, TypeParamData};
+pub use package::bytecode::program::{
+    AliasData,
+    AliasId,
+    ClassData,
+    ClassField,
+    ClassFieldId,
+    ClassId,
+    ConstId,
+    ConstValue,
+    EnumData,
+    EnumId,
+    EnumVariant,
+    ExtensionData,
+    ExtensionId,
+    FunctionData,
+    FunctionId,
+    FunctionKind,
+    GlobalData,
+    GlobalId,
+    ImplData,
+    ImplId,
+    ModuleData,
+    ModuleId,
+    PackageData,
+    PackageId,
+    Program,
+    SourceFileData,
+    StructData,
+    StructField,
+    StructFieldId,
+    StructId,
+    TraitData,
+    TraitId,
+    TypeParamBound,
+    TypeParamData,
+};
 pub use package::bytecode::instruction::BytecodeInstruction;
 pub use package::bytecode::reader::{BytecodeInstructionInfo, BytecodeIterator};
 

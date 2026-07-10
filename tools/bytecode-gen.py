@@ -55,14 +55,12 @@ def generate_dora(config: dict) -> str:
     for func_name, prefix, variants in name_functions:
         lines.append(f"pub fn {func_name}(opcode: Int32): String {{")
         for name in variants:
-            lines.append(
-                f'  if opcode == {prefix}_{to_screaming_snake(name)} {{ return "{name}"; }}'
-            )
-        lines.append("  unreachable[String]()")
+            lines.append(f"    if opcode == {prefix}_{to_screaming_snake(name)} {{")
+            lines.append(f'        return "{name}";')
+            lines.append("    }")
+        lines.append("    unreachable[String]()")
         lines.append("}")
         lines.append("")
-
-    lines.append("")
 
     return "\n".join(lines)
 

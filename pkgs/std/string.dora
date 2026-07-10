@@ -1,451 +1,508 @@
 use std::fatal_error;
 use std::traits::Ordering;
 
-pub @internal class String
+@internal
+pub class String
 
 impl String {
-  @native fn compare_to(rhs: String): Int32;
+    @native
+    fn compare_to(rhs: String): Int32;
 
-  pub @internal fn size(): Int64;
+    @internal
+    pub fn size(): Int64;
 
-  @native fn to_int32_success(): Bool;
-  @native fn to_int64_success(): Bool;
+    @native
+    fn to_int32_success(): Bool;
 
-  @native fn to_int32_or_zero(): Int32;
-  @native fn to_int64_or_zero(): Int64;
+    @native
+    fn to_int64_success(): Bool;
 
-  @native fn to_float32_success(): Bool;
-  @native fn to_float64_success(): Bool;
+    @native
+    fn to_int32_or_zero(): Int32;
 
-  @native fn to_float32_or_zero(): Float32;
-  @native fn to_float64_or_zero(): Float64;
+    @native
+    fn to_int64_or_zero(): Int64;
 
-  pub fn to_int32(): Option[Int32] {
-    if self.to_int32_success() {
-      Option[Int32]::Some(self.to_int32_or_zero())
-    } else {
-      Option[Int32]::None
-    }
-  }
+    @native
+    fn to_float32_success(): Bool;
 
-  pub fn to_int64(): Option[Int64] {
-    if self.to_int64_success() {
-      Option[Int64]::Some(self.to_int64_or_zero())
-    } else {
-      Option[Int64]::None
-    }
-  }
+    @native
+    fn to_float64_success(): Bool;
 
-  pub fn to_float32(): Option[Float32] {
-    if self.to_float32_success() {
-      Option[Float32]::Some(self.to_float32_or_zero())
-    } else {
-      Option[Float32]::None
-    }
-  }
+    @native
+    fn to_float32_or_zero(): Float32;
 
-  pub fn to_float64(): Option[Float64] {
-    if self.to_float64_success() {
-      Option[Float64]::Some(self.to_float64_or_zero())
-    } else {
-      Option[Float64]::None
-    }
-  }
+    @native
+    fn to_float64_or_zero(): Float64;
 
-  pub @internal fn get_byte(idx: Int64): UInt8;
-
-  pub @native fn clone(): String;
-
-  pub fn is_empty(): Bool {
-    self.size() == 0i64
-  }
-
-  pub fn contains(val: String): Bool {
-    self.index_of_first(val).is_some()
-  }
-
-  pub fn index_of_first(val: String): Option[Int64] {
-    let m = val.size();
-    if m == 0i64 {
-      return Some(0i64);
-    }
-
-    let n = self.size();
-    if m > n {
-      return None;
-    }
-
-    let mut j = 0i64;
-    let mut k = 0i64;
-    let mut ell = 0i64;
-
-    if val.get_byte(0i64) == val.get_byte(1i64) {
-       k = 2i64;
-       ell = 1i64;
-    } else {
-       k = 1i64;
-       ell = 2i64;
-    }
-
-    j = 0i64;
-    while j <= n - m {
-      if val.get_byte(1i64) != self.get_byte(j + 1i64) {
-        j = j + k;
-      } else {
-        if String::compare(val, 2i64, self, j + 2i64, m - 2i64) && val.get_byte(0i64) == self.get_byte(j) {
-          return Option[Int64]::Some(j);
+    pub fn to_int32(): Option[Int32] {
+        if self.to_int32_success() {
+            Option[Int32]::Some(self.to_int32_or_zero())
+        } else {
+            Option[Int32]::None
         }
-        j = j + ell;
-      }
-    }
-    return Option[Int64]::None;
-  }
-
-  static fn compare(a: String, a_pos: Int64, b: String, b_pos: Int64, len: Int64): Bool {
-    let mut i = 0i64;
-
-    while i < len {
-      if a.get_byte(a_pos+i) != b.get_byte(b_pos+i) {
-        return false;
-      }
-      i = i + 1i64;
     }
 
-    return true;
-  }
-
-  pub fn starts_with(val: String): Bool {
-    let val_len = val.size();
-    if val_len > self.size() {
-      return false;
-    }
-    let mut i = 0i64;
-    while i < val_len {
-      if self.get_byte(i) != val.get_byte(i) {
-        return false;
-      }
-      i = i + 1i64;
-    }
-    return true;
-  }
-
-  pub fn ends_with(val: String): Bool {
-    let slf_len = self.size();
-    let val_len = val.size();
-    if val_len > slf_len {
-      return false;
-    }
-    let mut i_slf = 0i64;
-    let mut i_val = slf_len - val_len;
-    while i_slf < val_len {
-      if self.get_byte(i_slf + i_val) != val.get_byte(i_slf) {
-        return false;
-      }
-      i_slf = i_slf + 1i64;
-    }
-    return true;
-  }
-
-  pub fn code_points(): CodepointIterator {
-    CodepointIterator(value = self, start = 0i64)
-  }
-
-  pub static @native fn from_bytes_part(val: Array[UInt8], offset: Int64, len: Int64): Option[String];
-
-  pub static fn from_bytes(val: Array[UInt8]): Option[String] {
-    String::from_bytes_part(val, 0i64, val.size())
-  }
-
-  pub static @native fn from_string_part(val: String, offset: Int64, len: Int64): Option[String];
-
-  pub fn as_bytes(): Array[UInt8] {
-    let data = Array[UInt8]::new_default(self.size());
-    let mut idx = 0;
-
-    while idx < self.size() {
-      data(idx) = self.get_byte(idx);
-      idx = idx + 1;
+    pub fn to_int64(): Option[Int64] {
+        if self.to_int64_success() {
+            Option[Int64]::Some(self.to_int64_or_zero())
+        } else {
+            Option[Int64]::None
+        }
     }
 
-    data
-  }
-
-  pub static fn binary(data: Int64): String {
-    let mut data = data;
-    if data == 0i64 { return "0"; }
-    let array = Array[UInt8]::zero(64i64);
-    let mut at = array.size();
-    while data != 0i64 {
-      array(at - 1i64) = ('0'.to_int64() + (data & 1i64)).to_uint8();
-      data = data.shr(1i32);
-      at = at - 1i64;
+    pub fn to_float32(): Option[Float32] {
+        if self.to_float32_success() {
+            Option[Float32]::Some(self.to_float32_or_zero())
+        } else {
+            Option[Float32]::None
+        }
     }
-    return String::from_bytes_part(array, at, array.size() - at + 1i64).get_or_panic();
-  }
 
-  pub static fn hex(data: Int64): String {
-    let mut data = data;
-    if data == 0i64 { return "0"; }
-    let array = Array[UInt8]::zero(16i64);
-    let mut at = array.size();
-    while data != 0i64 {
-      let digit = (data & 0xFi64).to_int32();
-
-      if digit < 10i32 {
-        array(at - 1i64) = ('0'.to_int32() + digit).to_uint8();
-      } else {
-        array(at - 1i64) = ('A'.to_int32() + digit - 10i32).to_uint8();
-      }
-
-      data = data.shr(4i32);
-      at = at - 1i64;
+    pub fn to_float64(): Option[Float64] {
+        if self.to_float64_success() {
+            Option[Float64]::Some(self.to_float64_or_zero())
+        } else {
+            Option[Float64]::None
+        }
     }
-    return String::from_bytes_part(array, at, array.size() - at + 1i64).get_or_panic();
-  }
+
+    @internal
+    pub fn get_byte(idx: Int64): UInt8;
+
+    @native
+    pub fn clone(): String;
+
+    pub fn is_empty(): Bool {
+        self.size() == 0i64
+    }
+
+    pub fn contains(val: String): Bool {
+        self.index_of_first(val).is_some()
+    }
+
+    pub fn index_of_first(val: String): Option[Int64] {
+        let m = val.size();
+        if m == 0i64 {
+            return Some(0i64);
+        }
+
+        let n = self.size();
+        if m > n {
+            return None;
+        }
+
+        let mut j = 0i64;
+        let mut k = 0i64;
+        let mut ell = 0i64;
+
+        if val.get_byte(0i64) == val.get_byte(1i64) {
+            k = 2i64;
+            ell = 1i64;
+        } else {
+            k = 1i64;
+            ell = 2i64;
+        }
+
+        j = 0i64;
+        while j <= n - m {
+            if val.get_byte(1i64) != self.get_byte(j + 1i64) {
+                j = j + k;
+            } else {
+                if (
+                    String::compare(val, 2i64, self, j + 2i64, m - 2i64) &&
+                    val.get_byte(0i64) == self.get_byte(j)
+                ) {
+                    return Option[Int64]::Some(j);
+                }
+                j = j + ell;
+            }
+        }
+        return Option[Int64]::None;
+    }
+
+    static fn compare(
+        a: String,
+        a_pos: Int64,
+        b: String,
+        b_pos: Int64,
+        len: Int64,
+    ): Bool {
+        let mut i = 0i64;
+
+        while i < len {
+            if a.get_byte(a_pos + i) != b.get_byte(b_pos + i) {
+                return false;
+            }
+            i = i + 1i64;
+        }
+
+        return true;
+    }
+
+    pub fn starts_with(val: String): Bool {
+        let val_len = val.size();
+        if val_len > self.size() {
+            return false;
+        }
+        let mut i = 0i64;
+        while i < val_len {
+            if self.get_byte(i) != val.get_byte(i) {
+                return false;
+            }
+            i = i + 1i64;
+        }
+        return true;
+    }
+
+    pub fn ends_with(val: String): Bool {
+        let slf_len = self.size();
+        let val_len = val.size();
+        if val_len > slf_len {
+            return false;
+        }
+        let mut i_slf = 0i64;
+        let mut i_val = slf_len - val_len;
+        while i_slf < val_len {
+            if self.get_byte(i_slf + i_val) != val.get_byte(i_slf) {
+                return false;
+            }
+            i_slf = i_slf + 1i64;
+        }
+        return true;
+    }
+
+    pub fn code_points(): CodepointIterator {
+        CodepointIterator(value = self, start = 0i64)
+    }
+
+    @native
+    pub static fn from_bytes_part(
+        val: Array[UInt8],
+        offset: Int64,
+        len: Int64,
+    ): Option[String];
+
+    pub static fn from_bytes(val: Array[UInt8]): Option[String] {
+        String::from_bytes_part(val, 0i64, val.size())
+    }
+
+    @native
+    pub static fn from_string_part(
+        val: String,
+        offset: Int64,
+        len: Int64,
+    ): Option[String];
+
+    pub fn as_bytes(): Array[UInt8] {
+        let data = Array[UInt8]::new_default(self.size());
+        let mut idx = 0;
+
+        while idx < self.size() {
+            data(idx) = self.get_byte(idx);
+            idx = idx + 1;
+        }
+
+        data
+    }
+
+    pub static fn binary(data: Int64): String {
+        let mut data = data;
+        if data == 0i64 {
+            return "0";
+        }
+        let array = Array[UInt8]::zero(64i64);
+        let mut at = array.size();
+        while data != 0i64 {
+            array(at - 1i64) = ('0'.to_int64() + (data & 1i64)).to_uint8();
+            data = data.shr(1i32);
+            at = at - 1i64;
+        }
+        return String::from_bytes_part(
+            array,
+            at,
+            array.size() - at + 1i64,
+        ).get_or_panic();
+    }
+
+    pub static fn hex(data: Int64): String {
+        let mut data = data;
+        if data == 0i64 {
+            return "0";
+        }
+        let array = Array[UInt8]::zero(16i64);
+        let mut at = array.size();
+        while data != 0i64 {
+            let digit = (data & 0xFi64).to_int32();
+
+            if digit < 10i32 {
+                array(at - 1i64) = ('0'.to_int32() + digit).to_uint8();
+            } else {
+                array(at - 1i64) = ('A'.to_int32() + digit - 10i32).to_uint8();
+            }
+
+            data = data.shr(4i32);
+            at = at - 1i64;
+        }
+        return String::from_bytes_part(
+            array,
+            at,
+            array.size() - at + 1i64,
+        ).get_or_panic();
+    }
 }
 
 impl std::traits::Add for String {
-  @native fn add(rhs: String): String;
+    @native
+    fn add(rhs: String): String;
 }
 
 impl std::traits::Comparable for String {
-  fn cmp(other: String): Ordering {
-    let result = self.compare_to(other);
-    if result < 0i32 {
-      Ordering::Less
-    } else if result == 0i32 {
-      Ordering::Equal
-    } else {
-      Ordering::Greater
+    fn cmp(other: String): Ordering {
+        let result = self.compare_to(other);
+        if result < 0i32 {
+            Ordering::Less
+        } else if result == 0i32 {
+            Ordering::Equal
+        } else {
+            Ordering::Greater
+        }
     }
-  }
 }
 
 impl std::traits::Equals for String {
-  fn equals(rhs: String): Bool {
-    let mut i = 0i64;
+    fn equals(rhs: String): Bool {
+        let mut i = 0i64;
 
-    if self.size() != rhs.size() {
-        return false;
-    }
-
-    let len = self.size();
-
-    while i < len {
-        if self.get_byte(i) != rhs.get_byte(i) {
+        if self.size() != rhs.size() {
             return false;
         }
 
-        i = i + 1i64;
-    }
+        let len = self.size();
 
-    return true;
-  }
+        while i < len {
+            if self.get_byte(i) != rhs.get_byte(i) {
+                return false;
+            }
+
+            i = i + 1i64;
+        }
+
+        return true;
+    }
 }
 
 impl std::traits::Default for String {
-  static fn default(): String { "" }
+    static fn default(): String {
+        ""
+    }
 }
 
 pub trait Stringable {
-  fn to_string(): String;
+    fn to_string(): String;
 }
 
 impl Stringable for String {
-  fn to_string(): String {
-    self
-  }
+    fn to_string(): String {
+        self
+    }
 }
 
 pub class StringBuffer {
-  buf: Array[UInt8],
-  len: Int64,
+    buf: Array[UInt8],
+    len: Int64,
 }
 
 impl StringBuffer {
-  pub static fn new(): StringBuffer {
-    StringBuffer(buf = Array[UInt8]::new(), len = 0)
-  }
-
-  pub fn size(): Int64 {
-    return self.len;
-  }
-
-  pub fn capacity(): Int64 {
-    return self.buf.size();
-  }
-
-  // reserve `elements` bytes
-  // (capacity - length >= elements)
-  pub fn reserve(added: Int64) {
-    if self.capacity() - self.size() >= added {
-      return;
+    pub static fn new(): StringBuffer {
+        StringBuffer(buf = Array[UInt8]::new(), len = 0)
     }
 
-    let newcap = self.new_capacity(added);
-    let newbuf = Array[UInt8]::zero(newcap);
-    let mut i = 0i64;
-
-    while i < self.buf.size() {
-      newbuf.set(i, self.buf.get(i));
-      i = i + 1i64;
+    pub fn size(): Int64 {
+        return self.len;
     }
 
-    self.buf = newbuf;
-  }
-
-  pub fn new_capacity(added: Int64): Int64 {
-    let mut len = self.len;
-
-    if len == 0i64 {
-      len = 4i64;
+    pub fn capacity(): Int64 {
+        return self.buf.size();
     }
 
-    let c1 = (len + added + 7i64) & !7i64;
-    let c2 = len * 2i64;
+    // reserve `elements` bytes
+    // (capacity - length >= elements)
+    pub fn reserve(added: Int64) {
+        if self.capacity() - self.size() >= added {
+            return;
+        }
 
-    if c1 > c2 {
-      c1
-    } else {
-      c2
-    }
-  }
+        let newcap = self.new_capacity(added);
+        let newbuf = Array[UInt8]::zero(newcap);
+        let mut i = 0i64;
 
-  pub fn append_char(ch: Char): StringBuffer {
-    let ch_len = ch.len_utf8();
-    self.reserve(ch_len.to_int64());
-    ch.encode_utf8(self.buf, self.len);
-    self.len = self.len + ch_len.to_int64();
-    self
-  }
+        while i < self.buf.size() {
+            newbuf.set(i, self.buf.get(i));
+            i = i + 1i64;
+        }
 
-  pub fn append(value: String): StringBuffer {
-    self.reserve(value.size());
-    let mut i = 0i64;
-
-    while i < value.size() {
-      self.buf.set(self.len + i, value.get_byte(i));
-      i = i + 1i64;
+        self.buf = newbuf;
     }
 
-    self.len = self.len + value.size();
-    self
-  }
+    pub fn new_capacity(added: Int64): Int64 {
+        let mut len = self.len;
 
-  pub fn append_newline(): StringBuffer {
-    self.append_char('\n')
-  }
+        if len == 0i64 {
+            len = 4i64;
+        }
 
-  pub fn to_string(): String {
-    String::from_bytes_part(self.buf, 0i64, self.size()).get_or_panic()
-  }
+        let c1 = (len + added + 7i64) & !7i64;
+        let c2 = len * 2i64;
 
-  pub static fn empty(): StringBuffer {
-    StringBuffer::new()
-  }
+        if c1 > c2 {
+            c1
+        } else {
+            c2
+        }
+    }
+
+    pub fn append_char(ch: Char): StringBuffer {
+        let ch_len = ch.len_utf8();
+        self.reserve(ch_len.to_int64());
+        ch.encode_utf8(self.buf, self.len);
+        self.len = self.len + ch_len.to_int64();
+        self
+    }
+
+    pub fn append(value: String): StringBuffer {
+        self.reserve(value.size());
+        let mut i = 0i64;
+
+        while i < value.size() {
+            self.buf.set(self.len + i, value.get_byte(i));
+            i = i + 1i64;
+        }
+
+        self.len = self.len + value.size();
+        self
+    }
+
+    pub fn append_newline(): StringBuffer {
+        self.append_char('\n')
+    }
+
+    pub fn to_string(): String {
+        String::from_bytes_part(self.buf, 0i64, self.size()).get_or_panic()
+    }
+
+    pub static fn empty(): StringBuffer {
+        StringBuffer::new()
+    }
 }
 
 pub class CodepointIterator {
-  value: String,
-  start: Int64,
+    value: String,
+    start: Int64,
 }
 
 impl CodepointIterator {
-  pub static fn new(value: String): CodepointIterator {
-    CodepointIterator(value, start = 0)
-  }
-
-  pub fn next(): Option[Char] {
-    if self.start < self.value.size() {
-      Some[Char](self.read_char())
-    } else {
-      None[Char]
-    }
-  }
-
-  fn read_char(): Char {
-    let mut ch = self.value.get_byte(self.start);
-
-    if ch <= 0x7Fu8 {
-      self.start = self.start + 1i64;
-      return ch.to_int32().to_char_unchecked();
+    pub static fn new(value: String): CodepointIterator {
+        CodepointIterator(value, start = 0)
     }
 
-    if ch <= 0xBFu8 {
-      fatal_error[()]("unexpected continuation byte");
+    pub fn next(): Option[Char] {
+        if self.start < self.value.size() {
+            Some[Char](self.read_char())
+        } else {
+            None[Char]
+        }
     }
 
-    if ch <= 0xDFu8 {
-      let cp = (ch.to_int32() & 0x1Fi32) << 6i32 | (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32);
-      self.start = self.start + 2i64;
-      return cp.to_char_unchecked();
-    }
+    fn read_char(): Char {
+        let mut ch = self.value.get_byte(self.start);
 
-    if ch <= 0xEFu8 {
-      let cp = (ch.to_int32() & 0xFi32) << 12i32 |
+        if ch <= 0x7Fu8 {
+            self.start = self.start + 1i64;
+            return ch.to_int32().to_char_unchecked();
+        }
+
+        if ch <= 0xBFu8 {
+            fatal_error[()]("unexpected continuation byte");
+        }
+
+        if ch <= 0xDFu8 {
+            let cp = (ch.to_int32() & 0x1Fi32) << 6i32 |
+            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32);
+            self.start = self.start + 2i64;
+            return cp.to_char_unchecked();
+        }
+
+        if ch <= 0xEFu8 {
+            let cp = (ch.to_int32() & 0xFi32) << 12i32 |
             (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32) << 6i32 |
             (self.value.get_byte(self.start + 2i64).to_int32() & 0x3Fi32);
-      self.start = self.start + 3i64;
-      return cp.to_char_unchecked();
-    }
+            self.start = self.start + 3i64;
+            return cp.to_char_unchecked();
+        }
 
-    if ch <= 0xF7u8 {
-      let cp = (ch.to_int32() & 0x03i32) << 18i32 |
+        if ch <= 0xF7u8 {
+            let cp = (ch.to_int32() & 0x03i32) << 18i32 |
             (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32) << 12i32 |
             (self.value.get_byte(self.start + 2i64).to_int32() & 0x3Fi32) << 6i32 |
             (self.value.get_byte(self.start + 3i64).to_int32() & 0x3Fi32);
-      self.start = self.start + 4i64;
-      return cp.to_char_unchecked();
+            self.start = self.start + 4i64;
+            return cp.to_char_unchecked();
+        }
+
+        fatal_error[Char]("invalid utf8: " + ch.to_int32().to_string())
     }
 
-    fatal_error[Char]("invalid utf8: " + ch.to_int32().to_string())
-  }
+    pub fn peek(): Char {
+        let mut ch = self.value.get_byte(self.start);
 
-  pub fn peek(): Char {
-    let mut ch = self.value.get_byte(self.start);
+        if ch <= 0x7Fu8 {
+            return ch.to_int32().to_char_unchecked();
+        }
 
-    if ch <= 0x7Fu8 {
-      return ch.to_int32().to_char_unchecked();
-    }
+        if ch <= 0xBFu8 {
+            fatal_error[()]("unexpected continuation byte");
+        }
 
-    if ch <= 0xBFu8 {
-      fatal_error[()]("unexpected continuation byte");
-    }
+        if ch <= 0xDFu8 {
+            let cp = (ch.to_int32() & 0x1Fi32) << 6i32 |
+            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32);
+            return cp.to_char_unchecked();
+        }
 
-    if ch <= 0xDFu8 {
-      let cp = (ch.to_int32() & 0x1Fi32) << 6i32 | (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32);
-      return cp.to_char_unchecked();
-    }
-
-    if ch <= 0xEFu8 {
-      let cp = (ch.to_int32() & 0xFi32) << 12i32 |
+        if ch <= 0xEFu8 {
+            let cp = (ch.to_int32() & 0xFi32) << 12i32 |
             (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32) << 6i32 |
             (self.value.get_byte(self.start + 2i64).to_int32() & 0x3Fi32);
-      return cp.to_char_unchecked();
-    }
+            return cp.to_char_unchecked();
+        }
 
-    if ch <= 0xF7u8 {
-      let cp = (ch.to_int32() & 0x03i32) << 18i32 |
+        if ch <= 0xF7u8 {
+            let cp = (ch.to_int32() & 0x03i32) << 18i32 |
             (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32) << 12i32 |
             (self.value.get_byte(self.start + 2i64).to_int32() & 0x3Fi32) << 6i32 |
             (self.value.get_byte(self.start + 3i64).to_int32() & 0x3Fi32);
-      return cp.to_char_unchecked();
+            return cp.to_char_unchecked();
+        }
+
+        fatal_error[Char]("invalid utf8: " + ch.to_int32().to_string())
     }
 
-    fatal_error[Char]("invalid utf8: " + ch.to_int32().to_string())
-  }
+    pub fn size(): Int64 {
+        let mut i = 0;
 
-  pub fn size(): Int64 {
-    let mut i = 0;
+        while self.next().is_some() {
+            i = i + 1;
+        }
 
-    while self.next().is_some() {
-      i = i + 1;
+        return i;
     }
 
-    return i;
-  }
-
-  pub fn to_string(): String {
-    String::from_string_part(self.value, self.start, self.value.size() - self.start).get_or_panic()
-  }
+    pub fn to_string(): String {
+        String::from_string_part(
+            self.value,
+            self.start,
+            self.value.size() - self.start,
+        ).get_or_panic()
+    }
 }

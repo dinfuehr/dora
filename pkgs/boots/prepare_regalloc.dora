@@ -23,7 +23,6 @@ fn get_single_if_user(inst: Inst): Option[Inst] {
         } else {
             None[Inst]
         }
-
     } else {
         None[Inst]
     }

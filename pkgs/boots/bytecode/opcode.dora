@@ -330,265 +330,766 @@ pub const AOT_SHAPE_KEY_FREE_SPACE: Int32 = 8;
 pub const AOT_SHAPE_KEY_CODE: Int32 = 9;
 
 pub fn bytecode_name(opcode: Int32): String {
-  if opcode == BYTECODE_OPCODE_ADD { return "Add"; }
-  if opcode == BYTECODE_OPCODE_SUB { return "Sub"; }
-  if opcode == BYTECODE_OPCODE_NEG { return "Neg"; }
-  if opcode == BYTECODE_OPCODE_MUL { return "Mul"; }
-  if opcode == BYTECODE_OPCODE_DIV { return "Div"; }
-  if opcode == BYTECODE_OPCODE_MOD { return "Mod"; }
-  if opcode == BYTECODE_OPCODE_CHECKED_ADD { return "CheckedAdd"; }
-  if opcode == BYTECODE_OPCODE_CHECKED_SUB { return "CheckedSub"; }
-  if opcode == BYTECODE_OPCODE_CHECKED_NEG { return "CheckedNeg"; }
-  if opcode == BYTECODE_OPCODE_CHECKED_MUL { return "CheckedMul"; }
-  if opcode == BYTECODE_OPCODE_CHECKED_DIV { return "CheckedDiv"; }
-  if opcode == BYTECODE_OPCODE_CHECKED_MOD { return "CheckedMod"; }
-  if opcode == BYTECODE_OPCODE_AND { return "And"; }
-  if opcode == BYTECODE_OPCODE_OR { return "Or"; }
-  if opcode == BYTECODE_OPCODE_XOR { return "Xor"; }
-  if opcode == BYTECODE_OPCODE_NOT { return "Not"; }
-  if opcode == BYTECODE_OPCODE_SHL { return "Shl"; }
-  if opcode == BYTECODE_OPCODE_SHR { return "Shr"; }
-  if opcode == BYTECODE_OPCODE_SAR { return "Sar"; }
-  if opcode == BYTECODE_OPCODE_MOV { return "Mov"; }
-  if opcode == BYTECODE_OPCODE_LOAD_ENUM_ELEMENT { return "LoadEnumElement"; }
-  if opcode == BYTECODE_OPCODE_LOAD_ENUM_VARIANT { return "LoadEnumVariant"; }
-  if opcode == BYTECODE_OPCODE_LOAD_FIELD { return "LoadField"; }
-  if opcode == BYTECODE_OPCODE_STORE_FIELD { return "StoreField"; }
-  if opcode == BYTECODE_OPCODE_LOAD_GLOBAL { return "LoadGlobal"; }
-  if opcode == BYTECODE_OPCODE_STORE_GLOBAL { return "StoreGlobal"; }
-  if opcode == BYTECODE_OPCODE_LOAD_CONST { return "LoadConst"; }
-  if opcode == BYTECODE_OPCODE_CONST_TRUE { return "ConstTrue"; }
-  if opcode == BYTECODE_OPCODE_CONST_FALSE { return "ConstFalse"; }
-  if opcode == BYTECODE_OPCODE_CONST_UINT8 { return "ConstUInt8"; }
-  if opcode == BYTECODE_OPCODE_CONST_CHAR { return "ConstChar"; }
-  if opcode == BYTECODE_OPCODE_CONST_INT32 { return "ConstInt32"; }
-  if opcode == BYTECODE_OPCODE_CONST_INT64 { return "ConstInt64"; }
-  if opcode == BYTECODE_OPCODE_CONST_FLOAT32 { return "ConstFloat32"; }
-  if opcode == BYTECODE_OPCODE_CONST_FLOAT64 { return "ConstFloat64"; }
-  if opcode == BYTECODE_OPCODE_CONST_STRING { return "ConstString"; }
-  if opcode == BYTECODE_OPCODE_TEST_IDENTITY { return "TestIdentity"; }
-  if opcode == BYTECODE_OPCODE_TEST_EQ { return "TestEq"; }
-  if opcode == BYTECODE_OPCODE_TEST_NE { return "TestNe"; }
-  if opcode == BYTECODE_OPCODE_TEST_GT { return "TestGt"; }
-  if opcode == BYTECODE_OPCODE_TEST_GE { return "TestGe"; }
-  if opcode == BYTECODE_OPCODE_TEST_LT { return "TestLt"; }
-  if opcode == BYTECODE_OPCODE_TEST_LE { return "TestLe"; }
-  if opcode == BYTECODE_OPCODE_JUMP_LOOP { return "JumpLoop"; }
-  if opcode == BYTECODE_OPCODE_LOOP_START { return "LoopStart"; }
-  if opcode == BYTECODE_OPCODE_JUMP { return "Jump"; }
-  if opcode == BYTECODE_OPCODE_JUMP_IF_FALSE { return "JumpIfFalse"; }
-  if opcode == BYTECODE_OPCODE_JUMP_IF_TRUE { return "JumpIfTrue"; }
-  if opcode == BYTECODE_OPCODE_SWITCH { return "Switch"; }
-  if opcode == BYTECODE_OPCODE_INVOKE_DIRECT { return "InvokeDirect"; }
-  if opcode == BYTECODE_OPCODE_INVOKE_VIRTUAL { return "InvokeVirtual"; }
-  if opcode == BYTECODE_OPCODE_INVOKE_STATIC { return "InvokeStatic"; }
-  if opcode == BYTECODE_OPCODE_INVOKE_LAMBDA { return "InvokeLambda"; }
-  if opcode == BYTECODE_OPCODE_INVOKE_GENERIC_STATIC { return "InvokeGenericStatic"; }
-  if opcode == BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT { return "InvokeGenericDirect"; }
-  if opcode == BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED { return "NewObjectUninitialized"; }
-  if opcode == BYTECODE_OPCODE_NEW_OBJECT { return "NewObject"; }
-  if opcode == BYTECODE_OPCODE_NEW_ARRAY { return "NewArray"; }
-  if opcode == BYTECODE_OPCODE_NEW_TUPLE { return "NewTuple"; }
-  if opcode == BYTECODE_OPCODE_NEW_ENUM { return "NewEnum"; }
-  if opcode == BYTECODE_OPCODE_NEW_STRUCT { return "NewStruct"; }
-  if opcode == BYTECODE_OPCODE_NEW_TRAIT_OBJECT { return "NewTraitObject"; }
-  if opcode == BYTECODE_OPCODE_NEW_LAMBDA { return "NewLambda"; }
-  if opcode == BYTECODE_OPCODE_ARRAY_LENGTH { return "ArrayLength"; }
-  if opcode == BYTECODE_OPCODE_LOAD_ARRAY { return "LoadArray"; }
-  if opcode == BYTECODE_OPCODE_STORE_ARRAY { return "StoreArray"; }
-  if opcode == BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE { return "LoadTraitObjectValue"; }
-  if opcode == BYTECODE_OPCODE_GET_FIELD_ADDRESS { return "GetFieldAddress"; }
-  if opcode == BYTECODE_OPCODE_STORE_ADDRESS { return "StoreAddress"; }
-  if opcode == BYTECODE_OPCODE_LOAD_ADDRESS { return "LoadAddress"; }
-  if opcode == BYTECODE_OPCODE_GET_FIELD_REF { return "GetFieldRef"; }
-  if opcode == BYTECODE_OPCODE_STORE_REF { return "StoreRef"; }
-  if opcode == BYTECODE_OPCODE_LOAD_REF { return "LoadRef"; }
-  if opcode == BYTECODE_OPCODE_GET_REF { return "GetRef"; }
-  if opcode == BYTECODE_OPCODE_RET { return "Ret"; }
-  unreachable[String]()
+    if opcode == BYTECODE_OPCODE_ADD {
+        return "Add";
+    }
+    if opcode == BYTECODE_OPCODE_SUB {
+        return "Sub";
+    }
+    if opcode == BYTECODE_OPCODE_NEG {
+        return "Neg";
+    }
+    if opcode == BYTECODE_OPCODE_MUL {
+        return "Mul";
+    }
+    if opcode == BYTECODE_OPCODE_DIV {
+        return "Div";
+    }
+    if opcode == BYTECODE_OPCODE_MOD {
+        return "Mod";
+    }
+    if opcode == BYTECODE_OPCODE_CHECKED_ADD {
+        return "CheckedAdd";
+    }
+    if opcode == BYTECODE_OPCODE_CHECKED_SUB {
+        return "CheckedSub";
+    }
+    if opcode == BYTECODE_OPCODE_CHECKED_NEG {
+        return "CheckedNeg";
+    }
+    if opcode == BYTECODE_OPCODE_CHECKED_MUL {
+        return "CheckedMul";
+    }
+    if opcode == BYTECODE_OPCODE_CHECKED_DIV {
+        return "CheckedDiv";
+    }
+    if opcode == BYTECODE_OPCODE_CHECKED_MOD {
+        return "CheckedMod";
+    }
+    if opcode == BYTECODE_OPCODE_AND {
+        return "And";
+    }
+    if opcode == BYTECODE_OPCODE_OR {
+        return "Or";
+    }
+    if opcode == BYTECODE_OPCODE_XOR {
+        return "Xor";
+    }
+    if opcode == BYTECODE_OPCODE_NOT {
+        return "Not";
+    }
+    if opcode == BYTECODE_OPCODE_SHL {
+        return "Shl";
+    }
+    if opcode == BYTECODE_OPCODE_SHR {
+        return "Shr";
+    }
+    if opcode == BYTECODE_OPCODE_SAR {
+        return "Sar";
+    }
+    if opcode == BYTECODE_OPCODE_MOV {
+        return "Mov";
+    }
+    if opcode == BYTECODE_OPCODE_LOAD_ENUM_ELEMENT {
+        return "LoadEnumElement";
+    }
+    if opcode == BYTECODE_OPCODE_LOAD_ENUM_VARIANT {
+        return "LoadEnumVariant";
+    }
+    if opcode == BYTECODE_OPCODE_LOAD_FIELD {
+        return "LoadField";
+    }
+    if opcode == BYTECODE_OPCODE_STORE_FIELD {
+        return "StoreField";
+    }
+    if opcode == BYTECODE_OPCODE_LOAD_GLOBAL {
+        return "LoadGlobal";
+    }
+    if opcode == BYTECODE_OPCODE_STORE_GLOBAL {
+        return "StoreGlobal";
+    }
+    if opcode == BYTECODE_OPCODE_LOAD_CONST {
+        return "LoadConst";
+    }
+    if opcode == BYTECODE_OPCODE_CONST_TRUE {
+        return "ConstTrue";
+    }
+    if opcode == BYTECODE_OPCODE_CONST_FALSE {
+        return "ConstFalse";
+    }
+    if opcode == BYTECODE_OPCODE_CONST_UINT8 {
+        return "ConstUInt8";
+    }
+    if opcode == BYTECODE_OPCODE_CONST_CHAR {
+        return "ConstChar";
+    }
+    if opcode == BYTECODE_OPCODE_CONST_INT32 {
+        return "ConstInt32";
+    }
+    if opcode == BYTECODE_OPCODE_CONST_INT64 {
+        return "ConstInt64";
+    }
+    if opcode == BYTECODE_OPCODE_CONST_FLOAT32 {
+        return "ConstFloat32";
+    }
+    if opcode == BYTECODE_OPCODE_CONST_FLOAT64 {
+        return "ConstFloat64";
+    }
+    if opcode == BYTECODE_OPCODE_CONST_STRING {
+        return "ConstString";
+    }
+    if opcode == BYTECODE_OPCODE_TEST_IDENTITY {
+        return "TestIdentity";
+    }
+    if opcode == BYTECODE_OPCODE_TEST_EQ {
+        return "TestEq";
+    }
+    if opcode == BYTECODE_OPCODE_TEST_NE {
+        return "TestNe";
+    }
+    if opcode == BYTECODE_OPCODE_TEST_GT {
+        return "TestGt";
+    }
+    if opcode == BYTECODE_OPCODE_TEST_GE {
+        return "TestGe";
+    }
+    if opcode == BYTECODE_OPCODE_TEST_LT {
+        return "TestLt";
+    }
+    if opcode == BYTECODE_OPCODE_TEST_LE {
+        return "TestLe";
+    }
+    if opcode == BYTECODE_OPCODE_JUMP_LOOP {
+        return "JumpLoop";
+    }
+    if opcode == BYTECODE_OPCODE_LOOP_START {
+        return "LoopStart";
+    }
+    if opcode == BYTECODE_OPCODE_JUMP {
+        return "Jump";
+    }
+    if opcode == BYTECODE_OPCODE_JUMP_IF_FALSE {
+        return "JumpIfFalse";
+    }
+    if opcode == BYTECODE_OPCODE_JUMP_IF_TRUE {
+        return "JumpIfTrue";
+    }
+    if opcode == BYTECODE_OPCODE_SWITCH {
+        return "Switch";
+    }
+    if opcode == BYTECODE_OPCODE_INVOKE_DIRECT {
+        return "InvokeDirect";
+    }
+    if opcode == BYTECODE_OPCODE_INVOKE_VIRTUAL {
+        return "InvokeVirtual";
+    }
+    if opcode == BYTECODE_OPCODE_INVOKE_STATIC {
+        return "InvokeStatic";
+    }
+    if opcode == BYTECODE_OPCODE_INVOKE_LAMBDA {
+        return "InvokeLambda";
+    }
+    if opcode == BYTECODE_OPCODE_INVOKE_GENERIC_STATIC {
+        return "InvokeGenericStatic";
+    }
+    if opcode == BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT {
+        return "InvokeGenericDirect";
+    }
+    if opcode == BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED {
+        return "NewObjectUninitialized";
+    }
+    if opcode == BYTECODE_OPCODE_NEW_OBJECT {
+        return "NewObject";
+    }
+    if opcode == BYTECODE_OPCODE_NEW_ARRAY {
+        return "NewArray";
+    }
+    if opcode == BYTECODE_OPCODE_NEW_TUPLE {
+        return "NewTuple";
+    }
+    if opcode == BYTECODE_OPCODE_NEW_ENUM {
+        return "NewEnum";
+    }
+    if opcode == BYTECODE_OPCODE_NEW_STRUCT {
+        return "NewStruct";
+    }
+    if opcode == BYTECODE_OPCODE_NEW_TRAIT_OBJECT {
+        return "NewTraitObject";
+    }
+    if opcode == BYTECODE_OPCODE_NEW_LAMBDA {
+        return "NewLambda";
+    }
+    if opcode == BYTECODE_OPCODE_ARRAY_LENGTH {
+        return "ArrayLength";
+    }
+    if opcode == BYTECODE_OPCODE_LOAD_ARRAY {
+        return "LoadArray";
+    }
+    if opcode == BYTECODE_OPCODE_STORE_ARRAY {
+        return "StoreArray";
+    }
+    if opcode == BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE {
+        return "LoadTraitObjectValue";
+    }
+    if opcode == BYTECODE_OPCODE_GET_FIELD_ADDRESS {
+        return "GetFieldAddress";
+    }
+    if opcode == BYTECODE_OPCODE_STORE_ADDRESS {
+        return "StoreAddress";
+    }
+    if opcode == BYTECODE_OPCODE_LOAD_ADDRESS {
+        return "LoadAddress";
+    }
+    if opcode == BYTECODE_OPCODE_GET_FIELD_REF {
+        return "GetFieldRef";
+    }
+    if opcode == BYTECODE_OPCODE_STORE_REF {
+        return "StoreRef";
+    }
+    if opcode == BYTECODE_OPCODE_LOAD_REF {
+        return "LoadRef";
+    }
+    if opcode == BYTECODE_OPCODE_GET_REF {
+        return "GetRef";
+    }
+    if opcode == BYTECODE_OPCODE_RET {
+        return "Ret";
+    }
+    unreachable[String]()
 }
 
 pub fn bytecode_type_name(opcode: Int32): String {
-  if opcode == BYTECODE_TYPE_UNIT { return "Unit"; }
-  if opcode == BYTECODE_TYPE_BOOL { return "Bool"; }
-  if opcode == BYTECODE_TYPE_U_INT8 { return "UInt8"; }
-  if opcode == BYTECODE_TYPE_CHAR { return "Char"; }
-  if opcode == BYTECODE_TYPE_INT32 { return "Int32"; }
-  if opcode == BYTECODE_TYPE_INT64 { return "Int64"; }
-  if opcode == BYTECODE_TYPE_FLOAT32 { return "Float32"; }
-  if opcode == BYTECODE_TYPE_FLOAT64 { return "Float64"; }
-  if opcode == BYTECODE_TYPE_PTR { return "Ptr"; }
-  if opcode == BYTECODE_TYPE_ADDRESS { return "Address"; }
-  if opcode == BYTECODE_TYPE_TUPLE { return "Tuple"; }
-  if opcode == BYTECODE_TYPE_ENUM { return "Enum"; }
-  if opcode == BYTECODE_TYPE_STRUCT { return "Struct"; }
-  if opcode == BYTECODE_TYPE_TYPE_PARAM { return "TypeParam"; }
-  if opcode == BYTECODE_TYPE_CLASS { return "Class"; }
-  if opcode == BYTECODE_TYPE_TRAIT_OBJECT { return "TraitObject"; }
-  if opcode == BYTECODE_TYPE_LAMBDA { return "Lambda"; }
-  if opcode == BYTECODE_TYPE_TYPE_ALIAS { return "TypeAlias"; }
-  if opcode == BYTECODE_TYPE_ASSOC { return "Assoc"; }
-  if opcode == BYTECODE_TYPE_THIS { return "This"; }
-  if opcode == BYTECODE_TYPE_REF { return "Ref"; }
-  unreachable[String]()
+    if opcode == BYTECODE_TYPE_UNIT {
+        return "Unit";
+    }
+    if opcode == BYTECODE_TYPE_BOOL {
+        return "Bool";
+    }
+    if opcode == BYTECODE_TYPE_U_INT8 {
+        return "UInt8";
+    }
+    if opcode == BYTECODE_TYPE_CHAR {
+        return "Char";
+    }
+    if opcode == BYTECODE_TYPE_INT32 {
+        return "Int32";
+    }
+    if opcode == BYTECODE_TYPE_INT64 {
+        return "Int64";
+    }
+    if opcode == BYTECODE_TYPE_FLOAT32 {
+        return "Float32";
+    }
+    if opcode == BYTECODE_TYPE_FLOAT64 {
+        return "Float64";
+    }
+    if opcode == BYTECODE_TYPE_PTR {
+        return "Ptr";
+    }
+    if opcode == BYTECODE_TYPE_ADDRESS {
+        return "Address";
+    }
+    if opcode == BYTECODE_TYPE_TUPLE {
+        return "Tuple";
+    }
+    if opcode == BYTECODE_TYPE_ENUM {
+        return "Enum";
+    }
+    if opcode == BYTECODE_TYPE_STRUCT {
+        return "Struct";
+    }
+    if opcode == BYTECODE_TYPE_TYPE_PARAM {
+        return "TypeParam";
+    }
+    if opcode == BYTECODE_TYPE_CLASS {
+        return "Class";
+    }
+    if opcode == BYTECODE_TYPE_TRAIT_OBJECT {
+        return "TraitObject";
+    }
+    if opcode == BYTECODE_TYPE_LAMBDA {
+        return "Lambda";
+    }
+    if opcode == BYTECODE_TYPE_TYPE_ALIAS {
+        return "TypeAlias";
+    }
+    if opcode == BYTECODE_TYPE_ASSOC {
+        return "Assoc";
+    }
+    if opcode == BYTECODE_TYPE_THIS {
+        return "This";
+    }
+    if opcode == BYTECODE_TYPE_REF {
+        return "Ref";
+    }
+    unreachable[String]()
 }
 
 pub fn intrinsic_name(opcode: Int32): String {
-  if opcode == INTRINSIC_ARRAY_NEW_OF_SIZE { return "ArrayNewOfSize"; }
-  if opcode == INTRINSIC_ARRAY_WITH_VALUES { return "ArrayWithValues"; }
-  if opcode == INTRINSIC_ARRAY_LEN { return "ArrayLen"; }
-  if opcode == INTRINSIC_ARRAY_GET { return "ArrayGet"; }
-  if opcode == INTRINSIC_ARRAY_SET { return "ArraySet"; }
-  if opcode == INTRINSIC_UNREACHABLE { return "Unreachable"; }
-  if opcode == INTRINSIC_FATAL_ERROR { return "FatalError"; }
-  if opcode == INTRINSIC_UNSAFE_KILL_REFS { return "UnsafeKillRefs"; }
-  if opcode == INTRINSIC_ASSERT { return "Assert"; }
-  if opcode == INTRINSIC_DEBUG { return "Debug"; }
-  if opcode == INTRINSIC_STR_LEN { return "StrLen"; }
-  if opcode == INTRINSIC_STR_GET { return "StrGet"; }
-  if opcode == INTRINSIC_BOOL_EQ { return "BoolEq"; }
-  if opcode == INTRINSIC_BOOL_NOT { return "BoolNot"; }
-  if opcode == INTRINSIC_BOOL_TO_INT32 { return "BoolToInt32"; }
-  if opcode == INTRINSIC_BOOL_TO_INT64 { return "BoolToInt64"; }
-  if opcode == INTRINSIC_U_INT8_EQ { return "UInt8Eq"; }
-  if opcode == INTRINSIC_U_INT8_CMP { return "UInt8Cmp"; }
-  if opcode == INTRINSIC_U_INT8_TO_CHAR { return "UInt8ToChar"; }
-  if opcode == INTRINSIC_U_INT8_TO_INT32 { return "UInt8ToInt32"; }
-  if opcode == INTRINSIC_U_INT8_TO_INT64 { return "UInt8ToInt64"; }
-  if opcode == INTRINSIC_CHAR_EQ { return "CharEq"; }
-  if opcode == INTRINSIC_CHAR_CMP { return "CharCmp"; }
-  if opcode == INTRINSIC_CHAR_TO_INT32 { return "CharToInt32"; }
-  if opcode == INTRINSIC_CHAR_TO_INT64 { return "CharToInt64"; }
-  if opcode == INTRINSIC_INT32_TO_UINT8 { return "Int32ToUInt8"; }
-  if opcode == INTRINSIC_INT32_TO_CHAR_UNCHECKED { return "Int32ToCharUnchecked"; }
-  if opcode == INTRINSIC_INT32_TO_INT64 { return "Int32ToInt64"; }
-  if opcode == INTRINSIC_INT32_TO_FLOAT32 { return "Int32ToFloat32"; }
-  if opcode == INTRINSIC_INT32_TO_FLOAT64 { return "Int32ToFloat64"; }
-  if opcode == INTRINSIC_REINTERPRET_INT32_AS_FLOAT32 { return "ReinterpretInt32AsFloat32"; }
-  if opcode == INTRINSIC_ENUM_EQ { return "EnumEq"; }
-  if opcode == INTRINSIC_ENUM_NE { return "EnumNe"; }
-  if opcode == INTRINSIC_INT32_EQ { return "Int32Eq"; }
-  if opcode == INTRINSIC_INT32_CMP { return "Int32Cmp"; }
-  if opcode == INTRINSIC_INT32_CHECKED_ADD { return "Int32CheckedAdd"; }
-  if opcode == INTRINSIC_INT32_WRAPPING_ADD { return "Int32WrappingAdd"; }
-  if opcode == INTRINSIC_INT32_CHECKED_SUB { return "Int32CheckedSub"; }
-  if opcode == INTRINSIC_INT32_WRAPPING_SUB { return "Int32WrappingSub"; }
-  if opcode == INTRINSIC_INT32_CHECKED_MUL { return "Int32CheckedMul"; }
-  if opcode == INTRINSIC_INT32_WRAPPING_MUL { return "Int32WrappingMul"; }
-  if opcode == INTRINSIC_INT32_OVERFLOWING_ADD { return "Int32OverflowingAdd"; }
-  if opcode == INTRINSIC_INT32_OVERFLOWING_SUB { return "Int32OverflowingSub"; }
-  if opcode == INTRINSIC_INT32_OVERFLOWING_MUL { return "Int32OverflowingMul"; }
-  if opcode == INTRINSIC_INT32_OVERFLOWING_DIV { return "Int32OverflowingDiv"; }
-  if opcode == INTRINSIC_INT32_OVERFLOWING_MOD { return "Int32OverflowingMod"; }
-  if opcode == INTRINSIC_INT32_CHECKED_DIV { return "Int32CheckedDiv"; }
-  if opcode == INTRINSIC_INT32_CHECKED_MOD { return "Int32CheckedMod"; }
-  if opcode == INTRINSIC_INT32_OR { return "Int32Or"; }
-  if opcode == INTRINSIC_INT32_AND { return "Int32And"; }
-  if opcode == INTRINSIC_INT32_XOR { return "Int32Xor"; }
-  if opcode == INTRINSIC_INT32_SHL { return "Int32Shl"; }
-  if opcode == INTRINSIC_INT32_SAR { return "Int32Sar"; }
-  if opcode == INTRINSIC_INT32_SHR { return "Int32Shr"; }
-  if opcode == INTRINSIC_INT32_ROTATE_LEFT { return "Int32RotateLeft"; }
-  if opcode == INTRINSIC_INT32_ROTATE_RIGHT { return "Int32RotateRight"; }
-  if opcode == INTRINSIC_INT32_NOT { return "Int32Not"; }
-  if opcode == INTRINSIC_INT32_CHECKED_NEG { return "Int32CheckedNeg"; }
-  if opcode == INTRINSIC_INT32_WRAPPING_NEG { return "Int32WrappingNeg"; }
-  if opcode == INTRINSIC_INT32_OVERFLOWING_NEG { return "Int32OverflowingNeg"; }
-  if opcode == INTRINSIC_INT32_COUNT_ZERO_BITS { return "Int32CountZeroBits"; }
-  if opcode == INTRINSIC_INT32_COUNT_ONE_BITS { return "Int32CountOneBits"; }
-  if opcode == INTRINSIC_INT32_COUNT_ZERO_BITS_LEADING { return "Int32CountZeroBitsLeading"; }
-  if opcode == INTRINSIC_INT32_COUNT_ONE_BITS_LEADING { return "Int32CountOneBitsLeading"; }
-  if opcode == INTRINSIC_INT32_COUNT_ZERO_BITS_TRAILING { return "Int32CountZeroBitsTrailing"; }
-  if opcode == INTRINSIC_INT32_COUNT_ONE_BITS_TRAILING { return "Int32CountOneBitsTrailing"; }
-  if opcode == INTRINSIC_INT64_TO_INT32 { return "Int64ToInt32"; }
-  if opcode == INTRINSIC_INT64_TO_CHAR_UNCHECKED { return "Int64ToCharUnchecked"; }
-  if opcode == INTRINSIC_INT64_TO_UINT8 { return "Int64ToUInt8"; }
-  if opcode == INTRINSIC_INT64_TO_FLOAT32 { return "Int64ToFloat32"; }
-  if opcode == INTRINSIC_INT64_TO_FLOAT64 { return "Int64ToFloat64"; }
-  if opcode == INTRINSIC_REINTERPRET_INT64_AS_FLOAT64 { return "ReinterpretInt64AsFloat64"; }
-  if opcode == INTRINSIC_INT64_EQ { return "Int64Eq"; }
-  if opcode == INTRINSIC_INT64_CMP { return "Int64Cmp"; }
-  if opcode == INTRINSIC_INT64_CHECKED_ADD { return "Int64CheckedAdd"; }
-  if opcode == INTRINSIC_INT64_WRAPPING_ADD { return "Int64WrappingAdd"; }
-  if opcode == INTRINSIC_INT64_CHECKED_SUB { return "Int64CheckedSub"; }
-  if opcode == INTRINSIC_INT64_WRAPPING_SUB { return "Int64WrappingSub"; }
-  if opcode == INTRINSIC_INT64_CHECKED_MUL { return "Int64CheckedMul"; }
-  if opcode == INTRINSIC_INT64_WRAPPING_MUL { return "Int64WrappingMul"; }
-  if opcode == INTRINSIC_INT64_OVERFLOWING_ADD { return "Int64OverflowingAdd"; }
-  if opcode == INTRINSIC_INT64_OVERFLOWING_SUB { return "Int64OverflowingSub"; }
-  if opcode == INTRINSIC_INT64_OVERFLOWING_MUL { return "Int64OverflowingMul"; }
-  if opcode == INTRINSIC_INT64_OVERFLOWING_DIV { return "Int64OverflowingDiv"; }
-  if opcode == INTRINSIC_INT64_OVERFLOWING_MOD { return "Int64OverflowingMod"; }
-  if opcode == INTRINSIC_INT64_CHECKED_DIV { return "Int64CheckedDiv"; }
-  if opcode == INTRINSIC_INT64_CHECKED_MOD { return "Int64CheckedMod"; }
-  if opcode == INTRINSIC_INT64_OR { return "Int64Or"; }
-  if opcode == INTRINSIC_INT64_AND { return "Int64And"; }
-  if opcode == INTRINSIC_INT64_XOR { return "Int64Xor"; }
-  if opcode == INTRINSIC_INT64_SHL { return "Int64Shl"; }
-  if opcode == INTRINSIC_INT64_SAR { return "Int64Sar"; }
-  if opcode == INTRINSIC_INT64_SHR { return "Int64Shr"; }
-  if opcode == INTRINSIC_INT64_ROTATE_LEFT { return "Int64RotateLeft"; }
-  if opcode == INTRINSIC_INT64_ROTATE_RIGHT { return "Int64RotateRight"; }
-  if opcode == INTRINSIC_INT64_NOT { return "Int64Not"; }
-  if opcode == INTRINSIC_INT64_CHECKED_NEG { return "Int64CheckedNeg"; }
-  if opcode == INTRINSIC_INT64_WRAPPING_NEG { return "Int64WrappingNeg"; }
-  if opcode == INTRINSIC_INT64_OVERFLOWING_NEG { return "Int64OverflowingNeg"; }
-  if opcode == INTRINSIC_INT64_COUNT_ZERO_BITS { return "Int64CountZeroBits"; }
-  if opcode == INTRINSIC_INT64_COUNT_ONE_BITS { return "Int64CountOneBits"; }
-  if opcode == INTRINSIC_INT64_COUNT_ZERO_BITS_LEADING { return "Int64CountZeroBitsLeading"; }
-  if opcode == INTRINSIC_INT64_COUNT_ONE_BITS_LEADING { return "Int64CountOneBitsLeading"; }
-  if opcode == INTRINSIC_INT64_COUNT_ZERO_BITS_TRAILING { return "Int64CountZeroBitsTrailing"; }
-  if opcode == INTRINSIC_INT64_COUNT_ONE_BITS_TRAILING { return "Int64CountOneBitsTrailing"; }
-  if opcode == INTRINSIC_FLOAT32_TO_INT32 { return "Float32ToInt32"; }
-  if opcode == INTRINSIC_FLOAT32_TO_INT64 { return "Float32ToInt64"; }
-  if opcode == INTRINSIC_PROMOTE_FLOAT32_TO_FLOAT64 { return "PromoteFloat32ToFloat64"; }
-  if opcode == INTRINSIC_REINTERPRET_FLOAT32_AS_INT32 { return "ReinterpretFloat32AsInt32"; }
-  if opcode == INTRINSIC_FLOAT32_EQ { return "Float32Eq"; }
-  if opcode == INTRINSIC_FLOAT32_CMP { return "Float32Cmp"; }
-  if opcode == INTRINSIC_FLOAT32_ADD { return "Float32Add"; }
-  if opcode == INTRINSIC_FLOAT32_SUB { return "Float32Sub"; }
-  if opcode == INTRINSIC_FLOAT32_MUL { return "Float32Mul"; }
-  if opcode == INTRINSIC_FLOAT32_DIV { return "Float32Div"; }
-  if opcode == INTRINSIC_FLOAT32_NEG { return "Float32Neg"; }
-  if opcode == INTRINSIC_FLOAT32_ABS { return "Float32Abs"; }
-  if opcode == INTRINSIC_FLOAT32_IS_NAN { return "Float32IsNan"; }
-  if opcode == INTRINSIC_FLOAT32_ROUND_TO_ZERO { return "Float32RoundToZero"; }
-  if opcode == INTRINSIC_FLOAT32_ROUND_UP { return "Float32RoundUp"; }
-  if opcode == INTRINSIC_FLOAT32_ROUND_DOWN { return "Float32RoundDown"; }
-  if opcode == INTRINSIC_FLOAT32_ROUND_HALF_EVEN { return "Float32RoundHalfEven"; }
-  if opcode == INTRINSIC_FLOAT32_SQRT { return "Float32Sqrt"; }
-  if opcode == INTRINSIC_FLOAT64_TO_INT32 { return "Float64ToInt32"; }
-  if opcode == INTRINSIC_FLOAT64_TO_INT64 { return "Float64ToInt64"; }
-  if opcode == INTRINSIC_DEMOTE_FLOAT64_TO_FLOAT32 { return "DemoteFloat64ToFloat32"; }
-  if opcode == INTRINSIC_REINTERPRET_FLOAT64_AS_INT64 { return "ReinterpretFloat64AsInt64"; }
-  if opcode == INTRINSIC_FLOAT64_EQ { return "Float64Eq"; }
-  if opcode == INTRINSIC_FLOAT64_CMP { return "Float64Cmp"; }
-  if opcode == INTRINSIC_FLOAT64_ADD { return "Float64Add"; }
-  if opcode == INTRINSIC_FLOAT64_SUB { return "Float64Sub"; }
-  if opcode == INTRINSIC_FLOAT64_MUL { return "Float64Mul"; }
-  if opcode == INTRINSIC_FLOAT64_DIV { return "Float64Div"; }
-  if opcode == INTRINSIC_FLOAT64_NEG { return "Float64Neg"; }
-  if opcode == INTRINSIC_FLOAT64_ABS { return "Float64Abs"; }
-  if opcode == INTRINSIC_FLOAT64_IS_NAN { return "Float64IsNan"; }
-  if opcode == INTRINSIC_FLOAT64_ROUND_TO_ZERO { return "Float64RoundToZero"; }
-  if opcode == INTRINSIC_FLOAT64_ROUND_UP { return "Float64RoundUp"; }
-  if opcode == INTRINSIC_FLOAT64_ROUND_DOWN { return "Float64RoundDown"; }
-  if opcode == INTRINSIC_FLOAT64_ROUND_HALF_EVEN { return "Float64RoundHalfEven"; }
-  if opcode == INTRINSIC_FLOAT64_SQRT { return "Float64Sqrt"; }
-  if opcode == INTRINSIC_OPTION_GET_OR_PANIC { return "OptionGetOrPanic"; }
-  if opcode == INTRINSIC_OPTION_IS_NONE { return "OptionIsNone"; }
-  if opcode == INTRINSIC_OPTION_IS_SOME { return "OptionIsSome"; }
-  if opcode == INTRINSIC_ATOMIC_INT32_GET { return "AtomicInt32Get"; }
-  if opcode == INTRINSIC_ATOMIC_INT32_SET { return "AtomicInt32Set"; }
-  if opcode == INTRINSIC_ATOMIC_INT32_EXCHANGE { return "AtomicInt32Exchange"; }
-  if opcode == INTRINSIC_ATOMIC_INT32_COMPARE_EXCHANGE { return "AtomicInt32CompareExchange"; }
-  if opcode == INTRINSIC_ATOMIC_INT32_FETCH_ADD { return "AtomicInt32FetchAdd"; }
-  if opcode == INTRINSIC_ATOMIC_INT64_GET { return "AtomicInt64Get"; }
-  if opcode == INTRINSIC_ATOMIC_INT64_SET { return "AtomicInt64Set"; }
-  if opcode == INTRINSIC_ATOMIC_INT64_EXCHANGE { return "AtomicInt64Exchange"; }
-  if opcode == INTRINSIC_ATOMIC_INT64_COMPARE_EXCHANGE { return "AtomicInt64CompareExchange"; }
-  if opcode == INTRINSIC_ATOMIC_INT64_FETCH_ADD { return "AtomicInt64FetchAdd"; }
-  if opcode == INTRINSIC_THREAD_CURRENT { return "ThreadCurrent"; }
-  unreachable[String]()
+    if opcode == INTRINSIC_ARRAY_NEW_OF_SIZE {
+        return "ArrayNewOfSize";
+    }
+    if opcode == INTRINSIC_ARRAY_WITH_VALUES {
+        return "ArrayWithValues";
+    }
+    if opcode == INTRINSIC_ARRAY_LEN {
+        return "ArrayLen";
+    }
+    if opcode == INTRINSIC_ARRAY_GET {
+        return "ArrayGet";
+    }
+    if opcode == INTRINSIC_ARRAY_SET {
+        return "ArraySet";
+    }
+    if opcode == INTRINSIC_UNREACHABLE {
+        return "Unreachable";
+    }
+    if opcode == INTRINSIC_FATAL_ERROR {
+        return "FatalError";
+    }
+    if opcode == INTRINSIC_UNSAFE_KILL_REFS {
+        return "UnsafeKillRefs";
+    }
+    if opcode == INTRINSIC_ASSERT {
+        return "Assert";
+    }
+    if opcode == INTRINSIC_DEBUG {
+        return "Debug";
+    }
+    if opcode == INTRINSIC_STR_LEN {
+        return "StrLen";
+    }
+    if opcode == INTRINSIC_STR_GET {
+        return "StrGet";
+    }
+    if opcode == INTRINSIC_BOOL_EQ {
+        return "BoolEq";
+    }
+    if opcode == INTRINSIC_BOOL_NOT {
+        return "BoolNot";
+    }
+    if opcode == INTRINSIC_BOOL_TO_INT32 {
+        return "BoolToInt32";
+    }
+    if opcode == INTRINSIC_BOOL_TO_INT64 {
+        return "BoolToInt64";
+    }
+    if opcode == INTRINSIC_U_INT8_EQ {
+        return "UInt8Eq";
+    }
+    if opcode == INTRINSIC_U_INT8_CMP {
+        return "UInt8Cmp";
+    }
+    if opcode == INTRINSIC_U_INT8_TO_CHAR {
+        return "UInt8ToChar";
+    }
+    if opcode == INTRINSIC_U_INT8_TO_INT32 {
+        return "UInt8ToInt32";
+    }
+    if opcode == INTRINSIC_U_INT8_TO_INT64 {
+        return "UInt8ToInt64";
+    }
+    if opcode == INTRINSIC_CHAR_EQ {
+        return "CharEq";
+    }
+    if opcode == INTRINSIC_CHAR_CMP {
+        return "CharCmp";
+    }
+    if opcode == INTRINSIC_CHAR_TO_INT32 {
+        return "CharToInt32";
+    }
+    if opcode == INTRINSIC_CHAR_TO_INT64 {
+        return "CharToInt64";
+    }
+    if opcode == INTRINSIC_INT32_TO_UINT8 {
+        return "Int32ToUInt8";
+    }
+    if opcode == INTRINSIC_INT32_TO_CHAR_UNCHECKED {
+        return "Int32ToCharUnchecked";
+    }
+    if opcode == INTRINSIC_INT32_TO_INT64 {
+        return "Int32ToInt64";
+    }
+    if opcode == INTRINSIC_INT32_TO_FLOAT32 {
+        return "Int32ToFloat32";
+    }
+    if opcode == INTRINSIC_INT32_TO_FLOAT64 {
+        return "Int32ToFloat64";
+    }
+    if opcode == INTRINSIC_REINTERPRET_INT32_AS_FLOAT32 {
+        return "ReinterpretInt32AsFloat32";
+    }
+    if opcode == INTRINSIC_ENUM_EQ {
+        return "EnumEq";
+    }
+    if opcode == INTRINSIC_ENUM_NE {
+        return "EnumNe";
+    }
+    if opcode == INTRINSIC_INT32_EQ {
+        return "Int32Eq";
+    }
+    if opcode == INTRINSIC_INT32_CMP {
+        return "Int32Cmp";
+    }
+    if opcode == INTRINSIC_INT32_CHECKED_ADD {
+        return "Int32CheckedAdd";
+    }
+    if opcode == INTRINSIC_INT32_WRAPPING_ADD {
+        return "Int32WrappingAdd";
+    }
+    if opcode == INTRINSIC_INT32_CHECKED_SUB {
+        return "Int32CheckedSub";
+    }
+    if opcode == INTRINSIC_INT32_WRAPPING_SUB {
+        return "Int32WrappingSub";
+    }
+    if opcode == INTRINSIC_INT32_CHECKED_MUL {
+        return "Int32CheckedMul";
+    }
+    if opcode == INTRINSIC_INT32_WRAPPING_MUL {
+        return "Int32WrappingMul";
+    }
+    if opcode == INTRINSIC_INT32_OVERFLOWING_ADD {
+        return "Int32OverflowingAdd";
+    }
+    if opcode == INTRINSIC_INT32_OVERFLOWING_SUB {
+        return "Int32OverflowingSub";
+    }
+    if opcode == INTRINSIC_INT32_OVERFLOWING_MUL {
+        return "Int32OverflowingMul";
+    }
+    if opcode == INTRINSIC_INT32_OVERFLOWING_DIV {
+        return "Int32OverflowingDiv";
+    }
+    if opcode == INTRINSIC_INT32_OVERFLOWING_MOD {
+        return "Int32OverflowingMod";
+    }
+    if opcode == INTRINSIC_INT32_CHECKED_DIV {
+        return "Int32CheckedDiv";
+    }
+    if opcode == INTRINSIC_INT32_CHECKED_MOD {
+        return "Int32CheckedMod";
+    }
+    if opcode == INTRINSIC_INT32_OR {
+        return "Int32Or";
+    }
+    if opcode == INTRINSIC_INT32_AND {
+        return "Int32And";
+    }
+    if opcode == INTRINSIC_INT32_XOR {
+        return "Int32Xor";
+    }
+    if opcode == INTRINSIC_INT32_SHL {
+        return "Int32Shl";
+    }
+    if opcode == INTRINSIC_INT32_SAR {
+        return "Int32Sar";
+    }
+    if opcode == INTRINSIC_INT32_SHR {
+        return "Int32Shr";
+    }
+    if opcode == INTRINSIC_INT32_ROTATE_LEFT {
+        return "Int32RotateLeft";
+    }
+    if opcode == INTRINSIC_INT32_ROTATE_RIGHT {
+        return "Int32RotateRight";
+    }
+    if opcode == INTRINSIC_INT32_NOT {
+        return "Int32Not";
+    }
+    if opcode == INTRINSIC_INT32_CHECKED_NEG {
+        return "Int32CheckedNeg";
+    }
+    if opcode == INTRINSIC_INT32_WRAPPING_NEG {
+        return "Int32WrappingNeg";
+    }
+    if opcode == INTRINSIC_INT32_OVERFLOWING_NEG {
+        return "Int32OverflowingNeg";
+    }
+    if opcode == INTRINSIC_INT32_COUNT_ZERO_BITS {
+        return "Int32CountZeroBits";
+    }
+    if opcode == INTRINSIC_INT32_COUNT_ONE_BITS {
+        return "Int32CountOneBits";
+    }
+    if opcode == INTRINSIC_INT32_COUNT_ZERO_BITS_LEADING {
+        return "Int32CountZeroBitsLeading";
+    }
+    if opcode == INTRINSIC_INT32_COUNT_ONE_BITS_LEADING {
+        return "Int32CountOneBitsLeading";
+    }
+    if opcode == INTRINSIC_INT32_COUNT_ZERO_BITS_TRAILING {
+        return "Int32CountZeroBitsTrailing";
+    }
+    if opcode == INTRINSIC_INT32_COUNT_ONE_BITS_TRAILING {
+        return "Int32CountOneBitsTrailing";
+    }
+    if opcode == INTRINSIC_INT64_TO_INT32 {
+        return "Int64ToInt32";
+    }
+    if opcode == INTRINSIC_INT64_TO_CHAR_UNCHECKED {
+        return "Int64ToCharUnchecked";
+    }
+    if opcode == INTRINSIC_INT64_TO_UINT8 {
+        return "Int64ToUInt8";
+    }
+    if opcode == INTRINSIC_INT64_TO_FLOAT32 {
+        return "Int64ToFloat32";
+    }
+    if opcode == INTRINSIC_INT64_TO_FLOAT64 {
+        return "Int64ToFloat64";
+    }
+    if opcode == INTRINSIC_REINTERPRET_INT64_AS_FLOAT64 {
+        return "ReinterpretInt64AsFloat64";
+    }
+    if opcode == INTRINSIC_INT64_EQ {
+        return "Int64Eq";
+    }
+    if opcode == INTRINSIC_INT64_CMP {
+        return "Int64Cmp";
+    }
+    if opcode == INTRINSIC_INT64_CHECKED_ADD {
+        return "Int64CheckedAdd";
+    }
+    if opcode == INTRINSIC_INT64_WRAPPING_ADD {
+        return "Int64WrappingAdd";
+    }
+    if opcode == INTRINSIC_INT64_CHECKED_SUB {
+        return "Int64CheckedSub";
+    }
+    if opcode == INTRINSIC_INT64_WRAPPING_SUB {
+        return "Int64WrappingSub";
+    }
+    if opcode == INTRINSIC_INT64_CHECKED_MUL {
+        return "Int64CheckedMul";
+    }
+    if opcode == INTRINSIC_INT64_WRAPPING_MUL {
+        return "Int64WrappingMul";
+    }
+    if opcode == INTRINSIC_INT64_OVERFLOWING_ADD {
+        return "Int64OverflowingAdd";
+    }
+    if opcode == INTRINSIC_INT64_OVERFLOWING_SUB {
+        return "Int64OverflowingSub";
+    }
+    if opcode == INTRINSIC_INT64_OVERFLOWING_MUL {
+        return "Int64OverflowingMul";
+    }
+    if opcode == INTRINSIC_INT64_OVERFLOWING_DIV {
+        return "Int64OverflowingDiv";
+    }
+    if opcode == INTRINSIC_INT64_OVERFLOWING_MOD {
+        return "Int64OverflowingMod";
+    }
+    if opcode == INTRINSIC_INT64_CHECKED_DIV {
+        return "Int64CheckedDiv";
+    }
+    if opcode == INTRINSIC_INT64_CHECKED_MOD {
+        return "Int64CheckedMod";
+    }
+    if opcode == INTRINSIC_INT64_OR {
+        return "Int64Or";
+    }
+    if opcode == INTRINSIC_INT64_AND {
+        return "Int64And";
+    }
+    if opcode == INTRINSIC_INT64_XOR {
+        return "Int64Xor";
+    }
+    if opcode == INTRINSIC_INT64_SHL {
+        return "Int64Shl";
+    }
+    if opcode == INTRINSIC_INT64_SAR {
+        return "Int64Sar";
+    }
+    if opcode == INTRINSIC_INT64_SHR {
+        return "Int64Shr";
+    }
+    if opcode == INTRINSIC_INT64_ROTATE_LEFT {
+        return "Int64RotateLeft";
+    }
+    if opcode == INTRINSIC_INT64_ROTATE_RIGHT {
+        return "Int64RotateRight";
+    }
+    if opcode == INTRINSIC_INT64_NOT {
+        return "Int64Not";
+    }
+    if opcode == INTRINSIC_INT64_CHECKED_NEG {
+        return "Int64CheckedNeg";
+    }
+    if opcode == INTRINSIC_INT64_WRAPPING_NEG {
+        return "Int64WrappingNeg";
+    }
+    if opcode == INTRINSIC_INT64_OVERFLOWING_NEG {
+        return "Int64OverflowingNeg";
+    }
+    if opcode == INTRINSIC_INT64_COUNT_ZERO_BITS {
+        return "Int64CountZeroBits";
+    }
+    if opcode == INTRINSIC_INT64_COUNT_ONE_BITS {
+        return "Int64CountOneBits";
+    }
+    if opcode == INTRINSIC_INT64_COUNT_ZERO_BITS_LEADING {
+        return "Int64CountZeroBitsLeading";
+    }
+    if opcode == INTRINSIC_INT64_COUNT_ONE_BITS_LEADING {
+        return "Int64CountOneBitsLeading";
+    }
+    if opcode == INTRINSIC_INT64_COUNT_ZERO_BITS_TRAILING {
+        return "Int64CountZeroBitsTrailing";
+    }
+    if opcode == INTRINSIC_INT64_COUNT_ONE_BITS_TRAILING {
+        return "Int64CountOneBitsTrailing";
+    }
+    if opcode == INTRINSIC_FLOAT32_TO_INT32 {
+        return "Float32ToInt32";
+    }
+    if opcode == INTRINSIC_FLOAT32_TO_INT64 {
+        return "Float32ToInt64";
+    }
+    if opcode == INTRINSIC_PROMOTE_FLOAT32_TO_FLOAT64 {
+        return "PromoteFloat32ToFloat64";
+    }
+    if opcode == INTRINSIC_REINTERPRET_FLOAT32_AS_INT32 {
+        return "ReinterpretFloat32AsInt32";
+    }
+    if opcode == INTRINSIC_FLOAT32_EQ {
+        return "Float32Eq";
+    }
+    if opcode == INTRINSIC_FLOAT32_CMP {
+        return "Float32Cmp";
+    }
+    if opcode == INTRINSIC_FLOAT32_ADD {
+        return "Float32Add";
+    }
+    if opcode == INTRINSIC_FLOAT32_SUB {
+        return "Float32Sub";
+    }
+    if opcode == INTRINSIC_FLOAT32_MUL {
+        return "Float32Mul";
+    }
+    if opcode == INTRINSIC_FLOAT32_DIV {
+        return "Float32Div";
+    }
+    if opcode == INTRINSIC_FLOAT32_NEG {
+        return "Float32Neg";
+    }
+    if opcode == INTRINSIC_FLOAT32_ABS {
+        return "Float32Abs";
+    }
+    if opcode == INTRINSIC_FLOAT32_IS_NAN {
+        return "Float32IsNan";
+    }
+    if opcode == INTRINSIC_FLOAT32_ROUND_TO_ZERO {
+        return "Float32RoundToZero";
+    }
+    if opcode == INTRINSIC_FLOAT32_ROUND_UP {
+        return "Float32RoundUp";
+    }
+    if opcode == INTRINSIC_FLOAT32_ROUND_DOWN {
+        return "Float32RoundDown";
+    }
+    if opcode == INTRINSIC_FLOAT32_ROUND_HALF_EVEN {
+        return "Float32RoundHalfEven";
+    }
+    if opcode == INTRINSIC_FLOAT32_SQRT {
+        return "Float32Sqrt";
+    }
+    if opcode == INTRINSIC_FLOAT64_TO_INT32 {
+        return "Float64ToInt32";
+    }
+    if opcode == INTRINSIC_FLOAT64_TO_INT64 {
+        return "Float64ToInt64";
+    }
+    if opcode == INTRINSIC_DEMOTE_FLOAT64_TO_FLOAT32 {
+        return "DemoteFloat64ToFloat32";
+    }
+    if opcode == INTRINSIC_REINTERPRET_FLOAT64_AS_INT64 {
+        return "ReinterpretFloat64AsInt64";
+    }
+    if opcode == INTRINSIC_FLOAT64_EQ {
+        return "Float64Eq";
+    }
+    if opcode == INTRINSIC_FLOAT64_CMP {
+        return "Float64Cmp";
+    }
+    if opcode == INTRINSIC_FLOAT64_ADD {
+        return "Float64Add";
+    }
+    if opcode == INTRINSIC_FLOAT64_SUB {
+        return "Float64Sub";
+    }
+    if opcode == INTRINSIC_FLOAT64_MUL {
+        return "Float64Mul";
+    }
+    if opcode == INTRINSIC_FLOAT64_DIV {
+        return "Float64Div";
+    }
+    if opcode == INTRINSIC_FLOAT64_NEG {
+        return "Float64Neg";
+    }
+    if opcode == INTRINSIC_FLOAT64_ABS {
+        return "Float64Abs";
+    }
+    if opcode == INTRINSIC_FLOAT64_IS_NAN {
+        return "Float64IsNan";
+    }
+    if opcode == INTRINSIC_FLOAT64_ROUND_TO_ZERO {
+        return "Float64RoundToZero";
+    }
+    if opcode == INTRINSIC_FLOAT64_ROUND_UP {
+        return "Float64RoundUp";
+    }
+    if opcode == INTRINSIC_FLOAT64_ROUND_DOWN {
+        return "Float64RoundDown";
+    }
+    if opcode == INTRINSIC_FLOAT64_ROUND_HALF_EVEN {
+        return "Float64RoundHalfEven";
+    }
+    if opcode == INTRINSIC_FLOAT64_SQRT {
+        return "Float64Sqrt";
+    }
+    if opcode == INTRINSIC_OPTION_GET_OR_PANIC {
+        return "OptionGetOrPanic";
+    }
+    if opcode == INTRINSIC_OPTION_IS_NONE {
+        return "OptionIsNone";
+    }
+    if opcode == INTRINSIC_OPTION_IS_SOME {
+        return "OptionIsSome";
+    }
+    if opcode == INTRINSIC_ATOMIC_INT32_GET {
+        return "AtomicInt32Get";
+    }
+    if opcode == INTRINSIC_ATOMIC_INT32_SET {
+        return "AtomicInt32Set";
+    }
+    if opcode == INTRINSIC_ATOMIC_INT32_EXCHANGE {
+        return "AtomicInt32Exchange";
+    }
+    if opcode == INTRINSIC_ATOMIC_INT32_COMPARE_EXCHANGE {
+        return "AtomicInt32CompareExchange";
+    }
+    if opcode == INTRINSIC_ATOMIC_INT32_FETCH_ADD {
+        return "AtomicInt32FetchAdd";
+    }
+    if opcode == INTRINSIC_ATOMIC_INT64_GET {
+        return "AtomicInt64Get";
+    }
+    if opcode == INTRINSIC_ATOMIC_INT64_SET {
+        return "AtomicInt64Set";
+    }
+    if opcode == INTRINSIC_ATOMIC_INT64_EXCHANGE {
+        return "AtomicInt64Exchange";
+    }
+    if opcode == INTRINSIC_ATOMIC_INT64_COMPARE_EXCHANGE {
+        return "AtomicInt64CompareExchange";
+    }
+    if opcode == INTRINSIC_ATOMIC_INT64_FETCH_ADD {
+        return "AtomicInt64FetchAdd";
+    }
+    if opcode == INTRINSIC_THREAD_CURRENT {
+        return "ThreadCurrent";
+    }
+    unreachable[String]()
 }
-

@@ -6,10 +6,25 @@ use package::assembler::x64::register_name as register_name_on_x64;
 use package::assembler::arm64::float_register_name as float_register_name_on_arm64;
 use package::assembler::x64::float_register_name as float_register_name_on_x64;
 use package::compilation::CompilationInfo;
-use package::graph::{Block, Edge, Graph, Input, Inst, Location, LocationData, Operand, Op, Policy};
+use package::graph::{
+    Block,
+    Edge,
+    Graph,
+    Input,
+    Inst,
+    Location,
+    LocationData,
+    Op,
+    Operand,
+    Policy,
+};
 use package::interface::{Architecture, get_function_display_name_with_type_params};
 
-pub fn dump_graph(ci: Option[CompilationInfo], graph: Graph, architecture: Architecture): String {
+pub fn dump_graph(
+    ci: Option[CompilationInfo],
+    graph: Graph,
+    architecture: Architecture,
+): String {
     GraphDumper::new(ci, graph, architecture).dump()
 }
 
@@ -21,13 +36,12 @@ class GraphDumper {
 }
 
 impl GraphDumper {
-    static fn new(ci: Option[CompilationInfo], graph: Graph, architecture: Architecture): GraphDumper {
-        GraphDumper(
-            ci,
-            graph,
-            architecture,
-            buffer = StringBuffer::new()
-        )
+    static fn new(
+        ci: Option[CompilationInfo],
+        graph: Graph,
+        architecture: Architecture,
+    ): GraphDumper {
+        GraphDumper(ci, graph, architecture, buffer = StringBuffer::new())
     }
 
     fn dump(): String {
@@ -82,7 +96,11 @@ impl GraphDumper {
             return;
         }
 
-        let name = if is_pred { "pred" } else { "succ" };
+        let name = if is_pred {
+            "pred"
+        } else {
+            "succ"
+        };
         self.buffer.append(" ${name} = [");
         let mut first: Bool = true;
 
@@ -144,7 +162,9 @@ impl GraphDumper {
                 self.buffer.append(" (temps: ");
                 let mut first = true;
                 for temp in loc.get_temps() {
-                    if !first { self.buffer.append(", "); }
+                    if !first {
+                        self.buffer.append(", ");
+                    }
                     self.dump_operand(temp);
                     first = false;
                 }
@@ -188,7 +208,12 @@ impl GraphDumper {
         if inst.op() == Op::Invoke {
             if inst.has_function_info() {
                 let info = inst.get_function_info();
-                self.buffer.append(" # ${get_function_display_name_with_type_params(info.fct_id, info.type_params)}");
+                self.buffer.append(
+                    " # ${get_function_display_name_with_type_params(
+                        info.fct_id,
+                        info.type_params,
+                    )}"
+                );
             } else if inst.has_runtime_function() {
                 self.buffer.append(" # ${inst.get_runtime_function()}");
             }
@@ -249,13 +274,13 @@ impl GraphDumper {
                     Architecture::Arm64 => register_name_on_arm64(reg),
                     Architecture::X64 => register_name_on_x64(reg),
                 }
-            },
+            }
             Location::FloatReg(reg) => {
                 match self.architecture {
                     Architecture::Arm64 => float_register_name_on_arm64(reg),
                     Architecture::X64 => float_register_name_on_x64(reg),
                 }
-            },
+            }
 
             Location::Stack(slot) => {
                 if slot.is_fp() {
@@ -263,7 +288,7 @@ impl GraphDumper {
                 } else {
                     "SP:${slot.get_offset()}"
                 }
-            },
+            }
 
             Location::None => "NONE",
         }
@@ -285,16 +310,17 @@ fn dump_inst_name(inst: Inst): String {
         Op::EnsureGlobalInitialized => "EnsureGlobalInitialized(${inst.get_global_id()})",
         Op::LoadGlobal => "LoadGlobal.${inst.get_value_type()}(${inst.get_global_id()})",
         Op::GetGlobalAddress => "GetGlobalAddress(${inst.get_global_id()})",
-        Op::StoreGlobal => "StoreGlobal.${inst.get_value_type()}(${inst.get_global_id()})",
+        Op::StoreGlobal => "StoreGlobal.${inst.get_value_type(
+            )}(${inst.get_global_id()})",
         Op::MarkGlobalInitialized => "MarkGlobalInitialized(${inst.get_global_id()})",
         Op::Undef => "Undef",
         Op::CheckArrayBounds => "CheckArrayBounds",
         Op::Goto => {
             "Goto(@${inst.get_target_block().id()})"
-        },
+        }
         Op::If => {
             "If(@${inst.get_true_block().id()}, @${inst.get_false_block().id()})"
-        },
+        }
         Op::Switch => {
             let targets = inst.get_target_blocks();
             let buffer = StringBuffer::new();
@@ -316,14 +342,14 @@ fn dump_inst_name(inst: Inst): String {
 
             buffer.append("default=@${inst.get_default_block().id()})");
             buffer.to_string()
-        },
+        }
         Op::Return => {
             if !inst.has_input() {
                 "Ret.Void"
             } else {
                 "Ret.${inst.get_operation_type()}"
             }
-        },
+        }
         Op::InlineReturn => "InlineReturn.${inst.get_operation_type()}",
         Op::Abort => "Abort",
         Op::Assert => "Assert",
@@ -361,7 +387,8 @@ fn dump_inst_name(inst: Inst): String {
         Op::Greater => "Greater.${inst.get_operation_type()}",
         Op::UnsignedGreater => "UnsignedGreater.${inst.get_operation_type()}",
         Op::GreaterOrEqual => "GreaterOrEqual.${inst.get_operation_type()}",
-        Op::UnsignedGreaterOrEqual => "UnsignedGreaterOrEqual.${inst.get_operation_type()}",
+        Op::UnsignedGreaterOrEqual => "UnsignedGreaterOrEqual.${inst.get_operation_type(
+            )}",
         Op::Less => "Less.${inst.get_operation_type()}",
         Op::UnsignedLess => "UnsignedLess.${inst.get_operation_type()}",
         Op::LessOrEqual => "LessOrEqual.${inst.get_operation_type()}",
@@ -374,7 +401,8 @@ fn dump_inst_name(inst: Inst): String {
         Op::GetElementPtr => "GetElementPtr",
         Op::Arg => "Arg.${inst.get_value_type()}(${inst.get_arg_index()})",
         Op::LocalGet => "LocalGet.${inst.get_value_type()}(${inst.get_local_index()})",
-        Op::LocalSet => "LocalSet.${inst.get_operation_type()}(${inst.get_local_index()})",
+        Op::LocalSet => "LocalSet.${inst.get_operation_type(
+            )}(${inst.get_local_index()})",
         Op::Move => "Move.${inst.get_value_type()}",
         Op::LoadReg => "LoadReg.${inst.get_value_type()}",
         Op::StoreReg => "StoreReg.${inst.get_value_type()}",

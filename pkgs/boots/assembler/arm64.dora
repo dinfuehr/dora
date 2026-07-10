@@ -1,8 +1,7 @@
-
 use package::assembler::AssemblerBuffer;
 use package::assembler::Label;
 use package::assembler::MachineCode;
-use package::assembler::{Register, FloatRegister};
+use package::assembler::{FloatRegister, Register};
 
 pub let R0: Register = Register(0u8);
 pub let R1: Register = Register(1u8);
@@ -105,7 +104,7 @@ pub let F31: FloatRegister = FloatRegister(31u8);
 class ForwardJump {
     offset: Int64,
     label: Label,
-    kind: JumpKind
+    kind: JumpKind,
 }
 
 enum JumpKind {
@@ -184,10 +183,7 @@ pub class AssemblerArm64 {
 
 impl AssemblerArm64 {
     pub static fn new(): AssemblerArm64 {
-        AssemblerArm64(
-            buffer = AssemblerBuffer::new(),
-            jumps = Vec[ForwardJump]::new()
-        )
+        AssemblerArm64(buffer = AssemblerBuffer::new(), jumps = Vec[ForwardJump]::new())
     }
 
     pub fn create_label(): Label {
@@ -229,7 +225,9 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        self.emit(encoding::addsub_extreg(1i32, 0i32, false, 0i32, rm, extend, amount, rn, rd));
+        self.emit(
+            encoding::addsub_extreg(1i32, 0i32, false, 0i32, rm, extend, amount, rn, rd)
+        );
     }
 
     pub fn add_ext_w(
@@ -239,7 +237,9 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        self.emit(encoding::addsub_extreg(0i32, 0i32, false, 0i32, rm, extend, amount, rn, rd));
+        self.emit(
+            encoding::addsub_extreg(0i32, 0i32, false, 0i32, rm, extend, amount, rn, rd)
+        );
     }
 
     pub fn add_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
@@ -258,12 +258,16 @@ impl AssemblerArm64 {
 
     pub fn add_imm(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
-        self.emit(encoding::addsub_imm(1i32, 0i32, false, shift.to_int32(), imm12, rn, rd));
+        self.emit(
+            encoding::addsub_imm(1i32, 0i32, false, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
     pub fn add_imm_w(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
-        self.emit(encoding::addsub_imm(0i32, 0i32, false, shift.to_int32(), imm12, rn, rd));
+        self.emit(
+            encoding::addsub_imm(0i32, 0i32, false, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
     pub fn addv(q: Int32, size: Int32, rd: FloatRegister, rn: FloatRegister) {
@@ -272,15 +276,25 @@ impl AssemblerArm64 {
 
     pub fn adds_imm(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
-        self.emit(encoding::addsub_imm(1i32, 0i32, true, shift.to_int32(), imm12, rn, rd));
+        self.emit(
+            encoding::addsub_imm(1i32, 0i32, true, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
     pub fn adds_imm_w(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
-        self.emit(encoding::addsub_imm(0i32, 0i32, true, shift.to_int32(), imm12, rn, rd));
+        self.emit(
+            encoding::addsub_imm(0i32, 0i32, true, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
-    pub fn adds_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
+    pub fn adds_sh(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: Int32,
+    ) {
         self.emit(encoding::addsub_shreg(1i32, 0i32, 1i32, shift, rm, amount, rn, rd));
     }
 
@@ -307,11 +321,9 @@ impl AssemblerArm64 {
     }
 
     pub fn adr_label(rd: Register, label: Label) {
-        self.jumps.push(ForwardJump(
-            offset = self.buffer.position(),
-            label,
-            kind = JumpKind::Adr(rd),
-        ));
+        self.jumps.push(
+            ForwardJump(offset = self.buffer.position(), label, kind = JumpKind::Adr(rd))
+        );
         self.emit(0i32);
     }
 
@@ -344,7 +356,13 @@ impl AssemblerArm64 {
         self.emit(encoding::logical_shreg(1i32, 0b11i32, shift, 0i32, rm, imm6, rn, rd));
     }
 
-    pub fn ands_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+    pub fn ands_sh_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: Int32,
+    ) {
         self.emit(encoding::logical_shreg(0i32, 0b11i32, shift, 0i32, rm, imm6, rn, rd));
     }
 
@@ -365,11 +383,13 @@ impl AssemblerArm64 {
         } else {
             let pos = self.buffer.position();
             self.emit(0i32);
-            self.jumps.push(ForwardJump(
-                offset = pos,
-                label = target,
-                kind = JumpKind::Unconditional(false),
-            ));
+            self.jumps.push(
+                ForwardJump(
+                    offset = pos,
+                    label = target,
+                    kind = JumpKind::Unconditional(false),
+                )
+            );
         }
     }
 
@@ -387,11 +407,13 @@ impl AssemblerArm64 {
             let pos = self.buffer.position();
             self.emit(0i32);
             self.emit(0i32);
-            self.jumps.push(ForwardJump(
-                offset = pos,
-                label = target,
-                kind = JumpKind::Conditional(cond),
-            ));
+            self.jumps.push(
+                ForwardJump(
+                    offset = pos,
+                    label = target,
+                    kind = JumpKind::Conditional(cond),
+                )
+            );
         }
     }
 
@@ -428,7 +450,13 @@ impl AssemblerArm64 {
         self.emit(encoding::logical_shreg(1i32, 0b11i32, shift, 1i32, rm, imm6, rn, rd));
     }
 
-    pub fn bics_sh_w(rd: Register, rn: Register, rm: Register, shift: Shift, imm6: Int32) {
+    pub fn bics_sh_w(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        imm6: Int32,
+    ) {
         self.emit(encoding::logical_shreg(0i32, 0b11i32, shift, 1i32, rm, imm6, rn, rd));
     }
 
@@ -441,11 +469,13 @@ impl AssemblerArm64 {
         } else {
             let pos = self.buffer.position();
             self.emit(0i32);
-            self.jumps.push(ForwardJump(
-                offset = pos,
-                label = target,
-                kind = JumpKind::Unconditional(true),
-            ));
+            self.jumps.push(
+                ForwardJump(
+                    offset = pos,
+                    label = target,
+                    kind = JumpKind::Unconditional(true),
+                )
+            );
         }
     }
 
@@ -464,52 +494,132 @@ impl AssemblerArm64 {
         self.emit(encoding::exception(0b001i32, imm16, 0i32, 0i32));
     }
 
-   pub fn cas(cmp: Register, new: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b11i32, 1i32, 0i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
-        ))
+    pub fn cas(cmp: Register, new: Register, addr: Register) {
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                0i32,
+                1i32,
+                cmp,
+                0i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
     }
 
     pub fn cas_w(cmp: Register, new: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b10i32, 1i32, 0i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                0i32,
+                1i32,
+                cmp,
+                0i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
     }
 
     pub fn casa(cmp: Register, new: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b11i32, 1i32, 1i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                1i32,
+                1i32,
+                cmp,
+                0i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
     }
 
     pub fn casa_w(cmp: Register, new: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b10i32, 1i32, 1i32, 1i32, cmp, 0i32, REG_ZERO, addr, new,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                1i32,
+                1i32,
+                cmp,
+                0i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
     }
 
     pub fn casal(cmp: Register, new: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b11i32, 1i32, 1i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                1i32,
+                1i32,
+                cmp,
+                1i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
     }
 
     pub fn casal_w(cmp: Register, new: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b10i32, 1i32, 1i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                1i32,
+                1i32,
+                cmp,
+                1i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
     }
 
     pub fn casl(cmp: Register, new: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b11i32, 1i32, 0i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                0i32,
+                1i32,
+                cmp,
+                1i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
     }
 
     pub fn casl_w(cmp: Register, new: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b10i32, 1i32, 0i32, 1i32, cmp, 1i32, REG_ZERO, addr, new,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                0i32,
+                1i32,
+                cmp,
+                1i32,
+                REG_ZERO,
+                addr,
+                new,
+            )
+        )
     }
 
     pub fn cbnz(reg: Register, target: Label) {
@@ -533,24 +643,25 @@ impl AssemblerArm64 {
             let diff = target.offset - self.buffer.position();
             assert(diff % 4 == 0);
 
-            let inst =
-                encoding::cmp_branch_imm(
-                    sf.to_int32(),
-                    value.to_int32(),
-                    reg,
-                    (diff / 4).to_int32(),
-                );
+            let inst = encoding::cmp_branch_imm(
+                sf.to_int32(),
+                value.to_int32(),
+                reg,
+                (diff / 4).to_int32(),
+            );
             self.emit(inst);
         } else {
             let pos = self.buffer.position();
             self.emit(0i32);
             self.emit(0i32);
 
-            self.jumps.push(ForwardJump(
-                offset = pos,
-                label = target,
-                kind = JumpKind::Zero(sf, value, reg),
-            ));
+            self.jumps.push(
+                ForwardJump(
+                    offset = pos,
+                    label = target,
+                    kind = JumpKind::Zero(sf, value, reg),
+                )
+            );
         }
     }
 
@@ -603,11 +714,15 @@ impl AssemblerArm64 {
     }
 
     pub fn cmp_sh(rn: Register, rm: Register, shift: Shift, amount: Int32) {
-        self.emit(encoding::addsub_shreg(1i32, 1i32, 1i32, shift, rm, amount, rn, REG_ZERO));
+        self.emit(
+            encoding::addsub_shreg(1i32, 1i32, 1i32, shift, rm, amount, rn, REG_ZERO)
+        );
     }
 
     pub fn cmp_sh_w(rn: Register, rm: Register, shift: Shift, amount: Int32) {
-        self.emit(encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, REG_ZERO));
+        self.emit(
+            encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, REG_ZERO)
+        );
     }
 
     pub fn cnt(q: Int32, size: Int32, rd: FloatRegister, rn: FloatRegister) {
@@ -663,375 +778,545 @@ impl AssemblerArm64 {
     }
 
     pub fn fadd_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_dataproc2(
-            0i32,
-            0i32,
-            FLOAT_TYPE_SINGLE,
-            rm,
-            0b0010i32,
-            rn,
-            rd,
-        ));
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0b0010i32, rn, rd)
+        );
     }
 
     pub fn fadd_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_dataproc2(
-            0i32,
-            0i32,
-            FLOAT_TYPE_DOUBLE,
-            rm,
-            0b0010i32,
-            rn,
-            rd,
-        ));
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0b0010i32, rn, rd)
+        );
     }
 
     pub fn fcmp_d(rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0i32, rn, 0i32));
+        self.emit(
+            encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0i32, rn, 0i32)
+        );
     }
 
     pub fn fcmp_s(rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0i32, rn, 0i32));
+        self.emit(
+            encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0i32, rn, 0i32)
+        );
     }
 
     pub fn fcmpe_d(rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0i32, rn, 0b10000i32));
+        self.emit(
+            encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0i32, rn, 0b10000i32)
+        );
     }
 
     pub fn fcmpe_s(rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0i32, rn, 0b10000i32));
+        self.emit(
+            encoding::fp_compare(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0i32, rn, 0b10000i32)
+        );
     }
 
     pub fn fcvt_ds(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000100i32 | FLOAT_TYPE_DOUBLE, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(
+                0i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b000100i32 | FLOAT_TYPE_DOUBLE,
+                rn,
+                rd,
+            )
+        );
     }
 
     pub fn fcvt_sd(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000100i32 | FLOAT_TYPE_SINGLE, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(
+                0i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b000100i32 | FLOAT_TYPE_SINGLE,
+                rn,
+                rd,
+            )
+        );
     }
 
     pub fn fcvtzs_d(rd: Register, rn: FloatRegister) {
-        self.emit(encoding::fp_int(
-            1i32,
-            0i32,
-            FLOAT_TYPE_DOUBLE,
-            0b11i32,
-            0b000i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b11i32,
+                0b000i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     pub fn fcvtzs_s(rd: Register, rn: FloatRegister) {
-        self.emit(encoding::fp_int(
-            1i32,
-            0i32,
-            FLOAT_TYPE_SINGLE,
-            0b11i32,
-            0b000i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b11i32,
+                0b000i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     pub fn fcvtzs_wd(rd: Register, rn: FloatRegister) {
-        self.emit(encoding::fp_int(
-            0i32,
-            0i32,
-            FLOAT_TYPE_DOUBLE,
-            0b11i32,
-            0b000i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b11i32,
+                0b000i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     pub fn fcvtzs_ws(rd: Register, rn: FloatRegister) {
-        self.emit(encoding::fp_int(
-            0i32,
-            0i32,
-            FLOAT_TYPE_SINGLE,
-            0b11i32,
-            0b000i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b11i32,
+                0b000i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     pub fn fdiv_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_dataproc2(
-            0i32,
-            0i32,
-            FLOAT_TYPE_DOUBLE,
-            rm,
-            0b0001i32,
-            rn,
-            rd,
-        ));
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0b0001i32, rn, rd)
+        );
     }
 
     pub fn fdiv_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_dataproc2(
-            0i32,
-            0i32,
-            FLOAT_TYPE_SINGLE,
-            rm,
-            0b0001i32,
-            rn,
-            rd,
-        ));
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0b0001i32, rn, rd)
+        );
     }
 
     pub fn fmov_d(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000000i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000000i32, rn, rd)
+        );
     }
 
     pub fn fmov_s(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000000i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000000i32, rn, rd)
+        );
     }
 
     pub fn fmov_fs_d(rd: FloatRegister, rn: Register) {
-        self.emit(encoding::fp_int(
-            1i32,
-            0i32,
-            FLOAT_TYPE_DOUBLE,
-            0b00i32,
-            0b111i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b00i32,
+                0b111i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     pub fn fmov_fs_s(rd: FloatRegister, rn: Register) {
-        self.emit(encoding::fp_int(
-            0i32,
-            0i32,
-            FLOAT_TYPE_SINGLE,
-            0b00i32,
-            0b111i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b00i32,
+                0b111i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     pub fn fmov_sf_d(rd: Register, rn: FloatRegister) {
-        self.emit(encoding::fp_int(
-            1i32,
-            0i32,
-            FLOAT_TYPE_DOUBLE,
-            0b00i32,
-            0b110i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b00i32,
+                0b110i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     pub fn fmov_sf_s(rd: Register, rn: FloatRegister) {
-        self.emit(encoding::fp_int(
-            0i32,
-            0i32,
-            FLOAT_TYPE_SINGLE,
-            0b00i32,
-            0b110i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b00i32,
+                0b110i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     pub fn fmul_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_dataproc2(
-            0i32,
-            0i32,
-            FLOAT_TYPE_SINGLE,
-            rm,
-            0b0000i32,
-            rn,
-            rd,
-        ));
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0b0000i32, rn, rd)
+        );
     }
 
     pub fn fmul_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_dataproc2(
-            0i32,
-            0i32,
-            FLOAT_TYPE_DOUBLE,
-            rm,
-            0b0000i32,
-            rn,
-            rd,
-        ));
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0b0000i32, rn, rd)
+        );
     }
 
     pub fn fabs_d(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000001i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000001i32, rn, rd)
+        );
     }
 
     pub fn fabs_s(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000001i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000001i32, rn, rd)
+        );
     }
 
     pub fn fneg_d(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000010i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000010i32, rn, rd)
+        );
     }
 
     pub fn fneg_s(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000010i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000010i32, rn, rd)
+        );
     }
 
     pub fn frintn_d(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001000i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001000i32, rn, rd)
+        );
     }
 
     pub fn frintn_s(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001000i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001000i32, rn, rd)
+        );
     }
 
     pub fn frintp_d(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001001i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001001i32, rn, rd)
+        );
     }
 
     pub fn frintp_s(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001001i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001001i32, rn, rd)
+        );
     }
 
     pub fn frintm_d(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001010i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001010i32, rn, rd)
+        );
     }
 
     pub fn frintm_s(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001010i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001010i32, rn, rd)
+        );
     }
 
     pub fn frintz_d(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001011i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001011i32, rn, rd)
+        );
     }
 
     pub fn frintz_s(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001011i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001011i32, rn, rd)
+        );
     }
 
     pub fn frinta_d(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001100i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b001100i32, rn, rd)
+        );
     }
 
     pub fn frinta_s(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001100i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b001100i32, rn, rd)
+        );
     }
 
     pub fn fsqrt_d(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000011i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_DOUBLE, 0b000011i32, rn, rd)
+        );
     }
 
     pub fn fsqrt_s(rd: FloatRegister, rn: FloatRegister) {
-        self.emit(encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000011i32, rn, rd));
+        self.emit(
+            encoding::fp_dataproc1(0i32, 0i32, FLOAT_TYPE_SINGLE, 0b000011i32, rn, rd)
+        );
     }
 
     pub fn fsub_s(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_dataproc2(
-            0i32,
-            0i32,
-            FLOAT_TYPE_SINGLE,
-            rm,
-            0b0011i32,
-            rn,
-            rd,
-        ));
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_SINGLE, rm, 0b0011i32, rn, rd)
+        );
     }
 
     pub fn fsub_d(rd: FloatRegister, rn: FloatRegister, rm: FloatRegister) {
-        self.emit(encoding::fp_dataproc2(
-            0i32,
-            0i32,
-            FLOAT_TYPE_DOUBLE,
-            rm,
-            0b0011i32,
-            rn,
-            rd,
-        ));
+        self.emit(
+            encoding::fp_dataproc2(0i32, 0i32, FLOAT_TYPE_DOUBLE, rm, 0b0011i32, rn, rd)
+        );
     }
 
     pub fn ldadd(value: Register, dest: Register, address: Register) {
-        self.emit(encoding::atomic_op(
-            0b11i32, 0i32, 0i32, 0i32, value, 0i32, 0b000i32, address, dest,
-        ))
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                0i32,
+                0i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
     }
 
     pub fn ldadd_w(value: Register, dest: Register, address: Register) {
-        self.emit(encoding::atomic_op(
-            0b10i32, 0i32, 0i32, 0i32, value, 0i32, 0b000i32, address, dest,
-        ))
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                0i32,
+                0i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
     }
 
     pub fn ldadda(value: Register, dest: Register, address: Register) {
-        self.emit(encoding::atomic_op(
-            0b11i32, 0i32, 1i32, 0i32, value, 0i32, 0b000i32, address, dest,
-        ))
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                1i32,
+                0i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
     }
 
     pub fn ldadda_w(value: Register, dest: Register, address: Register) {
-        self.emit(encoding::atomic_op(
-            0b10i32, 0i32, 1i32, 0i32, value, 0i32, 0b000i32, address, dest,
-        ))
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                1i32,
+                0i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
     }
 
     pub fn ldaddal(value: Register, dest: Register, address: Register) {
-        self.emit(encoding::atomic_op(
-            0b11i32, 0i32, 1i32, 1i32, value, 0i32, 0b000i32, address, dest,
-        ))
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                1i32,
+                1i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
     }
 
     pub fn ldaddal_w(value: Register, dest: Register, address: Register) {
-        self.emit(encoding::atomic_op(
-            0b10i32, 0i32, 1i32, 1i32, value, 0i32, 0b000i32, address, dest,
-        ))
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                1i32,
+                1i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
     }
 
     pub fn ldaddl(value: Register, dest: Register, address: Register) {
-        self.emit(encoding::atomic_op(
-            0b11i32, 0i32, 0i32, 1i32, value, 0i32, 0b000i32, address, dest,
-        ))
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                0i32,
+                1i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
     }
 
     pub fn ldaddl_w(value: Register, dest: Register, address: Register) {
-        self.emit(encoding::atomic_op(
-            0b10i32, 0i32, 0i32, 1i32, value, 0i32, 0b000i32, address, dest,
-        ))
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                0i32,
+                1i32,
+                value,
+                0i32,
+                0b000i32,
+                address,
+                dest,
+            )
+        )
     }
 
     pub fn ldar(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b11i32, 1i32, 1i32, 0i32, REG_ZERO, 1i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn ldarb(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b00i32, 1i32, 1i32, 0i32, REG_ZERO, 1i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b00i32,
+                1i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn ldarh(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b01i32, 1i32, 1i32, 0i32, REG_ZERO, 1i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b01i32,
+                1i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn ldar_w(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b10i32, 1i32, 1i32, 0i32, REG_ZERO, 1i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn ldaxr(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b11i32, 0i32, 1i32, 0i32, REG_ZERO, 1i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                0i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn ldaxr_w(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b10i32, 0i32, 1i32, 0i32, REG_ZERO, 1i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                0i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn ldp(rt: Register, rt2: Register, rn: Register, imm: Int32) {
@@ -1081,16 +1366,18 @@ impl AssemblerArm64 {
             assert(amount == 3i32);
             1i32
         };
-        self.emit(encoding::ldst_regoffset(
-            0b11i32,
-            0i32,
-            0b01i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b11i32,
+                0i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldrb_reg(
@@ -1102,16 +1389,18 @@ impl AssemblerArm64 {
     ) {
         assert(rt.is_gpr());
         assert(amount == 0i32);
-        self.emit(encoding::ldst_regoffset(
-            0b00i32,
-            0i32,
-            0b01i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b00i32,
+                0i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldr_reg_d(
@@ -1128,16 +1417,18 @@ impl AssemblerArm64 {
             assert(amount == 3i32);
             1i32
         };
-        self.emit(encoding::ldst_regoffset(
-            0b11i32,
-            1i32,
-            0b01i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b11i32,
+                1i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldrh_reg(
@@ -1154,16 +1445,18 @@ impl AssemblerArm64 {
             assert(amount == 1i32);
             1i32
         };
-        self.emit(encoding::ldst_regoffset(
-            0b01i32,
-            0i32,
-            0b01i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b01i32,
+                0i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldr_reg_s(
@@ -1179,16 +1472,18 @@ impl AssemblerArm64 {
             assert(amount == 2i32);
             1i32
         };
-        self.emit(encoding::ldst_regoffset(
-            0b10i32,
-            1i32,
-            0b01i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b10i32,
+                1i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldr_reg_w(
@@ -1205,16 +1500,18 @@ impl AssemblerArm64 {
             assert(amount == 2i32);
             1i32
         };
-        self.emit(encoding::ldst_regoffset(
-            0b10i32,
-            0i32,
-            0b01i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b10i32,
+                0i32,
+                0b01i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldr_imm(rt: Register, rn: Register, imm: Int32) {
@@ -1257,84 +1554,116 @@ impl AssemblerArm64 {
 
     pub fn ldur(rt: Register, rn: Register, imm9: Int32) {
         assert(rt.is_gpr());
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b11i32,
-            0i32,
-            0b01i32,
-            imm9,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b11i32,
+                0i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldurb(rt: Register, rn: Register, imm9: Int32) {
         assert(rt.is_gpr());
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b00i32,
-            0i32,
-            0b01i32,
-            imm9,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b00i32,
+                0i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldur_d(rt: FloatRegister, rn: Register, imm9: Int32) {
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b11i32,
-            1i32,
-            0b01i32,
-            imm9,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b11i32,
+                1i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldurh(rt: Register, rn: Register, imm9: Int32) {
         assert(rt.is_gpr());
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b01i32,
-            0i32,
-            0b01i32,
-            imm9,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b01i32,
+                0i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldur_s(rt: FloatRegister, rn: Register, imm9: Int32) {
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b10i32,
-            1i32,
-            0b01i32,
-            imm9,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b10i32,
+                1i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldur_w(rt: Register, rn: Register, imm9: Int32) {
         assert(rt.is_gpr());
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b10i32,
-            0i32,
-            0b01i32,
-            imm9,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b10i32,
+                0i32,
+                0b01i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn ldxr(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b11i32, 0i32, 1i32, 0i32, REG_ZERO, 0i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                0i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                0i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn ldxr_w(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b10i32, 0i32, 1i32, 0i32, REG_ZERO, 0i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                0i32,
+                1i32,
+                0i32,
+                REG_ZERO,
+                0i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn lsl_imm(rd: Register, rn: Register, shift: Int32) {
@@ -1525,54 +1854,62 @@ impl AssemblerArm64 {
 
     // scvtf (scalar, integer) - 32-bit to double-precision
     pub fn scvtf_si_dw(rd: FloatRegister, rn: Register) {
-        self.emit(encoding::fp_int(
-            0i32,
-            0i32,
-            FLOAT_TYPE_DOUBLE,
-            0b00i32,
-            0b010i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b00i32,
+                0b010i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     // scvtf (scalar, integer) - 64-bit to double-precision
     pub fn scvtf_si_dx(rd: FloatRegister, rn: Register) {
-        self.emit(encoding::fp_int(
-            1i32,
-            0i32,
-            FLOAT_TYPE_DOUBLE,
-            0b00i32,
-            0b010i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_DOUBLE,
+                0b00i32,
+                0b010i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     // scvtf (scalar, integer) - 32-bit to single-precision
     pub fn scvtf_si_sw(rd: FloatRegister, rn: Register) {
-        self.emit(encoding::fp_int(
-            0i32,
-            0i32,
-            FLOAT_TYPE_SINGLE,
-            0b00i32,
-            0b010i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                0i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b00i32,
+                0b010i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     // scvtf (scalar, integer) - 64-bit to single-precision
     pub fn scvtf_si_sx(rd: FloatRegister, rn: Register) {
-        self.emit(encoding::fp_int(
-            1i32,
-            0i32,
-            FLOAT_TYPE_SINGLE,
-            0b00i32,
-            0b010i32,
-            rn.encoding(),
-            rd.encoding(),
-        ));
+        self.emit(
+            encoding::fp_int(
+                1i32,
+                0i32,
+                FLOAT_TYPE_SINGLE,
+                0b00i32,
+                0b010i32,
+                rn.encoding(),
+                rd.encoding(),
+            )
+        );
     }
 
     pub fn smaddl(rd: Register, rn: Register, rm: Register, ra: Register) {
@@ -1588,39 +1925,99 @@ impl AssemblerArm64 {
     }
 
     pub fn stlr(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b11i32, 1i32, 0i32, 0i32, REG_ZERO, 1i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                1i32,
+                0i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn stlrb(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b00i32, 1i32, 0i32, 0i32, REG_ZERO, 1i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b00i32,
+                1i32,
+                0i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn stlrh(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b01i32, 1i32, 0i32, 0i32, REG_ZERO, 1i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b01i32,
+                1i32,
+                0i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn stlr_w(rt: Register, rn: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b10i32, 1i32, 0i32, 0i32, REG_ZERO, 1i32, REG_ZERO, rn, rt,
-        ))
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                1i32,
+                0i32,
+                0i32,
+                REG_ZERO,
+                1i32,
+                REG_ZERO,
+                rn,
+                rt,
+            )
+        )
     }
 
     pub fn stlxr(status: Register, src: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b11i32, 0i32, 0i32, 0i32, status, 1i32, REG_ZERO, addr, src,
-        ));
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                0i32,
+                0i32,
+                0i32,
+                status,
+                1i32,
+                REG_ZERO,
+                addr,
+                src,
+            )
+        );
     }
 
     pub fn stlxr_w(status: Register, src: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b10i32, 0i32, 0i32, 0i32, status, 1i32, REG_ZERO, addr, src,
-        ));
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                0i32,
+                0i32,
+                0i32,
+                status,
+                1i32,
+                REG_ZERO,
+                addr,
+                src,
+            )
+        );
     }
 
     pub fn stp(rt: Register, rt2: Register, rn: Register, imm: Int32) {
@@ -1674,26 +2071,16 @@ impl AssemblerArm64 {
         assert(rt.is_gpr_or_zero());
         assert(imm % 8i32 == 0i32);
         let imm = imm / 8i32;
-        self.emit(encoding::ldst_regimm(
-            0b11i32,
-            0i32,
-            0b00i32,
-            imm,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_regimm(0b11i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
+        );
     }
 
     pub fn strb_imm(rt: Register, rn: Register, imm: Int32) {
         assert(rt.is_gpr_or_zero());
-        self.emit(encoding::ldst_regimm(
-            0b00i32,
-            0i32,
-            0b00i32,
-            imm,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_regimm(0b00i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
+        );
     }
 
     pub fn str_imm_d(rt: FloatRegister, rn: Register, imm: Int32) {
@@ -1712,28 +2099,18 @@ impl AssemblerArm64 {
         assert(rt.is_gpr_or_zero());
         assert(imm % 4i32 == 0i32);
         let imm = imm / 4i32;
-        self.emit(encoding::ldst_regimm(
-            0b10i32,
-            0i32,
-            0b00i32,
-            imm,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_regimm(0b10i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
+        );
     }
 
     pub fn strh_imm(rt: Register, rn: Register, imm: Int32) {
         assert(rt.is_gpr_or_zero());
         assert(imm % 2i32 == 0i32);
         let imm = imm / 2i32;
-        self.emit(encoding::ldst_regimm(
-            0b01i32,
-            0i32,
-            0b00i32,
-            imm,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_regimm(0b01i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
+        );
     }
 
     pub fn str_reg(
@@ -1750,16 +2127,18 @@ impl AssemblerArm64 {
             assert(amount == 3i32);
             1i32
         };
-        self.emit(encoding::ldst_regoffset(
-            0b11i32,
-            0i32,
-            0b00i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b11i32,
+                0i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding_zero(),
+            )
+        );
     }
 
     pub fn strb_reg(
@@ -1771,16 +2150,18 @@ impl AssemblerArm64 {
     ) {
         assert(rt.is_gpr_or_zero());
         assert(amount == 0i32);
-        self.emit(encoding::ldst_regoffset(
-            0b00i32,
-            0i32,
-            0b00i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b00i32,
+                0i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding_zero(),
+            )
+        );
     }
 
     pub fn strh_reg(
@@ -1797,16 +2178,18 @@ impl AssemblerArm64 {
             assert(amount == 1i32);
             1i32
         };
-        self.emit(encoding::ldst_regoffset(
-            0b01i32,
-            0i32,
-            0b00i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b01i32,
+                0i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding_zero(),
+            )
+        );
     }
 
     pub fn str_reg_d(
@@ -1822,16 +2205,18 @@ impl AssemblerArm64 {
             assert(amount == 3i32);
             1i32
         };
-        self.emit(encoding::ldst_regoffset(
-            0b11i32,
-            1i32,
-            0b00i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b11i32,
+                1i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn str_reg_s(
@@ -1847,16 +2232,18 @@ impl AssemblerArm64 {
             assert(amount == 2i32);
             1i32
         };
-        self.emit(encoding::ldst_regoffset(
-            0b10i32,
-            1i32,
-            0b00i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b10i32,
+                1i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn str_reg_w(
@@ -1873,98 +2260,132 @@ impl AssemblerArm64 {
             assert(amount == 2i32);
             1i32
         };
-        self.emit(encoding::ldst_regoffset(
-            0b10i32,
-            0i32,
-            0b00i32,
-            rm,
-            extend,
-            amount,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_regoffset(
+                0b10i32,
+                0i32,
+                0b00i32,
+                rm,
+                extend,
+                amount,
+                rn,
+                rt.encoding_zero(),
+            )
+        );
     }
 
     pub fn stur(rt: Register, rn: Register, imm9: Int32) {
         assert(rt.is_gpr_or_zero());
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b11i32,
-            0i32,
-            0b00i32,
-            imm9,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b11i32,
+                0i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encoding_zero(),
+            )
+        );
     }
 
     pub fn sturb(rt: Register, rn: Register, imm9: Int32) {
         assert(rt.is_gpr_or_zero());
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b00i32,
-            0i32,
-            0b00i32,
-            imm9,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b00i32,
+                0i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encoding_zero(),
+            )
+        );
     }
 
     pub fn stur_d(rt: FloatRegister, rn: Register, imm9: Int32) {
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b11i32,
-            1i32,
-            0b00i32,
-            imm9,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b11i32,
+                1i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn sturh(rt: Register, rn: Register, imm9: Int32) {
         assert(rt.is_gpr_or_zero());
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b01i32,
-            0i32,
-            0b00i32,
-            imm9,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b01i32,
+                0i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encoding_zero(),
+            )
+        );
     }
 
     pub fn stur_s(rt: FloatRegister, rn: Register, imm9: Int32) {
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b10i32,
-            1i32,
-            0b00i32,
-            imm9,
-            rn,
-            rt.encoding(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b10i32,
+                1i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encoding(),
+            )
+        );
     }
 
     pub fn stur_w(rt: Register, rn: Register, imm9: Int32) {
         assert(rt.is_gpr_or_zero());
-        self.emit(encoding::ldst_reg_unscaledimm(
-            0b10i32,
-            0i32,
-            0b00i32,
-            imm9,
-            rn,
-            rt.encoding_zero(),
-        ));
+        self.emit(
+            encoding::ldst_reg_unscaledimm(
+                0b10i32,
+                0i32,
+                0b00i32,
+                imm9,
+                rn,
+                rt.encoding_zero(),
+            )
+        );
     }
 
     pub fn stxr(status: Register, src: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b11i32, 0i32, 0i32, 0i32, status, 0i32, REG_ZERO, addr, src,
-        ));
+        self.emit(
+            encoding::ldst_exclusive(
+                0b11i32,
+                0i32,
+                0i32,
+                0i32,
+                status,
+                0i32,
+                REG_ZERO,
+                addr,
+                src,
+            )
+        );
     }
 
     pub fn stxr_w(status: Register, src: Register, addr: Register) {
-        self.emit(encoding::ldst_exclusive(
-            0b10i32, 0i32, 0i32, 0i32, status, 0i32, REG_ZERO, addr, src,
-        ));
+        self.emit(
+            encoding::ldst_exclusive(
+                0b10i32,
+                0i32,
+                0i32,
+                0i32,
+                status,
+                0i32,
+                REG_ZERO,
+                addr,
+                src,
+            )
+        );
     }
 
     pub fn sub(rd: Register, rn: Register, rm: Register) {
@@ -1990,7 +2411,9 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        self.emit(encoding::addsub_extreg(1i32, 1i32, false, 0i32, rm, extend, amount, rn, rd));
+        self.emit(
+            encoding::addsub_extreg(1i32, 1i32, false, 0i32, rm, extend, amount, rn, rd)
+        );
     }
 
     pub fn sub_ext_w(
@@ -2000,7 +2423,9 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        self.emit(encoding::addsub_extreg(0i32, 1i32, false, 0i32, rm, extend, amount, rn, rd));
+        self.emit(
+            encoding::addsub_extreg(0i32, 1i32, false, 0i32, rm, extend, amount, rn, rd)
+        );
     }
 
     pub fn sub_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
@@ -2019,12 +2444,16 @@ impl AssemblerArm64 {
 
     pub fn sub_imm(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
-        self.emit(encoding::addsub_imm(1i32, 1i32, false, shift.to_int32(), imm12, rn, rd));
+        self.emit(
+            encoding::addsub_imm(1i32, 1i32, false, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
     pub fn sub_imm_w(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
-        self.emit(encoding::addsub_imm(0i32, 1i32, false, shift.to_int32(), imm12, rn, rd));
+        self.emit(
+            encoding::addsub_imm(0i32, 1i32, false, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
     pub fn subs(rd: Register, rn: Register, rm: Register) {
@@ -2042,7 +2471,9 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        self.emit(encoding::addsub_extreg(1i32, 1i32, true, 0i32, rm, extend, amount, rn, rd));
+        self.emit(
+            encoding::addsub_extreg(1i32, 1i32, true, 0i32, rm, extend, amount, rn, rd)
+        );
     }
 
     pub fn subs_ext_w(
@@ -2052,20 +2483,32 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        self.emit(encoding::addsub_extreg(0i32, 1i32, true, 0i32, rm, extend, amount, rn, rd));
+        self.emit(
+            encoding::addsub_extreg(0i32, 1i32, true, 0i32, rm, extend, amount, rn, rd)
+        );
     }
 
     pub fn subs_imm(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
-        self.emit(encoding::addsub_imm(1i32, 1i32, true, shift.to_int32(), imm12, rn, rd));
+        self.emit(
+            encoding::addsub_imm(1i32, 1i32, true, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
     pub fn subs_imm_w(rd: Register, rn: Register, imm: Int32) {
         let (shift, imm12) = imm_encoding::imm12(imm.to_int64()).get_or_panic();
-        self.emit(encoding::addsub_imm(0i32, 1i32, true, shift.to_int32(), imm12, rn, rd));
+        self.emit(
+            encoding::addsub_imm(0i32, 1i32, true, shift.to_int32(), imm12, rn, rd)
+        );
     }
 
-    pub fn subs_sh(rd: Register, rn: Register, rm: Register, shift: Shift, amount: Int32) {
+    pub fn subs_sh(
+        rd: Register,
+        rn: Register,
+        rm: Register,
+        shift: Shift,
+        amount: Int32,
+    ) {
         self.emit(encoding::addsub_shreg(1i32, 1i32, 1i32, shift, rm, amount, rn, rd));
     }
 
@@ -2079,37 +2522,132 @@ impl AssemblerArm64 {
         self.emit(encoding::addsub_shreg(0i32, 1i32, 1i32, shift, rm, amount, rn, rd));
     }
 
-
     pub fn swp(new: Register, old: Register, address: Register) {
-        self.emit(encoding::atomic_op(0b11i32, 0i32, 0i32, 0i32, new, 1i32, 0b000i32, address, old))
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                0i32,
+                0i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
     }
 
     pub fn swp_w(new: Register, old: Register, address: Register) {
-        self.emit(encoding::atomic_op(0b10i32, 0i32, 0i32, 0i32, new, 1i32, 0b000i32, address, old))
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                0i32,
+                0i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
     }
 
     pub fn swpa(new: Register, old: Register, address: Register) {
-        self.emit(encoding::atomic_op(0b11i32, 0i32, 1i32, 0i32, new, 1i32, 0b000i32, address, old))
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                1i32,
+                0i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
     }
 
     pub fn swpa_w(new: Register, old: Register, address: Register) {
-        self.emit(encoding::atomic_op(0b10i32, 0i32, 1i32, 0i32, new, 1i32, 0b000i32, address, old))
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                1i32,
+                0i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
     }
 
     pub fn swpal(new: Register, old: Register, address: Register) {
-        self.emit(encoding::atomic_op(0b11i32, 0i32, 1i32, 1i32, new, 1i32, 0b000i32, address, old))
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                1i32,
+                1i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
     }
 
     pub fn swpal_w(new: Register, old: Register, address: Register) {
-        self.emit(encoding::atomic_op(0b10i32, 0i32, 1i32, 1i32, new, 1i32, 0b000i32, address, old))
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                1i32,
+                1i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
     }
 
     pub fn swpl(new: Register, old: Register, address: Register) {
-        self.emit(encoding::atomic_op(0b11i32, 0i32, 0i32, 1i32, new, 1i32, 0b000i32, address, old))
+        self.emit(
+            encoding::atomic_op(
+                0b11i32,
+                0i32,
+                0i32,
+                1i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
     }
 
     pub fn swpl_w(new: Register, old: Register, address: Register) {
-        self.emit(encoding::atomic_op(0b10i32, 0i32, 0i32, 1i32, new, 1i32, 0b000i32, address, old))
+        self.emit(
+            encoding::atomic_op(
+                0b10i32,
+                0i32,
+                0i32,
+                1i32,
+                new,
+                1i32,
+                0b000i32,
+                address,
+                old,
+            )
+        )
     }
 
     pub fn sxtw(rd: Register, rn: Register) {
@@ -2145,11 +2683,13 @@ impl AssemblerArm64 {
             self.emit(0i32);
             self.emit(0i32);
 
-            self.jumps.push(ForwardJump(
-                offset = pos,
-                label = target,
-                kind = JumpKind::Test(is_non_zero, bit, rt),
-            ));
+            self.jumps.push(
+                ForwardJump(
+                    offset = pos,
+                    label = target,
+                    kind = JumpKind::Test(is_non_zero, bit, rt),
+                )
+            );
         }
     }
 
@@ -2208,7 +2748,7 @@ impl AssemblerArm64 {
                 JumpKind::Adr(rd) => {
                     let distance = jmp.label.offset - jmp.offset;
                     self.adr_imm(rd, distance.to_int32());
-                },
+                }
                 JumpKind::Conditional(cond) => {
                     if encoding::fits_i19(distance) {
                         self.bc_imm(cond, distance);
@@ -2219,33 +2759,50 @@ impl AssemblerArm64 {
                         let inst = encoding::uncond_branch_imm(0i32, distance - 1i32);
                         self.emit(inst);
                     }
-                },
+                }
 
                 JumpKind::Unconditional(with_link) => {
-                    let inst = encoding::uncond_branch_imm(with_link.to_int32(), distance);
+                    let inst = encoding::uncond_branch_imm(
+                        with_link.to_int32(),
+                        distance,
+                    );
                     self.emit(inst);
-                },
+                }
 
                 JumpKind::Zero(sf, value, rt) => {
                     if encoding::fits_i19(distance) {
-                        let inst = encoding::cmp_branch_imm(sf.to_int32(), value.to_int32(), rt, distance);
+                        let inst = encoding::cmp_branch_imm(
+                            sf.to_int32(),
+                            value.to_int32(),
+                            rt,
+                            distance,
+                        );
                         self.emit(inst);
                         self.nop();
                     } else {
-                        let inst = encoding::cmp_branch_imm(sf.to_int32(), (!value).to_int32(), rt, 2i32);
+                        let inst = encoding::cmp_branch_imm(
+                            sf.to_int32(),
+                            (!value).to_int32(),
+                            rt,
+                            2i32,
+                        );
                         self.emit(inst);
                         // Distance is off by 1 instruction here.
                         let inst = encoding::uncond_branch_imm(0i32, distance - 1i32);
                         self.emit(inst);
                     }
-                },
+                }
 
                 JumpKind::Test(is_non_zero, bit, reg) => {
                     if encoding::fits_i14(distance) {
-                        self.emit(encoding::test_and_branch(is_non_zero, bit, distance, reg));
+                        self.emit(
+                            encoding::test_and_branch(is_non_zero, bit, distance, reg)
+                        );
                         self.nop();
                     } else {
-                        self.emit(encoding::test_and_branch(!is_non_zero, bit, 2i32, reg));
+                        self.emit(
+                            encoding::test_and_branch(!is_non_zero, bit, 2i32, reg)
+                        );
                         // Distance is off by 1 instruction here.
                         let inst = encoding::uncond_branch_imm(0i32, distance - 1i32);
                         self.emit(inst);
@@ -2458,7 +3015,7 @@ mod imm_encoding {
             rotation = (size - tz) & (size - 1);
             ones = (!(imm >> tz.to_int32())).count_zero_bits_trailing().to_int64();
 
-        // not all immediates are shifted masks: e.g. 1001
+            // not all immediates are shifted masks: e.g. 1001
         } else {
             // extend imm again to 64 bits: e.g. 1..1|1001
             imm = imm | !mask;
@@ -2513,7 +3070,7 @@ mod imm_encoding {
 
 mod encoding {
     use package::assembler::Register;
-    use super::{Extend, Shift, Cond, FloatRegister};
+    use super::{Cond, Extend, FloatRegister, Shift};
 
     pub fn addsub_extreg(
         sf: Int32,
@@ -2542,17 +3099,17 @@ mod encoding {
             rd.encoding_sp()
         };
 
-        sf << 31i32
-            | op << 30i32
-            | s.to_int32() << 29i32
-            | 0b01011i32 << 24i32
-            | opt << 22i32
-            | 1i32 << 21i32
-            | rm.encoding_zero() << 16i32
-            | option.encoding() << 13i32
-            | imm3 << 10i32
-            | rn.encoding_sp() << 5i32
-            | rd
+        sf << 31i32 |
+        op << 30i32 |
+        s.to_int32() << 29i32 |
+        0b01011i32 << 24i32 |
+        opt << 22i32 |
+        1i32 << 21i32 |
+        rm.encoding_zero() << 16i32 |
+        option.encoding() << 13i32 |
+        imm3 << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rd
     }
 
     pub fn addsub_shreg(
@@ -2574,15 +3131,15 @@ mod encoding {
         assert(rn.is_gpr_or_zero());
         assert(rd.is_gpr_or_zero());
 
-        0b01011i32 << 24i32
-            | sf << 31i32
-            | op << 30i32
-            | s << 29i32
-            | shift.encoding() << 22i32
-            | rm.encoding() << 16i32
-            | imm6 << 10i32
-            | rn.encoding_zero() << 5i32
-            | rd.encoding_zero()
+        0b01011i32 << 24i32 |
+        sf << 31i32 |
+        op << 30i32 |
+        s << 29i32 |
+        shift.encoding() << 22i32 |
+        rm.encoding() << 16i32 |
+        imm6 << 10i32 |
+        rn.encoding_zero() << 5i32 |
+        rd.encoding_zero()
     }
 
     pub fn addsub_imm(
@@ -2608,14 +3165,14 @@ mod encoding {
             rd.encoding_sp()
         };
 
-        0b10001i32 << 24i32
-            | sf << 31i32
-            | op << 30i32
-            | s.to_int32() << 29i32
-            | shift << 22i32
-            | imm12 << 10i32
-            | rn.encoding_sp() << 5i32
-            | rd
+        0b10001i32 << 24i32 |
+        sf << 31i32 |
+        op << 30i32 |
+        s.to_int32() << 29i32 |
+        shift << 22i32 |
+        imm12 << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rd
     }
 
     pub fn atomic_op(
@@ -2639,17 +3196,17 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rt.is_gpr());
 
-        size << 30i32
-            | 0b111i32 << 27i32
-            | v << 26i32
-            | a << 23i32
-            | r << 22i32
-            | 1i32 << 21i32
-            | rs.encoding() << 16i32
-            | o3 << 15i32
-            | opc << 12i32
-            | rn.encoding() << 5i32
-            | rt.encoding()
+        size << 30i32 |
+        0b111i32 << 27i32 |
+        v << 26i32 |
+        a << 23i32 |
+        r << 22i32 |
+        1i32 << 21i32 |
+        rs.encoding() << 16i32 |
+        o3 << 15i32 |
+        opc << 12i32 |
+        rn.encoding() << 5i32 |
+        rt.encoding()
     }
 
     pub fn bitfield(
@@ -2669,14 +3226,14 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rd.is_gpr());
 
-        sf << 31i32
-            | opc << 29i32
-            | 0b100110i32 << 23i32
-            | n << 22i32
-            | (immr & 0x3Fi32) << 16i32
-            | (imms & 0x3Fi32) << 10i32
-            | rn.encoding() << 5i32
-            | rd.encoding()
+        sf << 31i32 |
+        opc << 29i32 |
+        0b100110i32 << 23i32 |
+        n << 22i32 |
+        (immr & 0x3Fi32) << 16i32 |
+        (imms & 0x3Fi32) << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
     }
 
     pub fn cmp_branch_imm(sf: Int32, op: Int32, rt: Register, imm19: Int32): Int32 {
@@ -2715,15 +3272,15 @@ mod encoding {
         assert(rn.is_gpr_or_zero());
         assert(rd.is_gpr());
 
-        0b11010100i32 << 21i32
-            | sf << 31i32
-            | op << 30i32
-            | s << 29i32
-            | rm.encoding_zero() << 16i32
-            | cond.encoding() << 12i32
-            | op2 << 10i32
-            | rn.encoding_zero() << 5i32
-            | rd.encoding()
+        0b11010100i32 << 21i32 |
+        sf << 31i32 |
+        op << 30i32 |
+        s << 29i32 |
+        rm.encoding_zero() << 16i32 |
+        cond.encoding() << 12i32 |
+        op2 << 10i32 |
+        rn.encoding_zero() << 5i32 |
+        rd.encoding()
     }
 
     pub fn dataproc1(
@@ -2741,14 +3298,14 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rd.is_gpr());
 
-        sf << 31i32
-            | 1i32 << 30i32
-            | s << 29i32
-            | 0b11010110i32 << 21i32
-            | opcode2 << 16i32
-            | opcode << 10i32
-            | rn.encoding() << 5i32
-            | rd.encoding()
+        sf << 31i32 |
+        1i32 << 30i32 |
+        s << 29i32 |
+        0b11010110i32 << 21i32 |
+        opcode2 << 16i32 |
+        opcode << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
     }
 
     pub fn dataproc2(
@@ -2766,13 +3323,13 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rd.is_gpr());
 
-        sf << 31i32
-            | s << 29i32
-            | 0b11010110i32 << 21i32
-            | rm.encoding() << 16i32
-            | opcode << 10i32
-            | rn.encoding() << 5i32
-            | rd.encoding()
+        sf << 31i32 |
+        s << 29i32 |
+        0b11010110i32 << 21i32 |
+        rm.encoding() << 16i32 |
+        opcode << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
     }
 
     pub fn dataproc3(
@@ -2794,15 +3351,15 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rd.is_gpr());
 
-        sf << 31i32
-            | op54 << 29i32
-            | 0b11011i32 << 24i32
-            | op31 << 21i32
-            | rm.encoding() << 16i32
-            | o0 << 15i32
-            | ra.encoding_zero() << 10i32
-            | rn.encoding() << 5i32
-            | rd.encoding()
+        sf << 31i32 |
+        op54 << 29i32 |
+        0b11011i32 << 24i32 |
+        op31 << 21i32 |
+        rm.encoding() << 16i32 |
+        o0 << 15i32 |
+        ra.encoding_zero() << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
     }
 
     pub fn exception(opc: Int32, imm16: Int32, op2: Int32, ll: Int32): Int32 {
@@ -2829,16 +3386,16 @@ mod encoding {
         assert(fits_u2(op));
         assert(fits_u5(opcode2));
 
-        m << 31i32
-            | s << 29i32
-            | 0b11110i32 << 24i32
-            | ty << 22i32
-            | 1i32 << 21i32
-            | rm.encoding() << 16i32
-            | op << 14i32
-            | 0b1000i32 << 10i32
-            | rn.encoding() << 5i32
-            | opcode2
+        m << 31i32 |
+        s << 29i32 |
+        0b11110i32 << 24i32 |
+        ty << 22i32 |
+        1i32 << 21i32 |
+        rm.encoding() << 16i32 |
+        op << 14i32 |
+        0b1000i32 << 10i32 |
+        rn.encoding() << 5i32 |
+        opcode2
     }
 
     pub fn fp_dataproc1(
@@ -2854,15 +3411,15 @@ mod encoding {
         assert(fits_u2(ty));
         assert(fits_u6(opcode));
 
-        m << 31i32
-            | s << 29i32
-            | 0b11110i32 << 24i32
-            | ty << 22i32
-            | 1i32 << 21i32
-            | opcode << 15i32
-            | 0b10000i32 << 10i32
-            | rn.encoding() << 5i32
-            | rd.encoding()
+        m << 31i32 |
+        s << 29i32 |
+        0b11110i32 << 24i32 |
+        ty << 22i32 |
+        1i32 << 21i32 |
+        opcode << 15i32 |
+        0b10000i32 << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
     }
 
     pub fn fp_dataproc2(
@@ -2879,16 +3436,16 @@ mod encoding {
         assert(fits_bit(ty));
         assert(fits_u4(opcode));
 
-        m << 31i32
-            | s << 29i32
-            | 0b11110i32 << 24i32
-            | ty << 22i32
-            | 1i32 << 21i32
-            | rm.encoding() << 16i32
-            | opcode << 12i32
-            | 0b10i32 << 10i32
-            | rn.encoding() << 5i32
-            | rd.encoding()
+        m << 31i32 |
+        s << 29i32 |
+        0b11110i32 << 24i32 |
+        ty << 22i32 |
+        1i32 << 21i32 |
+        rm.encoding() << 16i32 |
+        opcode << 12i32 |
+        0b10i32 << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
     }
 
     pub fn fp_int(
@@ -2908,15 +3465,15 @@ mod encoding {
         assert(fits_u5(rn));
         assert(fits_u5(rd));
 
-        sf << 31i32
-            | s << 29i32
-            | 0b11110i32 << 24i32
-            | ty << 22i32
-            | 1i32 << 21i32
-            | rmode << 19i32
-            | opcode << 16i32
-            | rn << 5i32
-            | rd
+        sf << 31i32 |
+        s << 29i32 |
+        0b11110i32 << 24i32 |
+        ty << 22i32 |
+        1i32 << 21i32 |
+        rmode << 19i32 |
+        opcode << 16i32 |
+        rn << 5i32 |
+        rd
     }
 
     pub fn ldst_exclusive(
@@ -2940,16 +3497,16 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(rt.is_gpr_or_zero());
 
-        size << 30i32
-            | 0b001000i32 << 24i32
-            | o2 << 23i32
-            | l << 22i32
-            | o1 << 21i32
-            | rs.encoding_zero() << 16i32
-            | o0 << 15i32
-            | rt2.encoding_zero() << 10i32
-            | rn.encoding_sp() << 5i32
-            | rt.encoding_zero()
+        size << 30i32 |
+        0b001000i32 << 24i32 |
+        o2 << 23i32 |
+        l << 22i32 |
+        o1 << 21i32 |
+        rs.encoding_zero() << 16i32 |
+        o0 << 15i32 |
+        rt2.encoding_zero() << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rt.encoding_zero()
     }
 
     pub fn ldst_pair(
@@ -2969,14 +3526,14 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(rt.is_gpr());
 
-        opc << 30i32
-            | 0b101i32 << 27i32
-            | 1i32 << 24i32
-            | l << 22i32
-            | (imm7 & 0x7Fi32) << 15i32
-            | rt2.encoding() << 10i32
-            | rn.encoding_sp() << 5i32
-            | rt.encoding()
+        opc << 30i32 |
+        0b101i32 << 27i32 |
+        1i32 << 24i32 |
+        l << 22i32 |
+        (imm7 & 0x7Fi32) << 15i32 |
+        rt2.encoding() << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rt.encoding()
     }
 
     pub fn ldst_pair_post(
@@ -2996,15 +3553,15 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(rt.is_gpr_or_zero());
 
-        opc << 30i32
-            | 0b101i32 << 27i32
-            | v << 26i32
-            | 0b001i32 << 23i32
-            | l << 22i32
-            | (imm7 & 0x7Fi32) << 15i32
-            | rt2.encoding_zero() << 10i32
-            | rn.encoding_sp() << 5i32
-            | rt.encoding_zero()
+        opc << 30i32 |
+        0b101i32 << 27i32 |
+        v << 26i32 |
+        0b001i32 << 23i32 |
+        l << 22i32 |
+        (imm7 & 0x7Fi32) << 15i32 |
+        rt2.encoding_zero() << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rt.encoding_zero()
     }
 
     pub fn ldst_pair_post_float(
@@ -3022,15 +3579,15 @@ mod encoding {
         assert(fits_i7(imm7));
         assert(rn.is_gpr_or_sp());
 
-        opc << 30i32
-            | 0b101i32 << 27i32
-            | v << 26i32
-            | 0b001i32 << 23i32
-            | l << 22i32
-            | (imm7 & 0x7Fi32) << 15i32
-            | rt2.encoding() << 10i32
-            | rn.encoding_sp() << 5i32
-            | rt.encoding()
+        opc << 30i32 |
+        0b101i32 << 27i32 |
+        v << 26i32 |
+        0b001i32 << 23i32 |
+        l << 22i32 |
+        (imm7 & 0x7Fi32) << 15i32 |
+        rt2.encoding() << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rt.encoding()
     }
 
     pub fn ldst_pair_pre(
@@ -3050,15 +3607,15 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(rt.is_gpr_or_zero());
 
-        opc << 30i32
-            | 0b101i32 << 27i32
-            | v << 26i32
-            | 0b011i32 << 23i32
-            | l << 22i32
-            | (imm7 & 0x7Fi32) << 15i32
-            | rt2.encoding_zero() << 10i32
-            | rn.encoding_sp() << 5i32
-            | rt.encoding_zero()
+        opc << 30i32 |
+        0b101i32 << 27i32 |
+        v << 26i32 |
+        0b011i32 << 23i32 |
+        l << 22i32 |
+        (imm7 & 0x7Fi32) << 15i32 |
+        rt2.encoding_zero() << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rt.encoding_zero()
     }
 
     pub fn ldst_pair_pre_float(
@@ -3076,15 +3633,15 @@ mod encoding {
         assert(fits_i7(imm7));
         assert(rn.is_gpr_or_sp());
 
-        opc << 30i32
-            | 0b101i32 << 27i32
-            | v << 26i32
-            | 0b011i32 << 23i32
-            | l << 22i32
-            | (imm7 & 0x7Fi32) << 15i32
-            | rt2.encoding() << 10i32
-            | rn.encoding_sp() << 5i32
-            | rt.encoding()
+        opc << 30i32 |
+        0b101i32 << 27i32 |
+        v << 26i32 |
+        0b011i32 << 23i32 |
+        l << 22i32 |
+        (imm7 & 0x7Fi32) << 15i32 |
+        rt2.encoding() << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rt.encoding()
     }
 
     pub fn logical_imm(
@@ -3100,12 +3657,12 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rd.is_gpr());
 
-        sf << 31i32
-            | opc << 29i32
-            | 0b100100i32 << 23i32
-            | n_immr_imms << 10i32
-            | rn.encoding() << 5i32
-            | rd.encoding()
+        sf << 31i32 |
+        opc << 29i32 |
+        0b100100i32 << 23i32 |
+        n_immr_imms << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
     }
 
     pub fn logical_shreg(
@@ -3126,18 +3683,24 @@ mod encoding {
         assert(rn.is_gpr_or_zero());
         assert(rd.is_gpr());
 
-        0b01010i32 << 24i32
-            | sf << 31i32
-            | opc << 29i32
-            | shift.encoding() << 22i32
-            | n << 21i32
-            | rm.encoding_zero() << 16i32
-            | imm6 << 10i32
-            | rn.encoding_zero() << 5i32
-            | rd.encoding()
+        0b01010i32 << 24i32 |
+        sf << 31i32 |
+        opc << 29i32 |
+        shift.encoding() << 22i32 |
+        n << 21i32 |
+        rm.encoding_zero() << 16i32 |
+        imm6 << 10i32 |
+        rn.encoding_zero() << 5i32 |
+        rd.encoding()
     }
 
-    pub fn move_wide_imm(sf: Int32, opc: Int32, hw: Int32, imm16: Int32, rd: Register): Int32 {
+    pub fn move_wide_imm(
+        sf: Int32,
+        opc: Int32,
+        hw: Int32,
+        imm16: Int32,
+        rd: Register,
+    ): Int32 {
         assert(fits_bit(sf));
         assert(fits_u2(opc));
         assert(fits_u2(hw));
@@ -3147,7 +3710,12 @@ mod encoding {
         assert(fits_u16(imm16));
         assert(rd.is_gpr());
 
-        0b100101i32 << 23i32 | sf << 31i32 | opc << 29i32 | hw << 21i32 | imm16 << 5i32 | rd.encoding()
+        0b100101i32 << 23i32 |
+        sf << 31i32 |
+        opc << 29i32 |
+        hw << 21i32 |
+        imm16 << 5i32 |
+        rd.encoding()
     }
 
     pub fn ldst_regimm(
@@ -3165,13 +3733,13 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(fits_u5(rt));
 
-        0b111001i32 << 24i32
-            | size << 30i32
-            | v << 26i32
-            | opc << 22i32
-            | imm12 << 10i32
-            | rn.encoding_sp() << 5i32
-            | rt
+        0b111001i32 << 24i32 |
+        size << 30i32 |
+        v << 26i32 |
+        opc << 22i32 |
+        imm12 << 10i32 |
+        rn.encoding_sp() << 5i32 |
+        rt
     }
 
     pub fn ldst_regoffset(
@@ -3192,17 +3760,17 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(fits_u5(rt));
 
-        size << 30i32
-            | 0b111i32 << 27i32
-            | 1i32 << 21i32
-            | 0b10i32 << 10i32
-            | v << 26i32
-            | opc << 22i32
-            | rm.encoding_zero() << 16i32
-            | option.ldst_encoding() << 13i32
-            | s << 12i32
-            | rn.encoding_sp() << 5i32
-            | rt
+        size << 30i32 |
+        0b111i32 << 27i32 |
+        1i32 << 21i32 |
+        0b10i32 << 10i32 |
+        v << 26i32 |
+        opc << 22i32 |
+        rm.encoding_zero() << 16i32 |
+        option.ldst_encoding() << 13i32 |
+        s << 12i32 |
+        rn.encoding_sp() << 5i32 |
+        rt
     }
 
     pub fn ldst_reg_unscaledimm(
@@ -3222,7 +3790,13 @@ mod encoding {
 
         let imm = imm9 & 0x1FFi32;
 
-        size << 30i32 | 0b111i32 << 27i32 | v << 26i32 | opc << 22i32 | imm << 12i32 | rn.encoding_sp() << 5i32 | rt
+        size << 30i32 |
+        0b111i32 << 27i32 |
+        v << 26i32 |
+        opc << 22i32 |
+        imm << 12i32 |
+        rn.encoding_sp() << 5i32 |
+        rt
     }
 
     pub fn simd_across_lanes(
@@ -3238,15 +3812,15 @@ mod encoding {
         assert(fits_u2(size));
         assert(fits_u5(opcode));
 
-        q << 30i32
-            | u << 29i32
-            | 0b01110i32 << 24i32
-            | size << 22i32
-            | 0b11000i32 << 17i32
-            | opcode << 12i32
-            | 0b10i32 << 10i32
-            | rn.encoding() << 5i32
-            | rd.encoding()
+        q << 30i32 |
+        u << 29i32 |
+        0b01110i32 << 24i32 |
+        size << 22i32 |
+        0b11000i32 << 17i32 |
+        opcode << 12i32 |
+        0b10i32 << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
     }
 
     pub fn pcrel(op: Int32, imm: Int32, rd: Register): Int32 {
@@ -3273,15 +3847,15 @@ mod encoding {
         assert(fits_u2(size));
         assert(fits_u5(opcode));
 
-        q << 30i32
-            | u << 29i32
-            | 0b01110i32 << 24i32
-            | size << 22i32
-            | 0b10000i32 << 17i32
-            | opcode << 12i32
-            | 0b10i32 << 10i32
-            | rn.encoding() << 5i32
-            | rd.encoding()
+        q << 30i32 |
+        u << 29i32 |
+        0b01110i32 << 24i32 |
+        size << 22i32 |
+        0b10000i32 << 17i32 |
+        opcode << 12i32 |
+        0b10i32 << 10i32 |
+        rn.encoding() << 5i32 |
+        rd.encoding()
     }
 
     pub fn system(imm: Int32): Int32 {
@@ -3289,7 +3863,12 @@ mod encoding {
         0xD503201Fi32 | imm << 5i32
     }
 
-    pub fn test_and_branch(is_non_zero: Bool, bit: Int32, imm14: Int32, rt: Register): Int32 {
+    pub fn test_and_branch(
+        is_non_zero: Bool,
+        bit: Int32,
+        imm14: Int32,
+        rt: Register,
+    ): Int32 {
         assert(fits_i14(imm14));
         assert(rt.is_gpr_or_zero());
         assert(fits_u6(bit));
@@ -3300,7 +3879,12 @@ mod encoding {
         let b40 = bit & 0x1Fi32;
         let op = is_non_zero.to_int32();
 
-        b5 << 31i32 | 0b011011i32 << 25i32 | op << 24i32 | b40 << 19i32 | imm14 << 5i32 | rt.encoding()
+        b5 << 31i32 |
+        0b011011i32 << 25i32 |
+        op << 24i32 |
+        b40 << 19i32 |
+        imm14 << 5i32 |
+        rt.encoding()
     }
 
     pub fn uncond_branch_imm(op: Int32, imm26: Int32): Int32 {
@@ -3310,13 +3894,24 @@ mod encoding {
         0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFi32)
     }
 
-    pub fn uncond_branch_reg(opc: Int32, op2: Int32, op3: Int32, rn: Register, op4: Int32): Int32 {
+    pub fn uncond_branch_reg(
+        opc: Int32,
+        op2: Int32,
+        op3: Int32,
+        rn: Register,
+        op4: Int32,
+    ): Int32 {
         assert(fits_u4(opc));
         assert(fits_u5(op2));
         assert(fits_u6(op3));
         assert(fits_u5(op4));
 
-        0b1101011i32 << 25i32 | opc << 21i32 | op2 << 16i32 | op3 << 10i32 | rn.encoding() << 5i32 | op4
+        0b1101011i32 << 25i32 |
+        opc << 21i32 |
+        op2 << 16i32 |
+        op3 << 10i32 |
+        rn.encoding() << 5i32 |
+        op4
     }
 
     fn fits_bit(value: Int32): Bool {
@@ -3402,13 +3997,29 @@ mod tests {
     use package::assembler::MachineCode;
     use super::{AssemblerArm64, Cond, Extend, Shift};
     use super::imm_encoding;
-    use super::{REG_ZERO, REG_SP};
+    use super::{REG_SP, REG_ZERO};
     use super::{
-        R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10,
-        R11, R16, R17, R27, R28, R29, R30
+        R0,
+        R1,
+        R2,
+        R3,
+        R4,
+        R5,
+        R6,
+        R7,
+        R8,
+        R9,
+        R10,
+        R11,
+        R16,
+        R17,
+        R27,
+        R28,
+        R29,
+        R30,
     };
     use super::{F0, F1, F2, F3, F4, F5, F31};
-    use super::{fits_movz, fits_movn};
+    use super::{fits_movn, fits_movz};
 
     @Test
     fn test_asm_ret() {
@@ -3418,12 +4029,7 @@ mod tests {
         asm.ret_r(R10);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0xd65f03c0i32,
-            0xd65f0000i32,
-            0xd65f0140i32
-        );
+        assert_asm32(buffer, 0xd65f03c0i32, 0xd65f0000i32, 0xd65f0140i32);
     }
 
     @Test
@@ -3435,13 +4041,7 @@ mod tests {
         asm.bl_r(R30);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0xd61f0000i32,
-            0xd61f03c0i32,
-            0xd63f0000i32,
-            0xd63f03c0i32,
-        );
+        assert_asm32(buffer, 0xd61f0000i32, 0xd61f03c0i32, 0xd63f0000i32, 0xd63f03c0i32);
     }
 
     @Test
@@ -3452,11 +4052,7 @@ mod tests {
         asm.b(target);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0xd503201fi32,
-            0x17ffffffi32,
-        );
+        assert_asm32(buffer, 0xd503201fi32, 0x17ffffffi32);
     }
 
     @Test
@@ -3468,11 +4064,7 @@ mod tests {
         asm.buffer.bind_label(target);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0x14000002i32,
-            0xd503201fi32,
-        );
+        assert_asm32(buffer, 0x14000002i32, 0xd503201fi32);
     }
 
     @Test
@@ -3483,11 +4075,7 @@ mod tests {
         asm.bl(target);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0xd503201fi32,
-            0x97ffffffi32,
-        );
+        assert_asm32(buffer, 0xd503201fi32, 0x97ffffffi32);
     }
 
     @Test
@@ -3499,11 +4087,7 @@ mod tests {
         asm.buffer.bind_label(target);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0x94000002i32,
-            0xd503201fi32,
-        );
+        assert_asm32(buffer, 0x94000002i32, 0xd503201fi32);
     }
 
     @Test
@@ -3514,11 +4098,7 @@ mod tests {
         asm.bc(Cond::EQ, target);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0xd503201fi32,
-            0x54ffffe0i32,
-        );
+        assert_asm32(buffer, 0xd503201fi32, 0x54ffffe0i32);
     }
 
     @Test
@@ -3530,12 +4110,7 @@ mod tests {
         asm.buffer.bind_label(target);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0x54000061i32,
-            0xd503201fi32,
-            0xd503201fi32,
-        );
+        assert_asm32(buffer, 0x54000061i32, 0xd503201fi32, 0xd503201fi32);
     }
 
     @Test
@@ -3546,11 +4121,7 @@ mod tests {
         asm.cbz(R17, target);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0xd503201fi32,
-            0xb4fffff1i32,
-        );
+        assert_asm32(buffer, 0xd503201fi32, 0xb4fffff1i32);
     }
 
     @Test
@@ -3561,11 +4132,7 @@ mod tests {
         asm.tbz(R17, 1i32, target);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0xd503201fi32,
-            0x360ffff1i32,
-        );
+        assert_asm32(buffer, 0xd503201fi32, 0x360ffff1i32);
     }
 
     @Test
@@ -3576,11 +4143,7 @@ mod tests {
         asm.bind_label(target);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0x3610004bi32,
-            0xd503201fi32,
-        );
+        assert_asm32(buffer, 0x3610004bi32, 0xd503201fi32);
     }
 
     @Test
@@ -3592,12 +4155,7 @@ mod tests {
         asm.buffer.bind_label(target);
         let buffer = asm.finalize_testing();
 
-        assert_asm32(
-            buffer,
-            0xb4000071i32,
-            0xd503201fi32,
-            0xd503201fi32,
-        );
+        assert_asm32(buffer, 0xb4000071i32, 0xd503201fi32, 0xd503201fi32);
     }
 
     @Test
@@ -3984,14 +4542,22 @@ mod tests {
             Some[Int32](0b0_000000_111100i32) ==
             imm_encoding::logical(0x5555555555555555, 64)
         );
-        assert(Some[Int32](0b0_000001_111100i32) == imm_encoding::logical(0xaaaaaaaa, 32));
+        assert(
+            Some[Int32](0b0_000001_111100i32) == imm_encoding::logical(0xaaaaaaaa, 32)
+        );
         assert(
             Some[Int32](0b0_000001_111100i32) ==
             imm_encoding::logical(0xaaaaaaaaaaaaaaaa, 64)
         );
-        assert(Some[Int32](0b0_000000_111000i32) == imm_encoding::logical(0x11111111, 32));
-        assert(Some[Int32](0b0_000001_111000i32) == imm_encoding::logical(0x88888888, 32));
-        assert(Some[Int32](0b0_000001_111001i32) == imm_encoding::logical(0x99999999, 32));
+        assert(
+            Some[Int32](0b0_000000_111000i32) == imm_encoding::logical(0x11111111, 32)
+        );
+        assert(
+            Some[Int32](0b0_000001_111000i32) == imm_encoding::logical(0x88888888, 32)
+        );
+        assert(
+            Some[Int32](0b0_000001_111001i32) == imm_encoding::logical(0x99999999, 32)
+        );
     }
 
     @Test
@@ -4091,7 +4657,6 @@ mod tests {
             0x6b03005fi32,
         );
     }
-
 
     @Test
     fn test_cmp_ext() {
@@ -4680,7 +5245,7 @@ mod tests {
         asm.ldarb(R6, R7);
         let buffer = asm.finalize_testing();
 
-       assert_asm32(
+        assert_asm32(
             buffer,
             // ldar x0, [x1]
             0xc8dffc20i32,
@@ -5659,14 +6224,18 @@ mod tests {
         if !success {
             print("expected: ");
             for (idx, value) in values.enumerate() {
-                if idx > 0i64 { print(", "); }
+                if idx > 0i64 {
+                    print(", ");
+                }
                 print("${value.to_string_hex()}");
             }
             println("");
             print("got:      ");
             let mut idx = code.start;
             while idx < code.bytes.size() {
-                if idx > code.start { print(", "); }
+                if idx > code.start {
+                    print(", ");
+                }
                 let value = code.get_int32(idx);
                 print("${value.to_string_hex()}");
                 idx = idx + 4;

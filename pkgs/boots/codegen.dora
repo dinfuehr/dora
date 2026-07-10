@@ -2,10 +2,22 @@ use package::bytecode::{BytecodeType, FunctionId};
 use package::codegen::x64::CodeGenX64;
 use package::codegen::arm64::CodeGenArm64;
 use package::compilation::CompilationInfo;
-use package::assembler::{FloatRegister, Label, Register, RegSet};
+use package::assembler::{FloatRegister, Label, RegSet, Register};
 use package::interface::{Architecture, config};
 use package::location::ArgumentLocations;
-use package::graph::{Block, Graph, Inst, InstSet, Location, LocationData, Op, Operand, Policy, RegisterTrackers, Type};
+use package::graph::{
+    Block,
+    Graph,
+    Inst,
+    InstSet,
+    Location,
+    LocationData,
+    Op,
+    Operand,
+    Policy,
+    RegisterTrackers,
+    Type,
+};
 use package::CodeDescriptor;
 
 pub mod arm64;
@@ -27,7 +39,11 @@ pub fn create_code_gen(ci: CompilationInfo, graph: Graph): CodeGen {
     }
 }
 
-pub fn generate_code(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeDescriptor {
+pub fn generate_code(
+    graph: Graph,
+    codegen: CodeGen,
+    ci: CompilationInfo,
+): CodeDescriptor {
     let stack_size = graph.get_stack_size();
     assert(stack_size >= 0i32);
     assert(stack_size % STACK_FRAME_ALIGNMENT.to_int32() == 0i32);
@@ -40,7 +56,6 @@ pub fn generate_code(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeD
 
     codegen.emit_comment("stack limit check");
     codegen.emit_stack_limit_check();
-
 
     for block in graph.insertion_order_iterator() {
         block.set_label(codegen.create_label());
@@ -66,52 +81,52 @@ pub fn generate_code(graph: Graph, codegen: CodeGen, ci: CompilationInfo): CodeD
 
 fn emit_inst(codegen: CodeGen, inst: Inst) {
     match inst.op() {
-        Op::Arg => {},
+        Op::Arg => {}
 
         Op::TrueConst => {
             codegen.emit_comment("TrueConst");
             codegen.emit_true_const(inst);
-        },
+        }
 
         Op::FalseConst => {
             codegen.emit_comment("FalseConst");
             codegen.emit_false_const(inst);
-        },
+        }
 
         Op::UInt8Const => {
             codegen.emit_comment("UInt8Const");
             codegen.emit_uint8_const(inst);
-        },
+        }
 
         Op::Int32Const => {
             codegen.emit_comment("Int32Const");
             codegen.emit_int32_const(inst);
-        },
+        }
 
         Op::Int64Const => {
             codegen.emit_comment("Int64Const");
             codegen.emit_int64_const(inst);
-        },
+        }
 
         Op::NullConst => {
             codegen.emit_comment("NullConst");
             codegen.emit_null_const(inst);
-        },
+        }
 
         Op::Float32Const => {
             codegen.emit_comment("Float32Const");
             codegen.emit_float32_const(inst);
-        },
+        }
 
         Op::Float64Const => {
             codegen.emit_comment("Float64Const");
             codegen.emit_float64_const(inst);
-        },
+        }
 
         Op::StringConst => {
             codegen.emit_comment("StringConst");
             codegen.emit_string_const(inst);
-        },
+        }
 
         Op::And => {
             codegen.emit_comment("And");
@@ -146,107 +161,107 @@ fn emit_inst(codegen: CodeGen, inst: Inst) {
         Op::Add => {
             codegen.emit_comment("Add");
             codegen.emit_add(inst);
-        },
+        }
 
         Op::Sub => {
             codegen.emit_comment("Sub");
             codegen.emit_sub(inst);
-        },
+        }
 
         Op::Mul => {
             codegen.emit_comment("Mul");
             codegen.emit_mul(inst);
-        },
+        }
 
         Op::Div => {
             codegen.emit_comment("Div");
             codegen.emit_div(inst);
-        },
+        }
 
         Op::Neg => {
             codegen.emit_comment("Neg");
             codegen.emit_neg(inst);
-        },
+        }
 
         Op::CheckedAdd => {
             codegen.emit_comment("CheckedAdd");
             codegen.emit_checked_add(inst);
-        },
+        }
 
         Op::IsAddOverflowing => {
             codegen.emit_comment("IsAddOverflowing");
             codegen.emit_is_add_overflowing(inst);
-        },
+        }
 
         Op::CheckedSub => {
             codegen.emit_comment("CheckedSub");
             codegen.emit_checked_sub(inst);
-        },
+        }
 
         Op::IsSubOverflowing => {
             codegen.emit_comment("IsSubOverflowing");
             codegen.emit_is_sub_overflowing(inst);
-        },
+        }
 
         Op::CheckedMul => {
             codegen.emit_comment("CheckedMul");
             codegen.emit_checked_mul(inst);
-        },
+        }
 
         Op::IsMulOverflowing => {
             codegen.emit_comment("IsMulOverflowing");
             codegen.emit_is_mul_overflowing(inst);
-        },
+        }
 
         Op::CheckedDiv => {
             codegen.emit_comment("CheckedDiv");
             codegen.emit_checked_div(inst);
-        },
+        }
 
         Op::IsDivOverflowing => {
             codegen.emit_comment("IsDivOverflowing");
             codegen.emit_is_div_overflowing(inst);
-        },
+        }
 
         Op::Mod => {
             codegen.emit_comment("Mod");
             codegen.emit_mod(inst);
-        },
+        }
 
         Op::CheckedMod => {
             codegen.emit_comment("CheckedMod");
             codegen.emit_checked_mod(inst);
-        },
+        }
 
         Op::IsModOverflowing => {
             codegen.emit_comment("IsModOverflowing");
             codegen.emit_is_mod_overflowing(inst);
-        },
+        }
 
         Op::CheckedNeg => {
             codegen.emit_comment("CheckedNeg");
             codegen.emit_checked_neg(inst);
-        },
+        }
 
         Op::IsNegOverflowing => {
             codegen.emit_comment("IsNegOverflowing");
             codegen.emit_is_neg_overflowing(inst);
-        },
+        }
 
         Op::CheckDivZero => {
             codegen.emit_comment("CheckDivZero");
             codegen.emit_check_div_zero(inst);
-        },
+        }
 
         Op::CheckShiftAmount => {
             codegen.emit_comment("CheckShiftAmount");
             codegen.emit_check_shift_amount(inst);
-        },
+        }
 
         Op::If => {
             codegen.emit_comment("If");
             codegen.emit_if(inst);
-        },
+        }
 
         Op::Switch => {
             codegen.emit_comment("Switch");
@@ -256,32 +271,32 @@ fn emit_inst(codegen: CodeGen, inst: Inst) {
         Op::Goto => {
             codegen.emit_comment("Goto");
             codegen.emit_goto(inst);
-        },
+        }
 
         Op::Return => {
             codegen.emit_comment("Return");
             codegen.emit_return(inst);
-        },
+        }
 
         Op::Move => {
             codegen.emit_comment("Move");
             codegen.emit_move(inst);
-        },
+        }
 
         Op::LoadReg => {
             codegen.emit_comment("LoadReg");
             codegen.emit_load_reg(inst);
-        },
+        }
 
         Op::StoreReg => {
             codegen.emit_comment("StoreReg");
             codegen.emit_store_reg(inst);
-        },
+        }
 
         Op::Rematerialize => {
             codegen.emit_comment("Rematerialize");
             codegen.emit_rematerialize(inst);
-        },
+        }
 
         Op::Greater
         | Op::UnsignedGreater
@@ -295,112 +310,112 @@ fn emit_inst(codegen: CodeGen, inst: Inst) {
         | Op::NotEqual => {
             codegen.emit_comment("${inst.op().name()}");
             codegen.emit_compare(inst);
-        },
+        }
 
         Op::Invoke => {
             codegen.emit_comment("Invoke");
             codegen.emit_invoke(inst);
-        },
+        }
 
         Op::InvokeVirtual => {
             codegen.emit_comment("InvokeVirtual");
             codegen.emit_invoke_virtual(inst);
-        },
+        }
 
         Op::InvokeLambda => {
             codegen.emit_comment("InvokeLambda");
             codegen.emit_invoke_lambda(inst);
-        },
+        }
 
         Op::CheckArrayBounds => {
             codegen.emit_comment("CheckArrayBounds");
             codegen.emit_check_array_bounds(inst);
-        },
+        }
 
         Op::LoadArray => {
             codegen.emit_comment("LoadArray");
             codegen.emit_load_array(inst);
-        },
+        }
 
         Op::StoreArray => {
             codegen.emit_comment("StoreArray");
             codegen.emit_store_array(inst);
-        },
+        }
 
         Op::NewObject => {
             codegen.emit_comment("NewObject");
             codegen.emit_new_object(inst);
-        },
+        }
 
         Op::NewArray => {
             codegen.emit_comment("NewArray");
             codegen.emit_new_array(inst);
-        },
+        }
 
         Op::EnsureGlobalInitialized => {
             codegen.emit_comment("EnsureGlobalInitialized");
             codegen.emit_ensure_global_initialized(inst);
-        },
+        }
 
         Op::LoadGlobal => {
             codegen.emit_comment("LoadGlobal");
             codegen.emit_load_global(inst);
-        },
+        }
 
         Op::GetGlobalAddress => {
             codegen.emit_comment("GetGlobalAddress");
             codegen.emit_get_global_address(inst);
-        },
+        }
 
         Op::StoreGlobal => {
             codegen.emit_comment("StoreGlobal");
             codegen.emit_store_global(inst);
-        },
+        }
 
         Op::MarkGlobalInitialized => {
             codegen.emit_comment("MarkGlobalInitialized");
             codegen.emit_mark_global_initialized(inst);
-        },
+        }
 
         Op::ThreadCurrent => {
             codegen.emit_comment("ThreadCurrent");
             codegen.emit_thread_current(inst);
-        },
+        }
 
         Op::AllocateStack => {
             codegen.emit_comment("AllocateStack");
             codegen.emit_allocate_stack(inst);
-        },
+        }
 
         Op::Load => {
             codegen.emit_comment("Load");
             codegen.emit_load(inst);
-        },
+        }
 
         Op::Store => {
             codegen.emit_comment("Store");
             codegen.emit_store(inst);
-        },
+        }
 
         Op::StoreWb => {
             codegen.emit_comment("StoreWb");
             codegen.emit_store_wb(inst);
-        },
+        }
 
         Op::StoreArrayWb => {
             codegen.emit_comment("StoreArrayWb");
             codegen.emit_store_array_wb(inst);
-        },
+        }
 
         Op::StoreArrayAddressWb => {
             codegen.emit_comment("StoreArrayAddressWb");
             codegen.emit_store_array_address_wb(inst);
-        },
+        }
 
         Op::GetElementPtr => {
             codegen.emit_comment("GetElementPtr");
             codegen.emit_get_element_ptr(inst);
-        },
+        }
 
         Op::Abort => {
             codegen.emit_comment("Abort");
@@ -536,22 +551,29 @@ fn emit_inst(codegen: CodeGen, inst: Inst) {
 
 pub trait CodeGen {
     fn allocatable_registers(): RegSet[Register];
+
     fn allocatable_float_registers(): RegSet[FloatRegister];
 
     fn set_argument_locations(arguments: ArgumentLocations);
 
     fn argument_register(idx: Int64): Register;
+
     fn argument_registers(): Array[Register];
+
     fn argument_float_registers(): Array[FloatRegister];
 
     fn get_scratch_register(): Register;
+
     fn get_float_scratch_register(): FloatRegister;
 
     fn get_return_register(): Register;
+
     fn get_float_return_register(): FloatRegister;
 
     fn emit_breakpoint();
+
     fn emit_prolog(stack_size: Int32);
+
     fn emit_stack_limit_check();
 
     fn finalize(): CodeDescriptor;
@@ -559,144 +581,277 @@ pub trait CodeGen {
     fn register_name(register: Register): String;
 
     fn create_label(): Label;
+
     fn bind_label(label: Label);
 
     fn spill(inst: Inst);
 
     fn annotate_add(inst: Inst);
+
     fn annotate_sub(inst: Inst);
+
     fn annotate_mul(inst: Inst);
+
     fn annotate_div(inst: Inst);
+
     fn annotate_and(inst: Inst);
+
     fn annotate_or(inst: Inst);
+
     fn annotate_xor(inst: Inst);
+
     fn annotate_sar(inst: Inst);
+
     fn annotate_shr(inst: Inst);
+
     fn annotate_shl(inst: Inst);
+
     fn annotate_checked_add(inst: Inst);
+
     fn annotate_is_add_overflowing(inst: Inst);
+
     fn annotate_checked_sub(inst: Inst);
+
     fn annotate_is_sub_overflowing(inst: Inst);
+
     fn annotate_checked_mul(inst: Inst);
+
     fn annotate_is_mul_overflowing(inst: Inst);
+
     fn annotate_checked_div(inst: Inst);
+
     fn annotate_is_div_overflowing(inst: Inst);
+
     fn annotate_mod(inst: Inst);
+
     fn annotate_checked_mod(inst: Inst);
+
     fn annotate_is_mod_overflowing(inst: Inst);
+
     fn annotate_is_neg_overflowing(inst: Inst);
+
     fn annotate_return(inst: Inst);
+
     fn annotate_switch(inst: Inst);
+
     fn annotate_not(inst: Inst);
+
     fn annotate_compare_ordering(inst: Inst);
+
     fn annotate_bitcast(inst: Inst);
+
     fn annotate_round_down(inst: Inst);
+
     fn annotate_round_up(inst: Inst);
+
     fn annotate_round_to_zero(inst: Inst);
+
     fn annotate_round_half_even(inst: Inst);
+
     fn annotate_abs(inst: Inst);
+
     fn annotate_sqrt(inst: Inst);
+
     fn annotate_rotate_left(inst: Inst);
+
     fn annotate_rotate_right(inst: Inst);
+
     fn annotate_atomic_load(inst: Inst);
+
     fn annotate_atomic_store(inst: Inst);
+
     fn annotate_atomic_exchange(inst: Inst);
+
     fn annotate_atomic_compare_exchange(inst: Inst);
+
     fn annotate_atomic_fetch_add(inst: Inst);
+
     fn annotate_count_bits(inst: Inst);
+
     fn annotate_count_leading_zeros(inst: Inst);
+
     fn annotate_count_trailing_zeros(inst: Inst);
+
     fn annotate_check_shift_amount(inst: Inst);
 
     fn emit_true_const(inst: Inst);
+
     fn emit_false_const(inst: Inst);
+
     fn emit_uint8_const(inst: Inst);
+
     fn emit_int32_const(inst: Inst);
+
     fn emit_int64_const(inst: Inst);
+
     fn emit_float32_const(inst: Inst);
+
     fn emit_float64_const(inst: Inst);
+
     fn emit_null_const(inst: Inst);
+
     fn emit_string_const(inst: Inst);
+
     fn emit_and(inst: Inst);
+
     fn emit_or(inst: Inst);
+
     fn emit_xor(inst: Inst);
+
     fn emit_sar(inst: Inst);
+
     fn emit_shr(inst: Inst);
+
     fn emit_shl(inst: Inst);
+
     fn emit_add(inst: Inst);
+
     fn emit_sub(inst: Inst);
+
     fn emit_mul(inst: Inst);
+
     fn emit_div(inst: Inst);
+
     fn emit_neg(inst: Inst);
+
     fn emit_not(inst: Inst);
+
     fn emit_checked_add(inst: Inst);
+
     fn emit_is_add_overflowing(inst: Inst);
+
     fn emit_checked_sub(inst: Inst);
+
     fn emit_is_sub_overflowing(inst: Inst);
+
     fn emit_checked_mul(inst: Inst);
+
     fn emit_is_mul_overflowing(inst: Inst);
+
     fn emit_checked_div(inst: Inst);
+
     fn emit_is_div_overflowing(inst: Inst);
+
     fn emit_mod(inst: Inst);
+
     fn emit_checked_mod(inst: Inst);
+
     fn emit_is_mod_overflowing(inst: Inst);
+
     fn emit_is_neg_overflowing(inst: Inst);
+
     fn emit_check_div_zero(inst: Inst);
+
     fn emit_check_shift_amount(inst: Inst);
+
     fn emit_checked_neg(inst: Inst);
+
     fn emit_if(inst: Inst);
+
     fn emit_switch(inst: Inst);
+
     fn emit_goto(inst: Inst);
+
     fn emit_return(inst: Inst);
+
     fn emit_move(inst: Inst);
+
     fn emit_load_reg(inst: Inst);
+
     fn emit_store_reg(inst: Inst);
+
     fn emit_rematerialize(inst: Inst);
+
     fn emit_compare(inst: Inst);
+
     fn emit_invoke(inst: Inst);
+
     fn emit_invoke_virtual(inst: Inst);
+
     fn emit_invoke_lambda(inst: Inst);
+
     fn emit_check_array_bounds(inst: Inst);
+
     fn emit_load_array(inst: Inst);
+
     fn emit_store_array(inst: Inst);
+
     fn emit_get_element_ptr(inst: Inst);
+
     fn emit_new_object(inst: Inst);
+
     fn emit_new_array(inst: Inst);
+
     fn emit_load_global(inst: Inst);
+
     fn emit_get_global_address(inst: Inst);
+
     fn emit_store_global(inst: Inst);
+
     fn emit_ensure_global_initialized(inst: Inst);
+
     fn emit_mark_global_initialized(inst: Inst);
+
     fn emit_thread_current(inst: Inst);
+
     fn emit_allocate_stack(inst: Inst);
+
     fn emit_load(inst: Inst);
+
     fn emit_store(inst: Inst);
+
     fn emit_store_wb(inst: Inst);
+
     fn emit_store_array_wb(inst: Inst);
+
     fn emit_store_array_address_wb(inst: Inst);
+
     fn emit_abort(inst: Inst);
+
     fn emit_assert(inst: Inst);
+
     fn emit_convert(inst: Inst);
+
     fn emit_compare_ordering(inst: Inst);
+
     fn emit_bitcast(inst: Inst);
+
     fn emit_round_down(inst: Inst);
+
     fn emit_round_up(inst: Inst);
+
     fn emit_round_to_zero(inst: Inst);
+
     fn emit_round_half_even(inst: Inst);
+
     fn emit_abs(inst: Inst);
+
     fn emit_sqrt(inst: Inst);
+
     fn emit_unreachable(inst: Inst);
+
     fn emit_rotate_left(inst: Inst);
+
     fn emit_rotate_right(inst: Inst);
+
     fn emit_debug(inst: Inst);
+
     fn emit_atomic_load(inst: Inst);
+
     fn emit_atomic_store(inst: Inst);
+
     fn emit_atomic_exchange(inst: Inst);
+
     fn emit_atomic_compare_exchange(inst: Inst);
+
     fn emit_atomic_fetch_add(inst: Inst);
+
     fn emit_count_bits(inst: Inst);
+
     fn emit_count_leading_zeros(inst: Inst);
+
     fn emit_count_trailing_zeros(inst: Inst);
+
     fn emit_safepoint(inst: Inst);
 
     fn emit_comment(comment: String);
@@ -715,7 +870,6 @@ fn compute_offsets_in_live_set(live: InstSet): Vec[Int32] {
             for ref_ in layout.refs {
                 offsets.push(offset + ref_);
             }
-
         } else if inst.get_value_type().is_ptr() && loc.has_spill_slot() {
             offsets.push(loc.get_spill_slot());
         }

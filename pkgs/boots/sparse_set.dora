@@ -1,4 +1,4 @@
-use std::traits::{Iterator, IntoIterator};
+use std::traits::{IntoIterator, Iterator};
 
 pub class SparseSet {
     sparse: Array[Int32],
