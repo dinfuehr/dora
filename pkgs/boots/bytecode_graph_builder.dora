@@ -26,40 +26,6 @@ pub fn compute_inline_return_type(ci: CompilationInfo, fct: FunctionCompilationI
     }
 }
 
-fn bytecode_graph_ty(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], fct_type_params: Array[BytecodeType], ty: BytecodeType): Type {
-    match ty {
-        BytecodeType::Unit => Type::Unit,
-        BytecodeType::Bool => Type::Bool,
-        BytecodeType::UInt8 => Type::UInt8,
-        BytecodeType::Float32 => Type::Float32,
-        BytecodeType::Int32 => Type::Int32,
-        BytecodeType::Char => Type::Int32,
-        BytecodeType::Int64 => Type::Int64,
-        BytecodeType::Float64 => Type::Float64,
-        BytecodeType::Class(..)
-        | BytecodeType::Ptr
-        | BytecodeType::Address
-        | BytecodeType::Lambda(..)
-        | BytecodeType::TraitObject(..) => Type::Ptr,
-        BytecodeType::Enum(enum_id, enum_type_params) => {
-            let layout = compute_enum_layout(ci, specialize_self, fct_type_params, enum_id, enum_type_params);
-            match layout {
-                EnumLayout::Int32 => Type::Int32,
-                EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
-            }
-        }
-        BytecodeType::Struct(..)
-        | BytecodeType::Tuple(_) => Type::Address,
-        BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
-        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
-    }
-}
-
-fn compute_enum_layout(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], fct_type_params: Array[BytecodeType], enum_id: EnumId, enum_type_params: Array[BytecodeType]): EnumLayout {
-    let enum_type_params = specialize_array(ci, specialize_self, enum_type_params, fct_type_params);
-    regalloc::compute_enum_layout(ci, None[SpecializeSelf], enum_id, enum_type_params)
-}
-
 pub class BytecodeGraphBuilder {
     ci: CompilationInfo,
     graph: Graph,
@@ -2804,8 +2770,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn compute_enum_layout(enum_id: EnumId, type_params: Array[BytecodeType]): EnumLayout {
-        let type_params = self.specialize_array(type_params);
-        regalloc::compute_enum_layout(self.ci, None[SpecializeSelf], enum_id, type_params)
+        compute_bytecode_enum_layout(self.ci, self.specialize_self, self.type_params, enum_id, type_params)
     }
 
     fn set_current_inlined_location(inst: Inst) {
@@ -2934,4 +2899,38 @@ fn find_block_starts(bc: BytecodeFunction): BitSet {
     }
 
     starts
+}
+
+fn bytecode_graph_ty(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], fct_type_params: Array[BytecodeType], ty: BytecodeType): Type {
+    match ty {
+        BytecodeType::Unit => Type::Unit,
+        BytecodeType::Bool => Type::Bool,
+        BytecodeType::UInt8 => Type::UInt8,
+        BytecodeType::Float32 => Type::Float32,
+        BytecodeType::Int32 => Type::Int32,
+        BytecodeType::Char => Type::Int32,
+        BytecodeType::Int64 => Type::Int64,
+        BytecodeType::Float64 => Type::Float64,
+        BytecodeType::Class(..)
+        | BytecodeType::Ptr
+        | BytecodeType::Address
+        | BytecodeType::Lambda(..)
+        | BytecodeType::TraitObject(..) => Type::Ptr,
+        BytecodeType::Enum(enum_id, enum_type_params) => {
+            let layout = compute_bytecode_enum_layout(ci, specialize_self, fct_type_params, enum_id, enum_type_params);
+            match layout {
+                EnumLayout::Int32 => Type::Int32,
+                EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
+            }
+        }
+        BytecodeType::Struct(..)
+        | BytecodeType::Tuple(_) => Type::Address,
+        BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
+        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
+    }
+}
+
+fn compute_bytecode_enum_layout(ci: CompilationInfo, specialize_self: Option[SpecializeSelf], fct_type_params: Array[BytecodeType], enum_id: EnumId, enum_type_params: Array[BytecodeType]): EnumLayout {
+    let enum_type_params = specialize_array(ci, specialize_self, enum_type_params, fct_type_params);
+    regalloc::compute_enum_layout(ci, None[SpecializeSelf], enum_id, enum_type_params)
 }
