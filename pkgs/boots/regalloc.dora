@@ -141,12 +141,20 @@ impl SimpleRegisterAllocator {
                 if predecessor.has_tracker_out() {
                     let trackers = predecessor.get_tracker_out();
 
-                    self.process_live_registers[
-                        Register
-                    ](block, self.registers(), idx, trackers.gp, candidates);
-                    self.process_live_registers[
-                        FloatRegister
-                    ](block, self.float_registers(), idx, trackers.fp, candidates);
+                    self.process_live_registers[Register](
+                        block,
+                        self.registers(),
+                        idx,
+                        trackers.gp,
+                        candidates,
+                    );
+                    self.process_live_registers[FloatRegister](
+                        block,
+                        self.float_registers(),
+                        idx,
+                        trackers.fp,
+                        candidates,
+                    );
                 }
 
                 idx = idx + 1;
@@ -436,9 +444,10 @@ impl SimpleRegisterAllocator {
 
     fn get_register_location(inst: Inst): Location {
         if inst.get_value_type().is_any_float() {
-            self.get_register_location_generic[
-                FloatRegister
-            ](self.float_registers(), inst)
+            self.get_register_location_generic[FloatRegister](
+                self.float_registers(),
+                inst,
+            )
         } else {
             self.get_register_location_generic[Register](self.registers(), inst)
         }
@@ -476,14 +485,18 @@ impl SimpleRegisterAllocator {
             loc_data.set_spill_slot(offset);
             assert(inst.op() == Op::Arg);
         } else if output.get_policy().is_fixed_reg() {
-            self.allocate_fixed_output_register_generic[
-                Register
-            ](output.get_register(), self.registers(), inst);
+            self.allocate_fixed_output_register_generic[Register](
+                output.get_register(),
+                self.registers(),
+                inst,
+            );
         } else if output.get_policy().is_fixed_float_reg() {
             assert(output.get_policy().is_fixed_float_reg());
-            self.allocate_fixed_output_register_generic[
-                FloatRegister
-            ](output.get_float_register(), self.float_registers(), inst);
+            self.allocate_fixed_output_register_generic[FloatRegister](
+                output.get_float_register(),
+                self.float_registers(),
+                inst,
+            );
         }
     }
 
@@ -516,31 +529,43 @@ impl SimpleRegisterAllocator {
             } else {
                 None[FloatRegister]
             };
-            self.allocate_output_register_generic[
-                FloatRegister
-            ](self.float_registers(), hint, inst, output);
+            self.allocate_output_register_generic[FloatRegister](
+                self.float_registers(),
+                hint,
+                inst,
+                output,
+            );
         } else if policy.is_any_reg() {
             let hint = if hint.is_register() {
                 Some[Register](hint.get_register())
             } else {
                 None[Register]
             };
-            self.allocate_output_register_generic[
-                Register
-            ](self.registers(), hint, inst, output);
+            self.allocate_output_register_generic[Register](
+                self.registers(),
+                hint,
+                inst,
+                output,
+            );
         } else if policy.is_same_as_first_input() {
             let first_input = loc_data.get_input(0).get_location();
             if first_input.is_register() {
                 let reg = first_input.get_register();
-                self.allocate_output_register_same_as_first_input[
-                    Register
-                ](self.registers(), inst, output, reg);
+                self.allocate_output_register_same_as_first_input[Register](
+                    self.registers(),
+                    inst,
+                    output,
+                    reg,
+                );
             } else {
                 assert(first_input.is_float_register());
                 let reg = first_input.get_float_register();
-                self.allocate_output_register_same_as_first_input[
-                    FloatRegister
-                ](self.float_registers(), inst, output, reg);
+                self.allocate_output_register_same_as_first_input[FloatRegister](
+                    self.float_registers(),
+                    inst,
+                    output,
+                    reg,
+                );
             }
         }
     }
@@ -637,9 +662,10 @@ impl SimpleRegisterAllocator {
 
     fn allocate_arbitrary_register(policy: Policy, value: Inst): Location {
         if policy.is_any_float_reg() {
-            self.allocate_arbitrary_register_generic[
-                FloatRegister
-            ](self.float_registers(), value)
+            self.allocate_arbitrary_register_generic[FloatRegister](
+                self.float_registers(),
+                value,
+            )
         } else {
             assert(policy.is_any_reg());
             self.allocate_arbitrary_register_generic[Register](self.registers(), value)
@@ -715,9 +741,9 @@ impl SimpleRegisterAllocator {
 
     fn allocate_arbitrary_temp_register(policy: Policy): Location {
         if policy.is_any_float_reg() {
-            self.allocate_arbitrary_temp_register_generic[
-                FloatRegister
-            ](self.float_registers())
+            self.allocate_arbitrary_temp_register_generic[FloatRegister](
+                self.float_registers()
+            )
         } else {
             assert(policy.is_any_reg());
             self.allocate_arbitrary_temp_register_generic[Register](self.registers())
@@ -741,14 +767,18 @@ impl SimpleRegisterAllocator {
 
     fn allocate_fixed_register(policy: Policy, dest: Location, inst: Inst) {
         if policy.is_fixed_reg() {
-            self.allocate_fixed_register_generic[
-                Register
-            ](dest.get_register(), self.registers(), inst);
+            self.allocate_fixed_register_generic[Register](
+                dest.get_register(),
+                self.registers(),
+                inst,
+            );
         } else {
             assert(policy.is_fixed_float_reg());
-            self.allocate_fixed_register_generic[
-                FloatRegister
-            ](dest.get_float_register(), self.float_registers(), inst);
+            self.allocate_fixed_register_generic[FloatRegister](
+                dest.get_float_register(),
+                self.float_registers(),
+                inst,
+            );
         }
     }
 
@@ -786,14 +816,16 @@ impl SimpleRegisterAllocator {
 
     fn allocate_fixed_temp_register(policy: Policy, reg: Location) {
         if policy.is_fixed_reg() {
-            self.allocate_fixed_temp_register_generic[
-                Register
-            ](reg.get_register(), self.registers());
+            self.allocate_fixed_temp_register_generic[Register](
+                reg.get_register(),
+                self.registers(),
+            );
         } else {
             assert(policy.is_fixed_float_reg());
-            self.allocate_fixed_temp_register_generic[
-                FloatRegister
-            ](reg.get_float_register(), self.float_registers());
+            self.allocate_fixed_temp_register_generic[FloatRegister](
+                reg.get_float_register(),
+                self.float_registers(),
+            );
         }
     }
 

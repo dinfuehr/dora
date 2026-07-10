@@ -21,9 +21,7 @@ pub let R13: Register = Register(13u8);
 pub let R14: Register = Register(14u8);
 pub let R15: Register = Register(15u8);
 
-pub let REG_NAMES: Array[
-    String
-] = Array[String]::new(
+pub let REG_NAMES: Array[String] = Array[String]::new(
     "RAX",
     "RCX",
     "RDX",

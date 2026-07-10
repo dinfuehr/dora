@@ -1795,21 +1795,22 @@ impl BytecodeGraphBuilder {
                         (assoc_ty, fct_id, trait_ty.type_params, fct_type_params)
                     }
 
-                    _ => std::unreachable[
-                        (
-                            BytecodeType,
-                            FunctionId,
-                            Array[BytecodeType],
-                            Array[BytecodeType],
-                        )
-                    ](
+                    _ => std::unreachable[(
+                        BytecodeType,
+                        FunctionId,
+                        Array[BytecodeType],
+                        Array[BytecodeType],
+                    )](
                         ),
                 }
             }
 
-            _ => unreachable[
-                (BytecodeType, FunctionId, Array[BytecodeType], Array[BytecodeType])
-            ](
+            _ => unreachable[(
+                BytecodeType,
+                FunctionId,
+                Array[BytecodeType],
+                Array[BytecodeType],
+            )](
                 ),
         };
 

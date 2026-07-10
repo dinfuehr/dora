@@ -118,9 +118,7 @@ let REG_TEMP: Register = R10;
 let FREG_TEMP: FloatRegister = XMM15;
 let REG_THREAD: Register = R15;
 
-let ALLOCATABLE_REGS: RegSet[
-    Register
-] = RegSet[Register]::new(
+let ALLOCATABLE_REGS: RegSet[Register] = RegSet[Register]::new(
     RAX,
     RCX,
     RDX,

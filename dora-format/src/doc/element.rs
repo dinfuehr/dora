@@ -2,10 +2,10 @@ use dora_parser::TokenKind;
 use dora_parser::TokenKind::*;
 use dora_parser::TokenKind::{LINE_COMMENT, MULTILINE_COMMENT, NEWLINE, WHITESPACE};
 use dora_parser::ast::{
-    AstAlias, AstClass, AstConst, AstEnum, AstEnumVariant, AstEnumVariantList, AstExpr, AstExtern,
-    AstFieldDecl, AstFunction, AstGlobal, AstImpl, AstListItem, AstModifier, AstModifierList,
-    AstModule, AstNamedFieldList, AstParam, AstParamList, AstStruct, AstTrait, AstType,
-    AstTypeArgument, AstTypeArgumentList, AstTypeBounds, AstTypeParam, AstTypeParamList,
+    AstAlias, AstClass, AstCommaList, AstConst, AstEnum, AstEnumVariant, AstEnumVariantList,
+    AstExpr, AstExtern, AstFieldDecl, AstFunction, AstGlobal, AstImpl, AstListItem, AstModifier,
+    AstModifierList, AstModule, AstNamedFieldList, AstParam, AstParamList, AstStruct, AstTrait,
+    AstType, AstTypeArgument, AstTypeArgumentList, AstTypeBounds, AstTypeParam, AstTypeParamList,
     AstUnnamedFieldList, AstWhereClause, AstWhereClauseItem, SyntaxElement, SyntaxNode,
     SyntaxNodeBase,
 };
@@ -13,6 +13,7 @@ use dora_parser::ast::{
 use crate::doc::utils::{
     Iter, Options, collect_comment_docs, eat_token_opt, has_line_comment, is_node, is_token,
     print_comma_list_grouped, print_next_token, print_node, print_token, print_trivia,
+    skip_whitespace,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -136,7 +137,43 @@ pub(crate) fn format_type_bounds(node: AstTypeBounds, f: &mut Formatter) {
 
 pub(crate) fn format_type_argument_list(node: AstTypeArgumentList, f: &mut Formatter) {
     let opt = Options::new();
-    print_comma_list_grouped(f, &node, &opt);
+    if node.items_len() == 1 && !has_comment(node.syntax_node()) {
+        with_iter!(node, f, |iter, opt| {
+            print_token(f, &mut iter, L_BRACKET, &opt);
+
+            skip_whitespace(&mut iter);
+            let list_item_node = iter
+                .next()
+                .expect("missing list item")
+                .to_node()
+                .expect("expected list item node");
+            assert_eq!(list_item_node.syntax_kind(), LIST_ITEM);
+
+            let mut list_item_iter = list_item_node.children_with_tokens();
+            skip_whitespace(&mut list_item_iter);
+            print_node::<AstTypeArgument>(f, &mut list_item_iter, &opt);
+            skip_whitespace(&mut list_item_iter);
+            if is_token(&list_item_iter, COMMA) {
+                list_item_iter.next().expect("expected comma");
+                skip_whitespace(&mut list_item_iter);
+            }
+            assert!(list_item_iter.next().is_none());
+
+            skip_whitespace(&mut iter);
+            print_token(f, &mut iter, R_BRACKET, &opt);
+        });
+    } else {
+        print_comma_list_grouped(f, &node, &opt);
+    }
+}
+
+fn has_comment(node: &SyntaxNode) -> bool {
+    node.children_with_tokens().any(|elem| match elem {
+        SyntaxElement::Token(token) => {
+            matches!(token.syntax_kind(), LINE_COMMENT | MULTILINE_COMMENT)
+        }
+        SyntaxElement::Node(node) => has_comment(&node),
+    })
 }
 
 pub(crate) fn format_type_argument(node: AstTypeArgument, f: &mut Formatter) {
@@ -591,6 +628,13 @@ mod tests {
     fn formats_global_definition() {
         let input = "let  mut  bar  :  Int32  =  2 ;";
         let expected = "let mut bar: Int32 = 2;\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_single_type_argument_flat_when_initializer_breaks() {
+        let input = "let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(F0, F1, F2, F3, F4, F5, F6, F7);";
+        let expected = "let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(\n    F0,\n    F1,\n    F2,\n    F3,\n    F4,\n    F5,\n    F6,\n    F7,\n);\n";
         assert_source(input, expected);
     }
 

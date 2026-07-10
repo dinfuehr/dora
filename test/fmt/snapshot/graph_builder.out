@@ -2072,21 +2072,22 @@ impl SsaGen {
                         (assoc_ty, fct_id, trait_ty.typeParams, fct_type_params)
                     }
 
-                    _ => std::unreachable[
-                        (
-                            BytecodeType,
-                            FunctionId,
-                            Array[BytecodeType],
-                            Array[BytecodeType],
-                        )
-                    ](
+                    _ => std::unreachable[(
+                        BytecodeType,
+                        FunctionId,
+                        Array[BytecodeType],
+                        Array[BytecodeType],
+                    )](
                         ),
                 }
             }
 
-            _ => unreachable[
-                (BytecodeType, FunctionId, Array[BytecodeType], Array[BytecodeType])
-            ](
+            _ => unreachable[(
+                BytecodeType,
+                FunctionId,
+                Array[BytecodeType],
+                Array[BytecodeType],
+            )](
                 ),
         };
 
