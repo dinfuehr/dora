@@ -244,20 +244,9 @@ pub(crate) fn format_if(node: AstIfExpr, f: &mut Formatter) {
                 f.text(" ");
                 print_node::<AstExpr>(f, &mut iter, &opt);
             } else {
-                // Get something like this:
-                // if (
-                //     expr
-                // ) { ...
-                f.if_break(|f| {
-                    f.text(" (");
-                });
+                f.text(" ");
                 f.nest(BLOCK_INDENT, |f| {
-                    f.soft_line();
                     print_node::<AstExpr>(f, &mut iter, &opt);
-                });
-                f.if_break(|f| {
-                    f.soft_break();
-                    f.text(")");
                 });
             }
         });

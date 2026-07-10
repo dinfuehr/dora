@@ -1356,13 +1356,11 @@ impl SsaGen {
         }
 
         let destInst = graph::create_binary_inst(op, ty, lhsInst, rhsInst);
-        if (
-            op == Op::CheckedDiv ||
+        if op == Op::CheckedDiv ||
             op == Op::CheckedMod ||
             op == Op::CheckedAdd ||
             op == Op::CheckedSub ||
-            op == Op::CheckedMul
-        ) {
+            op == Op::CheckedMul {
             self.set_current_inlined_location(destInst);
         }
         self.current().append_inst(destInst);
@@ -1900,10 +1898,8 @@ impl SsaGen {
                 return;
             }
 
-            if (
-                self.graph.inlinedBytecodeSize + info.bytecodeSize >
-                self.ci.maxTotalInlinedBytecodeSize
-            ) {
+            if self.graph.inlinedBytecodeSize + info.bytecodeSize >
+                self.ci.maxTotalInlinedBytecodeSize {
                 return;
             }
         }
@@ -2130,28 +2126,20 @@ impl SsaGen {
         idx: ConstPoolId,
         type_params: Array[BytecodeType],
     ): Bool {
-        if (
-            intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED ||
-            intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED
-        ) {
+        if intrinsic == opc::INTRINSIC_INT64_ADD_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_INT32_ADD_UNCHECKED {
             self.emit_intrinsic_bin(dest, args, Op::Add);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_SUB_UNCHECKED ||
-            intrinsic == opc::INTRINSIC_INT32_SUB_UNCHECKED
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_SUB_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_INT32_SUB_UNCHECKED {
             self.emit_intrinsic_bin(dest, args, Op::Sub);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_MUL_UNCHECKED ||
-            intrinsic == opc::INTRINSIC_INT32_MUL_UNCHECKED
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_MUL_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_INT32_MUL_UNCHECKED {
             self.emit_intrinsic_bin(dest, args, Op::Mul);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT32_NEG_UNCHECKED ||
-            intrinsic == opc::INTRINSIC_INT64_NEG_UNCHECKED
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT32_NEG_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_INT64_NEG_UNCHECKED {
             self.emit_intrinsic_un(dest, args, Op::Neg);
             false
         } else if intrinsic == opc::INTRINSIC_THREAD_CURRENT {
@@ -2168,10 +2156,8 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_ASSERT {
             self.emit_intrinsic_assert(dest, args);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_OPTION_IS_SOME ||
-            intrinsic == opc::INTRINSIC_OPTION_IS_NONE
-        ) {
+        } else if intrinsic == opc::INTRINSIC_OPTION_IS_SOME ||
+            intrinsic == opc::INTRINSIC_OPTION_IS_NONE {
             self.emit_intrinsic_option_is_some_and_is_none(intrinsic, dest, args);
             false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_TO_INT32 {
@@ -2192,10 +2178,8 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_INT32_TO_FLOAT64 {
             self.emit_intrinsic_convert(dest, args, Type::Float64, Type::Int32);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT32_TO_INT64 ||
-            intrinsic == opc::INTRINSIC_CHAR_TO_INT64
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_INT64 ||
+            intrinsic == opc::INTRINSIC_CHAR_TO_INT64 {
             self.emit_intrinsic_convert(dest, args, Type::Int64, Type::Int32);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT32 {
@@ -2204,10 +2188,8 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_INT64_TO_FLOAT64 {
             self.emit_intrinsic_convert(dest, args, Type::Float64, Type::Int64);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_TO_INT32 ||
-            intrinsic == opc::INTRINSIC_INT64_TO_CHAR_UNCHECKED
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_TO_INT32 ||
+            intrinsic == opc::INTRINSIC_INT64_TO_CHAR_UNCHECKED {
             self.emit_intrinsic_convert(dest, args, Type::Int32, Type::Int64);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_TO_UINT8 {
@@ -2219,40 +2201,28 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_DEMOTE_FLOAT64_TO_FLOAT32 {
             self.emit_intrinsic_convert(dest, args, Type::Float32, Type::Float64);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_FLOAT64_ADD ||
-            intrinsic == opc::INTRINSIC_FLOAT32_ADD
-        ) {
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_ADD ||
+            intrinsic == opc::INTRINSIC_FLOAT32_ADD {
             self.emit_bin(dest, args(0), args(1), Op::Add);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_FLOAT64_SUB ||
-            intrinsic == opc::INTRINSIC_FLOAT32_SUB
-        ) {
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_SUB ||
+            intrinsic == opc::INTRINSIC_FLOAT32_SUB {
             self.emit_bin(dest, args(0), args(1), Op::Sub);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_FLOAT64_MUL ||
-            intrinsic == opc::INTRINSIC_FLOAT32_MUL
-        ) {
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_MUL ||
+            intrinsic == opc::INTRINSIC_FLOAT32_MUL {
             self.emit_intrinsic_bin(dest, args, Op::Mul);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_FLOAT64_DIV ||
-            intrinsic == opc::INTRINSIC_FLOAT32_DIV
-        ) {
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_DIV ||
+            intrinsic == opc::INTRINSIC_FLOAT32_DIV {
             self.emit_intrinsic_bin(dest, args, Op::Div);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_FLOAT64_NEG ||
-            intrinsic == opc::INTRINSIC_FLOAT32_NEG
-        ) {
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_NEG ||
+            intrinsic == opc::INTRINSIC_FLOAT32_NEG {
             self.emit_intrinsic_un(dest, args, Op::Neg);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_FLOAT64_EQ ||
-            intrinsic == opc::INTRINSIC_FLOAT32_EQ
-        ) {
+        } else if intrinsic == opc::INTRINSIC_FLOAT64_EQ ||
+            intrinsic == opc::INTRINSIC_FLOAT32_EQ {
             self.emit_intrinsic_bin(dest, args, Op::Equal);
             false
         } else if intrinsic == opc::INTRINSIC_FLOAT64_ABS {
@@ -2261,89 +2231,72 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_FLOAT32_ABS {
             self.emit_intrinsic_abs(dest, args, Type::Float32);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_ADD || intrinsic == opc::INTRINSIC_INT32_ADD
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_ADD ||
+            intrinsic == opc::INTRINSIC_INT32_ADD {
             self.emit_bin(dest, args(0), args(1), Op::CheckedAdd);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_SUB || intrinsic == opc::INTRINSIC_INT32_SUB
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_SUB ||
+            intrinsic == opc::INTRINSIC_INT32_SUB {
             self.emit_bin(dest, args(0), args(1), Op::CheckedSub);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_MUL || intrinsic == opc::INTRINSIC_INT32_MUL
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_MUL ||
+            intrinsic == opc::INTRINSIC_INT32_MUL {
             self.emit_intrinsic_bin(dest, args, Op::CheckedMul);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_DIV || intrinsic == opc::INTRINSIC_INT32_DIV
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_DIV ||
+            intrinsic == opc::INTRINSIC_INT32_DIV {
             self.emit_intrinsic_bin(dest, args, Op::CheckedDiv);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_MOD || intrinsic == opc::INTRINSIC_INT32_MOD
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_MOD ||
+            intrinsic == opc::INTRINSIC_INT32_MOD {
             self.emit_intrinsic_bin(dest, args, Op::CheckedMod);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_AND || intrinsic == opc::INTRINSIC_INT32_AND
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_AND ||
+            intrinsic == opc::INTRINSIC_INT32_AND {
             self.emit_intrinsic_bin(dest, args, Op::And);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_OR || intrinsic == opc::INTRINSIC_INT32_OR
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_OR ||
+            intrinsic == opc::INTRINSIC_INT32_OR {
             self.emit_intrinsic_bin(dest, args, Op::Or);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_XOR || intrinsic == opc::INTRINSIC_INT32_XOR
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_XOR ||
+            intrinsic == opc::INTRINSIC_INT32_XOR {
             self.emit_intrinsic_bin(dest, args, Op::Xor);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_SAR || intrinsic == opc::INTRINSIC_INT32_SAR
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_SAR ||
+            intrinsic == opc::INTRINSIC_INT32_SAR {
             self.emit_intrinsic_bin(dest, args, Op::Sar);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_SHL || intrinsic == opc::INTRINSIC_INT32_SHL
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_SHL ||
+            intrinsic == opc::INTRINSIC_INT32_SHL {
             self.emit_intrinsic_bin(dest, args, Op::Shl);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_SHR || intrinsic == opc::INTRINSIC_INT32_SHR
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_SHR ||
+            intrinsic == opc::INTRINSIC_INT32_SHR {
             self.emit_intrinsic_bin(dest, args, Op::Shr);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_NEG || intrinsic == opc::INTRINSIC_INT32_NEG
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_NEG ||
+            intrinsic == opc::INTRINSIC_INT32_NEG {
             self.emit_intrinsic_un(dest, args, Op::CheckedNeg);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT64_EQ || intrinsic == opc::INTRINSIC_INT32_EQ
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT64_EQ ||
+            intrinsic == opc::INTRINSIC_INT32_EQ {
             self.emit_intrinsic_bin(dest, args, Op::Equal);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_BOOL_NOT ||
+        } else if intrinsic == opc::INTRINSIC_BOOL_NOT ||
             intrinsic == opc::INTRINSIC_INT64_NOT ||
-            intrinsic == opc::INTRINSIC_INT32_NOT
-        ) {
+            intrinsic == opc::INTRINSIC_INT32_NOT {
             self.emit_intrinsic_un(dest, args, Op::Not);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_BOOL_EQ || intrinsic == opc::INTRINSIC_U_INT8_EQ
-        ) {
+        } else if intrinsic == opc::INTRINSIC_BOOL_EQ ||
+            intrinsic == opc::INTRINSIC_U_INT8_EQ {
             self.emit_intrinsic_bin(dest, args, Op::Equal);
             false
         } else if intrinsic == opc::INTRINSIC_INT64_CMP {
             self.emit_intrinsic_compare_ordering(dest, args, Type::Int64);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT32_CMP || intrinsic == opc::INTRINSIC_CHAR_CMP
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT32_CMP ||
+            intrinsic == opc::INTRINSIC_CHAR_CMP {
             self.emit_intrinsic_compare_ordering(dest, args, Type::Int32);
             false
         } else if intrinsic == opc::INTRINSIC_U_INT8_CMP {
@@ -2397,19 +2350,15 @@ impl SsaGen {
         } else if intrinsic == opc::INTRINSIC_FLOAT32_SQRT {
             self.emit_intrinsic_rounding(dest, args, Op::Sqrt, Type::Float32);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_INT32_TO_CHAR_UNCHECKED ||
-            intrinsic == opc::INTRINSIC_CHAR_TO_INT32
-        ) {
+        } else if intrinsic == opc::INTRINSIC_INT32_TO_CHAR_UNCHECKED ||
+            intrinsic == opc::INTRINSIC_CHAR_TO_INT32 {
             self.emit_intrinsic_cast_between_int32_and_char(dest, args);
             false
         } else if intrinsic == opc::INTRINSIC_INT32_TO_UINT8 {
             self.emit_intrinsic_convert(dest, args, Type::UInt8, Type::Int32);
             false
-        } else if (
-            intrinsic == opc::INTRINSIC_U_INT8_TO_INT32 ||
-            intrinsic == opc::INTRINSIC_U_INT8_TO_CHAR
-        ) {
+        } else if intrinsic == opc::INTRINSIC_U_INT8_TO_INT32 ||
+            intrinsic == opc::INTRINSIC_U_INT8_TO_CHAR {
             self.emit_intrinsic_convert(dest, args, Type::Int32, Type::UInt8);
             false
         } else if intrinsic == opc::INTRINSIC_BOOL_TO_INT32 {
@@ -3584,9 +3533,8 @@ impl SsaGen {
             self.current().append_inst(dest);
 
             self.store_array_nested(ty, arr, dest, 0i32, value, 0i32);
-        } else if (
-            config.needsWriteBarrier && is_reference(self.ci, self.specializeSelf, ty)
-        ) {
+        } else if config.needsWriteBarrier &&
+            is_reference(self.ci, self.specializeSelf, ty) {
             let inst = graph::create_store_array_wb_inst(arr, index, value, Type::Ptr);
             self.current().append_inst(inst);
         } else {
@@ -3631,9 +3579,8 @@ impl SsaGen {
                     srcOffset + field.offset,
                 );
             }
-        } else if (
-            config.needsWriteBarrier && is_reference(self.ci, self.specializeSelf, ty)
-        ) {
+        } else if config.needsWriteBarrier &&
+            is_reference(self.ci, self.specializeSelf, ty) {
             let ty = Type::Ptr;
             let value = graph::create_load_inst(
                 src,
@@ -3707,11 +3654,9 @@ impl SsaGen {
                 0i32,
                 heap,
             );
-        } else if (
-            heap &&
+        } else if heap &&
             config.needsWriteBarrier &&
-            is_reference(self.ci, self.specializeSelf, ty)
-        ) {
+            is_reference(self.ci, self.specializeSelf, ty) {
             let inst = graph::create_store_wb_inst(
                 dest,
                 destInfo,
@@ -3760,11 +3705,9 @@ impl SsaGen {
                 srcOffset,
                 heap,
             );
-        } else if (
-            heap &&
+        } else if heap &&
             config.needsWriteBarrier &&
-            is_reference(self.ci, self.specializeSelf, ty)
-        ) {
+            is_reference(self.ci, self.specializeSelf, ty) {
             let ty = Type::Ptr;
             let value = graph::create_load_inst(src, srcOffset, srcInfo, ty, false);
             self.current().append_inst(value);

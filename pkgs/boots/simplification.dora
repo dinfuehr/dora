@@ -93,10 +93,8 @@ impl SimplificationPass {
         let rhs = inst.get_input(1).get_value();
         let is_int32_or_int64 = ty.is_int32_or_int64();
 
-        if (
-            lhs.get_int_const() is Some(lhs_value) &&
-            rhs.get_int_const() is Some(rhs_value)
-        ) {
+        if lhs.get_int_const() is Some(lhs_value) &&
+            rhs.get_int_const() is Some(rhs_value) {
             return Some[Inst](self.fold_wrapping_binary(op, ty, lhs_value, rhs_value));
         }
 
@@ -200,10 +198,8 @@ impl SimplificationPass {
         let lhs = inst.get_input(0).get_value();
         let rhs = inst.get_input(1).get_value();
 
-        if (
-            lhs.get_int_const() is Some(lhs_value) &&
-            rhs.get_int_const() is Some(rhs_value)
-        ) {
+        if lhs.get_int_const() is Some(lhs_value) &&
+            rhs.get_int_const() is Some(rhs_value) {
             if self.fold_checked_binary(op, ty, lhs_value, rhs_value) is Some(inst) {
                 return Some[Inst](inst);
             }
@@ -290,16 +286,12 @@ impl SimplificationPass {
         }
 
         if ty == Type::Bool {
-            if (
-                lhs.op().get_bool_const() is Some(lhs_value) &&
-                rhs.op().get_bool_const() is Some(rhs_value)
-            ) {
+            if lhs.op().get_bool_const() is Some(lhs_value) &&
+                rhs.op().get_bool_const() is Some(rhs_value) {
                 return self.fold_bool_compare(op, lhs_value, rhs_value);
             }
-        } else if (
-            lhs.get_int_const() is Some(lhs_value) &&
-            rhs.get_int_const() is Some(rhs_value)
-        ) {
+        } else if lhs.get_int_const() is Some(lhs_value) &&
+            rhs.get_int_const() is Some(rhs_value) {
             return self.fold_int_compare(op, ty, lhs_value, rhs_value);
         }
 
@@ -426,9 +418,11 @@ impl SimplificationPass {
     fn fold_checked_binary(op: Op, ty: Type, lhs: Int64, rhs: Int64): Option[Inst] {
         match ty {
             Type::Int32 => {
-                if (
-                    fold_checked_int32(op, lhs.to_int32(), rhs.to_int32()) is Some(result)
-                ) {
+                if fold_checked_int32(
+                        op,
+                        lhs.to_int32(),
+                        rhs.to_int32(),
+                    ) is Some(result) {
                     Some[Inst](self.graph.ensure_const_int32_inst(result))
                 } else {
                     None[Inst]
