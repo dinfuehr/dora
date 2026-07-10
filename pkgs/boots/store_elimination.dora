@@ -335,7 +335,8 @@ fn is_memory_barrier(op: Op): Bool {
         | Op::AtomicFetchAdd => true,
 
         Op::LocalGet
-        | Op::LocalSet => unreachable[Bool](),
+        | Op::LocalSet
+        | Op::InlineReturn => unreachable[Bool](),
     }
 }
 

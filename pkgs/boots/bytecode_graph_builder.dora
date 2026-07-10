@@ -16,7 +16,7 @@ use package::regalloc::{EnumLayout, is_reference, RecordLayout};
 use package::regalloc;
 use package::specialize::{specialize_array, specialize_ty};
 
-pub fn compute_inline_return_register_type(ci: CompilationInfo, fct: FunctionCompilationInfo): Option[Type] {
+pub fn compute_inline_return_type(ci: CompilationInfo, fct: FunctionCompilationInfo): Option[Type] {
     let return_type = specialize_ty(ci, fct.specialize_self, fct.return_type, fct.type_params);
 
     if return_type.is_unit() || return_type.is_struct() || return_type.is_tuple() {
@@ -272,9 +272,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn emit_local_set(register: BytecodeRegister, value: Inst) {
-        if !self.is_return_register(register) {
-            assert(!self.reg(register).is_unit());
-        }
+        assert(!self.reg(register).is_unit());
         assert(value.has_id());
         let inst = graph::create_local_set_inst(register.0, value, self.reg_graph_ty(register));
         self.current().append_inst(inst);
@@ -1217,7 +1215,8 @@ impl BytecodeGraphBuilder {
             } else {
                 let value = self.emit_local_get(opnd);
                 assert(value.get_value_type() == self.inline_return_type.get_or_panic());
-                self.emit_local_set(self.return_register(), value);
+                let inst = graph::create_inline_return_inst(value, value.get_value_type());
+                self.current().append_inst(inst);
             }
 
             let inst = graph::create_goto_inst(exit_block);
@@ -2830,23 +2829,7 @@ impl BytecodeGraphBuilder {
         self.inlined_function_id.is_some()
     }
 
-    fn return_register(): BytecodeRegister {
-        BytecodeRegister(self.bc.registers.size().to_int32())
-    }
-
-    fn is_return_register(register: BytecodeRegister): Bool {
-        if self.inline_return_type.is_none() {
-            return false;
-        }
-
-        self.return_register() == register
-    }
-
     fn reg_graph_ty(id: BytecodeRegister): Type {
-        if self.return_register() == id {
-            return self.inline_return_type.get_or_panic();
-        }
-
         let ty = self.reg(id);
         self.graph_ty(ty)
     }

@@ -1,4 +1,4 @@
-use package::bytecode_graph_builder::{BytecodeGraphBuilder, compute_inline_return_register_type};
+use package::bytecode_graph_builder::{BytecodeGraphBuilder, compute_inline_return_type};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::graph::{Block, Graph, Inst};
 use package::graph::ty::Type;
@@ -18,7 +18,7 @@ pub fn create_graph(ci: CompilationInfo, fct: FunctionCompilationInfo, analysis:
 
 pub fn add_to_graph(ci: CompilationInfo, graph: Graph, inlined_function_id: InlinedFunctionId, fct: FunctionCompilationInfo, entry_block: Block, exit_block: Block, call_inst: Inst): Option[Inst] {
     let analysis = analyze_bytecode(fct.bc);
-    let inline_return_type = compute_inline_return_register_type(ci, fct);
+    let inline_return_type = compute_inline_return_type(ci, fct);
     let builder = BytecodeGraphBuilder::new_for_inlining(ci, graph, inlined_function_id, fct, analysis, inline_return_type, entry_block, exit_block);
     builder.run_inline(call_inst);
 

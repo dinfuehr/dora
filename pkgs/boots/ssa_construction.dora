@@ -16,7 +16,7 @@ pub class SsaConstruction {
     type_params: Array[BytecodeType],
     return_type: BytecodeType,
     specialize_self: Option[SpecializeSelf],
-    return_register_type: Option[Type],
+    inline_return_type: Option[Type],
     exit_block: Option[Block],
     current_def: RegisterTable,
     // The CFG is complete before this pass runs, but a predecessor's
@@ -27,16 +27,11 @@ pub class SsaConstruction {
     sealed_blocks: BitSet,
     incomplete_phis: HashMap[Block, HashMap[BytecodeRegister, Inst]],
     current_replacements: Vec[Inst],
-    return_value: Option[Inst],
+    inline_return_values: HashMap[Block, Inst],
 }
 
 impl SsaConstruction {
-    pub static fn new(ci: CompilationInfo, graph: Graph, fct: FunctionCompilationInfo, return_register_type: Option[Type], exit_block: Option[Block]): SsaConstruction {
-        let mut registers = fct.bc.registers.size();
-        if return_register_type.is_some() {
-            registers += 1;
-        }
-
+    pub static fn new(ci: CompilationInfo, graph: Graph, fct: FunctionCompilationInfo, inline_return_type: Option[Type], exit_block: Option[Block]): SsaConstruction {
         SsaConstruction(
             ci,
             graph,
@@ -44,23 +39,22 @@ impl SsaConstruction {
             type_params = fct.type_params,
             return_type = fct.return_type,
             specialize_self = fct.specialize_self,
-            return_register_type,
+            inline_return_type,
             exit_block,
-            current_def = RegisterTable::new(registers),
+            current_def = RegisterTable::new(fct.bc.registers.size()),
             processed_blocks = BitSet::new(graph.block_count().to_int64()),
             sealed_blocks = BitSet::new(graph.block_count().to_int64()),
             incomplete_phis = HashMap[Block, HashMap[BytecodeRegister, Inst]]::new(),
             current_replacements = Vec[Inst]::new(),
-            return_value = None[Inst],
+            inline_return_values = HashMap[Block, Inst]::new(),
         )
     }
 
     pub fn run(): Option[Inst] {
         self.graph.remove_unreachable_blocks();
         self.process_blocks();
-        self.read_return_value();
         self.finish();
-        self.return_value
+        self.compute_return_value()
     }
 
     fn process_blocks() {
@@ -92,27 +86,45 @@ impl SsaConstruction {
                     inst.remove();
                 }
 
+                Op::InlineReturn => {
+                    let value = inst.get_input(0).get_value();
+                    assert(value.get_value_type() == self.inline_return_type.get_or_panic());
+                    assert(self.inline_return_values.insert(block, value).is_none());
+                    inst.remove();
+                }
+
                 _ => (),
             }
         }
     }
 
-    fn read_return_value() {
-        if self.return_register_type.is_none() {
-            return;
+    fn compute_return_value(): Option[Inst] {
+        if self.inline_return_type.is_none() {
+            return None[Inst];
         }
 
         let exit_block = self.exit_block.get_or_panic();
         if !exit_block.has_id() {
-            return;
+            return None[Inst];
         }
 
         if exit_block.predecessors.is_empty() {
-            return;
+            return None[Inst];
         }
 
-        let register = self.return_register();
-        self.return_value = Some[Inst](self.read_variable(register, exit_block));
+        if exit_block.predecessors.size() == 1i64 {
+            let predecessor = exit_block.predecessors.first().get_or_panic().source;
+            return self.inline_return_values.get(predecessor);
+        }
+
+        let phi = graph::create_phi_inst(self.inline_return_type.get_or_panic());
+        for edge in exit_block.predecessors {
+            let value = self.inline_return_values.get(edge.source).get_or_panic();
+            phi.add_input(value);
+        }
+
+        exit_block.append_phi(phi);
+        Some[Inst](self.try_remove_trivial_phi(phi))
     }
 
     fn finish() {
@@ -266,8 +278,16 @@ impl SsaConstruction {
             }
         }
 
-        if self.return_value.is_some() && self.return_value.get_or_panic() === phi {
-            self.return_value = Some(replacement);
+        let update = Vec[Block]::new();
+
+        for (block, value) in self.inline_return_values {
+            if value === phi {
+                update.push(block);
+            }
+        }
+
+        for block in update {
+            assert(self.inline_return_values.insert(block, replacement).is_some());
         }
 
         self.current_replacements.push(replacement);
@@ -288,10 +308,6 @@ impl SsaConstruction {
     }
 
     fn reg_graph_ty(id: BytecodeRegister): Type {
-        if self.return_register() == id {
-            return self.return_register_type.get_or_panic();
-        }
-
         let ty = self.reg(id);
         self.graph_ty(ty)
     }
@@ -299,10 +315,6 @@ impl SsaConstruction {
     fn reg(id: BytecodeRegister): BytecodeType {
         let ty = self.bc.registers(id.0.to_int64());
         self.specialize_ty(ty)
-    }
-
-    fn return_register(): BytecodeRegister {
-        BytecodeRegister(self.bc.registers.size().to_int32())
     }
 
     fn specialize_ty(ty: BytecodeType): BytecodeType {

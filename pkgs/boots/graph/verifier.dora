@@ -205,6 +205,10 @@ impl GraphVerifier {
                 unreachable[()]();
             }
 
+            Op::InlineReturn => {
+                unreachable[()]();
+            }
+
             Op::Add => self.assert_add_inputs(inst),
 
             Op::CheckedAdd

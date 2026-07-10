@@ -324,6 +324,7 @@ fn dump_inst_name(inst: Inst): String {
                 "Ret.${inst.get_operation_type()}"
             }
         },
+        Op::InlineReturn => "InlineReturn.${inst.get_operation_type()}",
         Op::Abort => "Abort",
         Op::Assert => "Assert",
         Op::Safepoint => "Safepoint",

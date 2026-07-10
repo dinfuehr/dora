@@ -924,6 +924,7 @@ pub enum Op {
     If,
     Switch,
     Return,
+    InlineReturn,
     Abort,
     Assert,
     Safepoint,
@@ -1132,6 +1133,7 @@ pub fn op_name(op: Op): String {
         Op::If => "If",
         Op::Switch => "Switch",
         Op::Return => "Return",
+        Op::InlineReturn => "InlineReturn",
         Op::Abort => "Abort",
         Op::Assert => "Assert",
         Op::Safepoint => "Safepoint",
@@ -1436,6 +1438,7 @@ impl Inst {
             Op::If => None[Type],
             Op::Switch => None[Type],
             Op::Return => None[Type],
+            Op::InlineReturn => None[Type],
             Op::Abort => None[Type],
             Op::Assert => None[Type],
             Op::Safepoint => None[Type],
@@ -1530,6 +1533,7 @@ impl Inst {
     pub fn get_operation_type(): Type {
         match self.op() {
             Op::Return
+            | Op::InlineReturn
             | Op::Equal
             | Op::NotEqual
             | Op::Greater
@@ -2043,6 +2047,7 @@ impl Inst {
             Op::If => true,
             Op::Switch => true,
             Op::Return => true,
+            Op::InlineReturn => true,
             Op::Abort => true,
             Op::Assert => true,
             Op::Safepoint => true,
@@ -3135,6 +3140,14 @@ pub fn create_local_set_inst(index: Int32, value: Inst, ty: Type): Inst {
 pub fn create_return_inst(value: Inst, ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Return);
+    inst.ty = ty;
+    inst.add_input(value);
+    inst
+}
+
+pub fn create_inline_return_inst(value: Inst, ty: Type): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::InlineReturn);
     inst.ty = ty;
     inst.add_input(value);
     inst
