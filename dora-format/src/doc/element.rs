@@ -387,28 +387,36 @@ pub(crate) fn format_module(node: AstModule, f: &mut Formatter) {
 }
 
 pub(crate) fn format_modifier_list(node: AstModifierList, f: &mut Formatter) {
-    let items: Vec<_> = node.items().collect();
+    let has_comments = has_comment(node.syntax_node());
+    let (annotations, mut keywords): (Vec<_>, Vec<_>) = node.items().partition(|modifier| {
+        modifier
+            .first_token()
+            .is_some_and(|token| token.syntax_kind() == AT)
+    });
 
     // Print annotations first, each on its own line.
-    for modifier in &items {
-        let is_annotation = modifier
-            .first_token()
-            .is_some_and(|t| t.syntax_kind() == AT);
-        if is_annotation {
-            format_modifier(modifier.clone(), f);
-            f.hard_line();
-        }
+    for modifier in annotations {
+        format_modifier(modifier, f);
+        f.hard_line();
     }
 
-    // Then keyword modifiers on the same line as the declaration.
-    for modifier in &items {
-        let is_annotation = modifier
-            .first_token()
-            .is_some_and(|t| t.syntax_kind() == AT);
-        if !is_annotation {
-            format_modifier(modifier.clone(), f);
-            f.text(" ");
-        }
+    if !has_comments {
+        keywords.sort_by_key(modifier_order);
+    }
+
+    // Then keyword modifiers in canonical order on the same line as the declaration.
+    for modifier in keywords {
+        format_modifier(modifier, f);
+        f.text(" ");
+    }
+}
+
+fn modifier_order(modifier: &AstModifier) -> u8 {
+    match modifier.first_token().unwrap().syntax_kind() {
+        PUB_KW => 0,
+        STATIC_KW => 1,
+        MUTATING_KW => 2,
+        kind => unreachable!("unexpected modifier {kind}"),
     }
 }
 
@@ -586,6 +594,20 @@ fn format_type_bounds_opt(f: &mut Formatter, iter: &mut Iter<'_>, opt: &Options)
 #[cfg(test)]
 mod tests {
     use crate::test_utils::assert_source;
+
+    #[test]
+    fn formats_modifier_order() {
+        let input = "mutating static pub fn foo() {}";
+        let expected = "pub static mutating fn foo() {}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_modifier_order_with_annotation() {
+        let input = "static @Foo mutating pub fn foo() {}";
+        let expected = "@Foo\npub static mutating fn foo() {}\n";
+        assert_source(input, expected);
+    }
 
     #[test]
     fn formats_struct_named_fields() {

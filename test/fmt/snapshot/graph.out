@@ -47,7 +47,7 @@ pub class Graph {
 }
 
 impl Graph {
-    static pub fn new(): Graph {
+    pub static fn new(): Graph {
         let blocks = Vec[Option[Block]]::new();
         blocks.push(None[Block]);
 
@@ -358,7 +358,7 @@ class PostOrderIterator {
 }
 
 impl PostOrderIterator {
-    static pub fn new(postOrder: Array[Block]): PostOrderIterator {
+    pub static fn new(postOrder: Array[Block]): PostOrderIterator {
         PostOrderIterator(postOrder, idx = 0)
     }
 }
@@ -383,7 +383,7 @@ class ReversePostOrderIterator {
 }
 
 impl ReversePostOrderIterator {
-    static pub fn new(postOrder: Array[Block]): ReversePostOrderIterator {
+    pub static fn new(postOrder: Array[Block]): ReversePostOrderIterator {
         ReversePostOrderIterator(postOrder, idx = postOrder.size() - 1)
     }
 }
@@ -408,7 +408,7 @@ class BlockIterator {
 }
 
 impl BlockIterator {
-    static pub fn new(order: Array[Block]): BlockIterator {
+    pub static fn new(order: Array[Block]): BlockIterator {
         BlockIterator(order, idx = 0)
     }
 }
@@ -460,7 +460,7 @@ pub class Block {
 }
 
 impl Block {
-    static pub fn new(): Block {
+    pub static fn new(): Block {
         Block(
             _id = 0i32,
             phis = InstLinkedList::new(),
@@ -2346,11 +2346,11 @@ pub enum Location {
 }
 
 impl Location {
-    static pub fn fp(offset: Int32): Location {
+    pub static fn fp(offset: Int32): Location {
         Location::Stack(StackSlot::fp(offset))
     }
 
-    static pub fn sp(offset: Int32): Location {
+    pub static fn sp(offset: Int32): Location {
         Location::Stack(StackSlot::sp(offset))
     }
 

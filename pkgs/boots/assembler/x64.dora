@@ -88,7 +88,7 @@ pub class AssemblerX64 {
 }
 
 impl AssemblerX64 {
-    static pub fn new(has_avx2: Bool): AssemblerX64 {
+    pub static fn new(has_avx2: Bool): AssemblerX64 {
         AssemblerX64(
             buffer = AssemblerBuffer::new(),
             jumps = Vec[(Int64, Label, JumpDistance)]::new(),

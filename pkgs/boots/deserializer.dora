@@ -461,7 +461,7 @@ pub class ByteReader {
 }
 
 impl ByteReader {
-    static pub fn new(array: Array[UInt8]): ByteReader {
+    pub static fn new(array: Array[UInt8]): ByteReader {
         ByteReader(array = array, idx = 0)
     }
 

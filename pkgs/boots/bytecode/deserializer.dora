@@ -36,7 +36,7 @@ pub class Deserializer {
 }
 
 impl Deserializer {
-    static pub fn new(array: Array[UInt8]): Deserializer {
+    pub static fn new(array: Array[UInt8]): Deserializer {
         Deserializer(array, idx = 0)
     }
 
