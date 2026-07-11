@@ -1,0 +1,31 @@
+fn single:
+  0: NewTuple r0, @0 # (())
+  4: Ret r0
+
+  Registers:
+   0 => (())
+   1 => ()
+
+  Constants:
+   0 => Tuple (())
+
+  Locations:
+   0 => 2:5
+
+fn mixed:
+  0: ConstInt32 r2, @0 # 10
+  3: NewTuple r0, @1, r2 # ((), Int32, ())
+  8: Ret r0
+
+  Registers:
+   0 => ((), Int32, ())
+   1 => ()
+   2 => Int32
+
+  Constants:
+   0 => Int32 10
+   1 => Tuple ((), Int32, ())
+
+  Locations:
+   3 => 6:5
+

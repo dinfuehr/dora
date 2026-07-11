@@ -1,0 +1,11 @@
+struct Wrapper[T](T)
+
+struct Mixed[T](T, Int32, T)
+
+fn single(): Wrapper[()] {
+    Wrapper[()](())
+}
+
+fn mixed(): Mixed[()] {
+    Mixed[()]((), 10i32, ())
+}

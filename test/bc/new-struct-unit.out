@@ -1,0 +1,31 @@
+fn single:
+  0: NewStruct r1, @0, r0 # Wrapper[()]
+  5: Ret r1
+
+  Registers:
+   0 => ()
+   1 => struct Wrapper[()]
+
+  Constants:
+   0 => Struct Wrapper[()]
+
+  Locations:
+   0 => 6:5
+
+fn mixed:
+  0: ConstInt32 r1, @0 # 10
+  3: NewStruct r2, @1, r0, r1, r0 # Mixed[()]
+ 10: Ret r2
+
+  Registers:
+   0 => ()
+   1 => Int32
+   2 => struct Mixed[()]
+
+  Constants:
+   0 => Int32 10
+   1 => Struct Mixed[()]
+
+  Locations:
+   3 => 10:5
+
