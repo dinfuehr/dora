@@ -6,7 +6,8 @@ fn main() {
             predecessor_data,
             additional_predecessor_data,
         )
-        is Some(merged) {
+        is Some(merged)
+    {
         merged;
     }
 }

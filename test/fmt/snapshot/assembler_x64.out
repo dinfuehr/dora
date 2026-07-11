@@ -2261,7 +2261,8 @@ impl AssemblerX64 {
         if modrm_reg.needs_rex_bit() ||
             modrm_reg.0 > 3u8 ||
             modrm_rm.needs_rex_bit() ||
-            modrm_rm.0 > 3u8 {
+            modrm_rm.0 > 3u8
+        {
             self.emit_rex(
                 false,
                 modrm_reg.needs_rex_bit(),

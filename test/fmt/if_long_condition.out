@@ -1,7 +1,29 @@
 fn main() {
     if some_very_long_condition_name &&
         another_very_long_condition_name &&
-        yet_another_very_long_condition_name {
+        yet_another_very_long_condition_name
+    {
         1
+    }
+    if some_very_long_function_name(
+        first_very_long_argument_name,
+        second_very_long_argument_name,
+        third_very_long_argument_name,
+    ) {
+        2
+    }
+    if self.some_very_long_method_name(
+        first_very_long_argument_name,
+        second_very_long_argument_name,
+        third_very_long_argument_name,
+    ) {
+        3
+    }
+    if (
+        some_very_long_condition_name &&
+        another_very_long_condition_name &&
+        yet_another_very_long_condition_name
+    ) {
+        4
     }
 }

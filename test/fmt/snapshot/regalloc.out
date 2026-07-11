@@ -989,7 +989,8 @@ impl[T: RegisterType] RegisterTracker[T] {
                 let current_reg = self.locations.get(inst);
 
                 if current_reg.is_none() ||
-                    (current_reg is Some(current_reg) && reg != current_reg) {
+                    (current_reg is Some(current_reg) && reg != current_reg)
+                {
                     self.free.add(reg);
                     self.data.free(reg);
                 }

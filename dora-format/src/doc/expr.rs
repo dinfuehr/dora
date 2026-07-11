@@ -244,22 +244,26 @@ pub(crate) fn format_for(node: AstForExpr, f: &mut Formatter) {
 }
 
 pub(crate) fn format_if(node: AstIfExpr, f: &mut Formatter) {
-    let cond_is_paren = matches!(node.cond(), AstExpr::ParenExpr(_));
+    let cond_is_delimited = matches!(
+        node.cond(),
+        AstExpr::ParenExpr(_) | AstExpr::CallExpr(_) | AstExpr::MethodCallExpr(_)
+    );
 
     with_iter!(node, f, |iter, opt| {
         f.group(|f| {
             print_token(f, &mut iter, IF_KW, &opt);
-            if cond_is_paren {
+            if cond_is_delimited {
                 f.text(" ");
                 print_node::<AstExpr>(f, &mut iter, &opt);
+                f.text(" ");
             } else {
                 f.text(" ");
                 f.nest(BLOCK_INDENT, |f| {
                     print_node::<AstExpr>(f, &mut iter, &opt);
                 });
+                f.soft_line();
             }
         });
-        f.text(" ");
         print_node::<AstExpr>(f, &mut iter, &opt);
 
         if is_token(&mut iter, ELSE_KW) {

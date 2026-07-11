@@ -92,21 +92,24 @@ impl LoadEliminationPass {
 
         for (global, value) in first.global_values {
             if self.merge_global_value(block, global, value, predecessor_data)
-                is Some(merged) {
+                is Some(merged)
+            {
                 result.global_values.insert(global, merged);
             }
         }
 
         for (field, value) in first.class_field_infos {
             if self.merge_field_value(block, field, value, predecessor_data)
-                is Some(merged) {
+                is Some(merged)
+            {
                 result.class_field_infos.insert(field, merged);
             }
         }
 
         for (field, value) in first.immutable_values {
             if self.merge_immutable_value(block, field, value, predecessor_data)
-                is Some(merged) {
+                is Some(merged)
+            {
                 result.immutable_values.insert(field, merged);
             }
         }
