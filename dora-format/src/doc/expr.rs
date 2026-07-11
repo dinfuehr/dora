@@ -273,11 +273,13 @@ pub(crate) fn format_if(node: AstIfExpr, f: &mut Formatter) {
 
 pub(crate) fn format_is(node: AstIsExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
-        print_node::<AstExpr>(f, &mut iter, &opt);
-        f.text(" ");
-        print_token(f, &mut iter, IS_KW, &opt);
-        f.text(" ");
-        print_node::<AstPattern>(f, &mut iter, &opt);
+        f.group(|f| {
+            print_node::<AstExpr>(f, &mut iter, &opt);
+            f.soft_line();
+            print_token(f, &mut iter, IS_KW, &opt);
+            f.text(" ");
+            print_node::<AstPattern>(f, &mut iter, &opt);
+        });
     });
 }
 

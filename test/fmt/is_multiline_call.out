@@ -1,0 +1,12 @@
+fn main() {
+    if self.merge_global_value(
+            block,
+            global,
+            value,
+            predecessor_data,
+            additional_predecessor_data,
+        )
+        is Some(merged) {
+        merged;
+    }
+}

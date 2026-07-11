@@ -418,11 +418,8 @@ impl SimplificationPass {
     fn fold_checked_binary(op: Op, ty: Type, lhs: Int64, rhs: Int64): Option[Inst] {
         match ty {
             Type::Int32 => {
-                if fold_checked_int32(
-                        op,
-                        lhs.to_int32(),
-                        rhs.to_int32(),
-                    ) is Some(result) {
+                if fold_checked_int32(op, lhs.to_int32(), rhs.to_int32())
+                    is Some(result) {
                     Some[Inst](self.graph.ensure_const_int32_inst(result))
                 } else {
                     None[Inst]
