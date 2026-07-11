@@ -79,6 +79,7 @@ pub class BytecodeGraphBuilder {
     current_block: Option[Block],
     offset: Int32,
     blocks: Array[Option[Block]],
+    aggregate_registers: Array[Option[Inst]],
 
     entry_block: Option[Block],
     exit_block: Option[Block],
@@ -108,6 +109,10 @@ impl BytecodeGraphBuilder {
             current_block = None[Block],
             offset = 0i32,
             blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None[Block]),
+            aggregate_registers = Array[Option[Inst]]::fill(
+                fct.bc.registers.size(),
+                None[Inst],
+            ),
             entry_block = None[Block],
             exit_block = None[Block],
             return_value_arg_inst = None[Inst],
@@ -138,6 +143,10 @@ impl BytecodeGraphBuilder {
             current_block = None[Block],
             offset = 0i32,
             blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None[Block]),
+            aggregate_registers = Array[Option[Inst]]::fill(
+                fct.bc.registers.size(),
+                None[Inst],
+            ),
             entry_block = Some[Block](entry_block),
             exit_block = Some[Block](exit_block),
             return_value_arg_inst = None[Inst],
@@ -151,7 +160,11 @@ impl BytecodeGraphBuilder {
     }
 
     pub fn run_inline(call_inst: Inst) {
-        self.connect_arguments(self.entry_block.get_or_panic(), call_inst);
+        let entry_block = self.entry_block.get_or_panic();
+        self.current_block = Some[Block](entry_block);
+        self.setup_aggregate_registers(entry_block);
+        self.connect_arguments(entry_block, call_inst);
+        self.current_block = None[Block];
         self.connect_entry_block();
         self.emit_block_bodies();
     }
@@ -162,7 +175,9 @@ impl BytecodeGraphBuilder {
         entry_block.set_name("entry");
         self.graph.set_entry_block(entry_block);
 
+        self.current_block = Some[Block](entry_block);
         self.setup_arguments(entry_block);
+        self.current_block = None[Block];
         self.emit_safepoint(entry_block);
 
         let first = self.ensure_block_at(0);
@@ -177,6 +192,39 @@ impl BytecodeGraphBuilder {
         let inst = graph::create_goto_inst(first);
         entry_block.append_inst(inst);
         entry_block.add_successor(first);
+    }
+
+    fn setup_aggregate_registers(block: Block) {
+        let mut reg_idx = 0i32;
+
+        while reg_idx < self.bc.registers.size().to_int32() {
+            let ty = self.reg_id(reg_idx);
+
+            if cc::is_address_backed_aggregate(ty) && self.is_non_zero_type(ty) {
+                let layout = self.compute_aggregate_layout(ty);
+                let slot = graph::create_allocate_stack_inst(layout);
+                block.append_inst(slot);
+                self.aggregate_registers(reg_idx.to_int64()) = Some[Inst](slot);
+
+                if !layout.refs.is_empty() {
+                    let zero = graph::create_null_const();
+                    block.append_inst(zero);
+
+                    for offset in layout.refs {
+                        let store = graph::create_store_inst(
+                            slot,
+                            InstExtraData::None,
+                            offset,
+                            zero,
+                            Type::Ptr,
+                        );
+                        block.append_inst(store);
+                    }
+                }
+            }
+
+            reg_idx += 1i32;
+        }
     }
 
     fn setup_arguments(block: Block) {
@@ -220,25 +268,21 @@ impl BytecodeGraphBuilder {
             reg_idx += 1i32;
         }
 
+        self.setup_aggregate_registers(block);
+
         reg_idx = 0i32;
         while reg_idx < self.bc.arguments {
             if arguments(reg_idx.to_int64()) is Some(arg_inst) {
                 let ty = self.reg_id(reg_idx);
                 let passing_mode = cc::argument_passing_mode(self.ci, ty);
 
-                if cc::is_address_backed_aggregate(ty) &&
-                    passing_mode is ArgumentPassingMode::Register(register_ty)
-                {
-                    let value = self.allocate_stack_for_aggregate_argument(block, ty);
-                    let store = graph::create_store_inst(
-                        value,
-                        InstExtraData::None,
-                        0i32,
+                if cc::is_address_backed_aggregate(ty) {
+                    self.initialize_aggregate_argument(
+                        block,
+                        BytecodeRegister(reg_idx),
                         arg_inst,
-                        self.graph_ty(register_ty),
+                        passing_mode,
                     );
-                    block.append_inst(store);
-                    self.append_local_set(block, BytecodeRegister(reg_idx), value);
                 } else {
                     self.append_local_set(block, BytecodeRegister(reg_idx), arg_inst);
                 }
@@ -266,19 +310,13 @@ impl BytecodeGraphBuilder {
             if !(passing_mode is ArgumentPassingMode::None) {
                 let arg = call_inst.get_input(arg_idx).get_value();
 
-                if cc::is_address_backed_aggregate(ty) &&
-                    passing_mode is ArgumentPassingMode::Register(register_ty)
-                {
-                    let value = self.allocate_stack_for_aggregate_argument(block, ty);
-                    let store = graph::create_store_inst(
-                        value,
-                        InstExtraData::None,
-                        0i32,
+                if cc::is_address_backed_aggregate(ty) {
+                    self.initialize_aggregate_argument(
+                        block,
+                        BytecodeRegister(reg_idx),
                         arg,
-                        self.graph_ty(register_ty),
+                        passing_mode,
                     );
-                    block.append_inst(store);
-                    self.append_local_set(block, BytecodeRegister(reg_idx), value);
                 } else {
                     self.append_local_set(block, BytecodeRegister(reg_idx), arg);
                 }
@@ -289,17 +327,43 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn allocate_stack_for_aggregate_argument(block: Block, ty: BytecodeType): Inst {
-        let layout = match ty {
-            BytecodeType::Struct(struct_id, type_params) => {
-                self.compute_struct_layout(struct_id, type_params)
+    fn initialize_aggregate_argument(
+        block: Block,
+        register: BytecodeRegister,
+        argument: Inst,
+        passing_mode: ArgumentPassingMode,
+    ) {
+        let ty = self.reg(register);
+        let dest = self.aggregate_register(register);
+
+        match passing_mode {
+            ArgumentPassingMode::Register(register_ty) => {
+                let store = graph::create_store_inst(
+                    dest,
+                    InstExtraData::None,
+                    0i32,
+                    argument,
+                    self.graph_ty(register_ty),
+                );
+                block.append_inst(store);
             }
-            BytecodeType::Tuple(subtypes) => self.compute_tuple_layout(subtypes),
-            _ => unreachable[RecordLayout](),
-        };
-        let inst = graph::create_allocate_stack_inst(layout);
-        block.append_inst(inst);
-        inst
+            ArgumentPassingMode::Stack => {
+                if dest != argument {
+                    assert(self.current() == block);
+                    self.copy_field(
+                        ty,
+                        dest,
+                        InstExtraData::None,
+                        0i32,
+                        argument,
+                        InstExtraData::None,
+                        0i32,
+                        false,
+                    );
+                }
+            }
+            ArgumentPassingMode::None => unreachable[()](),
+        }
     }
 
     fn emit_block_bodies() {
@@ -359,6 +423,7 @@ impl BytecodeGraphBuilder {
 
     fn append_local_set(block: Block, register: BytecodeRegister, value: Inst) {
         assert(!self.reg(register).is_unit());
+        assert(!cc::is_address_backed_aggregate(self.reg(register)));
         assert(value.has_id());
         let inst = graph::create_local_set_inst(
             register.0,
@@ -369,11 +434,44 @@ impl BytecodeGraphBuilder {
     }
 
     fn emit_local_get(register: BytecodeRegister): Inst {
+        assert(!cc::is_address_backed_aggregate(self.reg(register)));
         let ty = self.reg_graph_ty(register);
         assert(!ty.is_unit());
         let inst = graph::create_local_get_inst(register.0, ty);
         self.current().append_inst(inst);
         inst
+    }
+
+    fn aggregate_register(register: BytecodeRegister): Inst {
+        self.aggregate_registers(register.0.to_int64()).get_or_panic()
+    }
+
+    fn register_value(register: BytecodeRegister): Inst {
+        if cc::is_address_backed_aggregate(self.reg(register)) {
+            self.aggregate_register(register)
+        } else {
+            self.emit_local_get(register)
+        }
+    }
+
+    fn copy_aggregate_register(dest: BytecodeRegister, src: BytecodeRegister) {
+        let ty = self.reg(src);
+        assert(cc::is_address_backed_aggregate(ty));
+        let dest = self.aggregate_register(dest);
+        let src = self.aggregate_register(src);
+
+        if dest != src {
+            self.copy_field(
+                ty,
+                dest,
+                InstExtraData::None,
+                0i32,
+                src,
+                InstExtraData::None,
+                0i32,
+                false,
+            );
+        }
     }
 
     fn process_instruction(start: Int64, size: Int64, inst: BytecodeInstruction): Bool {
@@ -735,44 +833,36 @@ impl BytecodeGraphBuilder {
                         type_params,
                         field_id,
                     );
-                    let value = self.load_field(dest_type, obj_inst, info, offset);
-                    self.emit_local_set(dest, value);
+                    self.load_field_into(dest, obj_inst, info, offset);
                 }
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                 if self.is_non_zero_type(dest_type) {
-                    let src_inst = self.emit_local_get(obj);
+                    let src_inst = self.aggregate_register(obj);
                     let struct_layout = self.compute_struct_layout(
                         struct_id,
                         type_params,
                     );
                     let field = struct_layout.fields(field_id.0.to_int64());
 
-                    let inst = self.load_field(
-                        dest_type,
+                    self.load_field_into(
+                        dest,
                         src_inst,
                         InstExtraData::None,
                         field.offset,
                     );
-                    self.emit_local_set(dest, inst);
                 }
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
                 if self.is_non_zero_type(dest_type) {
-                    let src_inst = self.emit_local_get(obj);
+                    let src_inst = self.aggregate_register(obj);
 
                     assert(tuple_ty.is_tuple());
                     let BytecodeType::Tuple(subtypes) = tuple_ty;
                     let tuple_layout = self.compute_tuple_layout(subtypes);
                     let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
 
-                    let inst = self.load_field(
-                        dest_type,
-                        src_inst,
-                        InstExtraData::None,
-                        offset,
-                    );
-                    self.emit_local_set(dest, inst);
+                    self.load_field_into(dest, src_inst, InstExtraData::None, offset);
                 }
             }
             _ => unreachable[()](),
@@ -787,7 +877,7 @@ impl BytecodeGraphBuilder {
                 let type_params = self.specialize_array(type_params);
 
                 if self.is_non_zero_type(src_type) {
-                    let src_inst = self.emit_local_get(src);
+                    let src_inst = self.register_value(src);
                     let obj_inst = self.emit_local_get(obj);
 
                     let offset = iface::get_field_offset(
@@ -803,8 +893,8 @@ impl BytecodeGraphBuilder {
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                 if self.is_non_zero_type(src_type) {
-                    let src_inst = self.emit_local_get(src);
-                    let obj_inst = self.emit_local_get(obj);
+                    let src_inst = self.register_value(src);
+                    let obj_inst = self.aggregate_register(obj);
                     let struct_layout = self.compute_struct_layout(
                         struct_id,
                         type_params,
@@ -823,8 +913,8 @@ impl BytecodeGraphBuilder {
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
                 if self.is_non_zero_type(src_type) {
-                    let src_inst = self.emit_local_get(src);
-                    let obj_inst = self.emit_local_get(obj);
+                    let src_inst = self.register_value(src);
+                    let obj_inst = self.aggregate_register(obj);
 
                     assert(tuple_ty.is_tuple());
                     let BytecodeType::Tuple(subtypes) = tuple_ty;
@@ -850,7 +940,7 @@ impl BytecodeGraphBuilder {
         obj: BytecodeRegister,
         idx: ConstPoolId,
     ) {
-        let obj_inst = self.emit_local_get(obj);
+        let obj_inst = self.register_value(obj);
 
         match self.bc.const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
@@ -914,7 +1004,7 @@ impl BytecodeGraphBuilder {
             return;
         }
 
-        let src_inst = self.emit_local_get(src);
+        let src_inst = self.register_value(src);
         let address_inst = self.emit_local_get(address);
 
         self.store_field(
@@ -934,8 +1024,7 @@ impl BytecodeGraphBuilder {
         }
 
         let address_inst = self.emit_local_get(address);
-        let value = self.load_field(dest_type, address_inst, InstExtraData::None, 0i32);
-        self.emit_local_set(dest, value);
+        self.load_field_into(dest, address_inst, InstExtraData::None, 0i32);
     }
 
     fn emit_get_field_ref(
@@ -943,7 +1032,7 @@ impl BytecodeGraphBuilder {
         obj: BytecodeRegister,
         idx: ConstPoolId,
     ) {
-        let obj_inst = self.emit_local_get(obj);
+        let obj_inst = self.register_value(obj);
 
         match self.bc.const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
@@ -1007,7 +1096,7 @@ impl BytecodeGraphBuilder {
             return;
         }
 
-        let src_inst = self.emit_local_get(src);
+        let src_inst = self.register_value(src);
         let ref_inst = self.emit_local_get(reference);
 
         self.store_field(src_type, ref_inst, InstExtraData::None, 0i32, src_inst, false);
@@ -1020,8 +1109,7 @@ impl BytecodeGraphBuilder {
         }
 
         let ref_inst = self.emit_local_get(reference);
-        let value = self.load_field(dest_type, ref_inst, InstExtraData::None, 0i32);
-        self.emit_local_set(dest, value);
+        self.load_field_into(dest, ref_inst, InstExtraData::None, 0i32);
     }
 
     fn emit_get_ref(dest: BytecodeRegister, src: BytecodeRegister) {
@@ -1127,14 +1215,7 @@ impl BytecodeGraphBuilder {
                         variant_id,
                         field_id,
                     );
-                    let result = self.load_field(
-                        dest_ty,
-                        src,
-                        InstExtraData::None,
-                        offset,
-                    );
-
-                    self.emit_local_set(dest, result);
+                    self.load_field_into(dest, src, InstExtraData::None, offset);
                 }
             }
         }
@@ -1286,8 +1367,12 @@ impl BytecodeGraphBuilder {
         let ty = self.reg(src);
 
         if self.is_non_zero_type(ty) {
-            let src_inst = self.emit_local_get(src);
-            self.emit_local_set(dest, src_inst);
+            if cc::is_address_backed_aggregate(ty) {
+                self.copy_aggregate_register(dest, src);
+            } else {
+                let src_inst = self.emit_local_get(src);
+                self.emit_local_set(dest, src_inst);
+            }
         }
     }
 
@@ -1306,8 +1391,7 @@ impl BytecodeGraphBuilder {
         }
 
         if self.is_non_zero_type(dest_type) {
-            let value = self.load_global(dest_type, glob);
-            self.emit_local_set(dest, value);
+            self.load_global_into(dest, glob);
         }
     }
 
@@ -1315,7 +1399,7 @@ impl BytecodeGraphBuilder {
         let src_type = self.reg(src);
 
         if self.is_non_zero_type(src_type) {
-            let src_inst = self.emit_local_get(src);
+            let src_inst = self.register_value(src);
             self.store_global(src_type, glob, src_inst);
         }
 
@@ -1434,8 +1518,7 @@ impl BytecodeGraphBuilder {
         let dest_ty = self.reg(dest);
 
         if self.is_non_zero_type(dest_ty) {
-            let result = self.load_array(dest_ty, arr_inst, idx_inst);
-            self.emit_local_set(dest, result);
+            self.load_array_into(dest, arr_inst, idx_inst);
         }
     }
 
@@ -1458,7 +1541,7 @@ impl BytecodeGraphBuilder {
 
         let src_type = self.reg(src);
         if self.is_non_zero_type(src_type) {
-            let src_inst = self.emit_local_get(src);
+            let src_inst = self.register_value(src);
             self.store_array(src_type, arr_inst, idx_inst, src_inst);
         }
     }
@@ -1481,8 +1564,7 @@ impl BytecodeGraphBuilder {
 
         if self.is_non_zero_type(ty) {
             let offset = iface::OBJECT_HEADER_LENGTH;
-            let value = self.load_field(ty, src_inst, InstExtraData::None, offset);
-            self.emit_local_set(dest, value);
+            self.load_field_into(dest, src_inst, InstExtraData::None, offset);
         }
     }
 
@@ -1534,9 +1616,9 @@ impl BytecodeGraphBuilder {
         register_ty: BytecodeType,
     ): Inst {
         let register_ty = self.graph_ty(register_ty);
-        let value = self.emit_local_get(opnd);
 
         if cc::is_address_backed_aggregate(self.reg(opnd)) {
+            let value = self.aggregate_register(opnd);
             let loaded = graph::create_load_inst(
                 value,
                 0i32,
@@ -1547,12 +1629,12 @@ impl BytecodeGraphBuilder {
             self.current().append_inst(loaded);
             loaded
         } else {
-            value
+            self.emit_local_get(opnd)
         }
     }
 
     fn copy_return_value_to_stack(opnd: BytecodeRegister, ty: BytecodeType) {
-        let src = self.emit_local_get(opnd);
+        let src = self.aggregate_register(opnd);
         let dest = self.return_value_arg_inst.get_or_panic();
         self.copy_field(
             ty,
@@ -1641,10 +1723,8 @@ impl BytecodeGraphBuilder {
             ArgumentPassingMode::None | ArgumentPassingMode::Stack => Type::Unit,
             ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
         };
-        let return_stack_space = self.prepare_return_stack_space(dest_ty, passing_mode);
-
-        if return_stack_space is Some(inst) {
-            args.push(inst);
+        if passing_mode is ArgumentPassingMode::Stack {
+            args.push(self.aggregate_register(dest));
         }
 
         for reg in arguments {
@@ -1661,14 +1741,7 @@ impl BytecodeGraphBuilder {
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
 
-        self.store_call_result(
-            dest,
-            dest_ty,
-            passing_mode,
-            return_stack_space,
-            inst,
-            return_ty,
-        );
+        self.store_call_result(dest, dest_ty, passing_mode, inst, return_ty);
 
         self.add_to_inlinable_calls(fct_id, inst);
     }
@@ -1710,10 +1783,8 @@ impl BytecodeGraphBuilder {
             ArgumentPassingMode::None | ArgumentPassingMode::Stack => Type::Unit,
             ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
         };
-        let return_stack_space = self.prepare_return_stack_space(dest_ty, passing_mode);
-
-        if return_stack_space is Some(inst) {
-            args.push(inst);
+        if passing_mode is ArgumentPassingMode::Stack {
+            args.push(self.aggregate_register(dest));
         }
 
         let receiver_is_first = args.size() == 0;
@@ -1760,68 +1831,32 @@ impl BytecodeGraphBuilder {
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
 
-        self.store_call_result(
-            dest,
-            dest_ty,
-            passing_mode,
-            return_stack_space,
-            inst,
-            return_ty,
-        );
+        self.store_call_result(dest, dest_ty, passing_mode, inst, return_ty);
     }
 
     fn prepare_call_argument(reg: BytecodeRegister): Option[Inst] {
         let bytecode_ty = self.reg(reg);
         match cc::argument_passing_mode(self.ci, bytecode_ty) {
             ArgumentPassingMode::None => None[Inst],
-            ArgumentPassingMode::Stack => Some[Inst](self.emit_local_get(reg)),
+            ArgumentPassingMode::Stack => Some[Inst](self.aggregate_register(reg)),
             ArgumentPassingMode::Register(register_ty) => {
                 let register_ty = self.graph_ty(register_ty);
-                let mut arg = self.emit_local_get(reg);
-                if arg.get_value_type() == Type::Address {
-                    arg =
-                    graph::create_load_inst(
-                        arg,
+                let arg = if cc::is_address_backed_aggregate(bytecode_ty) {
+                    let address = self.aggregate_register(reg);
+                    let arg = graph::create_load_inst(
+                        address,
                         0i32,
                         InstExtraData::None,
                         register_ty,
                         false,
                     );
                     self.current().append_inst(arg);
-                }
+                    arg
+                } else {
+                    self.emit_local_get(reg)
+                };
                 Some[Inst](arg)
             }
-        }
-    }
-
-    fn prepare_return_stack_space(
-        dest_ty: BytecodeType,
-        passing_mode: ArgumentPassingMode,
-    ): Option[Inst] {
-        if passing_mode is ArgumentPassingMode::Stack {
-            let layout = self.compute_return_value_layout(dest_ty);
-            let alloc_inst = graph::create_allocate_stack_inst(layout);
-            self.current().append_inst(alloc_inst);
-
-            if layout.refs.size() > 0 {
-                let zero = graph::create_null_const();
-                self.current().append_inst(zero);
-
-                for ref_ in layout.refs {
-                    let inst = graph::create_store_inst(
-                        alloc_inst,
-                        InstExtraData::None,
-                        ref_,
-                        zero,
-                        Type::Ptr,
-                    );
-                    self.current().append_inst(inst);
-                }
-            };
-
-            Some[Inst](alloc_inst)
-        } else {
-            None[Inst]
         }
     }
 
@@ -1829,7 +1864,6 @@ impl BytecodeGraphBuilder {
         dest: BytecodeRegister,
         dest_ty: BytecodeType,
         passing_mode: ArgumentPassingMode,
-        return_stack_space: Option[Inst],
         result: Inst,
         result_ty: Type,
     ) {
@@ -1837,37 +1871,20 @@ impl BytecodeGraphBuilder {
             ArgumentPassingMode::None => {}
             ArgumentPassingMode::Register(_) => {
                 if cc::is_address_backed_aggregate(dest_ty) {
-                    let layout = self.compute_return_value_layout(dest_ty);
-                    let return_alloc_inst = graph::create_allocate_stack_inst(layout);
-                    self.current().append_inst(return_alloc_inst);
+                    let dest = self.aggregate_register(dest);
                     let store = graph::create_store_inst(
-                        return_alloc_inst,
+                        dest,
                         InstExtraData::None,
                         0i32,
                         result,
                         result_ty,
                     );
                     self.current().append_inst(store);
-                    self.emit_local_set(dest, return_alloc_inst);
                 } else {
                     self.emit_local_set(dest, result);
                 }
             }
-            ArgumentPassingMode::Stack => {
-                self.emit_local_set(dest, return_stack_space.get_or_panic());
-            }
-        }
-    }
-
-    fn compute_return_value_layout(dest_ty: BytecodeType): RecordLayout {
-        match dest_ty {
-            BytecodeType::Struct(struct_id, type_params) => {
-                self.compute_struct_layout(struct_id, type_params)
-            }
-
-            BytecodeType::Tuple(subtypes) => self.compute_tuple_layout(subtypes),
-
-            _ => unreachable[RecordLayout](),
+            ArgumentPassingMode::Stack => {}
         }
     }
 
@@ -2911,14 +2928,11 @@ impl BytecodeGraphBuilder {
         let ty = self.reg(dest);
         let BytecodeType::Tuple(subtypes) = ty;
         let layout = self.compute_tuple_layout(subtypes);
-
-        let alloc_inst = graph::create_allocate_stack_inst(layout);
-        self.current().append_inst(alloc_inst);
-        self.emit_local_set(dest, alloc_inst);
+        let dest = self.aggregate_register(dest);
 
         self.store_field(
             layout.fields(0).ty,
-            alloc_inst,
+            dest,
             InstExtraData::None,
             layout.fields(0).offset,
             value_inst,
@@ -2926,7 +2940,7 @@ impl BytecodeGraphBuilder {
         );
         self.store_field(
             layout.fields(1).ty,
-            alloc_inst,
+            dest,
             InstExtraData::None,
             layout.fields(1).offset,
             overflow_inst,
@@ -3133,7 +3147,7 @@ impl BytecodeGraphBuilder {
             let arg_ty = self.reg(reg);
 
             if self.is_non_zero_type(arg_ty) {
-                let arg = self.emit_local_get(reg);
+                let arg = self.register_value(reg);
 
                 let offset = iface::get_field_offset(
                     self.ci,
@@ -3169,7 +3183,7 @@ impl BytecodeGraphBuilder {
         if !arguments.is_empty() {
             assert(arguments.size() == 1);
             let reg = arguments(0);
-            let arg = self.emit_local_get(reg);
+            let arg = self.register_value(reg);
             let arg_ty = self.reg(reg);
 
             let offset = iface::OBJECT_HEADER_LENGTH;
@@ -3198,7 +3212,7 @@ impl BytecodeGraphBuilder {
         let arg_ty = self.reg(obj);
 
         if self.is_non_zero_type(arg_ty) {
-            let arg = self.emit_local_get(obj);
+            let arg = self.register_value(obj);
             let offset = iface::OBJECT_HEADER_LENGTH;
             self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
         }
@@ -3220,10 +3234,7 @@ impl BytecodeGraphBuilder {
 
         let layout = self.compute_struct_layout(struct_id, type_params);
 
-        let alloc_inst = graph::create_allocate_stack_inst(layout);
-        self.current().append_inst(alloc_inst);
-
-        self.emit_local_set(dest, alloc_inst);
+        let dest = self.aggregate_register(dest);
         let mut field_id = 0i32;
 
         assert(layout.fields.size() == arguments.size());
@@ -3236,9 +3247,9 @@ impl BytecodeGraphBuilder {
 
             if self.is_non_zero_type(ty) {
                 let field = layout.fields(idx);
-                let arg = self.emit_local_get(reg);
+                let arg = self.register_value(reg);
 
-                self.store_field(field.ty, alloc_inst, info, field.offset, arg, false);
+                self.store_field(field.ty, dest, info, field.offset, arg, false);
             }
 
             field_id += 1i32;
@@ -3273,7 +3284,7 @@ impl BytecodeGraphBuilder {
                 } else {
                     assert(arguments.size() == 1);
                     let reg = arguments(0);
-                    let src = self.emit_local_get(reg);
+                    let src = self.register_value(reg);
                     self.emit_local_set(dest, src);
                 }
             }
@@ -3314,7 +3325,7 @@ impl BytecodeGraphBuilder {
                     let arg_ty = self.reg(reg);
 
                     if self.is_non_zero_type(arg_ty) {
-                        let arg = self.emit_local_get(reg);
+                        let arg = self.register_value(reg);
                         let offset = iface::get_field_offset_for_enum_variant(
                             self.ci,
                             enum_id,
@@ -3351,10 +3362,7 @@ impl BytecodeGraphBuilder {
 
         let layout = self.compute_tuple_layout(subtypes);
 
-        let alloc_inst = graph::create_allocate_stack_inst(layout);
-        self.current().append_inst(alloc_inst);
-
-        self.emit_local_set(dest, alloc_inst);
+        let dest = self.aggregate_register(dest);
         let mut reg_idx = 0;
 
         for field in layout.fields {
@@ -3366,10 +3374,10 @@ impl BytecodeGraphBuilder {
                     continue;
                 }
 
-                let arg = self.emit_local_get(reg);
+                let arg = self.register_value(reg);
                 self.store_field(
                     field.ty,
-                    alloc_inst,
+                    dest,
                     InstExtraData::None,
                     field.offset,
                     arg,
@@ -3451,17 +3459,15 @@ impl BytecodeGraphBuilder {
         self.emit_local_set(dest, obj_inst);
     }
 
-    fn load_global(ty: BytecodeType, id: GlobalId): Inst {
-        if ty is BytecodeType::Struct(struct_id, type_params) {
-            let layout = self.compute_struct_layout(struct_id, type_params);
+    fn load_global_into(dest: BytecodeRegister, id: GlobalId) {
+        let ty = self.reg(dest);
 
-            let dest = graph::create_allocate_stack_inst(layout);
-            self.current().append_inst(dest);
+        if cc::is_address_backed_aggregate(ty) {
             let src = graph::create_get_global_address_inst(id);
             self.current().append_inst(src);
-            self.copy_struct(
+            self.copy_field(
                 ty,
-                dest,
+                self.aggregate_register(dest),
                 InstExtraData::None,
                 0i32,
                 src,
@@ -3469,31 +3475,11 @@ impl BytecodeGraphBuilder {
                 0i32,
                 false,
             );
-            dest
-        } else if ty is BytecodeType::Tuple(subtypes) {
-            let layout = self.compute_tuple_layout(subtypes);
-
-            let dest = graph::create_allocate_stack_inst(layout);
-            self.current().append_inst(dest);
-            let src = graph::create_get_global_address_inst(id);
-            self.current().append_inst(src);
-            self.copy_tuple(
-                ty,
-                dest,
-                InstExtraData::None,
-                0i32,
-                src,
-                InstExtraData::None,
-                0i32,
-                false,
-            );
-
-            dest
         } else {
             let ty = self.graph_ty(ty);
             let inst = graph::create_load_global_inst(ty, id);
             self.current().append_inst(inst);
-            inst
+            self.emit_local_set(dest, inst);
         }
     }
 
@@ -3536,20 +3522,18 @@ impl BytecodeGraphBuilder {
         }
     }
 
-    fn load_field(
-        ty: BytecodeType,
+    fn load_field_into(
+        dest: BytecodeRegister,
         src: Inst,
         src_info: InstExtraData,
         src_offset: Int32,
-    ): Inst {
-        if ty is BytecodeType::Struct(struct_id, type_params) {
-            let layout = self.compute_struct_layout(struct_id, type_params);
+    ) {
+        let ty = self.reg(dest);
 
-            let dest = graph::create_allocate_stack_inst(layout);
-            self.current().append_inst(dest);
-            self.copy_struct(
+        if cc::is_address_backed_aggregate(ty) {
+            self.copy_field(
                 ty,
-                dest,
+                self.aggregate_register(dest),
                 InstExtraData::None,
                 0i32,
                 src,
@@ -3557,49 +3541,29 @@ impl BytecodeGraphBuilder {
                 src_offset,
                 false,
             );
-            dest
-        } else if ty is BytecodeType::Tuple(subtypes) {
-            let layout = self.compute_tuple_layout(subtypes);
-
-            let dest = graph::create_allocate_stack_inst(layout);
-            self.current().append_inst(dest);
-            self.copy_tuple(
-                ty,
-                dest,
-                InstExtraData::None,
-                0i32,
-                src,
-                src_info,
-                src_offset,
-                false,
-            );
-            dest
         } else {
             let ty = self.graph_ty(ty);
             assert(!ty.is_unit());
             let inst = graph::create_load_inst(src, src_offset, src_info, ty, false);
             self.current().append_inst(inst);
-            inst
+            self.emit_local_set(dest, inst);
         }
     }
 
-    fn load_array(ty: BytecodeType, arr: Inst, index: Inst): Inst {
-        if ty is BytecodeType::Struct(struct_id, type_params) {
-            let layout = self.compute_struct_layout(struct_id, type_params);
+    fn load_array_into(dest: BytecodeRegister, arr: Inst, index: Inst) {
+        let ty = self.reg(dest);
 
-            let dest = graph::create_allocate_stack_inst(layout);
-            self.current().append_inst(dest);
-
+        if cc::is_address_backed_aggregate(ty) {
+            let layout = self.compute_aggregate_layout(ty);
             let src = graph::create_get_element_ptr_inst(
                 arr,
                 index,
                 layout.size.to_int64(),
             );
             self.current().append_inst(src);
-
-            self.copy_struct(
+            self.copy_field(
                 ty,
-                dest,
+                self.aggregate_register(dest),
                 InstExtraData::None,
                 0i32,
                 src,
@@ -3607,36 +3571,12 @@ impl BytecodeGraphBuilder {
                 0i32,
                 false,
             );
-            dest
-        } else if ty is BytecodeType::Tuple(subtypes) {
-            let layout = self.compute_tuple_layout(subtypes);
-            let dest = graph::create_allocate_stack_inst(layout);
-            self.current().append_inst(dest);
-
-            let src = graph::create_get_element_ptr_inst(
-                arr,
-                index,
-                layout.size.to_int64(),
-            );
-            self.current().append_inst(src);
-
-            self.copy_tuple(
-                ty,
-                dest,
-                InstExtraData::None,
-                0i32,
-                src,
-                InstExtraData::None,
-                0i32,
-                false,
-            );
-            dest
         } else {
             let ty = self.graph_ty(ty);
             assert(!ty.is_unit());
             let inst = graph::create_load_array_inst(arr, index, ty);
             self.current().append_inst(inst);
-            inst
+            self.emit_local_set(dest, inst);
         }
     }
 
@@ -3922,6 +3862,16 @@ impl BytecodeGraphBuilder {
                 src_offset + field.offset,
                 heap,
             );
+        }
+    }
+
+    fn compute_aggregate_layout(ty: BytecodeType): RecordLayout {
+        match ty {
+            BytecodeType::Struct(struct_id, type_params) => {
+                self.compute_struct_layout(struct_id, type_params)
+            }
+            BytecodeType::Tuple(subtypes) => self.compute_tuple_layout(subtypes),
+            _ => unreachable[RecordLayout](),
         }
     }
 

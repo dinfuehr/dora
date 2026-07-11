@@ -8,6 +8,13 @@ fn main() {
     assert(y.second);
     assert(x.first == "another string");
     assert(!x.second);
+
+    let mut copy = Pair(first = "placeholder", second = false);
+    copy = x;
+    copy.first = "changed";
+    copy.second = true;
+    assert(x.first == "another string");
+    assert(!x.second);
 }
 
 struct Pair { first: String, second: Bool }

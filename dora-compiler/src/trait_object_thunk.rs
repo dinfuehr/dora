@@ -34,7 +34,7 @@ pub fn generate_bytecode_for_thunk(
         w.add_register(register_ty(param_ty));
     }
 
-    w.set_arguments(program_trait_fct.params.len() as u32 + 1);
+    w.set_arguments(program_trait_fct.params.len() as u32);
 
     let actual_ty = register_ty(actual_ty.clone());
     let new_self_reg = w.add_register(actual_ty);

@@ -8,4 +8,11 @@ fn main() {
     assert(y.1);
     assert(x.0 == "another string");
     assert(!x.1);
+
+    let mut copy = ("placeholder", false);
+    copy = x;
+    copy.0 = "changed";
+    copy.1 = true;
+    assert(x.0 == "another string");
+    assert(!x.1);
 }

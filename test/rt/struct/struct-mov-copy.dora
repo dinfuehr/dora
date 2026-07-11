@@ -1,0 +1,14 @@
+struct Pair { first: Int64, second: Int64 }
+
+fn main() {
+    let source = Pair(first = 10, second = 20);
+    let mut destination = Pair(first = 0, second = 0);
+
+    destination = source;
+    destination.first = 30;
+
+    assert(source.first == 10);
+    assert(source.second == 20);
+    assert(destination.first == 30);
+    assert(destination.second == 20);
+}

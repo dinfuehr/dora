@@ -155,8 +155,9 @@ fn struct_overwrite(first: Int, second: Int): Int {
     cell.value
 }
 
-// CHECK: Store.Int64(0)
-// CHECK-NOT: Store.Int64(0)
+// CHECK: [[STRUCT_ADDR:%\d+]]: Add.Address
+// CHECK: Store.Int64(0) [[STRUCT_ADDR]]
+// CHECK-NOT: Store.Int64(0) [[STRUCT_ADDR]]
 // CHECK: Function struct_other_overwrite: final
 
 fn struct_other_overwrite(first: Int, second: Int): Int {
@@ -179,8 +180,9 @@ fn tuple_overwrite(first: Int, second: Int): Int {
     value.0
 }
 
-// CHECK: Store.Int64(0)
-// CHECK-NOT: Store.Int64(0)
+// CHECK: [[TUPLE_ADDR:%\d+]]: Add.Address
+// CHECK: Store.Int64(0) [[TUPLE_ADDR]]
+// CHECK-NOT: Store.Int64(0) [[TUPLE_ADDR]]
 // CHECK: Function global_overwrite: final
 
 fn global_overwrite(first: Int, second: Int): Int {

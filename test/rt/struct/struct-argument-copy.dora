@@ -1,0 +1,17 @@
+struct Pair { first: Int64, second: Int64 }
+
+@NeverInline
+fn mutate(mut value: Pair) {
+    value.first = 30;
+    assert(value.first == 30);
+    assert(value.second == 20);
+}
+
+fn main() {
+    let source = Pair(first = 10, second = 20);
+
+    mutate(source);
+
+    assert(source.first == 10);
+    assert(source.second == 20);
+}
