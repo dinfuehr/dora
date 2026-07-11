@@ -114,7 +114,7 @@ def main(argv: list[str]) -> int:
         )
 
         run(["uv", "run", "--script", "tools/bytecode-gen.py", "--check"])
-        run(["tools/format", "--check"])
+        run(["uv", "run", "--script", "tools/format", "--check"])
         run(["cargo", "fmt", "--check"])
         run(["cargo", "build", *release_args])
         run(
