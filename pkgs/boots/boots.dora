@@ -29,6 +29,7 @@ use package::store_elimination::perform_store_elimination;
 mod assembler;
 mod bytecode;
 mod bytecode_graph_builder;
+mod calling_convention;
 mod cfg_simplification;
 mod codegen;
 mod compilation;

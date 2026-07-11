@@ -8,6 +8,7 @@ mod abi;
 mod aot;
 mod aot_compile;
 mod assembly;
+mod calling_convention;
 mod closure;
 pub mod cpu;
 pub mod dora_entry_trampoline;
@@ -50,6 +51,7 @@ pub use aot_compile::{
     CompilerInvocation, compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
 };
 pub use assembly::{AotAssemblyKind, write_assembly};
+pub use calling_convention::{ArgumentPassingMode, argument_passing_mode};
 pub use closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
 pub use extensions::block_matches_ty_in_program;
 pub use impls::{

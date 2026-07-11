@@ -1,0 +1,154 @@
+struct IntBox(Int64)
+
+struct FloatBox(Float64)
+
+struct BoolBox(Bool)
+
+struct RefBox(Payload)
+
+struct Box[T](T)
+
+struct Nested(IntBox)
+
+class Payload(Int64)
+
+let global_int_box: IntBox = IntBox(101);
+let global_float_box: FloatBox = FloatBox(102.5);
+let global_ref_box: RefBox = RefBox(Payload(103));
+
+fn pass_int(
+    a0: Int64,
+    a1: Int64,
+    a2: Int64,
+    a3: Int64,
+    a4: Int64,
+    a5: Int64,
+    a6: Int64,
+    a7: Int64,
+    value: IntBox,
+    control: Int64,
+): IntBox {
+    assert(a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 == 36);
+    assert(control == 99);
+    value
+}
+
+fn pass_float(
+    a0: Float64,
+    a1: Float64,
+    a2: Float64,
+    a3: Float64,
+    a4: Float64,
+    a5: Float64,
+    a6: Float64,
+    a7: Float64,
+    value: FloatBox,
+    control: Int64,
+): FloatBox {
+    assert(a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 == 36.0);
+    assert(control == 199);
+    value
+}
+
+fn pass_tuple(value: (Int64)): (Int64) {
+    value
+}
+
+fn pass_generic[T](value: Box[T]): Box[T] {
+    value
+}
+
+fn pass_nested(value: Nested): Nested {
+    value
+}
+
+fn pass_bool(value: BoolBox): BoolBox {
+    value
+}
+
+fn pass_ref(value: RefBox): RefBox {
+    value
+}
+
+@NeverInline
+fn preserve_late_reference(
+    first: IntBox,
+    second: BoolBox,
+    third: IntBox,
+    payload: Payload,
+): Payload {
+    assert(first.0 == 73);
+    assert(second.0);
+    assert(third.0 == 74);
+    std::force_collect();
+    payload
+}
+
+trait Transform {
+    fn transform(value: FloatBox): FloatBox;
+}
+
+class Transformer
+
+impl Transform for Transformer {
+    fn transform(value: FloatBox): FloatBox {
+        FloatBox(value.0 + 1.0)
+    }
+}
+
+fn invoke_virtual(transformer: Transform, value: FloatBox): FloatBox {
+    transformer.transform(value)
+}
+
+fn main() {
+    assert(global_int_box.0 == 101);
+    assert(global_float_box.0 == 102.5);
+    let global_payload = global_ref_box.0;
+    assert(global_payload.0 == 103);
+
+    let int_box = pass_int(1, 2, 3, 4, 5, 6, 7, 8, IntBox(42), 99);
+    assert(int_box.0 == 42);
+
+    let float_box = pass_float(
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        FloatBox(42.5),
+        199,
+    );
+    assert(float_box.0 == 42.5);
+
+    assert(pass_tuple((51,)).0 == 51);
+    assert(pass_generic[Int64](Box[Int64](61)).0 == 61);
+    assert(pass_generic[Float64](Box[Float64](62.5)).0 == 62.5);
+    let nested = pass_nested(Nested(IntBox(71)));
+    let nested_value = nested.0;
+    assert(nested_value.0 == 71);
+    assert(pass_bool(BoolBox(true)).0);
+
+    let ref_box = pass_ref(RefBox(Payload(72)));
+    std::force_collect();
+    let payload = ref_box.0;
+    assert(payload.0 == 72);
+
+    let preserved = preserve_late_reference(
+        IntBox(73),
+        BoolBox(true),
+        IntBox(74),
+        Payload(75),
+    );
+    assert(preserved.0 == 75);
+
+    let lambda = |value: IntBox|: IntBox {
+        IntBox(value.0 + 1)
+    };
+    assert(lambda(IntBox(81)).0 == 82);
+
+    let transformer = Transformer();
+    assert(invoke_virtual(transformer as Transform, FloatBox(91.5)).0 == 92.5);
+}

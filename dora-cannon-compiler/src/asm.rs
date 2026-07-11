@@ -1,6 +1,6 @@
 use std::mem;
 
-use crate::codegen::{RegOrOffset, result_passed_as_argument, result_reg_mode};
+use crate::codegen::{RegOrOffset, result_reg_mode};
 use crate::masm::{CondCode, JumpTable, Label, MacroAssembler, Mem, ScratchReg};
 use dora_bytecode::{
     BytecodeType, BytecodeTypeArray, ConstPoolIdx, FunctionId, GlobalId, Location, Program,
@@ -10,9 +10,10 @@ use dora_compiler::cpu::{
     FREG_RESULT, REG_PARAMS, REG_RESULT, REG_SP, REG_THREAD, REG_TMP1, STACK_FRAME_ALIGNMENT,
 };
 use dora_compiler::{
-    AllocationSize, AnyReg, AotLayout, AotShapeKey, CodeDescriptor, FReg, GLOBAL_INITIALIZED,
-    GcPoint, Header, LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, MachineMode, REMEMBERED_BIT_SHIFT,
-    Reg, RuntimeFunction, ThreadLocalData, Trap, align_i32,
+    AllocationSize, AnyReg, AotLayout, AotShapeKey, ArgumentPassingMode, CodeDescriptor, FReg,
+    GLOBAL_INITIALIZED, GcPoint, Header, LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, MachineMode,
+    REMEMBERED_BIT_SHIFT, Reg, RuntimeFunction, ThreadLocalData, Trap, align_i32,
+    argument_passing_mode,
 };
 
 pub struct BaselineAssembler<'a> {
@@ -1518,11 +1519,21 @@ impl<'a> BaselineAssembler<'a> {
         let ty = self.program.global(global_id).ty.clone();
         let ty_size = align_i32(self.layout.size(ty.clone()), STACK_FRAME_ALIGNMENT as i32);
 
-        let store_result_on_stack = result_passed_as_argument(ty.clone());
+        let passing_mode = argument_passing_mode(self.program, &ty);
+        let mut return_mode = None;
+        let mut result_reg = REG_RESULT.into();
 
-        if store_result_on_stack {
-            self.increase_stack_frame(ty_size);
-            self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_SP);
+        match &passing_mode {
+            ArgumentPassingMode::None => {}
+            ArgumentPassingMode::Register(register_ty) => {
+                let mode = self.mode(register_ty.clone());
+                return_mode = Some(mode);
+                result_reg = result_reg_mode(mode);
+            }
+            ArgumentPassingMode::Stack => {
+                self.increase_stack_frame(ty_size);
+                self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_SP);
+            }
         }
 
         self.direct_call(
@@ -1530,23 +1541,27 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeTypeArray::empty(),
             location,
             gcpoint,
-            None,
-            REG_RESULT.into(),
+            return_mode,
+            result_reg,
         );
 
         self.load_global_value_address(REG_TMP1, global_id);
 
-        if store_result_on_stack {
-            self.copy_bytecode_ty(
-                ty.clone(),
-                RegOrOffset::Reg(REG_TMP1),
-                RegOrOffset::Reg(REG_SP),
-            );
-            self.decrease_stack_frame(ty_size);
-        } else if !ty.is_unit() {
-            let ty_mode = self.mode(ty.clone());
-            self.masm
-                .store_mem(ty_mode, Mem::Base(REG_TMP1, 0), result_reg_mode(ty_mode));
+        match passing_mode {
+            ArgumentPassingMode::None => {}
+            ArgumentPassingMode::Register(_) => {
+                let mode = return_mode.expect("missing return mode");
+                self.masm
+                    .store_mem(mode, Mem::Base(REG_TMP1, 0), result_reg);
+            }
+            ArgumentPassingMode::Stack => {
+                self.copy_bytecode_ty(
+                    ty.clone(),
+                    RegOrOffset::Reg(REG_TMP1),
+                    RegOrOffset::Reg(REG_SP),
+                );
+                self.decrease_stack_frame(ty_size);
+            }
         }
 
         self.load_global_state_address(REG_RESULT, global_id);

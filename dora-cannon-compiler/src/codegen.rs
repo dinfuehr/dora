@@ -12,10 +12,11 @@ use dora_compiler::cpu::{
     REG_TMP1, REG_TMP2, STACK_FRAME_ALIGNMENT,
 };
 use dora_compiler::{
-    AllocationSize, AnyReg, AotEnumLayout, AotLayout, AotShapeKey, CodeDescriptor, CompilationData,
-    GLOBAL_INITIALIZED, GcPoint, Header, Intrinsic, MachineMode, Reg, RuntimeFunction,
-    SpecializeSelf, Trap, align_i32, find_trait_impl_in_program, ptr_width, ptr_width_usize,
-    register_ty, specialize_ty_array_in_program, specialize_ty_in_program,
+    AllocationSize, AnyReg, AotEnumLayout, AotLayout, AotShapeKey, ArgumentPassingMode,
+    CodeDescriptor, CompilationData, GLOBAL_INITIALIZED, GcPoint, Header, Intrinsic, MachineMode,
+    Reg, RuntimeFunction, SpecializeSelf, Trap, align_i32, argument_passing_mode,
+    find_trait_impl_in_program, ptr_width, ptr_width_usize, register_ty,
+    specialize_ty_array_in_program, specialize_ty_in_program,
 };
 
 macro_rules! comment {
@@ -205,7 +206,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn has_result_address(&self) -> bool {
         let return_type = self.specialize_function_ty(self.return_type.clone());
-        result_passed_as_argument(return_type)
+        self.argument_passing_mode(&return_type) == ArgumentPassingMode::Stack
     }
 
     fn store_params_in_registers(&mut self) {
@@ -243,82 +244,25 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 param_ty
             };
 
-            match param_ty.clone() {
-                BytecodeType::Tuple(..) => {
-                    self.store_param_on_stack_tuple(
-                        &mut reg_idx,
-                        &mut freg_idx,
-                        &mut fp_offset,
-                        dest,
-                        param_ty,
-                    );
-                }
-
-                BytecodeType::Struct(..) => {
-                    self.store_param_on_stack_struct(
-                        &mut reg_idx,
-                        &mut freg_idx,
-                        &mut fp_offset,
-                        dest,
-                        param_ty,
-                    );
-                }
-
-                BytecodeType::Enum(..) => {
-                    self.store_param_on_stack_enum(
-                        &mut reg_idx,
-                        &mut freg_idx,
-                        &mut fp_offset,
-                        dest,
-                        param_ty,
-                    );
-                }
-
-                BytecodeType::Float32 | BytecodeType::Float64 => {
-                    self.store_param_on_stack_float(
-                        &mut reg_idx,
-                        &mut freg_idx,
-                        &mut fp_offset,
-                        dest,
-                        param_ty,
-                    );
-                }
-
-                BytecodeType::Ptr
-                | BytecodeType::Address
-                | BytecodeType::UInt8
-                | BytecodeType::Bool
-                | BytecodeType::Char
-                | BytecodeType::Int32
-                | BytecodeType::Int64
-                | BytecodeType::Class(..)
-                | BytecodeType::TraitObject(..)
-                | BytecodeType::Lambda(..)
-                | BytecodeType::Ref(..) => {
-                    self.store_param_on_stack_core(
-                        &mut reg_idx,
-                        &mut freg_idx,
-                        &mut fp_offset,
-                        dest,
-                        param_ty,
-                    );
-                }
-
-                BytecodeType::TypeAlias(..)
-                | BytecodeType::Assoc { .. }
-                | BytecodeType::TypeParam(_)
-                | BytecodeType::Unit
-                | BytecodeType::This => {
-                    unreachable!()
+            match self.argument_passing_mode(&param_ty) {
+                ArgumentPassingMode::None => {}
+                ArgumentPassingMode::Register(register_ty) => self.store_param_on_stack_register(
+                    &mut reg_idx,
+                    &mut freg_idx,
+                    &mut fp_offset,
+                    dest,
+                    register_ty,
+                ),
+                ArgumentPassingMode::Stack => {
+                    self.store_param_on_stack_indirect(&mut reg_idx, &mut fp_offset, dest, param_ty)
                 }
             }
         }
     }
 
-    fn store_param_on_stack_tuple(
+    fn store_param_on_stack_indirect(
         &mut self,
         reg_idx: &mut usize,
-        _freg_idx: &mut usize,
         sp_offset: &mut i32,
         dest: Register,
         ty: BytecodeType,
@@ -349,63 +293,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         }
     }
 
-    fn store_param_on_stack_struct(
+    fn store_param_on_stack_register(
         &mut self,
         reg_idx: &mut usize,
-        _freg_idx: &mut usize,
-        sp_offset: &mut i32,
-        dest: Register,
-        ty: BytecodeType,
-    ) {
-        let dest_offset = self.reg(dest);
-
-        if *reg_idx < REG_PARAMS.len() {
-            self.asm.copy(
-                MachineMode::Ptr,
-                REG_TMP1.into(),
-                REG_PARAMS[*reg_idx].into(),
-            );
-            self.asm
-                .copy_bytecode_ty(ty, dest_offset, RegOrOffset::Reg(REG_TMP1));
-            *reg_idx += 1;
-        } else {
-            self.asm
-                .load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*sp_offset));
-            self.asm
-                .copy_bytecode_ty(ty, dest_offset, RegOrOffset::Reg(REG_TMP1));
-            *sp_offset += 8;
-        }
-    }
-
-    fn store_param_on_stack_enum(
-        &mut self,
-        reg_idx: &mut usize,
-        _freg_idx: &mut usize,
-        sp_offset: &mut i32,
-        dest: Register,
-        ty: BytecodeType,
-    ) {
-        let (enum_id, type_params) = match ty {
-            BytecodeType::Enum(enum_id, type_params) => (enum_id, type_params),
-            _ => unreachable!(),
-        };
-        let mode = self.mode(BytecodeType::Enum(enum_id, type_params));
-
-        if *reg_idx < REG_PARAMS.len() {
-            let reg = REG_PARAMS[*reg_idx].into();
-            *reg_idx += 1;
-            self.emit_store_register(reg, dest);
-        } else {
-            self.asm
-                .load_mem(mode, REG_RESULT.into(), Mem::Local(*sp_offset));
-            self.emit_store_register(REG_RESULT.into(), dest);
-            *sp_offset += 8;
-        }
-    }
-
-    fn store_param_on_stack_float(
-        &mut self,
-        _reg_idx: &mut usize,
         freg_idx: &mut usize,
         sp_offset: &mut i32,
         dest: Register,
@@ -413,36 +303,25 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     ) {
         let mode = self.mode(ty);
 
-        if *freg_idx < FREG_PARAMS.len() {
-            let freg = FREG_PARAMS[*freg_idx].into();
-            *freg_idx += 1;
-            self.emit_store_register(freg, dest);
-        } else {
-            self.asm
-                .load_mem(mode, FREG_RESULT.into(), Mem::Local(*sp_offset));
-            self.emit_store_register(FREG_RESULT.into(), dest);
-            *sp_offset += 8;
-        }
-    }
-
-    fn store_param_on_stack_core(
-        &mut self,
-        reg_idx: &mut usize,
-        _freg_idx: &mut usize,
-        sp_offset: &mut i32,
-        dest: Register,
-        ty: BytecodeType,
-    ) {
-        let mode = self.mode(ty);
-
-        if *reg_idx < REG_PARAMS.len() {
+        if mode.is_float() {
+            if *freg_idx < FREG_PARAMS.len() {
+                let reg = FREG_PARAMS[*freg_idx].into();
+                *freg_idx += 1;
+                self.emit_store_register_as(reg, dest, mode);
+            } else {
+                self.asm
+                    .load_mem(mode, FREG_RESULT.into(), Mem::Local(*sp_offset));
+                self.emit_store_register_as(FREG_RESULT.into(), dest, mode);
+                *sp_offset += 8;
+            }
+        } else if *reg_idx < REG_PARAMS.len() {
             let reg = REG_PARAMS[*reg_idx].into();
             *reg_idx += 1;
-            self.emit_store_register(reg, dest);
+            self.emit_store_register_as(reg, dest, mode);
         } else {
             self.asm
                 .load_mem(mode, REG_RESULT.into(), Mem::Local(*sp_offset));
-            self.emit_store_register(REG_RESULT.into(), dest);
+            self.emit_store_register_as(REG_RESULT.into(), dest, mode);
             *sp_offset += 8;
         }
     }
@@ -2001,75 +1880,25 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_return_generic(&mut self, src: Register) {
         let bytecode_type = self.specialize_register_type(src);
-        match bytecode_type {
-            BytecodeType::Unit => {
-                // nothing to do
+        match self.argument_passing_mode(&bytecode_type) {
+            ArgumentPassingMode::None => {}
+            ArgumentPassingMode::Register(register_ty) => {
+                let mode = self.mode(register_ty);
+                let reg = result_reg_mode(mode);
+                self.emit_load_register_as(src, reg, mode);
             }
-
-            BytecodeType::Tuple(subtypes) => {
+            ArgumentPassingMode::Stack => {
                 let src_offset = self.register_offset(src);
-
                 self.asm.load_mem(
                     MachineMode::Ptr,
                     REG_TMP1.into(),
                     Mem::Local(result_address_offset()),
                 );
-
-                self.asm.copy_tuple(
-                    subtypes.clone(),
+                self.asm.copy_bytecode_ty(
+                    bytecode_type,
                     RegOrOffset::Reg(REG_TMP1),
                     RegOrOffset::Offset(src_offset),
                 );
-            }
-
-            BytecodeType::Struct(struct_id, type_params) => {
-                let src_offset = self.register_offset(src);
-
-                self.asm.load_mem(
-                    MachineMode::Ptr,
-                    REG_TMP1.into(),
-                    Mem::Local(result_address_offset()),
-                );
-
-                self.asm.copy_struct(
-                    struct_id,
-                    type_params.clone(),
-                    RegOrOffset::Reg(REG_TMP1),
-                    RegOrOffset::Offset(src_offset),
-                );
-            }
-
-            BytecodeType::Enum(enum_id, type_params) => {
-                let mode = self.mode(BytecodeType::Enum(enum_id, type_params.clone()));
-                self.emit_load_register_as(src, REG_RESULT.into(), mode);
-            }
-
-            BytecodeType::TypeAlias(..)
-            | BytecodeType::Assoc { .. }
-            | BytecodeType::TypeParam(_)
-            | BytecodeType::Class(_, _)
-            | BytecodeType::Lambda(_, _)
-            | BytecodeType::This
-            | BytecodeType::Ref(..) => {
-                unreachable!()
-            }
-
-            BytecodeType::UInt8
-            | BytecodeType::Int32
-            | BytecodeType::Bool
-            | BytecodeType::Char
-            | BytecodeType::Int64
-            | BytecodeType::Float32
-            | BytecodeType::Float64 => {
-                let reg = result_reg_mode(self.mode(bytecode_type));
-                self.emit_load_register(src, reg.into());
-            }
-
-            BytecodeType::Ptr | BytecodeType::Address | BytecodeType::TraitObject(..) => {
-                let reg = REG_RESULT;
-                self.emit_load_register(src, reg.into());
-                self.asm
-                    .test_if_nil_bailout(Location::new(1, 1), REG_RESULT, Trap::ILLEGAL);
             }
         }
 
@@ -2679,7 +2508,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type.clone());
 
-        let self_index = if result_passed_as_argument(bytecode_type.clone()) {
+        let self_index = if self.argument_passing_mode(&bytecode_type) == ArgumentPassingMode::Stack
+        {
             1
         } else {
             0
@@ -2735,7 +2565,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type.clone());
 
-        let self_index = if result_passed_as_argument(bytecode_type) {
+        let self_index = if self.argument_passing_mode(&bytecode_type) == ArgumentPassingMode::Stack
+        {
             1
         } else {
             0
@@ -2898,8 +2729,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn store_call_result(&mut self, dest: Register, reg: AnyReg) {
         let bytecode_ty = self.specialize_register_type(dest);
-        if !result_passed_as_argument(bytecode_ty.clone()) && !bytecode_ty.is_unit() {
-            self.emit_store_register(reg, dest);
+        if let ArgumentPassingMode::Register(register_ty) = self.argument_passing_mode(&bytecode_ty)
+        {
+            self.emit_store_register_as(reg, dest, self.mode(register_ty));
         }
     }
 
@@ -2907,14 +2739,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         &self,
         bytecode_type: BytecodeType,
     ) -> (AnyReg, Option<MachineMode>) {
-        match bytecode_type {
-            BytecodeType::Struct(_, _) => (REG_RESULT.into(), None),
-            BytecodeType::Tuple(_) => (REG_RESULT.into(), None),
-            BytecodeType::Unit => (REG_RESULT.into(), None),
-            bytecode_type => {
-                let mode = self.mode(bytecode_type);
+        match self.argument_passing_mode(&bytecode_type) {
+            ArgumentPassingMode::Register(register_ty) => {
+                let mode = self.mode(register_ty);
                 (result_reg_mode(mode), Some(mode))
             }
+            ArgumentPassingMode::None | ArgumentPassingMode::Stack => (REG_RESULT.into(), None),
         }
     }
 
@@ -4165,7 +3995,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let mut freg_idx = 0;
         let mut sp_offset = 0;
 
-        if result_passed_as_argument(fct_return_type) {
+        if self.argument_passing_mode(&fct_return_type) == ArgumentPassingMode::Stack {
             let offset = self.register_offset(dest);
             self.asm.lea(REG_PARAMS[0], Mem::Local(offset));
             reg_idx += 1;
@@ -4175,10 +4005,40 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             let bytecode_type = self.specialize_register_type(src);
             let offset = self.register_offset(src);
 
-            match bytecode_type {
-                BytecodeType::Unit => {}
-
-                BytecodeType::Tuple(_) | BytecodeType::Struct(_, _) => {
+            match self.argument_passing_mode(&bytecode_type) {
+                ArgumentPassingMode::None => {}
+                ArgumentPassingMode::Register(register_ty) => {
+                    let mode = self.mode(register_ty);
+                    if mode.is_float() {
+                        if freg_idx < FREG_PARAMS.len() {
+                            self.asm.load_mem(
+                                mode,
+                                FREG_PARAMS[freg_idx].into(),
+                                Mem::Local(offset),
+                            );
+                            freg_idx += 1;
+                        } else {
+                            self.asm
+                                .load_mem(mode, FREG_TMP1.into(), Mem::Local(offset));
+                            self.asm.store_mem(
+                                mode,
+                                Mem::Base(REG_SP, sp_offset),
+                                FREG_TMP1.into(),
+                            );
+                            sp_offset += 8;
+                        }
+                    } else if reg_idx < REG_PARAMS.len() {
+                        self.asm
+                            .load_mem(mode, REG_PARAMS[reg_idx].into(), Mem::Local(offset));
+                        reg_idx += 1;
+                    } else {
+                        self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
+                        self.asm
+                            .store_mem(mode, Mem::Base(REG_SP, sp_offset), REG_TMP1.into());
+                        sp_offset += 8;
+                    }
+                }
+                ArgumentPassingMode::Stack => {
                     if reg_idx < REG_PARAMS.len() {
                         let reg = REG_PARAMS[reg_idx];
                         self.asm.lea(reg, Mem::Local(offset));
@@ -4193,55 +4053,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                         sp_offset += 8;
                     }
-                }
-                BytecodeType::Float32 | BytecodeType::Float64 => {
-                    let mode = self.mode(bytecode_type);
-
-                    if freg_idx < FREG_PARAMS.len() {
-                        self.asm
-                            .load_mem(mode, FREG_PARAMS[freg_idx].into(), Mem::Local(offset));
-                        freg_idx += 1;
-                    } else {
-                        self.asm
-                            .load_mem(mode, FREG_TMP1.into(), Mem::Local(offset));
-                        self.asm
-                            .store_mem(mode, Mem::Base(REG_SP, sp_offset), FREG_TMP1.into());
-
-                        sp_offset += 8;
-                    }
-                }
-
-                BytecodeType::Bool
-                | BytecodeType::UInt8
-                | BytecodeType::Char
-                | BytecodeType::Int32
-                | BytecodeType::Int64
-                | BytecodeType::Ptr
-                | BytecodeType::Address
-                | BytecodeType::Enum(..)
-                | BytecodeType::TraitObject(..)
-                | BytecodeType::Ref(..) => {
-                    let mode = self.mode(bytecode_type);
-
-                    if reg_idx < REG_PARAMS.len() {
-                        self.asm
-                            .load_mem(mode, REG_PARAMS[reg_idx].into(), Mem::Local(offset));
-                        reg_idx += 1;
-                    } else {
-                        self.asm.load_mem(mode, REG_TMP1.into(), Mem::Local(offset));
-                        self.asm
-                            .store_mem(mode, Mem::Base(REG_SP, sp_offset), REG_TMP1.into());
-                        sp_offset += 8;
-                    }
-                }
-
-                BytecodeType::TypeAlias(..)
-                | BytecodeType::Assoc { .. }
-                | BytecodeType::TypeParam(_)
-                | BytecodeType::Class(..)
-                | BytecodeType::Lambda(..)
-                | BytecodeType::This => {
-                    unreachable!()
                 }
             }
         }
@@ -4258,22 +4069,30 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let mut freg_idx = 0;
         let mut argsize = 0;
 
-        if result_passed_as_argument(fct_return_type) {
+        if self.argument_passing_mode(&fct_return_type) == ArgumentPassingMode::Stack {
             reg_idx += 1;
         }
 
         for &src in arguments {
-            let bytecode_type = self.bytecode.register_type(src);
+            let bytecode_type = self.specialize_register_type(src);
+            match self.argument_passing_mode(&bytecode_type) {
+                ArgumentPassingMode::None => {}
+                ArgumentPassingMode::Register(register_ty) => {
+                    if self.mode(register_ty).is_float() {
+                        if freg_idx >= FREG_PARAMS.len() {
+                            argsize += ptr_width();
+                        }
 
-            match bytecode_type {
-                BytecodeType::Float32 | BytecodeType::Float64 => {
-                    if freg_idx >= FREG_PARAMS.len() {
-                        argsize += ptr_width();
+                        freg_idx += 1;
+                    } else {
+                        if reg_idx >= REG_PARAMS.len() {
+                            argsize += ptr_width();
+                        }
+
+                        reg_idx += 1;
                     }
-
-                    freg_idx += 1;
                 }
-                _ => {
+                ArgumentPassingMode::Stack => {
                     if reg_idx >= REG_PARAMS.len() {
                         argsize += ptr_width();
                     }
@@ -4297,6 +4116,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn specialize_function_ty(&self, ty: BytecodeType) -> BytecodeType {
         specialize_ty_in_program(self.program, None, ty, &self.type_params)
+    }
+
+    fn argument_passing_mode(&self, ty: &BytecodeType) -> ArgumentPassingMode {
+        argument_passing_mode(self.program, ty)
     }
 
     fn mode(&self, ty: BytecodeType) -> MachineMode {
@@ -5093,33 +4916,6 @@ pub fn register_bty(ty: BytecodeType) -> BytecodeType {
     match ty {
         BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => BytecodeType::Ptr,
         _ => ty,
-    }
-}
-
-pub fn result_passed_as_argument(ty: BytecodeType) -> bool {
-    match ty {
-        BytecodeType::Unit
-        | BytecodeType::Bool
-        | BytecodeType::UInt8
-        | BytecodeType::Char
-        | BytecodeType::Int32
-        | BytecodeType::Int64
-        | BytecodeType::Float32
-        | BytecodeType::Float64
-        | BytecodeType::Enum(..)
-        | BytecodeType::Class(..)
-        | BytecodeType::Lambda(..)
-        | BytecodeType::Ptr
-        | BytecodeType::Address
-        | BytecodeType::TraitObject(..)
-        | BytecodeType::Ref(..) => false,
-        BytecodeType::TypeAlias(..)
-        | BytecodeType::Assoc { .. }
-        | BytecodeType::TypeParam(..)
-        | BytecodeType::This => {
-            panic!("unexpected type param")
-        }
-        BytecodeType::Struct(..) | BytecodeType::Tuple(..) => true,
     }
 }
 

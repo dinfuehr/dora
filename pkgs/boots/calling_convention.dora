@@ -1,0 +1,58 @@
+use package::bytecode::BytecodeType;
+use package::compilation::{CompilationInfo, SpecializeSelf};
+use package::interface as iface;
+use package::specialize::specialize_ty;
+
+pub enum ArgumentPassingMode {
+    None,
+    Register(BytecodeType),
+    Stack,
+}
+
+pub fn is_address_backed_aggregate(ty: BytecodeType): Bool {
+    ty.is_struct() || ty.is_tuple()
+}
+
+pub fn argument_passing_mode(ci: CompilationInfo, ty: BytecodeType): ArgumentPassingMode {
+    if ty.is_unit() {
+        return ArgumentPassingMode::None;
+    }
+
+    if !ty.is_struct() && !ty.is_tuple() {
+        match ty {
+            BytecodeType::This
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::TypeAlias(_)
+            | BytecodeType::Assoc(..) => unreachable[()](),
+            _ => {}
+        }
+        return ArgumentPassingMode::Register(ty);
+    }
+
+    let field_ty = match ty {
+        BytecodeType::Struct(struct_id, type_params) => {
+            let struct_data = iface::get_struct_data(struct_id);
+            if struct_data.fields.size() != 1 {
+                return ArgumentPassingMode::Stack;
+            }
+
+            specialize_ty(ci, None[SpecializeSelf], struct_data.fields(0), type_params)
+        }
+        BytecodeType::Tuple(subtypes) => {
+            if subtypes.size() != 1 {
+                return ArgumentPassingMode::Stack;
+            }
+
+            subtypes(0)
+        }
+        _ => unreachable[BytecodeType](),
+    };
+
+    match argument_passing_mode(ci, field_ty) {
+        ArgumentPassingMode::Register(register_ty) => {
+            ArgumentPassingMode::Register(register_ty)
+        }
+        ArgumentPassingMode::None
+        | ArgumentPassingMode::Stack => ArgumentPassingMode::Stack,
+    }
+}

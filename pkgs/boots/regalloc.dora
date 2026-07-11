@@ -733,7 +733,7 @@ impl SimpleRegisterAllocator {
             let inst = create_rematerialize_inst(dest, value);
             self.current_inst.get_or_panic().insert_before(inst);
         } else {
-            assert(loc_data.needs_spill_slot());
+            assert(loc_data.needs_spill_slot() || loc_data.has_spill_slot());
             let inst = create_load_reg_inst(dest, value);
             self.current_inst.get_or_panic().insert_before(inst);
         }

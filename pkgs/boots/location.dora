@@ -1,5 +1,7 @@
 use package::assembler::{FloatRegister, Register};
-use package::bytecode::data::BytecodeType;
+use package::bytecode::BytecodeType;
+use package::calling_convention as cc;
+use package::calling_convention::ArgumentPassingMode;
 use package::codegen::CodeGen;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
 use package::graph::{
@@ -549,7 +551,7 @@ fn compute_argument_locations(
         fct.type_params,
     );
 
-    if ret_ty.is_struct() || ret_ty.is_tuple() {
+    if cc::argument_passing_mode(ci, ret_ty) is ArgumentPassingMode::Stack {
         locations.push(gp_argument_registers(gp_idx).to_location());
         gp_idx = gp_idx + 1;
     }
@@ -562,26 +564,13 @@ fn compute_argument_locations(
             continue;
         }
 
-        let uses_fp_reg = match ty {
-            BytecodeType::Float32 | BytecodeType::Float64 => true,
-            BytecodeType::Struct(..)
-            | BytecodeType::Tuple(_)
-            | BytecodeType::Bool
-            | BytecodeType::UInt8
-            | BytecodeType::Int32
-            | BytecodeType::Char
-            | BytecodeType::Int64
-            | BytecodeType::Class(..)
-            | BytecodeType::Ptr
-            | BytecodeType::Address
-            | BytecodeType::Lambda(..)
-            | BytecodeType::TraitObject(..)
-            | BytecodeType::Enum(..) => false,
-            BytecodeType::Unit
-            | BytecodeType::This
-            | BytecodeType::TypeParam(_)
-            | BytecodeType::TypeAlias(_)
-            | BytecodeType::Assoc(..) => unreachable[Bool](),
+        let uses_fp_reg = match cc::argument_passing_mode(ci, ty) {
+            ArgumentPassingMode::Register(register_ty) => match register_ty {
+                BytecodeType::Float32 | BytecodeType::Float64 => true,
+                _ => false,
+            }
+            ArgumentPassingMode::Stack => false,
+            ArgumentPassingMode::None => unreachable[Bool](),
         };
 
         if uses_fp_reg {
