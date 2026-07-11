@@ -547,6 +547,45 @@ pub(crate) fn has_comment(node: &SyntaxNode) -> bool {
     })
 }
 
+pub(crate) fn natural_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+    let mut a = a.as_bytes();
+    let mut b = b.as_bytes();
+
+    while !a.is_empty() && !b.is_empty() {
+        let ac = a[0];
+        let bc = b[0];
+
+        if ac.is_ascii_digit() && bc.is_ascii_digit() {
+            let (a_num, a_rest) = split_digits(a);
+            let (b_num, b_rest) = split_digits(b);
+            match a_num.len().cmp(&b_num.len()).then_with(|| a_num.cmp(b_num)) {
+                std::cmp::Ordering::Equal => {}
+                ord => return ord,
+            }
+            a = a_rest;
+            b = b_rest;
+        } else {
+            match ac.cmp(&bc) {
+                std::cmp::Ordering::Equal => {
+                    a = &a[1..];
+                    b = &b[1..];
+                }
+                ord => return ord,
+            }
+        }
+    }
+
+    a.len().cmp(&b.len())
+}
+
+fn split_digits(s: &[u8]) -> (&[u8], &[u8]) {
+    let end = s
+        .iter()
+        .position(|b| !b.is_ascii_digit())
+        .unwrap_or(s.len());
+    (&s[..end], &s[end..])
+}
+
 pub(crate) fn has_line_comment(comments: &[(Doc, SyntaxToken)]) -> bool {
     comments
         .iter()
@@ -583,4 +622,39 @@ pub(crate) fn format_node_as_doc<T: SyntaxNodeBase>(node: T, f: &mut Formatter) 
     f.concat(|f| {
         format_node(node.unwrap(), f);
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cmp::Ordering::{Equal, Greater, Less};
+
+    use super::natural_cmp;
+
+    #[test]
+    fn natural_cmp_equal_strings() {
+        assert_eq!(natural_cmp("", ""), Equal);
+        assert_eq!(natural_cmp("foo", "foo"), Equal);
+        assert_eq!(natural_cmp("foo10bar", "foo10bar"), Equal);
+    }
+
+    #[test]
+    fn natural_cmp_lexical_segments() {
+        assert_less("", "a");
+        assert_less("a", "aa");
+        assert_less("ABC", "Abc");
+        assert_less("Abc", "abc");
+    }
+
+    #[test]
+    fn natural_cmp_numeric_segments() {
+        assert_less("v2", "v10");
+        assert_less("x2y", "x10y");
+        assert_less("x1y", "x1z");
+        assert_less("v999999999999999999", "v1000000000000000000");
+    }
+
+    fn assert_less(left: &str, right: &str) {
+        assert_eq!(natural_cmp(left, right), Less);
+        assert_eq!(natural_cmp(right, left), Greater);
+    }
 }

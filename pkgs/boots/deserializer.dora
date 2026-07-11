@@ -1,4 +1,3 @@
-use package::interface::{Config, EnumData, EnumVariantData, StructData};
 use package::bytecode::{
     AliasId,
     BytecodeFunction,
@@ -18,6 +17,7 @@ use package::bytecode::{
 };
 use package::bytecode::opcode as opc;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
+use package::interface::{Config, EnumData, EnumVariantData, StructData};
 use package::interface::{Architecture, FunctionBytecodeData, FunctionInliningInfo};
 
 pub fn decode_config(encoded: Array[UInt8]): Config {

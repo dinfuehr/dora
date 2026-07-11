@@ -1,3 +1,5 @@
+use std::{fatal_error, unsafe_kill_refs};
+use std::string::{StringBuffer, Stringable};
 use std::traits::{
     Comparable,
     Default,
@@ -11,8 +13,6 @@ use std::traits::{
     Iterator,
     Zero,
 };
-use std::string::{StringBuffer, Stringable};
-use std::{fatal_error, unsafe_kill_refs};
 
 @internal
 pub class Array[T]

@@ -1,5 +1,5 @@
-use std::collections::VecIter;
 use std::Stringable;
+use std::collections::VecIter;
 use std::traits::IntoIterator;
 
 use package::bytecode::{
@@ -23,19 +23,19 @@ use package::bytecode::{
     StructId,
     TraitId,
 };
+use package::codegen::arm64::CodeGenArm64;
+use package::codegen::x64::CodeGenX64;
 use package::compilation::{CompilationInfo, SpecializeSelf};
-use package::deserializer::decode_bytecode_function;
+use package::compile_function;
 use package::deserializer::{
     decode_compilation_info,
     decode_enum_data,
     decode_struct_data,
 };
-use package::deserializer::decode_config;
-use package::deserializer::ByteReader;
 use package::deserializer;
-use package::codegen::x64::CodeGenX64;
-use package::codegen::arm64::CodeGenArm64;
-use package::compile_function;
+use package::deserializer::ByteReader;
+use package::deserializer::decode_bytecode_function;
+use package::deserializer::decode_config;
 use package::graph::TraitObjectInfo;
 use package::serializer::{
     ByteWriter,

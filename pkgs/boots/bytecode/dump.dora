@@ -5,8 +5,8 @@ use package::bytecode::{
     ConstPoolId,
     GlobalId,
 };
-use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::{BytecodeInstructionInfo, BytecodeIterator};
+use package::bytecode::instruction::BytecodeInstruction;
 
 pub fn bytecode_dump(bc: BytecodeFunction) {
     let dumper = StdoutBytecodeDumper() as BytecodeDumper;

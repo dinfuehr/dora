@@ -1,5 +1,5 @@
-use std::Hash;
 use std::Equals;
+use std::Hash;
 use std::traits::{IntoIterator, Iterator};
 
 use package::graph::Location;

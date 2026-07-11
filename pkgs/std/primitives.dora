@@ -1,6 +1,6 @@
-use std::traits::{Comparable, Default, Equals, Iterator, Ordering, Zero};
-use std::string::Stringable;
 use std::fatal_error;
+use std::string::Stringable;
+use std::traits::{Comparable, Default, Equals, Iterator, Ordering, Zero};
 
 @internal
 pub struct Bool
@@ -1052,8 +1052,8 @@ pub enum Option[T] {
     None,
 }
 
-use std::Option::Some;
 use std::Option::None;
+use std::Option::Some;
 
 impl[T] Option[T] {
     pub fn is_none(): Bool {
@@ -1168,8 +1168,8 @@ pub enum Result[V, E] {
     Err(E),
 }
 
-use std::Result::Ok;
 use std::Result::Err;
+use std::Result::Ok;
 
 impl[V, E] Result[V, E] {
     pub fn is_ok(): Bool {

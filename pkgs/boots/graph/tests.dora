@@ -1,9 +1,9 @@
-use package::graph::Graph;
 use package::graph::Block;
+use package::graph::Graph;
 use package::graph::Op;
-use package::graph::create_return_void_inst;
 use package::graph::create_binary_inst;
 use package::graph::create_int32_const;
+use package::graph::create_return_void_inst;
 use package::graph::ty::Type;
 
 @Test

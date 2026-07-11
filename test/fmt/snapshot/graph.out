@@ -1,8 +1,8 @@
 use std::{BitSet, BitVec};
-use std::collections::{BitVecIter, HashMap};
+use std::{StringBuffer, Stringable};
 use std::Equals;
 use std::Hash;
-use std::{StringBuffer, Stringable};
+use std::collections::{BitVecIter, HashMap};
 use std::traits::{IndexGet, IntoIterator, Iterator};
 
 use package::assembler::{FloatRegister, Label, RegMap, RegSet, Register};

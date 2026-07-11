@@ -1,4 +1,5 @@
-use package::bytecode::{BytecodeType, FunctionId};
+use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LocationTable};
+use package::assembler::{FloatRegister, Label, RegSet, Register};
 use package::assembler::x64::{
     Address as AsmAddress,
     AssemblerX64,
@@ -27,7 +28,7 @@ use package::assembler::x64::{
     XMM14,
     XMM15,
 };
-use package::assembler::{FloatRegister, Label, RegSet, Register};
+use package::bytecode::{BytecodeType, FunctionId};
 use package::bytecode::data::ConstPoolId;
 use package::codegen::{
     CODE_SIZE_ALIGNMENT,
@@ -39,6 +40,19 @@ use package::codegen::{
     get_register_snapshot_without,
 };
 use package::compilation::CompilationInfo;
+use package::graph::{
+    Block,
+    Graph,
+    InputOutputOverlap,
+    Inst,
+    InstSet,
+    Location,
+    LocationData,
+    Op,
+    RegisterSnapshot,
+    RegisterTrackers,
+    Type,
+};
 use package::interface::{
     AotShapeKey,
     Architecture,
@@ -84,21 +98,7 @@ use package::location::{
     use_output_register_fixed,
     use_output_same_as_first_input,
 };
-use package::graph::{
-    Block,
-    Graph,
-    InputOutputOverlap,
-    Inst,
-    InstSet,
-    Location,
-    LocationData,
-    Op,
-    RegisterSnapshot,
-    RegisterTrackers,
-    Type,
-};
 use package::regalloc::is_reference;
-use package::{CodeDescriptor, CommentTable, GcPoint, GcPointTable, LocationTable};
 
 let REG_PARAMS: Array[Register] = if config.is_windows {
     Array[Register]::new(RCX, RDX, R8, R9)

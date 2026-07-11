@@ -1,5 +1,4 @@
 pub use std::collections::{Array, BitSet, BitVec, HashMap, HashSet, Queue, Vec};
-pub use std::traits::{Comparable, Default, Equals, Hash, Ordering, Zero};
 pub use std::primitives::{
     Bool,
     Char,
@@ -14,6 +13,7 @@ pub use std::primitives::{
 pub use std::rand::Random;
 pub use std::string::{CodepointIterator, String, StringBuffer, Stringable};
 pub use std::thread::{AtomicInt32, AtomicInt64, Condition, Mutex, Thread};
+pub use std::traits::{Comparable, Default, Equals, Hash, Ordering, Zero};
 
 pub mod collections;
 pub mod io;

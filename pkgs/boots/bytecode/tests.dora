@@ -1,8 +1,8 @@
-use package::bytecode::reader::decode_bytecode;
 use package::bytecode::builder::BytecodeBuilder;
 use package::bytecode::data::{BytecodeRegister, BytecodeType};
-use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::data::ConstPoolId;
+use package::bytecode::instruction::BytecodeInstruction;
+use package::bytecode::reader::decode_bytecode;
 
 @Test
 fn test_bytecode_ret() {

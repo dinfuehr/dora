@@ -1,20 +1,6 @@
-use std::HashMap;
 use std::{BitSet, BitVec};
+use std::HashMap;
 
-use package::bytecode::opcode as opc;
-use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
-use package::graph;
-use package::graph::{AllocationData, Block, Graph, Inst, InstExtraData, Op};
-use package::graph::ty::Type;
-use package::graph::{
-    CallKind,
-    ClassInfo,
-    FunctionInfo,
-    LambdaFunctionInfo,
-    StructInfo,
-    TraitObjectInfo,
-    VirtualFunctionInfo,
-};
 use package::bytecode::{
     BytecodeFunction,
     BytecodeRegister,
@@ -37,7 +23,21 @@ use package::bytecode::{
     TraitId,
 };
 use package::bytecode::instruction::BytecodeInstruction;
+use package::bytecode::opcode as opc;
 use package::bytecode::reader::BytecodeIterator;
+use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
+use package::graph;
+use package::graph::{AllocationData, Block, Graph, Inst, InstExtraData, Op};
+use package::graph::{
+    CallKind,
+    ClassInfo,
+    FunctionInfo,
+    LambdaFunctionInfo,
+    StructInfo,
+    TraitObjectInfo,
+    VirtualFunctionInfo,
+};
+use package::graph::ty::Type;
 use package::interface as iface;
 use package::interface::{InlinedFunctionId, InlinedLocation, config};
 use package::regalloc::{EnumLayout, RecordLayout, is_reference};

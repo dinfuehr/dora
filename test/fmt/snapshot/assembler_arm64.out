@@ -1,7 +1,7 @@
+use package::assembler::{FloatRegister, Register};
 use package::assembler::AssemblerBuffer;
 use package::assembler::Label;
 use package::assembler::MachineCode;
-use package::assembler::{FloatRegister, Register};
 
 pub let R0: Register = Register(0u8);
 pub let R1: Register = Register(1u8);
@@ -3996,7 +3996,6 @@ mod encoding {
 mod tests {
     use package::assembler::MachineCode;
     use super::{AssemblerArm64, Cond, Extend, Shift};
-    use super::imm_encoding;
     use super::{REG_SP, REG_ZERO};
     use super::{
         R0,
@@ -4020,6 +4019,7 @@ mod tests {
     };
     use super::{F0, F1, F2, F3, F4, F5, F31};
     use super::{fits_movn, fits_movz};
+    use super::imm_encoding;
 
     @Test
     fn test_asm_ret() {

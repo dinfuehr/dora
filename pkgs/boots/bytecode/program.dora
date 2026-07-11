@@ -1,5 +1,5 @@
-use std::{Equals, Hash, Stringable};
 use package::bytecode::{BytecodeType, Location};
+use std::{Equals, Hash, Stringable};
 
 pub struct PackageId(pub Int32)
 

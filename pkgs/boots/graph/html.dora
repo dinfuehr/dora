@@ -1,10 +1,10 @@
-use std::io::{BufferedWriter, File, OpenFile, Write};
 use std::{StringBuffer, Stringable};
+use std::io::{BufferedWriter, File, OpenFile, Write};
 
-use package::assembler::arm64::register_name as register_name_on_arm64;
-use package::assembler::x64::register_name as register_name_on_x64;
 use package::assembler::arm64::float_register_name as float_register_name_on_arm64;
+use package::assembler::arm64::register_name as register_name_on_arm64;
 use package::assembler::x64::float_register_name as float_register_name_on_x64;
+use package::assembler::x64::register_name as register_name_on_x64;
 use package::bytecode::{
     BytecodeDumper,
     BytecodeFunction,
@@ -17,9 +17,9 @@ use package::bytecode::{
     GlobalId,
     dump_instruction,
 };
+use package::compilation::CompilationInfo;
 use package::graph::{Block, Graph, Inst, Location, Op, Operand};
 use package::graph_builder::BytecodeAnalysis;
-use package::compilation::CompilationInfo;
 use package::interface::{
     Architecture,
     config,

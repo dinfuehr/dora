@@ -1,7 +1,7 @@
-use package::bytecode::BytecodeType;
-use package::interface as iface;
 use package::CompilationInfo;
+use package::bytecode::BytecodeType;
 use package::compilation::{FunctionCompilationInfo, SpecializeSelf};
+use package::interface as iface;
 
 pub fn specialize_ty(
     ci: CompilationInfo,

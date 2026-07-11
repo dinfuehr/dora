@@ -8,6 +8,7 @@ pub use package::bytecode::data::{
     Location,
 };
 pub use package::bytecode::dump::{BytecodeDumper, dump_instruction};
+pub use package::bytecode::instruction::BytecodeInstruction;
 pub use package::bytecode::program::{
     AliasData,
     AliasId,
@@ -44,7 +45,6 @@ pub use package::bytecode::program::{
     TypeParamBound,
     TypeParamData,
 };
-pub use package::bytecode::instruction::BytecodeInstruction;
 pub use package::bytecode::reader::{BytecodeInstructionInfo, BytecodeIterator};
 
 pub mod builder;

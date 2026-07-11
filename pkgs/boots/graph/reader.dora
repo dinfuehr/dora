@@ -1,5 +1,5 @@
-use std::StringBuffer;
 use package::graph::Graph;
+use std::StringBuffer;
 
 fn read_graph(data: String): Graph {
     unreachable[Graph]()
@@ -187,8 +187,8 @@ enum Token {
 }
 
 mod tests {
-    use super::Token;
     use super::Lexer;
+    use super::Token;
 
     @Test
     fn read_single_identifier() {

@@ -1,5 +1,6 @@
-use package::codegen::CodeGen;
+use package::cfg_simplification::perform_cfg_simplification;
 use package::codegen::{create_code_gen, generate_code};
+use package::codegen::CodeGen;
 use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::dead_code_elimination::perform_dead_code_elimination;
 use package::dominator::build_dominator_tree;
@@ -18,13 +19,12 @@ use package::interface::{
 };
 use package::interface::config;
 use package::late_escape_analysis::perform_late_escape_analysis;
+use package::liveness::compute_liveness;
 use package::load_elimination::perform_load_elimination;
 use package::prepare_regalloc::prepare_register_allocation;
 use package::regalloc::perform_register_allocation;
-use package::cfg_simplification::perform_cfg_simplification;
 use package::simplification::perform_simplification;
 use package::store_elimination::perform_store_elimination;
-use package::liveness::compute_liveness;
 
 mod assembler;
 mod bytecode;

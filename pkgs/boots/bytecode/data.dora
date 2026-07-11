@@ -1,7 +1,7 @@
-use std::Stringable;
-use std::StringBuffer;
 use std::Equals;
 use std::Hash;
+use std::StringBuffer;
+use std::Stringable;
 
 use package::bytecode::{
     AliasId,
