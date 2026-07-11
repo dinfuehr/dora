@@ -29,30 +29,40 @@ pub fn argument_passing_mode(ci: CompilationInfo, ty: BytecodeType): ArgumentPas
         return ArgumentPassingMode::Register(ty);
     }
 
-    let field_ty = match ty {
+    let field_types = match ty {
         BytecodeType::Struct(struct_id, type_params) => {
             let struct_data = iface::get_struct_data(struct_id);
-            if struct_data.fields.size() != 1 {
-                return ArgumentPassingMode::Stack;
+            let field_types = Vec[BytecodeType]::new_with_capacity(
+                struct_data.fields.size()
+            );
+            for field_ty in struct_data.fields {
+                field_types.push(
+                    specialize_ty(ci, None[SpecializeSelf], field_ty, type_params)
+                );
             }
-
-            specialize_ty(ci, None[SpecializeSelf], struct_data.fields(0), type_params)
+            field_types.to_array()
         }
-        BytecodeType::Tuple(subtypes) => {
-            if subtypes.size() != 1 {
-                return ArgumentPassingMode::Stack;
-            }
-
-            subtypes(0)
-        }
-        _ => unreachable[BytecodeType](),
+        BytecodeType::Tuple(subtypes) => subtypes,
+        _ => unreachable[Array[BytecodeType]](),
     };
 
-    match argument_passing_mode(ci, field_ty) {
-        ArgumentPassingMode::Register(register_ty) => {
-            ArgumentPassingMode::Register(register_ty)
+    let mut register_ty = None[BytecodeType];
+
+    for field_ty in field_types {
+        match argument_passing_mode(ci, field_ty) {
+            ArgumentPassingMode::None => {}
+            ArgumentPassingMode::Register(field_register_ty) => {
+                if register_ty.is_some() {
+                    return ArgumentPassingMode::Stack;
+                }
+                register_ty = Some[BytecodeType](field_register_ty);
+            }
+            ArgumentPassingMode::Stack => return ArgumentPassingMode::Stack,
         }
-        ArgumentPassingMode::None
-        | ArgumentPassingMode::Stack => ArgumentPassingMode::Stack,
+    }
+
+    match register_ty {
+        Some(register_ty) => ArgumentPassingMode::Register(register_ty),
+        None => ArgumentPassingMode::None,
     }
 }

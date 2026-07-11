@@ -560,11 +560,12 @@ fn compute_argument_locations(
         let ty = fct.bc.registers(idx);
         let ty = specialize_ty(ci, fct.specialize_self, ty, fct.type_params);
 
-        if ty.is_unit() {
+        let passing_mode = cc::argument_passing_mode(ci, ty);
+        if passing_mode is ArgumentPassingMode::None {
             continue;
         }
 
-        let uses_fp_reg = match cc::argument_passing_mode(ci, ty) {
+        let uses_fp_reg = match passing_mode {
             ArgumentPassingMode::Register(register_ty) => match register_ty {
                 BytecodeType::Float32 | BytecodeType::Float64 => true,
                 _ => false,

@@ -10,6 +10,12 @@ struct Box[T](T)
 
 struct Nested(IntBox)
 
+struct UnitBox(())
+
+struct UnitIntBox((), Int64, ())
+
+struct NestedUnitInt(UnitBox, (()), Int64, ())
+
 class Payload(Int64)
 
 let global_int_box: IntBox = IntBox(101);
@@ -67,6 +73,29 @@ fn pass_bool(value: BoolBox): BoolBox {
 }
 
 fn pass_ref(value: RefBox): RefBox {
+    value
+}
+
+fn pass_unit_box(value: UnitBox): UnitBox {
+    value
+}
+
+fn pass_unit_int(value: UnitIntBox): UnitIntBox {
+    assert(value.1 == 76);
+    value
+}
+
+fn pass_nested_unit_int(value: NestedUnitInt): NestedUnitInt {
+    assert(value.2 == 77);
+    value
+}
+
+fn pass_unit_tuple(value: ((), ())): ((), ()) {
+    value
+}
+
+fn pass_unit_int_tuple(value: ((), Int64, ())): ((), Int64, ()) {
+    assert(value.1 == 78);
     value
 }
 
@@ -143,6 +172,18 @@ fn main() {
         Payload(75),
     );
     assert(preserved.0 == 75);
+
+    let unit_box = pass_unit_box(UnitBox(()));
+    let moved_unit_box = unit_box;
+    let () = moved_unit_box.0;
+
+    assert(pass_unit_int(UnitIntBox((), 76, ())).1 == 76);
+    let nested_unit_int = pass_nested_unit_int(NestedUnitInt(UnitBox(()), ((),), 77, ()));
+    assert(nested_unit_int.2 == 77);
+
+    let unit_tuple = pass_unit_tuple(((), ()));
+    let ((), ()) = unit_tuple;
+    assert(pass_unit_int_tuple(((), 78, ())).1 == 78);
 
     let lambda = |value: IntBox|: IntBox {
         IntBox(value.0 + 1)

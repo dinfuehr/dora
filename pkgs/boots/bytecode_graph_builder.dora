@@ -724,7 +724,7 @@ impl BytecodeGraphBuilder {
 
         match self.bc.const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
-                if !dest_type.is_unit() {
+                if self.is_non_zero_type(dest_type) {
                     let obj_inst = self.emit_local_get(obj);
                     let type_params = self.specialize_array(type_params);
                     let info = ClassInfo(class_id = cls_id, type_params);
@@ -740,7 +740,7 @@ impl BytecodeGraphBuilder {
                 }
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                if !dest_type.is_unit() {
+                if self.is_non_zero_type(dest_type) {
                     let src_inst = self.emit_local_get(obj);
                     let struct_layout = self.compute_struct_layout(
                         struct_id,
@@ -758,7 +758,7 @@ impl BytecodeGraphBuilder {
                 }
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
-                if !dest_type.is_unit() {
+                if self.is_non_zero_type(dest_type) {
                     let src_inst = self.emit_local_get(obj);
 
                     assert(tuple_ty.is_tuple());
@@ -786,7 +786,7 @@ impl BytecodeGraphBuilder {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 let type_params = self.specialize_array(type_params);
 
-                if !src_type.is_unit() {
+                if self.is_non_zero_type(src_type) {
                     let src_inst = self.emit_local_get(src);
                     let obj_inst = self.emit_local_get(obj);
 
@@ -802,7 +802,7 @@ impl BytecodeGraphBuilder {
                 }
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                if !src_type.is_unit() {
+                if self.is_non_zero_type(src_type) {
                     let src_inst = self.emit_local_get(src);
                     let obj_inst = self.emit_local_get(obj);
                     let struct_layout = self.compute_struct_layout(
@@ -822,7 +822,7 @@ impl BytecodeGraphBuilder {
                 }
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
-                if !src_type.is_unit() {
+                if self.is_non_zero_type(src_type) {
                     let src_inst = self.emit_local_get(src);
                     let obj_inst = self.emit_local_get(obj);
 
@@ -910,7 +910,7 @@ impl BytecodeGraphBuilder {
 
     fn emit_store_address(src: BytecodeRegister, address: BytecodeRegister) {
         let src_type = self.reg(src);
-        if src_type.is_unit() {
+        if self.is_zero_type(src_type) {
             return;
         }
 
@@ -929,7 +929,7 @@ impl BytecodeGraphBuilder {
 
     fn emit_load_address(dest: BytecodeRegister, address: BytecodeRegister) {
         let dest_type = self.reg(dest);
-        if dest_type.is_unit() {
+        if self.is_zero_type(dest_type) {
             return;
         }
 
@@ -1003,7 +1003,7 @@ impl BytecodeGraphBuilder {
 
     fn emit_store_ref(src: BytecodeRegister, reference: BytecodeRegister) {
         let src_type = self.reg(src);
-        if src_type.is_unit() {
+        if self.is_zero_type(src_type) {
             return;
         }
 
@@ -1015,7 +1015,7 @@ impl BytecodeGraphBuilder {
 
     fn emit_load_ref(dest: BytecodeRegister, reference: BytecodeRegister) {
         let dest_type = self.reg(dest);
-        if dest_type.is_unit() {
+        if self.is_zero_type(dest_type) {
             return;
         }
 
@@ -1117,7 +1117,7 @@ impl BytecodeGraphBuilder {
             EnumLayout::Tagged => {
                 let dest_ty = self.reg(dest);
 
-                if !dest_ty.is_unit() {
+                if self.is_non_zero_type(dest_ty) {
                     let src = self.emit_local_get(src);
 
                     let offset = iface::get_field_offset_for_enum_variant(
@@ -1285,7 +1285,7 @@ impl BytecodeGraphBuilder {
     fn emit_mov(dest: BytecodeRegister, src: BytecodeRegister) {
         let ty = self.reg(src);
 
-        if !ty.is_unit() {
+        if self.is_non_zero_type(ty) {
             let src_inst = self.emit_local_get(src);
             self.emit_local_set(dest, src_inst);
         }
@@ -1305,7 +1305,7 @@ impl BytecodeGraphBuilder {
             self.set_current_inlined_location(inst);
         }
 
-        if !dest_type.is_unit() {
+        if self.is_non_zero_type(dest_type) {
             let value = self.load_global(dest_type, glob);
             self.emit_local_set(dest, value);
         }
@@ -1314,7 +1314,7 @@ impl BytecodeGraphBuilder {
     fn emit_store_global(src: BytecodeRegister, glob: GlobalId) {
         let src_type = self.reg(src);
 
-        if !src_type.is_unit() {
+        if self.is_non_zero_type(src_type) {
             let src_inst = self.emit_local_get(src);
             self.store_global(src_type, glob, src_inst);
         }
@@ -1433,7 +1433,7 @@ impl BytecodeGraphBuilder {
 
         let dest_ty = self.reg(dest);
 
-        if !dest_ty.is_unit() {
+        if self.is_non_zero_type(dest_ty) {
             let result = self.load_array(dest_ty, arr_inst, idx_inst);
             self.emit_local_set(dest, result);
         }
@@ -1457,7 +1457,7 @@ impl BytecodeGraphBuilder {
         self.current().append_inst(check_inst);
 
         let src_type = self.reg(src);
-        if !src_type.is_unit() {
+        if self.is_non_zero_type(src_type) {
             let src_inst = self.emit_local_get(src);
             self.store_array(src_type, arr_inst, idx_inst, src_inst);
         }
@@ -1479,7 +1479,7 @@ impl BytecodeGraphBuilder {
         let src_inst = self.emit_local_get(src);
         let ty = self.reg(dest);
 
-        if !ty.is_unit() {
+        if self.is_non_zero_type(ty) {
             let offset = iface::OBJECT_HEADER_LENGTH;
             let value = self.load_field(ty, src_inst, InstExtraData::None, offset);
             self.emit_local_set(dest, value);
@@ -3132,7 +3132,7 @@ impl BytecodeGraphBuilder {
         for reg in arguments {
             let arg_ty = self.reg(reg);
 
-            if !arg_ty.is_unit() {
+            if self.is_non_zero_type(arg_ty) {
                 let arg = self.emit_local_get(reg);
 
                 let offset = iface::get_field_offset(
@@ -3195,11 +3195,13 @@ impl BytecodeGraphBuilder {
 
         self.emit_local_set(dest, obj_inst);
 
-        let arg = self.emit_local_get(obj);
         let arg_ty = self.reg(obj);
 
-        let offset = iface::OBJECT_HEADER_LENGTH;
-        self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
+        if self.is_non_zero_type(arg_ty) {
+            let arg = self.emit_local_get(obj);
+            let offset = iface::OBJECT_HEADER_LENGTH;
+            self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
+        }
     }
 
     fn emit_new_struct(
@@ -3211,6 +3213,11 @@ impl BytecodeGraphBuilder {
             struct_id,
             type_params,
         ) = self.bc.const_pool_entry(idx);
+
+        if self.is_zero_type(self.reg(dest)) {
+            return;
+        }
+
         let layout = self.compute_struct_layout(struct_id, type_params);
 
         let alloc_inst = graph::create_allocate_stack_inst(layout);
@@ -3227,7 +3234,7 @@ impl BytecodeGraphBuilder {
             let reg = arguments(idx);
             let ty = self.reg(reg);
 
-            if !ty.is_unit() {
+            if self.is_non_zero_type(ty) {
                 let field = layout.fields(idx);
                 let arg = self.emit_local_get(reg);
 
@@ -3306,7 +3313,7 @@ impl BytecodeGraphBuilder {
                 for reg in arguments {
                     let arg_ty = self.reg(reg);
 
-                    if !arg_ty.is_unit() {
+                    if self.is_non_zero_type(arg_ty) {
                         let arg = self.emit_local_get(reg);
                         let offset = iface::get_field_offset_for_enum_variant(
                             self.ci,
@@ -3337,6 +3344,11 @@ impl BytecodeGraphBuilder {
         arguments: Array[BytecodeRegister],
     ) {
         let ConstPoolEntry::Tuple(subtypes) = self.bc.const_pool_entry(idx);
+
+        if self.is_zero_type(self.reg(dest)) {
+            return;
+        }
+
         let layout = self.compute_tuple_layout(subtypes);
 
         let alloc_inst = graph::create_allocate_stack_inst(layout);
@@ -3348,6 +3360,12 @@ impl BytecodeGraphBuilder {
         for field in layout.fields {
             if !field.ty.is_unit() {
                 let reg = arguments(reg_idx);
+                reg_idx += 1;
+
+                if self.is_zero_type(field.ty) {
+                    continue;
+                }
+
                 let arg = self.emit_local_get(reg);
                 self.store_field(
                     field.ty,
@@ -3357,7 +3375,6 @@ impl BytecodeGraphBuilder {
                     arg,
                     false,
                 );
-                reg_idx += 1;
             }
         }
 
@@ -3951,6 +3968,14 @@ impl BytecodeGraphBuilder {
 
     fn is_inlining(): Bool {
         self.inlined_function_id.is_some()
+    }
+
+    fn is_zero_type(ty: BytecodeType): Bool {
+        cc::argument_passing_mode(self.ci, ty) is ArgumentPassingMode::None
+    }
+
+    fn is_non_zero_type(ty: BytecodeType): Bool {
+        !self.is_zero_type(ty)
     }
 
     fn reg_graph_ty(id: BytecodeRegister): Type {
