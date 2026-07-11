@@ -409,7 +409,7 @@ pub(crate) fn format_return(node: AstReturnExpr, f: &mut Formatter) {
 }
 
 pub(crate) fn format_tuple(node: AstTupleExpr, f: &mut Formatter) {
-    let opt = Options::new();
+    let opt = Options::new().require_trailing_comma_for_single_entry();
     print_comma_list_grouped(f, &node, &opt);
 }
 
@@ -615,6 +615,13 @@ mod tests {
     fn formats_tuple_expr() {
         let input = "fn  main (  ) {  let  x  =  ( 1 , 2 , 3 ) ; }";
         let expected = "fn main() {\n    let x = (1, 2, 3);\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn preserves_comma_in_single_element_tuple_expr() {
+        let input = "fn  main (  ) {  let  x  =  ( 12 , ) ; }";
+        let expected = "fn main() {\n    let x = (12,);\n}\n";
         assert_source(input, expected);
     }
 

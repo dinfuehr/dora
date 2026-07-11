@@ -16,19 +16,27 @@ pub(crate) type Iter<'a> = SyntaxElementIter<'a>;
 
 pub(crate) struct Options {
     keep_empty_lines: bool,
+    single_entry_needs_trailing_comma: bool,
 }
 
 impl Options {
     pub(crate) fn new() -> Options {
         Options {
             keep_empty_lines: false,
+            single_entry_needs_trailing_comma: false,
         }
     }
 
     pub(crate) fn keep_empty_lines() -> Options {
         Options {
             keep_empty_lines: true,
+            single_entry_needs_trailing_comma: false,
         }
+    }
+
+    pub(crate) fn require_trailing_comma_for_single_entry(mut self) -> Options {
+        self.single_entry_needs_trailing_comma = true;
+        self
     }
 }
 
@@ -474,8 +482,15 @@ fn print_comma_list_item<T: SyntaxNodeBase>(
             }
         }
     } else {
+        let needs_trailing_comma = !has_multiple_entries && opt.single_entry_needs_trailing_comma;
+
         if trailing_comments.is_empty() {
-            if has_multiple_entries {
+            if needs_trailing_comma {
+                f.text(",");
+                f.if_break(|f| {
+                    f.soft_break();
+                });
+            } else if has_multiple_entries {
                 f.if_break(|f| {
                     f.text(",");
                     f.soft_break();
@@ -486,7 +501,7 @@ fn print_comma_list_item<T: SyntaxNodeBase>(
                 });
             }
         } else {
-            if has_multiple_entries {
+            if has_multiple_entries || needs_trailing_comma {
                 f.text(",");
             }
             f.text(" ");
