@@ -2,7 +2,7 @@ use package::bytecode_graph_builder::{BytecodeGraphBuilder, compute_inline_retur
 use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::graph::{Block, Graph, Inst};
 use package::graph::ty::Type;
-use package::interface::{InlinedFunctionId};
+use package::interface::InlinedFunctionId;
 use package::ssa_construction::SsaConstruction;
 
 pub use package::bytecode_graph_builder::{BytecodeAnalysis, analyze_bytecode};

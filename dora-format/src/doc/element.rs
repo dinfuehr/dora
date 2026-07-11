@@ -11,8 +11,8 @@ use dora_parser::ast::{
 };
 
 use crate::doc::utils::{
-    Iter, Options, collect_comment_docs, eat_token_opt, has_line_comment, is_node, is_token,
-    print_comma_list_grouped, print_next_token, print_node, print_token, print_trivia,
+    Iter, Options, collect_comment_docs, eat_token_opt, has_comment, has_line_comment, is_node,
+    is_token, print_comma_list_grouped, print_next_token, print_node, print_token, print_trivia,
     skip_whitespace,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
@@ -165,15 +165,6 @@ pub(crate) fn format_type_argument_list(node: AstTypeArgumentList, f: &mut Forma
     } else {
         print_comma_list_grouped(f, &node, &opt);
     }
-}
-
-fn has_comment(node: &SyntaxNode) -> bool {
-    node.children_with_tokens().any(|elem| match elem {
-        SyntaxElement::Token(token) => {
-            matches!(token.syntax_kind(), LINE_COMMENT | MULTILINE_COMMENT)
-        }
-        SyntaxElement::Node(node) => has_comment(&node),
-    })
 }
 
 pub(crate) fn format_type_argument(node: AstTypeArgument, f: &mut Formatter) {

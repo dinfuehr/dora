@@ -538,6 +538,15 @@ pub(crate) fn collect_comment_docs(
     comments
 }
 
+pub(crate) fn has_comment(node: &SyntaxNode) -> bool {
+    node.children_with_tokens().any(|element| match element {
+        SyntaxElement::Token(token) => {
+            matches!(token.syntax_kind(), LINE_COMMENT | MULTILINE_COMMENT)
+        }
+        SyntaxElement::Node(node) => has_comment(&node),
+    })
+}
+
 pub(crate) fn has_line_comment(comments: &[(Doc, SyntaxToken)]) -> bool {
     comments
         .iter()

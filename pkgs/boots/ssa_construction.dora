@@ -5,7 +5,7 @@ use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeS
 use package::graph;
 use package::graph::{Block, Graph, Inst, Op};
 use package::graph::ty::Type;
-use package::regalloc::{EnumLayout};
+use package::regalloc::EnumLayout;
 use package::regalloc;
 use package::specialize::{specialize_array, specialize_ty};
 

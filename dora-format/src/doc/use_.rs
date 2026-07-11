@@ -5,7 +5,8 @@ use dora_parser::ast::{
 };
 
 use crate::doc::utils::{
-    collect_node, eat_token, is_node, is_token, print_node, print_token, print_token_opt,
+    collect_node, eat_token, has_comment, is_node, is_token, print_node, print_token,
+    print_token_opt,
 };
 use crate::doc::{BLOCK_INDENT, Formatter};
 use crate::with_iter;
@@ -58,6 +59,8 @@ pub(crate) fn format_use_as(node: AstUseAs, f: &mut Formatter) {
 }
 
 pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
+    let has_comments = has_comment(node.syntax_node());
+
     with_iter!(node, f, |iter, opt| {
         eat_token(f, &mut iter, L_BRACE, &opt);
         let mut elements = Vec::new();
@@ -74,25 +77,30 @@ pub(crate) fn format_use_group(node: AstUseGroup, f: &mut Formatter) {
         elements.sort_by(|(left, _), (right, _)| compare_use_trees(left, right));
         let group_count = elements.len();
 
-        f.group(|f| {
-            f.text("{");
-            f.soft_break();
-            f.nest(BLOCK_INDENT, |f| {
-                for (idx, (_, doc_id)) in elements.into_iter().enumerate() {
-                    f.append(doc_id);
-                    if idx + 1 < group_count {
-                        f.text(",");
-                        f.soft_line();
-                    } else {
-                        f.if_break(|f| {
+        if group_count == 1 && !has_comments {
+            let (_, doc_id) = elements.pop().unwrap();
+            f.append(doc_id);
+        } else {
+            f.group(|f| {
+                f.text("{");
+                f.soft_break();
+                f.nest(BLOCK_INDENT, |f| {
+                    for (idx, (_, doc_id)) in elements.into_iter().enumerate() {
+                        f.append(doc_id);
+                        if idx + 1 < group_count {
                             f.text(",");
-                            f.hard_line();
-                        });
+                            f.soft_line();
+                        } else {
+                            f.if_break(|f| {
+                                f.text(",");
+                                f.hard_line();
+                            });
+                        }
                     }
-                }
+                });
+                f.text("}");
             });
-            f.text("}");
-        });
+        }
     });
 }
 
@@ -180,6 +188,27 @@ mod tests {
     fn formats_use_group() {
         let input = "use  self  :: { C , A , B } ;";
         let expected = "use self::{A, B, C};\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_single_use_group() {
+        let input = "use self::{A};";
+        let expected = "use self::A;\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_single_nested_use_group() {
+        let input = "use self::{foo::{A}};";
+        let expected = "use self::foo::A;\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn preserves_single_use_group_with_comment() {
+        let input = "use self::{/* A */ A};";
+        let expected = "use self::{/* A */A};\n";
         assert_source(input, expected);
     }
 
