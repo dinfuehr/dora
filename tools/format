@@ -5,6 +5,7 @@
 # dependencies = []
 # ///
 
+import argparse
 import shlex
 import subprocess
 import sys
@@ -13,10 +14,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def run_formatter(files: list[Path]) -> None:
+def run_formatter(files: list[Path], check: bool) -> None:
     for path in files:
         rel_path = str(path.relative_to(REPO_ROOT))
-        cmd = ["cargo", "run", "-p", "dora-format", "--", "-i", rel_path]
+        cmd = ["cargo", "run", "--quiet", "-p", "dora-format", "--"]
+        if check:
+            cmd.append("--check")
+        else:
+            cmd.append("-i")
+        cmd.append(rel_path)
         print(rel_path)
         try:
             subprocess.run(
@@ -24,7 +30,7 @@ def run_formatter(files: list[Path]) -> None:
                 check=True,
                 cwd=REPO_ROOT,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=None if check else subprocess.DEVNULL,
             )
         except subprocess.CalledProcessError:
             print("+", " ".join(shlex.quote(part) for part in cmd))
@@ -40,10 +46,22 @@ def gather_files() -> list[Path]:
     return files
 
 
-def main() -> int:
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Format Dora source files.")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Exit with an error if any file is not formatted.",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+
     try:
         files = gather_files()
-        run_formatter(files)
+        run_formatter(files, args.check)
     except KeyboardInterrupt:
         print("\nAborted by Ctrl-C", file=sys.stderr)
         return 130
@@ -52,4 +70,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

@@ -10,6 +10,8 @@ use dora_format::{format_source, format_source_with_line_length};
 struct Args {
     #[arg(short = 'i', long = "in-place", conflicts_with = "output")]
     in_place: bool,
+    #[arg(long = "check", conflicts_with_all = ["in_place", "output"])]
+    check: bool,
     #[arg(long = "line-length", value_parser = clap::value_parser!(u32).range(1..))]
     line_length: Option<u32>,
     #[arg(value_name = "input")]
@@ -37,7 +39,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    if args.in_place {
+    if args.check {
+        if content != output.as_str() {
+            eprintln!("{} is not formatted", args.input.display());
+            return Err("format check failed".into());
+        }
+    } else if args.in_place {
         fs::write(&args.input, output.as_str())?;
     } else if let Some(output_path) = &args.output {
         fs::write(output_path, output.as_str())?;
