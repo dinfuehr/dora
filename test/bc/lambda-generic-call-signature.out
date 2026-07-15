@@ -16,7 +16,7 @@ fn f:
    0 => ()
 
   Constants:
-   0 => Fct sink[(Int32): Int32]
+   0 => Fct sink[Fn1[Int32, Int32]]
 
   Locations:
    0 => 4:5

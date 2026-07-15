@@ -14,6 +14,8 @@ use crate::ty::{
 use dora_bytecode::{FunctionId, Program, TypeParamMode, display_fct, dump_stdout};
 use dora_parser::Span;
 
+pub(crate) const MAX_LAMBDA_PARAMS: usize = 16;
+
 pub use crate::extensiondefck::package_for_type;
 pub use parsety::{ParsedTraitType, ParsedType};
 pub use path::{PathKind, parse_path};
@@ -106,8 +108,6 @@ pub fn check_program(sa: &mut Sema) -> bool {
     // Define internal functions & methods.
     stdlib_lookup::resolve_internal_functions(sa);
     stdlib_lookup::lookup_known_methods(sa);
-    stdlib_lookup::create_lambda_class(sa);
-
     // Check for internal functions, methods or types.
     internalck(sa);
 

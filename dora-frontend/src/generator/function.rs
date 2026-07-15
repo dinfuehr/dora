@@ -4,7 +4,7 @@ use dora_bytecode::{BytecodeBody, Register};
 
 use crate::expr_block_always_returns;
 use crate::program_emitter::Emitter;
-use crate::sema::{AnalysisData, Element, FctDefinition, FctDefinitionId, Sema, VarLocation};
+use crate::sema::{AnalysisData, FctDefinition, FctDefinitionId, Sema, VarLocation};
 
 use super::expr::gen_expr;
 use super::pattern::{destruct_pattern_or_fail, setup_pattern_vars};
@@ -25,14 +25,13 @@ pub fn generate_fct(
     fct: &FctDefinition,
     src: &AnalysisData,
 ) -> BytecodeBody {
-    let frontend_type_params_len = fct.type_param_definition(sa).type_param_count();
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
         emitter,
-        frontend_type_params_len,
-        type_params_len: frontend_type_params_len + usize::from(fct.needs_self_type_param(sa)),
         type_param_definition_id: fct.type_param_definition_id,
+        needs_self_type_param: fct.needs_self_type_param(sa),
         is_lambda: fct.is_lambda(),
+        lambda_env_type: fct.is_lambda().then(|| fct.params_with_self()[0].ty()),
         return_type: fct.return_type(),
         file_id: fct.file_id,
         span: fct.span,

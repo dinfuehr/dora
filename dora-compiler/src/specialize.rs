@@ -40,12 +40,6 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
             BytecodeType::Enum(enum_id, params)
         }
 
-        BytecodeType::Lambda(params, return_type, is_variadic) => {
-            let params = specialize_bty_array(&params, type_params);
-            let return_type = specialize_bty(return_type.as_ref().clone(), type_params);
-            BytecodeType::Lambda(params, Box::new(return_type), is_variadic)
-        }
-
         BytecodeType::Tuple(subtypes) => {
             let subtypes = specialize_bty_array(&subtypes, type_params);
             BytecodeType::Tuple(subtypes)
@@ -133,16 +127,6 @@ pub fn specialize_ty_in_program(
         BytecodeType::Enum(enum_id, params) => BytecodeType::Enum(
             enum_id,
             specialize_ty_array_in_program(program, &params, type_params),
-        ),
-
-        BytecodeType::Lambda(params, return_type, is_variadic) => BytecodeType::Lambda(
-            specialize_ty_array_in_program(program, &params, type_params),
-            Box::new(specialize_ty_in_program(
-                program,
-                return_type.as_ref().clone(),
-                type_params,
-            )),
-            is_variadic,
         ),
 
         BytecodeType::Tuple(subtypes) => BytecodeType::Tuple(specialize_ty_array_in_program(
@@ -268,24 +252,6 @@ pub fn specialize_bty_for_trait_object(
                 assoc_types,
             );
             BytecodeType::Enum(enum_id, params)
-        }
-
-        BytecodeType::Lambda(params, return_type, is_variadic) => {
-            let params = specialize_bty_for_trait_object_array(
-                program,
-                &params,
-                trait_id,
-                type_params,
-                assoc_types,
-            );
-            let return_type = specialize_bty_for_trait_object(
-                program,
-                *return_type,
-                trait_id,
-                type_params,
-                assoc_types,
-            );
-            BytecodeType::Lambda(params, Box::new(return_type), is_variadic)
         }
 
         BytecodeType::Tuple(subtypes) => {

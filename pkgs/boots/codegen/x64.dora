@@ -2789,20 +2789,6 @@ impl CodeGen for CodeGenX64 {
         self.emit_virtual_call(obj, REG_TEMP, tmp, inst, fct_info.vtable_index);
     }
 
-    fn emit_invoke_lambda(inst: Inst) {
-        let fct_info = inst.get_lambda_function_info();
-        let receiver_idx = if fct_info.receiver_is_first {
-            0
-        } else {
-            1
-        };
-        let loc = inst.get_location_data();
-        let obj = loc.get_input(receiver_idx).get_register();
-        let tmp = loc.get_temp(0).get_register();
-
-        self.emit_virtual_call(obj, REG_TEMP, tmp, inst, 0i32);
-    }
-
     fn emit_check_array_bounds(inst: Inst) {
         let loc = inst.get_location_data();
         let idx = loc.get_input(0).get_register();
@@ -3034,12 +3020,6 @@ impl CodeGen for CodeGenX64 {
             let info = inst.get_class_info();
             size = get_class_size(self.ci, info.class_id, info.type_params);
             shape_key = iface::get_class_shape_key(info.class_id, info.type_params);
-        } else if inst.has_function_info() {
-            let info = inst.get_function_info();
-            size =
-            iface::get_class_size_for_lambda(self.ci, info.fct_id, info.type_params);
-            shape_key =
-            iface::get_class_shape_key_for_lambda(info.fct_id, info.type_params);
         } else if inst.has_trait_object_info() {
             let info = inst.get_trait_object_info();
             size = iface::get_class_size_for_trait_object(self.ci, info);

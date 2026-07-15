@@ -234,7 +234,9 @@ pub struct Sema {
     pub type_param_definitions: Arena<TypeParamDefinition>,
     pub contexts: Vec<ContextData>, // stores all potential context objects
     pub lambda_fct_ids: Vec<FctDefinitionId>, // maps lambda ids to function ids
-    type_refs: TypeRefArena,        // stores all type references with metadata
+    pub lambda_env_struct_ids: Vec<StructDefinitionId>, // maps lambda ids to environment structs
+    pub callable_traits: HashMap<(usize, bool), (TraitDefinitionId, FctDefinitionId)>,
+    type_refs: TypeRefArena, // stores all type references with metadata
     pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -282,6 +284,8 @@ impl Sema {
             type_param_definitions: Arena::new(),
             contexts: Vec::new(),
             lambda_fct_ids: Vec::new(),
+            lambda_env_struct_ids: Vec::new(),
+            callable_traits: HashMap::new(),
             type_refs: TypeRefArena::new(),
             interner: Interner::new(),
             known: KnownElements::new(),
@@ -359,6 +363,18 @@ impl Sema {
 
     pub fn lambda_fct_id(&self, id: LambdaId) -> FctDefinitionId {
         self.lambda_fct_ids[id.0]
+    }
+
+    pub fn lambda_env_struct_id(&self, id: LambdaId) -> StructDefinitionId {
+        self.lambda_env_struct_ids[id.0]
+    }
+
+    pub fn callable_trait(&self, arity: usize, is_variadic: bool) -> TraitDefinitionId {
+        self.callable_traits[&(arity, is_variadic)].0
+    }
+
+    pub fn callable_trait_method(&self, arity: usize, is_variadic: bool) -> FctDefinitionId {
+        self.callable_traits[&(arity, is_variadic)].1
     }
 
     pub fn extension(&self, id: ExtensionDefinitionId) -> &ExtensionDefinition {
@@ -549,11 +565,7 @@ impl Sema {
     }
 }
 
-pub fn lambda_outer_context_type(
-    sa: &Sema,
-    analysis: &AnalysisData,
-    type_params_len: usize,
-) -> SourceType {
+pub fn lambda_outer_context_type(sa: &Sema, analysis: &AnalysisData) -> SourceType {
     if !analysis.needs_context_slot_in_lambda_object() {
         return SourceType::Unit;
     }
@@ -572,10 +584,6 @@ pub fn lambda_outer_context_type(
 
     let context_class_id = sa.context(context_id).class_id();
     let context_class = sa.class(context_class_id);
-    assert_eq!(
-        context_class.type_param_definition(sa).type_param_count(),
-        type_params_len,
-    );
 
     SourceType::Class(
         context_class_id,
@@ -598,18 +606,6 @@ pub fn generated_identity_type_params(
     } else {
         type_params
     }
-}
-
-pub fn lambda_object_type(
-    sa: &Sema,
-    analysis: &AnalysisData,
-    type_params_len: usize,
-) -> SourceType {
-    let outer_context_type = lambda_outer_context_type(sa, analysis, type_params_len);
-    SourceType::Class(
-        sa.known.classes.lambda(),
-        SourceTypeArray::single(outer_context_type),
-    )
 }
 
 fn find_pkgs_directory() -> Option<PathBuf> {

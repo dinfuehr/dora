@@ -1,5 +1,5 @@
 use std::cell::OnceCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::str::Chars;
 use std::{f32, f64};
 
@@ -17,13 +17,13 @@ use crate::error::diagnostics::{
 use crate::interner::Name;
 use crate::sema::{
     Body, CallArg, ClassDefinition, ConstValue as SemaConstValue, ContextData, ContextFieldId,
-    ContextId, Element, Expr, ExprId, ExprMapId, FctDefinition, FctParent, FieldDefinition,
-    FieldIndex, GlobalDefinition, IdentType, LambdaExpr, ModuleDefinitionId, NestedScopeId,
-    NestedVarId, PackageDefinitionId, Param, PatternId, ScopeId, Sema, SourceFileId, StmtId,
-    TypeContext, TypeParamDefinition, TypeParamDefinitionId, TypeRefId, Var, VarAccess, VarId,
-    VarLocation, Visibility, check_type_ref, convert_trait_type_ref,
-    convert_type_ref_with_inference, generated_identity_type_params, lambda_object_type,
-    parse_type_ref, type_ref_span,
+    ContextId, Element, ElementId, Expr, ExprId, ExprMapId, FctDefinition, FctParent,
+    FieldDefinition, FieldIndex, GlobalDefinition, IdentType, ImplDefinition, LambdaExpr,
+    ModuleDefinitionId, NestedScopeId, NestedVarId, PackageDefinitionId, Param, PatternId, ScopeId,
+    Sema, SourceFileId, StmtId, StructDefinition, TypeContext, TypeParamDefinition,
+    TypeParamDefinitionId, TypeRefArena, TypeRefId, Var, VarAccess, VarId, VarLocation, Visibility,
+    check_type_ref, convert_trait_type_ref, convert_type_ref_with_inference,
+    generated_identity_type_params, lambda_outer_context_type, parse_type_ref, type_ref_span,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
@@ -34,8 +34,8 @@ use crate::typeck::type_params::{
     check_type_param_arity, check_type_param_bounds, check_type_params,
 };
 use crate::{
-    ParsedType, SourceType, SymbolKind, always_returns, args, expr_always_returns,
-    report_sym_shadow_span,
+    ParsedType, SourceType, SourceTypeArray, SymbolKind, TraitType, always_returns, args,
+    expr_always_returns, report_sym_shadow_span,
 };
 
 mod constck;
@@ -1287,18 +1287,135 @@ fn enclosing_context_class(contexts: &[ContextData], context_id: ContextId) -> C
 
 fn create_lambda_functions(sa: &mut Sema, lambda_definitions: Vec<FctDefinition>) {
     assert!(sa.lambda_fct_ids.is_empty());
+    assert!(sa.lambda_env_struct_ids.is_empty());
     sa.lambda_fct_ids.reserve(lambda_definitions.len());
+    sa.lambda_env_struct_ids.reserve(lambda_definitions.len());
 
     for mut lambda_definition in lambda_definitions {
-        let type_params_len = sa
+        if lambda_definition.params_without_self().len() > crate::MAX_LAMBDA_PARAMS {
+            continue;
+        }
+
+        let type_params = sa
             .type_param_definition(lambda_definition.type_param_definition_id)
-            .type_param_count();
-        let self_type = lambda_object_type(sa, lambda_definition.analysis(), type_params_len);
-        lambda_definition.params.params[0].parsed_ty = ParsedType::new_ty(self_type);
+            .toplevel_clone(sa);
+        let needs_self_type_param = lambda_definition.is_in_trait;
+        let identity_type_params =
+            generated_identity_type_params(sa, &type_params, needs_self_type_param);
+        let type_param_definition_id = sa.type_param_definitions.alloc(type_params);
+
+        let env_name = format!("{}Env", sa.interner.str(lambda_definition.name));
+        let env_name = sa.interner.intern(&env_name);
+        let env = StructDefinition::new_synthetic(
+            lambda_definition.package_id,
+            lambda_definition.module_id,
+            lambda_definition.file_id,
+            lambda_definition.span,
+            env_name,
+            type_param_definition_id,
+            needs_self_type_param,
+        );
+        let env_id = sa.structs.alloc(env);
+        sa.structs[env_id].id = Some(env_id);
+        sa.structs[env_id].set_type_refs(TypeRefArena::new());
+
+        let mut env_field_ids = Vec::new();
+        if lambda_definition
+            .analysis()
+            .needs_context_slot_in_lambda_object()
+        {
+            let context_ty = lambda_outer_context_type(sa, lambda_definition.analysis());
+            let field = FieldDefinition {
+                id: None,
+                name: Some(sa.interner.intern("context")),
+                span: None,
+                index: FieldIndex(0),
+                parsed_ty: ParsedType::new_ty(context_ty),
+                mutable: false,
+                visibility: Visibility::Module,
+                file_id: None,
+                module_id: lambda_definition.module_id,
+                package_id: lambda_definition.package_id,
+            };
+            let field_id = sa.fields.alloc(field);
+            sa.fields[field_id].id = Some(field_id);
+            env_field_ids.push(field_id);
+        }
+        assert!(sa.structs[env_id].field_ids.set(env_field_ids).is_ok());
+        assert!(sa.structs[env_id].field_names.set(HashMap::new()).is_ok());
+        assert!(sa.structs[env_id].children.set(Vec::new()).is_ok());
+
+        let env_ty = SourceType::Struct(env_id, identity_type_params.clone());
+        let arity = lambda_definition.params_without_self().len();
+        let is_variadic = lambda_definition.params.is_variadic;
+        let (callable_trait_id, callable_method_id) = sa.callable_traits[&(arity, is_variadic)];
+        lambda_definition.name = sa.fct(callable_method_id).name;
+        let mut callable_type_params = lambda_definition
+            .params_without_self()
+            .iter()
+            .map(|param| param.ty())
+            .collect::<Vec<_>>();
+        callable_type_params.push(lambda_definition.return_type());
+        let callable_trait_ty = TraitType {
+            trait_id: callable_trait_id,
+            type_params: SourceTypeArray::with(callable_type_params),
+            bindings: Vec::new(),
+        };
+
+        let impl_ = ImplDefinition::new_synthetic(
+            lambda_definition.package_id,
+            lambda_definition.module_id,
+            lambda_definition.file_id,
+            lambda_definition.declaration_span,
+            lambda_definition.span,
+            type_param_definition_id,
+            callable_trait_ty,
+            env_ty.clone(),
+            needs_self_type_param,
+        );
+        let impl_id = sa.impls.alloc(impl_);
+        assert!(sa.impls[impl_id].id.set(impl_id).is_ok());
+        sa.impls[impl_id].set_type_refs(TypeRefArena::new());
+
+        lambda_definition.parent = FctParent::Impl(impl_id);
+        let method_type_params = TypeParamDefinition::new(sa, Some(type_param_definition_id));
+        lambda_definition.type_param_definition_id =
+            sa.type_param_definitions.alloc(method_type_params);
+        lambda_definition.params.params[0].parsed_ty = ParsedType::new_ty(env_ty);
+        assert!(
+            lambda_definition
+                .trait_method_impl
+                .set(callable_method_id)
+                .is_ok()
+        );
 
         let fct_id = sa.fcts.alloc(lambda_definition);
         sa.fcts[fct_id].id = Some(fct_id);
         sa.lambda_fct_ids.push(fct_id);
+        sa.lambda_env_struct_ids.push(env_id);
+
+        let mut trait_method_map = HashMap::new();
+        trait_method_map.insert(callable_method_id, fct_id);
+        assert!(sa.impls[impl_id].methods.set(vec![fct_id]).is_ok());
+        assert!(sa.impls[impl_id].aliases.set(Vec::new()).is_ok());
+        assert!(
+            sa.impls[impl_id]
+                .children
+                .set(vec![ElementId::Fct(fct_id)])
+                .is_ok()
+        );
+        assert!(
+            sa.impls[impl_id]
+                .trait_method_map
+                .set(trait_method_map)
+                .is_ok()
+        );
+        assert!(
+            sa.impls[impl_id]
+                .trait_alias_map
+                .set(HashMap::new())
+                .is_ok()
+        );
     }
 }
 

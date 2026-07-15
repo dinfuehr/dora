@@ -148,7 +148,6 @@ impl FunctionData {
 #[derive(Debug, Decode, Encode)]
 pub enum FunctionKind {
     Impl(ImplId),
-    Lambda,
     Trait(TraitId),
     Extension(ExtensionId),
     Function,

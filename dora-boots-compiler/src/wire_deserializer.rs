@@ -205,11 +205,6 @@ fn decode_aot_shape_key(reader: &mut ByteReader) -> AotShapeKey {
                 variant_id,
             }
         }
-        opc::AOT_SHAPE_KEY_LAMBDA => {
-            let fct_id = (reader.read_u32() as usize).into();
-            let type_params = decode_bytecode_type_array(reader);
-            AotShapeKey::Lambda(fct_id, type_params)
-        }
         opc::AOT_SHAPE_KEY_TRAIT_OBJECT => {
             let trait_ty = decode_bytecode_type(reader);
             let actual_object_ty = decode_bytecode_type(reader);

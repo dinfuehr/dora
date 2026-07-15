@@ -116,12 +116,6 @@ pub fn encode_bytecode_type(ty: &BytecodeType, buffer: &mut ByteBuffer) {
             encode_bytecode_type_array(source_type_array, buffer);
             encode_bytecode_type_array(assoc_types, buffer);
         }
-        BytecodeType::Lambda(params, ret, is_variadic) => {
-            buffer.emit_u8(opc::BYTECODE_TYPE_LAMBDA);
-            encode_bytecode_type_array(params, buffer);
-            encode_bytecode_type(ret.as_ref(), buffer);
-            buffer.emit_bool(*is_variadic);
-        }
         BytecodeType::Assoc {
             ty,
             trait_ty,
@@ -243,13 +237,6 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
         opc::BYTECODE_TYPE_TUPLE => {
             let type_params = decode_bytecode_type_array(reader);
             BytecodeType::Tuple(type_params)
-        }
-
-        opc::BYTECODE_TYPE_LAMBDA => {
-            let params = decode_bytecode_type_array(reader);
-            let return_ty = decode_bytecode_type(reader);
-            let is_variadic = reader.read_bool();
-            BytecodeType::Lambda(params, Box::new(return_ty), is_variadic)
         }
 
         opc::BYTECODE_TYPE_ASSOC => {

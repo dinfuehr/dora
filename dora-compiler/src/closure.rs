@@ -155,22 +155,6 @@ impl<'a> TransitiveClosureComputation<'a> {
                     self.push(callee_id, combined_type_params);
                 }
 
-                BytecodeInstruction::NewLambda { idx, .. } => {
-                    let (callee_id, callee_type_params) = match bytecode_body.const_pool(idx) {
-                        ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
-                        _ => unreachable!(),
-                    };
-
-                    let callee_type_params = specialize_ty_array_in_program(
-                        self.program,
-                        &callee_type_params,
-                        &type_params,
-                    );
-                    self.push(callee_id, callee_type_params.clone());
-                    self.shape_keys
-                        .push(AotShapeKey::Lambda(callee_id, callee_type_params));
-                }
-
                 BytecodeInstruction::NewTraitObject { idx, .. } => {
                     let (trait_ty, actual_object_ty) = match bytecode_body.const_pool(idx) {
                         ConstPoolEntry::TraitObject {

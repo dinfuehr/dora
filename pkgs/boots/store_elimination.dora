@@ -330,7 +330,6 @@ fn is_memory_barrier(op: Op): Bool {
         | Op::CheckShiftAmount
         | Op::Invoke
         | Op::InvokeVirtual
-        | Op::InvokeLambda
         | Op::CheckDivZero
         | Op::LoadArray
         | Op::StoreArray

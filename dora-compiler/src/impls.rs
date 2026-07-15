@@ -4,7 +4,7 @@ use dora_bytecode::{
     Program, TraitId, TypeParamBound, TypeParamData,
 };
 
-use crate::{BytecodeTypeExt, block_matches_ty_in_program, specialize_bty_array};
+use crate::{BytecodeTypeExt, block_matches_ty_in_program, specialize_ty_array_in_program};
 
 pub fn find_trait_impl_in_program(
     program: &Program,
@@ -78,7 +78,8 @@ pub fn find_impl_in_program(
             check_type_param_defs,
             impl_id,
         ) {
-            let impl_trait_ty_params = specialize_bty_array(&impl_.trait_ty.type_params, &binding);
+            let impl_trait_ty_params =
+                specialize_ty_array_in_program(program, &impl_.trait_ty.type_params, &binding);
 
             if impl_trait_ty_params != trait_ty.type_params {
                 continue;
@@ -133,8 +134,7 @@ pub fn ty_implements_trait_in_program(
         | BytecodeType::Class(_, _)
         | BytecodeType::Tuple(_)
         | BytecodeType::Unit
-        | BytecodeType::TraitObject(..)
-        | BytecodeType::Lambda(..) => {
+        | BytecodeType::TraitObject(..) => {
             find_impl_in_program(program, check_ty, check_type_param_defs, trait_ty).is_some()
         }
 

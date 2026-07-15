@@ -211,11 +211,6 @@ fn encode_aot_shape_key(writer: ByteWriter, key: AotShapeKey) {
             encode_bytecode_type_array(writer, type_params);
             writer.emit_int32(variant_id);
         }
-        AotShapeKey::Lambda(fct_id, type_params) => {
-            writer.emit_byte(opc::AOT_SHAPE_KEY_LAMBDA.to_uint8());
-            writer.emit_int32(fct_id.0);
-            encode_bytecode_type_array(writer, type_params);
-        }
         AotShapeKey::TraitObject(trait_ty, actual_object_ty) => {
             writer.emit_byte(opc::AOT_SHAPE_KEY_TRAIT_OBJECT.to_uint8());
             encode_bytecode_type(writer, trait_ty);
@@ -386,12 +381,6 @@ pub fn encode_bytecode_type(writer: ByteWriter, ty: BytecodeType) {
             writer.emit_int32(trait_id.0);
             encode_bytecode_type_array(writer, source_type_array);
             encode_bytecode_type_array(writer, assoc_types);
-        }
-        BytecodeType::Lambda(params, ret, is_variadic) => {
-            writer.emit_byte(opc::BYTECODE_TYPE_LAMBDA.to_uint8());
-            encode_bytecode_type_array(writer, params);
-            encode_bytecode_type(writer, ret);
-            writer.emit_bool(is_variadic);
         }
         BytecodeType::Assoc(ty, trait_ty, assoc_id) => {
             writer.emit_byte(opc::BYTECODE_TYPE_ASSOC.to_uint8());

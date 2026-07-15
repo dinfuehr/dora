@@ -351,7 +351,6 @@ impl SsaConstruction {
             BytecodeType::Float64 => Type::Float64,
             BytecodeType::Class(..)
             | BytecodeType::Address
-            | BytecodeType::Lambda(..)
             | BytecodeType::TraitObject(..) => Type::Ptr,
             BytecodeType::Enum(enum_id, type_params) => {
                 let layout = self.compute_enum_layout(enum_id, type_params);

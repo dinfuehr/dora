@@ -1,9 +1,11 @@
+use crate::MAX_LAMBDA_PARAMS;
 use crate::SourceType;
 use crate::SourceTypeArray;
+use crate::args;
 use crate::element_collector::Annotations;
+use crate::error::diagnostics::{LAMBDA_PARAM_LIMIT_EXCEEDED, VARIADIC_PARAMETER_NEEDS_TO_BE_LAST};
 use crate::sema::{Body, ExprId, FctDefinition, FctParent, LambdaExpr, LambdaId, Param, Params};
 use crate::typeck::TypeCheck;
-use crate::{args, error::diagnostics::VARIADIC_PARAMETER_NEEDS_TO_BE_LAST};
 
 pub(super) fn check_expr_lambda(
     ck: &mut TypeCheck,
@@ -11,6 +13,14 @@ pub(super) fn check_expr_lambda(
     sema_expr: &LambdaExpr,
     expected_ty: SourceType,
 ) -> SourceType {
+    if sema_expr.params.len() > MAX_LAMBDA_PARAMS {
+        ck.report(
+            sema_expr.span,
+            &LAMBDA_PARAM_LIMIT_EXCEEDED,
+            args!(MAX_LAMBDA_PARAMS.to_string()),
+        );
+    }
+
     // Extract expected param and return types from expected_ty if it's a lambda
     let (expected_params, expected_return_type) = match expected_ty.to_lambda() {
         Some((params, ret, _)) => (Some(params), Some(ret)),
@@ -147,7 +157,7 @@ pub(super) fn check_expr_lambda(
     let name = ck.sa.generate_lambda_name();
     let name = ck.sa.interner.intern(&name);
 
-    let lambda = FctDefinition::new_no_source(
+    let mut lambda = FctDefinition::new_no_source(
         ck.package_id,
         ck.module_id,
         ck.file_id,
@@ -162,6 +172,7 @@ pub(super) fn check_expr_lambda(
         FctParent::Function,
         ck.is_in_trait,
     );
+    lambda.is_lambda = true;
     lambda
         .parsed_return_type()
         .set_ty(lambda_return_type.clone());

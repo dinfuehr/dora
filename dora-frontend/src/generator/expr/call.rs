@@ -1,4 +1,4 @@
-use dora_bytecode::{BytecodeType, ConstPoolIdx, Location, Register};
+use dora_bytecode::{BytecodeType, ConstPoolEntry, ConstPoolIdx, Location, Register};
 
 use super::bin::gen_intrinsic_bin;
 use super::{add_const_pool_entry_for_call, ensure_register, gen_expr, specialize_type_for_call};
@@ -167,23 +167,28 @@ fn gen_expr_call_lambda(
         ));
     }
 
-    let bc_params = g.emitter.convert_tya(g.sa, &params);
-    let bc_return_type = g.emitter.convert_ty(g.sa, return_type.clone());
-    let idx = g
-        .builder
-        .add_const_lambda(bc_params, bc_return_type, is_variadic);
+    let trait_object_ty = g.emitter.convert_ty(
+        g.sa,
+        SourceType::Lambda(params.clone(), Box::new(return_type.clone()), is_variadic),
+    );
+    let method_id = g.sa.callable_trait_method(params.len(), is_variadic);
+    let method_id = g.emitter.convert_function_id(g.sa, method_id);
+    let idx = g.builder.add_const(ConstPoolEntry::TraitObjectMethod(
+        trait_object_ty,
+        method_id,
+    ));
 
     let location = g.loc_for_expr(expr_id);
     let dest_reg = if return_type.is_unit() {
         let dest = g.ensure_unit_register();
         g.builder
-            .emit_invoke_lambda(dest, idx, &arguments, location);
+            .emit_invoke_virtual(dest, idx, &arguments, location);
         dest
     } else {
         let bytecode_ty = g.emitter.convert_ty(g.sa, return_type);
         let dest_reg = ensure_register(g, dest, bytecode_ty);
         g.builder
-            .emit_invoke_lambda(dest_reg, idx, &arguments, location);
+            .emit_invoke_virtual(dest_reg, idx, &arguments, location);
         dest_reg
     };
 

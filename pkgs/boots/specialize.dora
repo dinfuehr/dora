@@ -51,13 +51,6 @@ pub fn specialize_ty(
             BytecodeType::Tuple(specialize_array(ci, subtypes, type_params))
         }
         BytecodeType::TypeParam(idx) => type_params(idx.to_int64()),
-        BytecodeType::Lambda(params, ret, is_variadic) => {
-            BytecodeType::Lambda(
-                specialize_array(ci, params, type_params),
-                specialize_ty(ci, ret, type_params),
-                is_variadic,
-            )
-        }
         BytecodeType::Assoc(..) => {
             iface::specialize_assoc_ty(ci, ty, type_params)
         }

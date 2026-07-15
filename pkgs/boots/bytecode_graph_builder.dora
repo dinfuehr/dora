@@ -31,10 +31,8 @@ use package::compilation::{
 use package::graph;
 use package::graph::{AllocationData, Block, Graph, Inst, InstExtraData, Op};
 use package::graph::{
-    CallKind,
     ClassInfo,
     FunctionInfo,
-    LambdaFunctionInfo,
     StructInfo,
     TraitObjectInfo,
     VirtualFunctionInfo,
@@ -713,15 +711,11 @@ impl BytecodeGraphBuilder {
                 self.emit_invoke_direct(dest, idx, arguments)
             }
             BytecodeInstruction::InvokeVirtual(dest, idx, arguments) => {
-                self.emit_invoke_virtual(dest, idx, arguments, CallKind::Virtual);
+                self.emit_invoke_virtual(dest, idx, arguments);
                 false
             }
             BytecodeInstruction::InvokeStatic(dest, idx, arguments) => {
                 self.emit_invoke_static(dest, idx, arguments)
-            }
-            BytecodeInstruction::InvokeLambda(dest, idx, arguments) => {
-                self.emit_invoke_virtual(dest, idx, arguments, CallKind::Lambda);
-                false
             }
             BytecodeInstruction::InvokeGenericStatic(dest, idx, arguments) => {
                 self.emit_invoke_generic(dest, idx, arguments)
@@ -751,10 +745,6 @@ impl BytecodeGraphBuilder {
             }
             BytecodeInstruction::NewTraitObject(dest, obj, idx) => {
                 self.emit_new_trait_object(dest, obj, idx);
-                false
-            }
-            BytecodeInstruction::NewLambda(dest, idx, arguments) => {
-                self.emit_new_lambda(dest, idx, arguments);
                 false
             }
             BytecodeInstruction::ArrayLength(dest, src) => {
@@ -1751,7 +1741,6 @@ impl BytecodeGraphBuilder {
         dest: BytecodeRegister,
         idx: ConstPoolId,
         arguments: Array[BytecodeRegister],
-        kind: CallKind,
     ) {
         let args = Vec[Inst]::new();
         args.reserve(arguments.size());
@@ -1773,44 +1762,14 @@ impl BytecodeGraphBuilder {
             }
         }
 
-        let inst = match kind {
-            CallKind::Virtual => {
-                let ConstPoolEntry::TraitObjectMethod(
-                    trait_object_ty,
-                    trait_fct_id,
-                ) = self.bc().const_pool_entry(idx);
-                let BytecodeType::TraitObject(trait_id, ..) = trait_object_ty;
-                let vtable_index = iface::get_function_vtable_index(
-                    trait_id,
-                    trait_fct_id,
-                );
-                let info = VirtualFunctionInfo(
-                    receiver_is_first,
-                    trait_object_ty,
-                    vtable_index,
-                );
-                graph::create_invoke_virtual_inst(info, args, return_ty)
-            }
-
-            CallKind::Lambda => {
-                let ConstPoolEntry::Lambda(
-                    params,
-                    return_type,
-                    is_variadic,
-                ) = self.bc().const_pool_entry(idx);
-                let params = self.specialize_array(params);
-                let return_type = self.specialize_ty(return_type);
-                let info = LambdaFunctionInfo(
-                    params,
-                    return_type,
-                    is_variadic,
-                    receiver_is_first,
-                );
-                graph::create_invoke_lambda_inst(info, args, return_ty)
-            }
-
-            _ => unreachable[Inst](),
-        };
+        let ConstPoolEntry::TraitObjectMethod(
+            trait_object_ty,
+            trait_fct_id,
+        ) = self.bc().const_pool_entry(idx);
+        let BytecodeType::TraitObject(trait_id, ..) = trait_object_ty;
+        let vtable_index = iface::get_function_vtable_index(trait_id, trait_fct_id);
+        let info = VirtualFunctionInfo(receiver_is_first, trait_object_ty, vtable_index);
+        let inst = graph::create_invoke_virtual_inst(info, args, return_ty);
 
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
@@ -1989,36 +1948,6 @@ impl BytecodeGraphBuilder {
             }
 
             field_id += 1i32;
-        }
-
-        self.emit_object_initialization_fence(obj_inst);
-    }
-
-    fn emit_new_lambda(
-        dest: BytecodeRegister,
-        idx: ConstPoolId,
-        arguments: Array[BytecodeRegister],
-    ) {
-        let ConstPoolEntry::Fct(fct_id, type_params) = self.bc().const_pool_entry(idx);
-
-        let type_params = self.specialize_array(type_params);
-        let info = FunctionInfo(fct_id, type_params);
-        let info = InstExtraData::FunctionInfo(info);
-        let obj_inst = graph::create_new_object_inst(info, false);
-        self.set_current_inlined_location(obj_inst);
-        self.current().append_inst(obj_inst);
-
-        self.emit_local_set(dest, obj_inst);
-
-        assert(arguments.size() == 1);
-        let reg = arguments(0);
-        let arg_ty = self.reg(reg);
-
-        if self.is_non_zero_type(arg_ty) {
-            let arg = self.register_value(reg);
-
-            let offset = iface::OBJECT_HEADER_LENGTH;
-            self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
         }
 
         self.emit_object_initialization_fence(obj_inst);
@@ -2890,7 +2819,6 @@ pub fn bytecode_graph_ty(
         BytecodeType::Float64 => Type::Float64,
         BytecodeType::Class(..)
         | BytecodeType::Address
-        | BytecodeType::Lambda(..)
         | BytecodeType::TraitObject(..) => Type::Ptr,
         BytecodeType::Enum(enum_id, enum_type_params) => {
             let layout = compute_bytecode_enum_layout(

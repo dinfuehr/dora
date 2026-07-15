@@ -1,0 +1,44 @@
+fn main() {
+    let endpoints = |
+        first: Int64,
+        _a1: Int64,
+        _a2: Int64,
+        _a3: Int64,
+        _a4: Int64,
+        _a5: Int64,
+        _a6: Int64,
+        _a7: Int64,
+        _a8: Int64,
+        _a9: Int64,
+        _a10: Int64,
+        _a11: Int64,
+        _a12: Int64,
+        _a13: Int64,
+        _a14: Int64,
+        last: Int64,
+    |: Int64 { first + last };
+
+    assert(endpoints(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16) == 17);
+
+    let variadic = |
+        first: Int64,
+        _a1: Int64,
+        _a2: Int64,
+        _a3: Int64,
+        _a4: Int64,
+        _a5: Int64,
+        _a6: Int64,
+        _a7: Int64,
+        _a8: Int64,
+        _a9: Int64,
+        _a10: Int64,
+        _a11: Int64,
+        _a12: Int64,
+        _a13: Int64,
+        last: Int64,
+        values: Int64...,
+    |: Int64 { first + last + values.size() };
+
+    assert(variadic(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15) == 16);
+    assert(variadic(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17) == 18);
+}

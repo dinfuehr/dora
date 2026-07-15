@@ -1,26 +1,31 @@
+struct $Lambda1Env:
+
 fn f:
-  0: NewLambda r1, @0, r2 # $Lambda1
-  5: Mov r0, r1
-  8: Ret r2
+  0: NewStruct r2, @0 # $Lambda1Env
+  4: NewTraitObject r1, r2, @1 # Fn1[Fn3[Int32, Int32, Int32, Int32], Int32] wrapping $Lambda1Env
+  8: Mov r0, r1
+ 11: Ret r3
 
   Registers:
-   0 => ((Int32, Int32, Int32): Int32): Int32
-   1 => ((Int32, Int32, Int32): Int32): Int32
-   2 => ()
+   0 => Fn1[Fn3[Int32, Int32, Int32, Int32], Int32]
+   1 => Fn1[Fn3[Int32, Int32, Int32, Int32], Int32]
+   2 => struct $Lambda1Env
+   3 => ()
 
   Constants:
-   0 => Fct lamba::$Lambda1
+   0 => Struct $Lambda1Env
+   1 => Trait Fn1[Fn3[Int32, Int32, Int32, Int32], Int32] from $Lambda1Env
 
   Locations:
    0 => 2:19
 
-fn lamba::$Lambda1:
+fn <impl Fn1[Fn3[Int32, Int32, Int32, Int32], Int32] for $Lambda1Env>::call:
   0: ConstInt32 r2, @0 # 0
   3: Ret r2
 
   Registers:
-   0 => class $Lambda[()]
-   1 => (Int32, Int32, Int32): Int32
+   0 => struct $Lambda1Env
+   1 => Fn3[Int32, Int32, Int32, Int32]
    2 => Int32
 
   Constants:

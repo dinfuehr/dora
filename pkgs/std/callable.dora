@@ -1,0 +1,330 @@
+// Compiler-internal traits used as the runtime representation of lambda types.
+// Keep this module private: source programs use lambda types such as `(A): R`.
+
+trait Fn0[R] {
+    fn call(): R;
+}
+
+trait Fn1[A0, R] {
+    fn call(a0: A0): R;
+}
+
+trait Fn2[A0, A1, R] {
+    fn call(a0: A0, a1: A1): R;
+}
+
+trait Fn3[A0, A1, A2, R] {
+    fn call(a0: A0, a1: A1, a2: A2): R;
+}
+
+trait Fn4[A0, A1, A2, A3, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3): R;
+}
+
+trait Fn5[A0, A1, A2, A3, A4, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4): R;
+}
+
+trait Fn6[A0, A1, A2, A3, A4, A5, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): R;
+}
+
+trait Fn7[A0, A1, A2, A3, A4, A5, A6, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6): R;
+}
+
+trait Fn8[A0, A1, A2, A3, A4, A5, A6, A7, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7): R;
+}
+
+trait Fn9[A0, A1, A2, A3, A4, A5, A6, A7, A8, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8): R;
+}
+
+trait Fn10[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+    ): R;
+}
+
+trait Fn11[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+    ): R;
+}
+
+trait Fn12[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+        a11: A11,
+    ): R;
+}
+
+trait Fn13[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+        a11: A11,
+        a12: A12,
+    ): R;
+}
+
+trait Fn14[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+        a11: A11,
+        a12: A12,
+        a13: A13,
+    ): R;
+}
+
+trait Fn15[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+        a11: A11,
+        a12: A12,
+        a13: A13,
+        a14: A14,
+    ): R;
+}
+
+trait Fn16[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+        a11: A11,
+        a12: A12,
+        a13: A13,
+        a14: A14,
+        a15: A15,
+    ): R;
+}
+
+trait FnVar1[A0, R] {
+    fn call(a0: A0...): R;
+}
+
+trait FnVar2[A0, A1, R] {
+    fn call(a0: A0, a1: A1...): R;
+}
+
+trait FnVar3[A0, A1, A2, R] {
+    fn call(a0: A0, a1: A1, a2: A2...): R;
+}
+
+trait FnVar4[A0, A1, A2, A3, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3...): R;
+}
+
+trait FnVar5[A0, A1, A2, A3, A4, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4...): R;
+}
+
+trait FnVar6[A0, A1, A2, A3, A4, A5, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5...): R;
+}
+
+trait FnVar7[A0, A1, A2, A3, A4, A5, A6, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6...): R;
+}
+
+trait FnVar8[A0, A1, A2, A3, A4, A5, A6, A7, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7...): R;
+}
+
+trait FnVar9[A0, A1, A2, A3, A4, A5, A6, A7, A8, R] {
+    fn call(a0: A0, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5, a6: A6, a7: A7, a8: A8...): R;
+}
+
+trait FnVar10[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9...,
+    ): R;
+}
+
+trait FnVar11[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10...,
+    ): R;
+}
+
+trait FnVar12[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+        a11: A11...,
+    ): R;
+}
+
+trait FnVar13[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+        a11: A11,
+        a12: A12...,
+    ): R;
+}
+
+trait FnVar14[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+        a11: A11,
+        a12: A12,
+        a13: A13...,
+    ): R;
+}
+
+trait FnVar15[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+        a11: A11,
+        a12: A12,
+        a13: A13,
+        a14: A14...,
+    ): R;
+}
+
+trait FnVar16[A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, R] {
+    fn call(
+        a0: A0,
+        a1: A1,
+        a2: A2,
+        a3: A3,
+        a4: A4,
+        a5: A5,
+        a6: A6,
+        a7: A7,
+        a8: A8,
+        a9: A9,
+        a10: A10,
+        a11: A11,
+        a12: A12,
+        a13: A13,
+        a14: A14,
+        a15: A15...,
+    ): R;
+}

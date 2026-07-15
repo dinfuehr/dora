@@ -22,6 +22,7 @@ pub mod rand;
 pub mod string;
 pub mod thread;
 pub mod traits;
+mod callable;
 
 @internal
 pub struct Never

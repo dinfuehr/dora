@@ -352,17 +352,6 @@ impl<'a> BytecodeReader<'a> {
                 }
             }
 
-            BytecodeOpcode::InvokeLambda => {
-                let dest = self.read_register();
-                let idx = self.read_const_pool_idx();
-                let arguments = self.read_arguments();
-                BytecodeInstruction::InvokeLambda {
-                    dest,
-                    idx,
-                    arguments,
-                }
-            }
-
             BytecodeOpcode::InvokeGenericStatic => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_idx();
@@ -441,17 +430,6 @@ impl<'a> BytecodeReader<'a> {
                 let idx = self.read_const_pool_idx();
                 BytecodeInstruction::NewTraitObject { dest, idx, src }
             }
-            BytecodeOpcode::NewLambda => {
-                let dest = self.read_register();
-                let idx = self.read_const_pool_idx();
-                let arguments = self.read_arguments();
-                BytecodeInstruction::NewLambda {
-                    dest,
-                    idx,
-                    arguments,
-                }
-            }
-
             BytecodeOpcode::ArrayLength => {
                 let dest = self.read_register();
                 let arr = self.read_register();
@@ -829,14 +807,6 @@ where
                 self.visitor.visit_invoke_static(dest, fct, arguments);
             }
 
-            BytecodeInstruction::InvokeLambda {
-                dest,
-                idx,
-                arguments,
-            } => {
-                self.visitor.visit_invoke_lambda(dest, idx, arguments);
-            }
-
             BytecodeInstruction::InvokeGenericStatic {
                 dest,
                 fct,
@@ -889,14 +859,6 @@ where
             BytecodeInstruction::NewTraitObject { dest, idx, src } => {
                 self.visitor.visit_new_trait_object(dest, src, idx);
             }
-            BytecodeInstruction::NewLambda {
-                dest,
-                idx,
-                arguments,
-            } => {
-                self.visitor.visit_new_lambda(dest, idx, arguments);
-            }
-
             BytecodeInstruction::ArrayLength { dest, arr } => {
                 self.visitor.visit_array_length(dest, arr);
             }
@@ -1171,15 +1133,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_invoke_lambda(
-        &mut self,
-        _dest: Register,
-        _idx: ConstPoolIdx,
-        _arguments: Vec<Register>,
-    ) {
-        unimplemented!();
-    }
-
     fn visit_invoke_generic_static(
         &mut self,
         _dest: Register,
@@ -1216,10 +1169,6 @@ pub trait BytecodeVisitor {
     fn visit_new_trait_object(&mut self, _dest: Register, _src: Register, _idx: ConstPoolIdx) {
         unimplemented!();
     }
-    fn visit_new_lambda(&mut self, _dest: Register, _idx: ConstPoolIdx, _arguments: Vec<Register>) {
-        unimplemented!();
-    }
-
     fn visit_array_length(&mut self, _dest: Register, _arr: Register) {
         unimplemented!();
     }

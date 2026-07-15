@@ -1254,9 +1254,6 @@ fn encode_aot_shape_for_key(
             type_params,
             variant_id,
         } => encode_enum_variant_aot_shape(layout, program, id, *enum_id, type_params, *variant_id),
-        AotShapeKey::Lambda(fct_id, type_params) => {
-            encode_lambda_aot_shape(layout, program, id, *fct_id, type_params, symbols)
-        }
         AotShapeKey::TraitObject {
             trait_ty,
             actual_object_ty,
@@ -1396,28 +1393,6 @@ fn encode_enum_variant_aot_shape(
     }
 }
 
-fn encode_lambda_aot_shape(
-    layout: &AotLayout<'_>,
-    _program: &Program,
-    id: u32,
-    fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-    symbols: &AotSymbolMaps,
-) -> AotShape {
-    let lambda = layout.lambda_layout(fct_id, type_params);
-    let size = InstanceSize::Fixed(lambda.size);
-
-    AotShape {
-        id,
-        kind: ShapeKind::Lambda(fct_id, type_params.clone()),
-        visitor: ShapeVisitor::Regular,
-        refs: lambda.refs,
-        instance_size: aot_instance_size(size),
-        element_size: aot_element_size(size),
-        vtable_entries: lambda_vtable_entries(fct_id, type_params, symbols),
-    }
-}
-
 fn encode_trait_object_aot_shape(
     layout: &AotLayout<'_>,
     program: &Program,
@@ -1441,19 +1416,6 @@ fn encode_trait_object_aot_shape(
         element_size: aot_element_size(size),
         vtable_entries: trait_object_vtable_entries(program, &trait_ty, &actual_object_ty, symbols),
     }
-}
-
-fn lambda_vtable_entries(
-    fct_id: FunctionId,
-    type_params: &BytecodeTypeArray,
-    symbols: &AotSymbolMaps,
-) -> Vec<Option<String>> {
-    vec![
-        symbols
-            .functions
-            .get(&(fct_id, type_params.clone()))
-            .cloned(),
-    ]
 }
 
 fn trait_object_vtable_entries(

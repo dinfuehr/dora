@@ -8,10 +8,10 @@ use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type
 use dora_compiler::{
     AOT_SHAPE_KIND_ARRAY, AOT_SHAPE_KIND_CLASS, AOT_SHAPE_KIND_CODE, AOT_SHAPE_KIND_ENUM_VARIANT,
     AOT_SHAPE_KIND_FILLER_ARRAY, AOT_SHAPE_KIND_FILLER_WORD, AOT_SHAPE_KIND_FREE_SPACE,
-    AOT_SHAPE_KIND_LAMBDA, AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT,
-    AOT_SHAPE_REFS_BITMAP_MAX_WORD, AOT_SHAPE_REFS_BITMAP_TAG, AOT_SHAPE_VISITOR_INVALID,
-    AOT_SHAPE_VISITOR_NONE, AOT_SHAPE_VISITOR_POINTER_ARRAY, AOT_SHAPE_VISITOR_RECORD_ARRAY,
-    AOT_SHAPE_VISITOR_REGULAR, ShapeVisitor,
+    AOT_SHAPE_KIND_STRING, AOT_SHAPE_KIND_TRAIT_OBJECT, AOT_SHAPE_REFS_BITMAP_MAX_WORD,
+    AOT_SHAPE_REFS_BITMAP_TAG, AOT_SHAPE_VISITOR_INVALID, AOT_SHAPE_VISITOR_NONE,
+    AOT_SHAPE_VISITOR_POINTER_ARRAY, AOT_SHAPE_VISITOR_RECORD_ARRAY, AOT_SHAPE_VISITOR_REGULAR,
+    ShapeVisitor,
 };
 
 #[derive(Debug)]
@@ -168,11 +168,6 @@ fn decode_shape_kind(bytes: &[u8]) -> ShapeKind {
             let type_params = decode_bytecode_type_array(&mut reader);
             let variant_id = reader.read_u32();
             ShapeKind::EnumVariant(enum_id, type_params, variant_id)
-        }
-        AOT_SHAPE_KIND_LAMBDA => {
-            let fct_id = (reader.read_u32() as usize).into();
-            let type_params = decode_bytecode_type_array(&mut reader);
-            ShapeKind::Lambda(fct_id, type_params)
         }
         AOT_SHAPE_KIND_TRAIT_OBJECT => {
             let trait_ty = decode_bytecode_type(&mut reader);

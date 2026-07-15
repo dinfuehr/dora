@@ -1,0 +1,21 @@
+fn accept(
+    _lambda: (
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+        Int32,
+    ): Int32,
+) {}

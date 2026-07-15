@@ -41,7 +41,6 @@ pub struct SnapshotGenerator<'a> {
     value_name_id: StringId,
     variant_name_id: StringId,
     actual_object_name_id: StringId,
-    context_name_id: StringId,
     rt: &'a Runtime,
     layout: AotLayout<'a>,
 }
@@ -81,7 +80,6 @@ impl<'a> SnapshotGenerator<'a> {
             value_name_id: placeholder,
             variant_name_id: placeholder,
             actual_object_name_id: placeholder,
-            context_name_id: placeholder,
             value_map: HashMap::new(),
             rt,
             layout: AotLayout::new(&rt.program),
@@ -112,7 +110,6 @@ impl<'a> SnapshotGenerator<'a> {
         self.value_name_id = self.ensure_string("value".to_string());
         self.variant_name_id = self.ensure_string("variant".to_string());
         self.actual_object_name_id = self.ensure_string("actual_object".to_string());
-        self.context_name_id = self.ensure_string("context".to_string());
     }
 
     fn iterate_roots(&mut self, threads: &[Arc<DoraThread>]) {
@@ -228,14 +225,6 @@ impl<'a> SnapshotGenerator<'a> {
             | ShapeKind::FreeSpace
             | ShapeKind::Code => (),
 
-            ShapeKind::Lambda(..) => {
-                let fields = self.shape_fields(shape, &shape_kind);
-                assert!(fields.len <= 1);
-                if fields.len == 1 {
-                    self.process_special_object(address, fields, self.context_name_id);
-                }
-            }
-
             ShapeKind::TraitObject { .. } => {
                 let fields = self.shape_fields(shape, &shape_kind);
                 self.process_special_object(address, fields, self.actual_object_name_id);
@@ -301,9 +290,6 @@ impl<'a> SnapshotGenerator<'a> {
                 self.layout
                     .enum_variant_layout(*enum_id, type_params, *variant_id)
                     .fields
-            }
-            ShapeKind::Lambda(fct_id, type_params) => {
-                self.layout.lambda_layout(*fct_id, type_params).fields
             }
             ShapeKind::TraitObject {
                 actual_object_ty, ..
@@ -459,7 +445,7 @@ impl<'a> SnapshotGenerator<'a> {
             BytecodeType::Struct(..) => self.process_struct_value(value_address, ty),
             BytecodeType::Enum(..) => self.process_enum_value(value_address, ty),
 
-            BytecodeType::Class(..) | BytecodeType::TraitObject(..) | BytecodeType::Lambda(..) => {
+            BytecodeType::Class(..) | BytecodeType::TraitObject(..) => {
                 let field_value = value_address.load::<Address>();
 
                 if field_value.is_non_null() {
@@ -757,21 +743,6 @@ pub(crate) fn display_shape_name(rt: &Runtime, kind: &ShapeKind) -> String {
             )
         }
         ShapeKind::String => "String".into(),
-        ShapeKind::Lambda(fct_id, type_params) => {
-            let fct = rt.fct(*fct_id);
-            let params = fct
-                .params
-                .iter()
-                .skip(1)
-                .map(|ty| {
-                    let ty = specialize_ty_in_program(&rt.program, ty.clone(), &type_params);
-                    display_ty(&rt.program, &ty)
-                })
-                .collect::<Vec<_>>()
-                .join(", ");
-            let ret_ty = display_ty(&rt.program, &fct.return_type);
-            format!("({}): {}", params, ret_ty)
-        }
         ShapeKind::TraitObject {
             trait_ty,
             actual_object_ty,

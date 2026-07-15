@@ -1,27 +1,30 @@
 class $Context1[$Self]:
   self: $Self
 
+struct $Lambda1Env[$Self]:
+  context: $Context1[$Self]
+
 fn Value::value:
   <no bytecode>
 
 fn Foo::through_bound:
   <no bytecode>
 
-fn lamba::$Lambda1[$Self]:
-  0: LoadField r2, r0, @1 # $Lambda[$Context1[$Self]].context
+fn <impl[$Self] Fn0[Int64] for $Lambda1Env[$Self]>::call:
+  0: LoadField r2, r0, @1 # $Lambda1Env[$Self].context
   4: LoadField r3, r2, @2 # $Context1[$Self].self
   8: InvokeGenericDirect r1, @0, r3 # Value::value
  13: Ret r1
 
   Registers:
-   0 => class $Lambda[$Context1[$Self]]
+   0 => struct $Lambda1Env[$Self]
    1 => Int64
    2 => class $Context1[$Self]
    3 => $Self
 
   Constants:
    0 => Generic Value::value on $Self as Value
-   1 => Field std::$Lambda[$Context1[$Self]].context
+   1 => StructField $Lambda1Env[$Self].context
    2 => Field $Context1[$Self].self
 
   Locations:
@@ -30,26 +33,29 @@ fn lamba::$Lambda1[$Self]:
 fn Foo::through_bound$body[$Self]:
   0: NewObject r1, @0 # $Context1[$Self]
   4: StoreField r0, r1, @1 # $Context1[$Self].self
-  8: NewLambda r3, @2, r1 # $Lambda1
- 13: Mov r2, r3
- 16: InvokeLambda r4, @3, r2 # lambda
- 21: Ret r4
+  8: NewStruct r4, @2, r1 # $Lambda1Env[$Self]
+ 13: NewTraitObject r3, r4, @3 # Fn0[Int64] wrapping $Lambda1Env[$Self]
+ 17: Mov r2, r3
+ 20: InvokeVirtual r5, @4, r2 # std::callable::Fn0::call[R]
+ 25: Ret r5
 
   Registers:
    0 => $Self
    1 => class $Context1[$Self]
-   2 => (): Int64
-   3 => (): Int64
-   4 => Int64
+   2 => Fn0[Int64]
+   3 => Fn0[Int64]
+   4 => struct $Lambda1Env[$Self]
+   5 => Int64
 
   Constants:
    0 => Class $Context1[$Self]
    1 => Field $Context1[$Self].self
-   2 => Fct lamba::$Lambda1[T#0]
-   3 => Lambda (): Int64
+   2 => Struct $Lambda1Env[$Self]
+   3 => Trait Fn0[Int64] from $Lambda1Env[$Self]
+   4 => TraitObjectMethod Fn0[Int64].std::callable::Fn0::call[R]
 
   Locations:
    0 => 6:5
    8 => 7:22
-   16 => 8:9
+   20 => 8:9
 

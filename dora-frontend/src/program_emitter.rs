@@ -19,10 +19,10 @@ use crate::generator::{
 
 use crate::sema::{
     self, AliasDefinitionId, ClassDefinition, ClassDefinitionId, ConstDefinitionId, DerivedEquals,
-    Element, EnumDefinition, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, FctParent,
-    GlobalDefinition, GlobalDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, PackageName, StructDefinition, StructDefinitionId, TraitDefinitionId,
-    TypeParamDefinition, TypeParamDefinitionId,
+    Element, EnumDefinition, EnumDefinitionId, ExtensionDefinitionId, FctDefinition,
+    FctDefinitionId, FctParent, GlobalDefinition, GlobalDefinitionId, ImplDefinitionId,
+    ModuleDefinitionId, PackageDefinitionId, PackageName, StructDefinition, StructDefinitionId,
+    TraitDefinitionId, TypeParamDefinition, TypeParamDefinitionId,
 };
 use crate::{SourceType, SourceTypeArray, TraitType};
 
@@ -78,8 +78,8 @@ pub struct Emitter {
     // Semantic types carry arena IDs. Bytecode types still use indices local to
     // the element's type-parameter definition.
     type_param_definition: Option<TypeParamDefinitionId>,
-    // Generated closures and context classes in trait bodies carry `Self` as a
-    // final bytecode-only type parameter. Frontend type parameters stay unchanged.
+    // Default-method bodies and generated context/lambda artifacts carry a
+    // final bytecode-only `Self` parameter.
     hidden_self_type_param: Option<u32>,
     global_initializer: HashMap<GlobalDefinitionId, FunctionId>,
     default_trait_method_bodies: HashMap<FctDefinitionId, FunctionId>,
@@ -600,6 +600,16 @@ impl Emitter {
     fn create_structs(&mut self, sa: &Sema) {
         for (_struct_id, struct_) in sa.structs.iter() {
             self.enter_type_param_definition(struct_.type_param_definition_id());
+            assert!(self.hidden_self_type_param.is_none());
+            if struct_.needs_self_type_param {
+                self.hidden_self_type_param = Some(
+                    struct_
+                        .type_param_definition(sa)
+                        .type_param_count()
+                        .try_into()
+                        .expect("type parameter overflow"),
+                );
+            }
             let name = sa.interner.str(struct_.name).to_string();
             let fields = self.create_struct_fields(sa, struct_);
             let package_id = self.convert_package_id(sa, struct_.package_id);
@@ -615,6 +625,7 @@ impl Emitter {
                 is_internal: struct_.is_internal,
                 fields,
             });
+            self.hidden_self_type_param = None;
             self.leave_type_param_definition();
         }
     }
@@ -684,13 +695,8 @@ impl Emitter {
         for (id, fct) in sa.fcts.iter() {
             self.enter_type_param_definition(fct.type_param_definition_id());
             assert!(self.hidden_self_type_param.is_none());
-            if fct.needs_self_type_param(sa) && !fct.in_trait() {
-                self.hidden_self_type_param = Some(
-                    fct.type_param_definition(sa)
-                        .type_param_count()
-                        .try_into()
-                        .expect("type parameter overflow"),
-                );
+            if !fct.in_trait() {
+                self.hidden_self_type_param = self.function_self_type_param_idx(sa, fct);
             }
 
             let name = sa.interner.str(fct.name).to_string();
@@ -699,7 +705,7 @@ impl Emitter {
                 FctParent::Extension(extension_id) => {
                     FunctionKind::Extension(self.convert_extension_id(sa, extension_id))
                 }
-                FctParent::Function => FunctionKind::Lambda,
+                FctParent::Function => FunctionKind::Function,
                 FctParent::Impl(impl_id) => FunctionKind::Impl(self.convert_impl_id(sa, impl_id)),
                 FctParent::Trait(trait_id) => {
                     FunctionKind::Trait(self.convert_trait_id(sa, trait_id))
@@ -710,7 +716,7 @@ impl Emitter {
             let file_id = self.convert_source_file_id(sa, fct.file_id);
             let package_id = self.convert_package_id(sa, fct.package_id);
             let module_id = self.convert_module_id(sa, fct.module_id);
-            let type_params = self.create_type_params(sa, fct.type_param_definition(sa));
+            let type_params = self.create_function_type_params(sa, fct);
             let params: Vec<_> = fct
                 .params_with_self()
                 .iter()
@@ -768,14 +774,7 @@ impl Emitter {
             if fct.has_body(sa) || derived_equals.is_some() {
                 self.enter_type_param_definition(fct.type_param_definition_id());
                 assert!(self.hidden_self_type_param.is_none());
-                if fct.needs_self_type_param(sa) {
-                    self.hidden_self_type_param = Some(
-                        fct.type_param_definition(sa)
-                            .type_param_count()
-                            .try_into()
-                            .expect("type parameter overflow"),
-                    );
-                }
+                self.hidden_self_type_param = self.function_self_type_param_idx(sa, fct);
 
                 let bc_fct = match derived_equals {
                     Some(DerivedEquals::Class(class_id)) => {
@@ -943,6 +942,30 @@ impl Emitter {
         }
     }
 
+    fn function_self_type_param_idx(&self, sa: &Sema, fct: &FctDefinition) -> Option<u32> {
+        let type_params = fct.type_param_definition(sa);
+
+        fct.needs_self_type_param(sa).then(|| {
+            type_params
+                .type_param_count()
+                .try_into()
+                .expect("type parameter overflow")
+        })
+    }
+
+    fn create_function_type_params(&mut self, sa: &Sema, fct: &FctDefinition) -> TypeParamData {
+        let mut type_params = self.create_type_params(sa, fct.type_param_definition(sa));
+
+        if fct.is_lambda() && self.hidden_self_type_param.is_some() {
+            // `$Self` belongs to the generated Callable impl, so it is a
+            // container parameter from the call method's point of view.
+            assert_eq!(type_params.container_count + 1, type_params.names.len());
+            type_params.container_count += 1;
+        }
+
+        type_params
+    }
+
     fn create_globals(&mut self, sa: &Sema) {
         for (_id, global) in sa.globals.iter() {
             self.enter_type_param_definition(global.type_param_definition_id());
@@ -1068,6 +1091,16 @@ impl Emitter {
     fn create_impls(&mut self, sa: &Sema) {
         for (_id, impl_) in sa.impls.iter() {
             self.enter_type_param_definition(impl_.type_param_definition_id());
+            assert!(self.hidden_self_type_param.is_none());
+            if impl_.needs_self_type_param {
+                self.hidden_self_type_param = Some(
+                    impl_
+                        .type_param_definition(sa)
+                        .type_param_count()
+                        .try_into()
+                        .expect("type parameter overflow"),
+                );
+            }
             let mut methods = Vec::new();
 
             let trait_ty = impl_.trait_ty().expect("trait expected");
@@ -1123,6 +1156,7 @@ impl Emitter {
                 trait_method_map,
                 trait_alias_map,
             });
+            self.hidden_self_type_param = None;
             self.leave_type_param_definition();
         }
     }
@@ -1220,11 +1254,16 @@ impl Emitter {
                     });
                 BytecodeType::TypeParam(idx.index() as u32)
             }
-            SourceType::Lambda(params, return_type, is_variadic) => BytecodeType::Lambda(
-                self.convert_tya(sa, &params),
-                Box::new(self.convert_ty(sa, *return_type)),
-                is_variadic,
-            ),
+            SourceType::Lambda(params, return_type, is_variadic) => {
+                let trait_id = sa.callable_trait(params.len(), is_variadic);
+                let mut type_params = params.iter().collect::<Vec<_>>();
+                type_params.push(*return_type);
+                BytecodeType::TraitObject(
+                    self.convert_trait_id(sa, trait_id),
+                    self.convert_tya(sa, &SourceTypeArray::with(type_params)),
+                    BytecodeTypeArray::empty(),
+                )
+            }
             SourceType::This => self
                 .hidden_self_type_param
                 .map(BytecodeType::TypeParam)

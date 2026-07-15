@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, EnumId, FunctionId, GlobalId, Location,
-};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, ClassId, EnumId, GlobalId, Location};
 
 use crate::AotShapeKey;
 use crate::RelocationForm;
@@ -13,11 +11,10 @@ pub const AOT_SHAPE_KIND_STRING: u8 = 1;
 pub const AOT_SHAPE_KIND_CLASS: u8 = 2;
 pub const AOT_SHAPE_KIND_ARRAY: u8 = 3;
 pub const AOT_SHAPE_KIND_ENUM_VARIANT: u8 = 4;
-pub const AOT_SHAPE_KIND_LAMBDA: u8 = 5;
-pub const AOT_SHAPE_KIND_TRAIT_OBJECT: u8 = 6;
-pub const AOT_SHAPE_KIND_FILLER_ARRAY: u8 = 7;
-pub const AOT_SHAPE_KIND_FREE_SPACE: u8 = 8;
-pub const AOT_SHAPE_KIND_CODE: u8 = 9;
+pub const AOT_SHAPE_KIND_TRAIT_OBJECT: u8 = 5;
+pub const AOT_SHAPE_KIND_FILLER_ARRAY: u8 = 6;
+pub const AOT_SHAPE_KIND_FREE_SPACE: u8 = 7;
+pub const AOT_SHAPE_KIND_CODE: u8 = 8;
 
 // Stored in the runtime Shape::visitor word and decoded from .dora.shapes.
 pub const AOT_SHAPE_VISITOR_REGULAR: usize = 0;
@@ -51,7 +48,6 @@ pub enum ShapeKind {
     FillerArray,
     FreeSpace,
     Code,
-    Lambda(FunctionId, BytecodeTypeArray),
     TraitObject {
         trait_ty: BytecodeType,
         actual_object_ty: BytecodeType,
@@ -144,11 +140,6 @@ pub fn encode_shape_kind(kind: &ShapeKind) -> Vec<u8> {
             buffer.emit_id(enum_id.index());
             encode_bytecode_type_array(type_params, &mut buffer);
             buffer.emit_u32(*variant_id);
-        }
-        ShapeKind::Lambda(fct_id, type_params) => {
-            buffer.emit_u8(AOT_SHAPE_KIND_LAMBDA);
-            buffer.emit_id(fct_id.index());
-            encode_bytecode_type_array(type_params, &mut buffer);
         }
         ShapeKind::TraitObject {
             trait_ty,

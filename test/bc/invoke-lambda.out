@@ -1,13 +1,13 @@
 fn f:
-  0: InvokeLambda r1, @0, r0 # lambda
+  0: InvokeVirtual r1, @0, r0 # std::callable::Fn0::call[R]
   5: Ret r1
 
   Registers:
-   0 => (): Int32
+   0 => Fn0[Int32]
    1 => Int32
 
   Constants:
-   0 => Lambda (): Int32
+   0 => TraitObjectMethod Fn0[Int32].std::callable::Fn0::call[R]
 
   Locations:
    0 => 2:5

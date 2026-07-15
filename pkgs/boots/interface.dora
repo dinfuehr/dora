@@ -78,9 +78,6 @@ pub fn get_class_size_raw(data: Array[UInt8]): Int32;
 pub fn is_context_class_raw(id: Int32): Bool;
 
 @native
-pub fn get_class_size_for_lambda_raw(data: Array[UInt8]): Int32;
-
-@native
 pub fn get_class_size_for_trait_object_raw(data: Array[UInt8]): Int32;
 
 @native
@@ -150,24 +147,6 @@ pub fn get_function_info_for_inlining(fct_id: FunctionId): FunctionInliningInfo 
     let decoded = deserializer::decode_function_inlining_info(reader);
     assert(!reader.more_bytes());
     decoded
-}
-
-pub fn get_class_shape_key_for_lambda(
-    fct_id: FunctionId,
-    type_params: Array[BytecodeType],
-): AotShapeKey {
-    AotShapeKey::Lambda(fct_id, type_params)
-}
-
-pub fn get_class_size_for_lambda(
-    ci: CompilationInfo,
-    fct_id: FunctionId,
-    type_params: Array[BytecodeType],
-): Int32 {
-    let writer = ci.get_byte_writer();
-    writer.emit_int32(fct_id.0);
-    encode_bytecode_type_array(writer, type_params);
-    get_class_size_for_lambda_raw(writer.to_array())
 }
 
 pub fn get_class_size_for_trait_object(
@@ -639,7 +618,6 @@ pub enum AotShapeKey {
     Class(ClassId, Array[BytecodeType]),
     Array(ClassId, Array[BytecodeType]),
     EnumVariant(EnumId, Array[BytecodeType], Int32),
-    Lambda(FunctionId, Array[BytecodeType]),
     TraitObject(BytecodeType, BytecodeType),
     FillerArray,
     FreeSpace,

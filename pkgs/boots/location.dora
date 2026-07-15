@@ -263,7 +263,7 @@ impl LocationAnnotation {
                 self.codegen.annotate_return(inst);
             }
 
-            Op::Invoke | Op::InvokeVirtual | Op::InvokeLambda => {
+            Op::Invoke | Op::InvokeVirtual => {
                 let outgoing_args_size = annotate_call(inst, self.codegen);
                 self.max_outgoing_args_size =
                 Int32::max(self.max_outgoing_args_size, outgoing_args_size);
@@ -623,7 +623,7 @@ fn annotate_call(inst: Inst, codegen: CodeGen): Int32 {
         idx = idx + 1;
     }
 
-    if inst.op() == Op::InvokeVirtual || inst.op() == Op::InvokeLambda {
+    if inst.op() == Op::InvokeVirtual {
         add_temp_register(inst);
     }
 

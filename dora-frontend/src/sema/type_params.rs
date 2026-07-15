@@ -80,6 +80,16 @@ impl TypeParamDefinition {
         }
     }
 
+    pub fn toplevel_clone(&self, sa: &Sema) -> TypeParamDefinition {
+        TypeParamDefinition {
+            parent: None,
+            type_params: self.names(sa).map(|(id, _)| id).collect(),
+            bounds: self.bounds(sa).cloned().collect(),
+            container_type_params: 0,
+            container_bounds: 0,
+        }
+    }
+
     fn type_param_id(&self, sa: &Sema, idx: TypeParamIdx) -> TypeParamId {
         let idx = idx.index();
 

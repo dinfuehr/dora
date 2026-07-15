@@ -1,0 +1,21 @@
+fn main() {
+    let _lambda = |
+        _a0: Int32,
+        _a1: Int32,
+        _a2: Int32,
+        _a3: Int32,
+        _a4: Int32,
+        _a5: Int32,
+        _a6: Int32,
+        _a7: Int32,
+        _a8: Int32,
+        _a9: Int32,
+        _a10: Int32,
+        _a11: Int32,
+        _a12: Int32,
+        _a13: Int32,
+        _a14: Int32,
+        _a15: Int32,
+        _values: Int32...,
+    | {};
+}

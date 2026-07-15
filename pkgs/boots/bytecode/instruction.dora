@@ -61,7 +61,6 @@ pub enum BytecodeInstruction {
     InvokeDirect(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     InvokeVirtual(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     InvokeStatic(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
-    InvokeLambda(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     InvokeGenericStatic(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     InvokeGenericDirect(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
 
@@ -71,7 +70,6 @@ pub enum BytecodeInstruction {
     NewEnum(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     NewStruct(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     NewTraitObject(BytecodeRegister, BytecodeRegister, ConstPoolId),
-    NewLambda(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
 
     ArrayLength(BytecodeRegister, BytecodeRegister),
 

@@ -23,13 +23,14 @@ pub struct StructDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub syntax_node_ptr: ast::SyntaxNodePtr,
+    pub syntax_node_ptr: Option<ast::SyntaxNodePtr>,
     pub primitive_ty: Option<SourceType>,
     pub type_param_definition_id: TypeParamDefinitionId,
     pub type_refs: OnceCell<TypeRefArena>,
     pub visibility: Visibility,
     pub is_internal: bool,
     pub internal_resolved: bool,
+    pub needs_self_type_param: bool,
     pub span: Span,
     pub name: Name,
     pub field_ids: OnceCell<Vec<FieldDefinitionId>>,
@@ -57,13 +58,14 @@ impl StructDefinition {
             package_id,
             module_id,
             file_id,
-            syntax_node_ptr,
+            syntax_node_ptr: Some(syntax_node_ptr),
             primitive_ty: None,
             visibility: modifiers.visibility(),
             span: ast.span(),
             name,
             is_internal: modifiers.is_internal,
             internal_resolved: false,
+            needs_self_type_param: false,
             type_param_definition_id,
             type_refs: OnceCell::new(),
             field_ids: OnceCell::new(),
@@ -75,13 +77,46 @@ impl StructDefinition {
         }
     }
 
+    pub(crate) fn new_synthetic(
+        package_id: PackageDefinitionId,
+        module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
+        span: Span,
+        name: Name,
+        type_param_definition_id: TypeParamDefinitionId,
+        needs_self_type_param: bool,
+    ) -> StructDefinition {
+        StructDefinition {
+            id: None,
+            package_id,
+            module_id,
+            file_id,
+            syntax_node_ptr: None,
+            primitive_ty: None,
+            type_param_definition_id,
+            type_refs: OnceCell::new(),
+            visibility: Visibility::Module,
+            is_internal: false,
+            internal_resolved: false,
+            needs_self_type_param,
+            span,
+            name,
+            field_ids: OnceCell::new(),
+            field_names: OnceCell::new(),
+            children: OnceCell::new(),
+            extensions: RefCell::new(Vec::new()),
+            field_name_style: ast::FieldNameStyle::Positional,
+            derive_equals: false,
+        }
+    }
+
     pub fn id(&self) -> StructDefinitionId {
         self.id.expect("missing id")
     }
 
     pub fn ast(&self, sa: &Sema) -> ast::AstStruct {
         let file = sa.file(self.file_id()).ast();
-        file.syntax_by_ptr::<ast::AstStruct>(self.syntax_node_ptr)
+        file.syntax_by_ptr::<ast::AstStruct>(self.syntax_node_ptr.expect("ast missing"))
     }
 
     pub fn name(&self, sa: &Sema) -> String {

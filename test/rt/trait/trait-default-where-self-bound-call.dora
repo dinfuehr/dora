@@ -4,7 +4,8 @@ trait Derived {
 
 trait Base {
     fn test(): Int64 where Self: Derived {
-        self.derived_method()
+        let lambda = ||: Int64 { self.derived_method() };
+        lambda()
     }
 }
 

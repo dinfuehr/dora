@@ -57,7 +57,6 @@ pub struct KnownClasses {
     pub stacktrace: Option<ClassDefinitionId>,
     pub stacktrace_element: Option<ClassDefinitionId>,
     pub thread: Option<ClassDefinitionId>,
-    pub lambda: Option<ClassDefinitionId>,
 }
 
 impl KnownClasses {
@@ -71,7 +70,6 @@ impl KnownClasses {
             stacktrace: None,
             stacktrace_element: None,
             thread: None,
-            lambda: None,
         }
     }
 
@@ -105,10 +103,6 @@ impl KnownClasses {
 
     pub fn thread(&self) -> ClassDefinitionId {
         self.thread.expect("uninitialized")
-    }
-
-    pub fn lambda(&self) -> ClassDefinitionId {
-        self.lambda.expect("uninitialized")
     }
 }
 

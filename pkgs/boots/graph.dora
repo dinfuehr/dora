@@ -977,7 +977,6 @@ pub enum Op {
 
     Invoke,
     InvokeVirtual,
-    InvokeLambda,
 
     Equal,
     NotEqual,
@@ -1059,7 +1058,6 @@ impl Op {
         match self {
             Op::Invoke => true,
             Op::InvokeVirtual => true,
-            Op::InvokeLambda => true,
             _ => false,
         }
     }
@@ -1180,7 +1178,6 @@ pub fn op_name(op: Op): String {
         Op::CheckShiftAmount => "CheckShiftAmount",
         Op::Invoke => "Invoke",
         Op::InvokeVirtual => "InvokeVirtual",
-        Op::InvokeLambda => "InvokeLambda",
         Op::Equal => "Equal",
         Op::NotEqual => "NotEqual",
         Op::Greater => "Greater",
@@ -1490,7 +1487,6 @@ impl Inst {
             Op::Sar => Some(self.ty),
             Op::Invoke => Some(self.ty),
             Op::InvokeVirtual => Some(self.ty),
-            Op::InvokeLambda => Some(self.ty),
             Op::Equal => Some(Type::Bool),
             Op::NotEqual => Some(Type::Bool),
             Op::Greater => Some(Type::Bool),
@@ -1637,13 +1633,6 @@ impl Inst {
         match self.extra {
             InstExtraData::VirtualFunctionInfo(info) => info,
             _ => unreachable[VirtualFunctionInfo](),
-        }
-    }
-
-    pub fn get_lambda_function_info(): LambdaFunctionInfo {
-        match self.extra {
-            InstExtraData::LambdaFunctionInfo(info) => info,
-            _ => unreachable[LambdaFunctionInfo](),
         }
     }
 
@@ -2100,7 +2089,6 @@ impl Inst {
             Op::Sar => false,
             Op::Invoke => true,
             Op::InvokeVirtual => true,
-            Op::InvokeLambda => true,
             Op::Equal
             | Op::NotEqual
             | Op::Greater
@@ -2179,7 +2167,6 @@ pub enum InstExtraData {
     FunctionInfo(FunctionInfo),
     RuntimeFunction(RuntimeFunction),
     VirtualFunctionInfo(VirtualFunctionInfo),
-    LambdaFunctionInfo(LambdaFunctionInfo),
     ClassInfo(ClassInfo),
     StructInfo(StructInfo),
     AllocationData(AllocationData),
@@ -2240,7 +2227,6 @@ pub enum CallKind {
     Static,
     Direct,
     Virtual,
-    Lambda,
 }
 
 impl CallKind {
@@ -2249,7 +2235,6 @@ impl CallKind {
             CallKind::Static => Op::Invoke,
             CallKind::Direct => Op::Invoke,
             CallKind::Virtual => Op::InvokeVirtual,
-            CallKind::Lambda => Op::InvokeLambda,
         }
     }
 }
@@ -3076,13 +3061,6 @@ pub class VirtualFunctionInfo {
     pub vtable_index: Int32,
 }
 
-pub class LambdaFunctionInfo {
-    pub params: Array[BytecodeType],
-    pub return_type: BytecodeType,
-    pub is_variadic: Bool,
-    pub receiver_is_first: Bool,
-}
-
 @Equals
 pub class ClassInfo {
     pub class_id: ClassId,
@@ -3199,23 +3177,6 @@ pub fn create_invoke_virtual_inst(
     let inst = Inst::new();
     inst._op = Some(Op::InvokeVirtual);
     inst.extra = InstExtraData::VirtualFunctionInfo(info);
-    inst.ty = return_ty;
-
-    for arg in args {
-        inst.add_input(arg);
-    }
-
-    inst
-}
-
-pub fn create_invoke_lambda_inst(
-    info: LambdaFunctionInfo,
-    args: Vec[Inst],
-    return_ty: Type,
-): Inst {
-    let inst = Inst::new();
-    inst._op = Some(Op::InvokeLambda);
-    inst.extra = InstExtraData::LambdaFunctionInfo(info);
     inst.ty = return_ty;
 
     for arg in args {

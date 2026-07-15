@@ -267,9 +267,6 @@ pub fn dump_instruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::InvokeStatic(dest, idx, arguments) => {
             dumper.emit_invoke(inst, "InvokeStatic", dest, idx, arguments);
         }
-        BytecodeInstruction::InvokeLambda(dest, idx, arguments) => {
-            dumper.emit_invoke(inst, "InvokeLambda", dest, idx, arguments);
-        }
         BytecodeInstruction::InvokeGenericStatic(dest, idx, arguments) => {
             dumper.emit_invoke(inst, "InvokeGenericStatic", dest, idx, arguments);
         }
@@ -294,9 +291,6 @@ pub fn dump_instruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         }
         BytecodeInstruction::NewTraitObject(dest, obj, idx) => {
             dumper.emit_reg2_and_idx(inst, "NewTraitObject", dest, obj, idx);
-        }
-        BytecodeInstruction::NewLambda(dest, idx, arguments) => {
-            dumper.emit_invoke(inst, "NewLambda", dest, idx, arguments);
         }
         BytecodeInstruction::ArrayLength(dest, src) => {
             dumper.emit_reg2(inst, "ArrayLength", dest, src);

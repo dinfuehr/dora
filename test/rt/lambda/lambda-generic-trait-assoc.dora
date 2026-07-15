@@ -1,0 +1,17 @@
+trait Maker[T] {
+    type Item;
+
+    fn identity(): (Self::Item): Self::Item {
+        |value: Self::Item|: Self::Item { value }
+    }
+}
+
+class IntMaker
+
+impl Maker[Int32] for IntMaker {
+    type Item = Int32;
+}
+
+fn main() {
+    assert(IntMaker().identity()(42i32) == 42i32);
+}

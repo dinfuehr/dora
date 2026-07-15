@@ -5,11 +5,11 @@ use self::bytecode::BytecodeBuilder;
 use self::expr::{gen_stmt_expr, gen_stmt_let};
 use crate::program_emitter::Emitter;
 use crate::sema::{
-    AnalysisData, ContextFieldId, ContextId, ExprMapId, FctDefinitionId, FieldIndex, Intrinsic,
-    ScopeId, Sema, SourceFileId, Stmt, StmtId, TypeParamDefinitionId, VarId,
-    generated_identity_type_params, lambda_object_type,
+    AnalysisData, ContextFieldId, ContextId, Element, ExprMapId, FctDefinitionId, FieldIndex,
+    Intrinsic, ScopeId, Sema, SourceFileId, Stmt, StmtId, TypeParamDefinitionId, VarId,
+    generated_identity_type_params,
 };
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{SourceType, SourceTypeArray, TypeArgs};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
 
 mod bytecode;
@@ -46,10 +46,10 @@ struct AstBytecodeGen<'a> {
     sa: &'a Sema,
     #[allow(unused)]
     emitter: &'a mut Emitter,
-    frontend_type_params_len: usize,
-    type_params_len: usize,
     type_param_definition_id: TypeParamDefinitionId,
+    needs_self_type_param: bool,
     is_lambda: bool,
+    lambda_env_type: Option<SourceType>,
     return_type: SourceType,
     file_id: SourceFileId,
     span: Span,
@@ -226,34 +226,64 @@ impl<'a> AstBytecodeGen<'a> {
         None
     }
 
-    fn type_params_for_generated(&self, needs_self_type_param: bool) -> SourceTypeArray {
-        let type_params = generated_identity_type_params(
-            self.sa,
-            self.sa.type_param_definition(self.type_param_definition_id),
-            needs_self_type_param,
-        );
-        assert!(
-            type_params.len() == self.type_params_len
-                || type_params.len() == self.type_params_len + 1
-        );
-        type_params
-    }
-
     fn convert_tya(&mut self, ty: &SourceTypeArray) -> BytecodeTypeArray {
         self.emitter.convert_tya(self.sa, &ty)
+    }
+
+    fn identity_type_params(&self) -> SourceTypeArray {
+        generated_identity_type_params(
+            self.sa,
+            self.sa.type_param_definition(self.type_param_definition_id),
+            self.needs_self_type_param,
+        )
     }
 
     fn context_type(&mut self, context_id: ContextId) -> BytecodeType {
         let context = self.sa.context(context_id);
         let class = self.sa.class(context.class_id());
         let class_id = self.emitter.convert_class_id(self.sa, class.id());
-        let type_params = self.type_params_for_generated(class.needs_self_type_param);
+        let type_params = self.context_type_params(context_id);
         let type_params = self.convert_tya(&type_params);
         BytecodeType::Class(class_id, type_params)
     }
 
+    fn context_type_params(&self, context_id: ContextId) -> SourceTypeArray {
+        let context = self.sa.context(context_id);
+        let class = self.sa.class(context.class_id());
+        let type_params = self.identity_type_params();
+        let expected_len = class.type_param_definition(self.sa).type_param_count()
+            + usize::from(class.needs_self_type_param);
+        assert_eq!(type_params.len(), expected_len);
+        type_params
+    }
+
+    fn context_field_type(&self, context_id: ContextId, field_index: FieldIndex) -> SourceType {
+        let context = self.sa.context(context_id);
+        let class = self.sa.class(context.class_id());
+        let field = self.sa.field(class.field_id(field_index));
+        let type_params = self.context_type_params(context_id);
+        let definition = class.type_param_definition(self.sa);
+        let own_type_params = SourceTypeArray::with(
+            type_params
+                .iter()
+                .take(definition.type_param_count())
+                .collect(),
+        );
+        let mut type_args = TypeArgs::from_own(self.sa, definition, &own_type_params);
+        let self_ty = class
+            .needs_self_type_param
+            .then(|| type_params[definition.type_param_count()].clone());
+        if let Some(self_ty) = &self_ty {
+            type_args = type_args.with_self(self_ty.clone());
+        }
+        crate::specialize_type(self.sa, field.ty(), &type_args)
+    }
+
     fn lambda_object_type(&mut self) -> BytecodeType {
-        let ty = lambda_object_type(self.sa, self.analysis, self.frontend_type_params_len);
+        let ty = self
+            .lambda_env_type
+            .clone()
+            .expect("lambda environment type missing");
         self.emitter.convert_ty(self.sa, ty)
     }
 
@@ -387,12 +417,12 @@ fn load_outer_context_object(
     let mut context_register = g.alloc_temp(innermost_type);
 
     let lambda_object_type = g.lambda_object_type();
-    let BytecodeType::Class(lambda_class_id, lambda_type_params) = lambda_object_type else {
+    let BytecodeType::Struct(lambda_struct_id, lambda_type_params) = lambda_object_type else {
         unreachable!();
     };
     let field_idx = g
         .builder
-        .add_const_field_types(lambda_class_id, lambda_type_params, 0);
+        .add_const_struct_field(lambda_struct_id, lambda_type_params, 0);
     g.builder.emit_load_field(
         context_register,
         var_reg(g, SELF_VAR_ID),
@@ -455,10 +485,9 @@ fn store_in_context(
     let context_register = entered_context.register.expect("missing register");
     let context = g.sa.context(entered_context.context_id);
     let cls_id = context.class_id();
-    let cls = g.sa.class(cls_id);
     let field_id = field_id_from_context_idx(field_id, context.has_parent_slot());
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
-    let type_params = g.type_params_for_generated(cls.needs_self_type_param);
+    let type_params = g.context_type_params(entered_context.context_id);
     let bc_type_params = g.convert_tya(&type_params);
     let field_idx = g
         .builder

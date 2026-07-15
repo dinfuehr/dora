@@ -1,14 +1,14 @@
 use std::rc::Rc;
 
 use crate::sema::{
-    ClassDefinition, ClassDefinitionId, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
-    FieldDefinition, FieldIndex, ImplDefinitionId, Intrinsic, ModuleDefinition, Sema,
-    StructDefinitionId, TraitDefinitionId, TypeParamDefinition, Visibility,
+    ClassDefinitionId, Element, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId,
+    ImplDefinitionId, Intrinsic, ModuleDefinition, Sema, StructDefinitionId, TraitDefinitionId,
+    Visibility,
 };
 use crate::sym::{SymTable, SymbolKind};
 use crate::ty::SourceType;
 
-use crate::ParsedType;
+use crate::MAX_LAMBDA_PARAMS;
 use crate::interner::Name;
 
 pub fn lookup_known_fundamental_types(sa: &mut Sema) {
@@ -95,6 +95,55 @@ pub fn lookup_known_fundamental_types(sa: &mut Sema) {
 
     sa.known.enums.option = Some(find_enum(sa, "std::primitives::Option"));
     sa.known.enums.ordering = Some(find_enum(sa, "std::traits::Ordering"));
+
+    lookup_callable_traits(sa);
+}
+
+fn lookup_callable_traits(sa: &mut Sema) {
+    for arity in 0..=MAX_LAMBDA_PARAMS {
+        lookup_callable_trait(sa, arity, false);
+    }
+
+    for arity in 1..=MAX_LAMBDA_PARAMS {
+        lookup_callable_trait(sa, arity, true);
+    }
+}
+
+fn lookup_callable_trait(sa: &mut Sema, arity: usize, is_variadic: bool) {
+    let trait_name = if is_variadic {
+        format!("FnVar{arity}")
+    } else {
+        format!("Fn{arity}")
+    };
+    let trait_path = format!("std::callable::{trait_name}");
+    let trait_id = find_trait(sa, &trait_path);
+    let call_name = sa.interner.intern("call");
+    let trait_ = sa.trait_(trait_id);
+    assert_eq!(
+        trait_.type_param_definition(sa).type_param_count(),
+        arity + 1,
+        "unexpected number of type parameters on {trait_path}",
+    );
+    let method_id = trait_
+        .get_method(call_name, false)
+        .unwrap_or_else(|| panic!("{trait_path}::call not found"));
+    let method = sa.fct(method_id);
+    assert_eq!(
+        method.params_without_self().len(),
+        arity,
+        "unexpected number of parameters on {trait_path}::call",
+    );
+    assert_eq!(
+        method.params.is_variadic, is_variadic,
+        "unexpected variadic flag on {trait_path}::call",
+    );
+
+    sa.traits[trait_id].is_trait_object = true;
+    assert!(
+        sa.callable_traits
+            .insert((arity, is_variadic), (trait_id, method_id))
+            .is_none()
+    );
 }
 
 pub fn setup_prelude(sa: &mut Sema) {
@@ -194,48 +243,6 @@ pub fn lookup_known_methods(sa: &mut Sema) {
         Some(lookup_fct(sa, "std::string::StringBuffer#append"));
     sa.known.functions.string_buffer_to_string =
         Some(lookup_fct(sa, "std::string::StringBuffer#to_string"));
-}
-
-pub fn create_lambda_class(sa: &mut Sema) {
-    let class_name = sa.interner.intern("$Lambda");
-    let context_name = sa.interner.intern("context");
-    let context_type_name = sa.interner.intern("Context");
-    let mut type_params = TypeParamDefinition::new(sa, None);
-    let context_type_id = type_params.add_type_param(sa, context_type_name);
-    let type_param_definition_id = sa.type_param_definitions.alloc(type_params);
-
-    let class = ClassDefinition::new_without_source(
-        sa.stdlib_package_id(),
-        sa.stdlib_module_id(),
-        None,
-        None,
-        class_name,
-        Visibility::Public,
-        type_param_definition_id,
-    );
-
-    let class_id = sa.classes.alloc(class);
-    sa.classes[class_id].id = Some(class_id);
-
-    let field_def = FieldDefinition {
-        id: None,
-        name: Some(context_name),
-        span: None,
-        parsed_ty: ParsedType::new_ty(SourceType::TypeParam(context_type_id)),
-        index: FieldIndex(0),
-        mutable: false,
-        visibility: Visibility::Public,
-        file_id: None,
-        module_id: sa.stdlib_module_id(),
-        package_id: sa.stdlib_package_id(),
-    };
-    let field_id = sa.fields.alloc(field_def);
-    sa.fields[field_id].id = Some(field_id);
-
-    let field_ids = vec![field_id];
-    assert!(sa.class(class_id).field_ids.set(field_ids).is_ok());
-
-    sa.known.classes.lambda = Some(class_id);
 }
 
 fn find_class(sa: &Sema, name: &str) -> ClassDefinitionId {

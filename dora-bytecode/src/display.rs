@@ -86,8 +86,6 @@ fn display_fct_inner(prog: &Program, fct_id: FunctionId, mode: TypeParamMode) ->
 
             return result;
         }
-
-        FunctionKind::Lambda => "lamba".into(),
     };
 
     repr.push_str("::");
@@ -318,15 +316,6 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
                 )
             }
 
-            BytecodeType::Lambda(params, return_type, is_variadic) => {
-                write!(
-                    f,
-                    "({}): {}",
-                    fmt_lambda_params(self.prog, &params, self.type_params, *is_variadic),
-                    fmt_ty(self.prog, &return_type, self.type_params, false)
-                )
-            }
-
             BytecodeType::Tuple(subtypes) => {
                 write!(
                     f,
@@ -474,20 +463,6 @@ fn fmt_type_list<'a>(
         type_params,
         array,
         is_variadic: false,
-    }
-}
-
-pub fn fmt_lambda_params<'a>(
-    prog: &'a Program,
-    array: &'a BytecodeTypeArray,
-    type_params: TypeParamMode<'a>,
-    is_variadic: bool,
-) -> TypeListPrinter<'a> {
-    TypeListPrinter {
-        prog,
-        type_params,
-        array,
-        is_variadic,
     }
 }
 

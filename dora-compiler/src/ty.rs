@@ -38,7 +38,6 @@ impl BytecodeTypeExt for BytecodeType {
             | &BytecodeType::Struct(..)
             | &BytecodeType::Class(..)
             | &BytecodeType::TraitObject(..)
-            | &BytecodeType::Lambda(..)
             | &BytecodeType::TypeParam(..)
             | &BytecodeType::Address
             | &BytecodeType::This
@@ -62,7 +61,6 @@ impl BytecodeTypeExt for BytecodeType {
             | &BytecodeType::Float64
             | &BytecodeType::Unit
             | &BytecodeType::Tuple(..)
-            | &BytecodeType::Lambda(..)
             | &BytecodeType::TypeParam(..)
             | &BytecodeType::Address
             | &BytecodeType::This

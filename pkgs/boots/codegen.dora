@@ -309,11 +309,6 @@ fn emit_inst(codegen: CodeGen, inst: Inst) {
             codegen.emit_invoke_virtual(inst);
         }
 
-        Op::InvokeLambda => {
-            codegen.emit_comment("InvokeLambda");
-            codegen.emit_invoke_lambda(inst);
-        }
-
         Op::CheckArrayBounds => {
             codegen.emit_comment("CheckArrayBounds");
             codegen.emit_check_array_bounds(inst);
@@ -759,8 +754,6 @@ pub trait CodeGen {
     fn emit_invoke(inst: Inst);
 
     fn emit_invoke_virtual(inst: Inst);
-
-    fn emit_invoke_lambda(inst: Inst);
 
     fn emit_check_array_bounds(inst: Inst);
 

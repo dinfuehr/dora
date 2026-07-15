@@ -41,6 +41,7 @@ pub struct ImplDefinition {
     pub parsed_trait_ty: ParsedTraitType,
     pub parsed_extended_ty: ParsedType,
     pub type_refs: OnceCell<TypeRefArena>,
+    pub needs_self_type_param: bool,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
     pub children: OnceCell<Vec<ElementId>>,
@@ -81,6 +82,7 @@ impl ImplDefinition {
                     .map(|ty| lower_type(sa, type_ref_arena, file_id, ty)),
             ),
             type_refs: OnceCell::new(),
+            needs_self_type_param: false,
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             children: OnceCell::new(),
@@ -90,7 +92,7 @@ impl ImplDefinition {
         }
     }
 
-    pub fn new_synthetic(
+    pub(crate) fn new_synthetic(
         package_id: PackageDefinitionId,
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
@@ -99,6 +101,7 @@ impl ImplDefinition {
         type_param_definition_id: TypeParamDefinitionId,
         trait_ty: TraitType,
         extended_ty: SourceType,
+        needs_self_type_param: bool,
     ) -> ImplDefinition {
         ImplDefinition {
             id: OnceCell::new(),
@@ -112,6 +115,7 @@ impl ImplDefinition {
             parsed_trait_ty: ParsedTraitType::new_ty(Some(trait_ty)),
             parsed_extended_ty: ParsedType::new_ty(extended_ty),
             type_refs: OnceCell::new(),
+            needs_self_type_param,
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
             children: OnceCell::new(),

@@ -35,16 +35,6 @@ impl BytecodeBuilder {
         self.writer.add_const(entry)
     }
 
-    pub fn add_const_lambda(
-        &mut self,
-        params: BytecodeTypeArray,
-        return_type: BytecodeType,
-        is_variadic: bool,
-    ) -> ConstPoolIdx {
-        self.writer
-            .add_const(ConstPoolEntry::Lambda(params, return_type, is_variadic))
-    }
-
     pub fn add_const_fct(&mut self, id: FunctionId) -> ConstPoolIdx {
         self.writer
             .add_const(ConstPoolEntry::Fct(id, BytecodeTypeArray::empty()))
@@ -512,21 +502,6 @@ impl BytecodeBuilder {
         self.writer.emit_invoke_static(dest, idx, arguments);
     }
 
-    pub fn emit_invoke_lambda(
-        &mut self,
-        dest: Register,
-        idx: ConstPoolIdx,
-        arguments: &[Register],
-        location: Location,
-    ) {
-        assert!(self.def(dest));
-        for &arg in arguments {
-            assert!(self.used(arg));
-        }
-        self.writer.set_location(location);
-        self.writer.emit_invoke_lambda(dest, idx, arguments);
-    }
-
     pub fn emit_invoke_generic_static(
         &mut self,
         dest: Register,
@@ -634,20 +609,6 @@ impl BytecodeBuilder {
         assert!(self.def(dest) && self.used(src));
         self.writer.set_location(location);
         self.writer.emit_new_trait_object(dest, idx, src);
-    }
-    pub fn emit_new_lambda(
-        &mut self,
-        dest: Register,
-        idx: ConstPoolIdx,
-        arguments: &[Register],
-        location: Location,
-    ) {
-        assert!(self.def(dest));
-        for &arg in arguments {
-            assert!(self.used(arg));
-        }
-        self.writer.set_location(location);
-        self.writer.emit_new_lambda(dest, idx, arguments);
     }
 
     pub fn emit_array_length(&mut self, dest: Register, array: Register, location: Location) {

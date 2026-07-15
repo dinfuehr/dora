@@ -3,8 +3,7 @@ use std::cmp::max;
 use std::collections::HashMap;
 
 use dora_bytecode::{
-    BytecodeType, BytecodeTypeArray, ClassId, EnumData, EnumId, FunctionId, Program, StructId,
-    resolve_path,
+    BytecodeType, BytecodeTypeArray, ClassId, EnumData, EnumId, Program, StructId, resolve_path,
 };
 
 use crate::{AotShapeKey, specialize_bty, specialize_ty_in_program};
@@ -152,7 +151,6 @@ pub struct AotLayout<'a> {
     array_class_id: ClassId,
     string_class_id: ClassId,
     classes: RefCell<HashMap<(ClassId, BytecodeTypeArray), AotRecordLayout>>,
-    lambdas: RefCell<HashMap<(FunctionId, BytecodeTypeArray), AotRecordLayout>>,
     tuples: RefCell<HashMap<BytecodeTypeArray, AotRecordLayout>>,
     structs: RefCell<HashMap<(StructId, BytecodeTypeArray), AotRecordLayout>>,
     enums: RefCell<HashMap<(EnumId, BytecodeTypeArray), AotEnumLayout>>,
@@ -190,7 +188,6 @@ impl<'a> AotLayout<'a> {
             array_class_id,
             string_class_id,
             classes: RefCell::new(HashMap::new()),
-            lambdas: RefCell::new(HashMap::new()),
             tuples: RefCell::new(HashMap::new()),
             structs: RefCell::new(HashMap::new()),
             enums: RefCell::new(HashMap::new()),
@@ -211,7 +208,6 @@ impl<'a> AotLayout<'a> {
             BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
-            | BytecodeType::Lambda(..)
             | BytecodeType::Ref(..) => ptr_width(),
             BytecodeType::Tuple(subtypes) => self.tuple_layout(subtypes).size,
             BytecodeType::Enum(enum_id, type_params) => {
@@ -244,7 +240,6 @@ impl<'a> AotLayout<'a> {
             BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
-            | BytecodeType::Lambda(..)
             | BytecodeType::Ref(..) => MachineMode::Ptr,
             BytecodeType::Enum(enum_id, type_params) => {
                 match self.enum_layout(enum_id, &type_params) {
@@ -277,7 +272,6 @@ impl<'a> AotLayout<'a> {
             BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
-            | BytecodeType::Lambda(..)
             | BytecodeType::Ref(..) => ptr_width(),
             BytecodeType::Tuple(subtypes) => self.tuple_layout(subtypes).align,
             BytecodeType::Enum(enum_id, type_params) => {
@@ -335,9 +329,7 @@ impl<'a> AotLayout<'a> {
             | BytecodeType::Address
             | BytecodeType::Unit => {}
 
-            BytecodeType::Class(..) | BytecodeType::Lambda(..) | BytecodeType::TraitObject(..) => {
-                refs.push(offset)
-            }
+            BytecodeType::Class(..) | BytecodeType::TraitObject(..) => refs.push(offset),
 
             BytecodeType::Ref(..) => {
                 // Ref points to local stack memory, not GC-managed heap objects.
@@ -355,9 +347,7 @@ impl<'a> AotLayout<'a> {
     pub fn array_shape_size(&self, element_ty: &BytecodeType) -> InstanceSize {
         match element_ty {
             BytecodeType::Unit => InstanceSize::UnitArray,
-            BytecodeType::Class(..) | BytecodeType::TraitObject(..) | BytecodeType::Lambda(..) => {
-                InstanceSize::ObjArray
-            }
+            BytecodeType::Class(..) | BytecodeType::TraitObject(..) => InstanceSize::ObjArray,
 
             BytecodeType::Tuple(subtypes) => {
                 let tuple = self.tuple_layout(subtypes.clone());
@@ -522,63 +512,6 @@ impl<'a> AotLayout<'a> {
         }
 
         AotShapeKey::Class(class_id, type_params)
-    }
-
-    pub fn lambda_layout(
-        &self,
-        fct_id: FunctionId,
-        type_params: &BytecodeTypeArray,
-    ) -> AotRecordLayout {
-        let key = (fct_id, type_params.clone());
-
-        if let Some(layout) = self.lambdas.borrow().get(&key) {
-            return layout.clone();
-        }
-
-        let layout = self.compute_lambda_layout(fct_id, type_params);
-        let mut lambdas = self.lambdas.borrow_mut();
-        lambdas.entry(key).or_insert_with(|| layout.clone()).clone()
-    }
-
-    fn compute_lambda_layout(
-        &self,
-        fct_id: FunctionId,
-        type_params: &BytecodeTypeArray,
-    ) -> AotRecordLayout {
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
-        let fct = self.program.fct(fct_id);
-        let lambda_object_ty =
-            specialize_ty_in_program(self.program, fct.params[0].clone(), type_params);
-        let BytecodeType::Class(_, lambda_type_params) = lambda_object_ty else {
-            panic!("lambda receiver is not a class");
-        };
-        assert_eq!(lambda_type_params.len(), 1);
-        let environment_ty = lambda_type_params[0].clone();
-
-        if environment_ty.is_unit() {
-            return AotRecordLayout {
-                size: object_header_size(),
-                align: ptr_width(),
-                refs: Vec::new(),
-                fields: Vec::new(),
-            };
-        }
-
-        assert!(environment_ty.is_reference_type());
-        let context_offset = object_header_size();
-        let size = align_i32(context_offset + ptr_width(), ptr_width());
-        let fields = vec![FieldInstance {
-            offset: context_offset,
-            ty: environment_ty,
-        }];
-
-        AotRecordLayout {
-            size,
-            align: ptr_width(),
-            refs: vec![context_offset],
-            fields,
-        }
     }
 
     fn compute_class_layout(

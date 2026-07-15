@@ -1,15 +1,17 @@
+struct $Lambda1Env[$Self]:
+
 fn Foo::make:
   <no bytecode>
 
 fn Foo::factory:
   <no bytecode>
 
-fn lamba::$Lambda1[$Self]:
+fn <impl[$Self] Fn0[$Self] for $Lambda1Env[$Self]>::call:
   0: InvokeGenericStatic r1, @0 # Foo::make
   4: Ret r1
 
   Registers:
-   0 => class $Lambda[()]
+   0 => struct $Lambda1Env[$Self]
    1 => $Self
 
   Constants:
@@ -19,15 +21,17 @@ fn lamba::$Lambda1[$Self]:
    0 => 5:20
 
 fn Foo::factory$body[$Self]:
-  0: NewLambda r0, @0, r1 # $Lambda1
-  5: Ret r0
+  0: NewStruct r1, @0 # $Lambda1Env[$Self]
+  4: NewTraitObject r0, r1, @1 # Fn0[$Self] wrapping $Lambda1Env[$Self]
+  8: Ret r0
 
   Registers:
-   0 => (): $Self
-   1 => ()
+   0 => Fn0[$Self]
+   1 => struct $Lambda1Env[$Self]
 
   Constants:
-   0 => Fct lamba::$Lambda1[T#0]
+   0 => Struct $Lambda1Env[$Self]
+   1 => Trait Fn0[$Self] from $Lambda1Env[$Self]
 
   Locations:
    0 => 5:9

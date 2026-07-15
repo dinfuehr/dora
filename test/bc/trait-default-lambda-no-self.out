@@ -1,12 +1,14 @@
+struct $Lambda1Env[$Self]:
+
 fn Foo::value:
   <no bytecode>
 
-fn lamba::$Lambda1[$Self]:
+fn <impl[$Self] Fn0[Int64] for $Lambda1Env[$Self]>::call:
   0: ConstInt64 r1, @0 # 1
   3: Ret r1
 
   Registers:
-   0 => class $Lambda[()]
+   0 => struct $Lambda1Env[$Self]
    1 => Int64
 
   Constants:
@@ -15,23 +17,25 @@ fn lamba::$Lambda1[$Self]:
   Locations:
 
 fn Foo::value$body[$Self]:
-  0: NewLambda r2, @0, r3 # $Lambda1
-  5: Mov r1, r2
-  8: InvokeLambda r4, @1, r1 # lambda
- 13: Ret r4
+  0: NewStruct r3, @0 # $Lambda1Env[$Self]
+  4: NewTraitObject r2, r3, @1 # Fn0[Int64] wrapping $Lambda1Env[$Self]
+  8: Mov r1, r2
+ 11: InvokeVirtual r4, @2, r1 # std::callable::Fn0::call[R]
+ 16: Ret r4
 
   Registers:
    0 => $Self
-   1 => (): Int64
-   2 => (): Int64
-   3 => ()
+   1 => Fn0[Int64]
+   2 => Fn0[Int64]
+   3 => struct $Lambda1Env[$Self]
    4 => Int64
 
   Constants:
-   0 => Fct lamba::$Lambda1[T#0]
-   1 => Lambda (): Int64
+   0 => Struct $Lambda1Env[$Self]
+   1 => Trait Fn0[Int64] from $Lambda1Env[$Self]
+   2 => TraitObjectMethod Fn0[Int64].std::callable::Fn0::call[R]
 
   Locations:
    0 => 3:22
-   8 => 4:9
+   11 => 4:9
 

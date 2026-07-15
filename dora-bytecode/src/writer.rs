@@ -319,15 +319,6 @@ impl BytecodeWriter {
         self.emit_invoke(BytecodeOpcode::InvokeVirtual, dest, idx, arguments);
     }
 
-    pub fn emit_invoke_lambda(
-        &mut self,
-        dest: Register,
-        idx: ConstPoolIdx,
-        arguments: &[Register],
-    ) {
-        self.emit_invoke(BytecodeOpcode::InvokeLambda, dest, idx, arguments);
-    }
-
     pub fn emit_invoke_static(
         &mut self,
         dest: Register,
@@ -374,10 +365,6 @@ impl BytecodeWriter {
         let values = [dest.to_usize() as u32, src.to_usize() as u32, idx.0];
         self.emit_values(BytecodeOpcode::NewTraitObject, &values);
     }
-    pub fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
-        self.emit_new_with_arguments(BytecodeOpcode::NewLambda, dest, idx, arguments);
-    }
-
     pub fn emit_array_length(&mut self, dest: Register, array: Register) {
         self.emit_reg2(BytecodeOpcode::ArrayLength, dest, array);
     }

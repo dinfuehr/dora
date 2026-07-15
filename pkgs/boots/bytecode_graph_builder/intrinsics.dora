@@ -867,9 +867,7 @@ impl BytecodeGraphBuilder {
             | BytecodeType::Address => {
                 // No need to clear any reference.
             }
-            BytecodeType::Class(..)
-            | BytecodeType::Lambda(..)
-            | BytecodeType::TraitObject(..) => {
+            BytecodeType::Class(..) | BytecodeType::TraitObject(..) => {
                 self.clear_array_element_pointer(array, index);
             }
             BytecodeType::Enum(enum_id, type_params) => {

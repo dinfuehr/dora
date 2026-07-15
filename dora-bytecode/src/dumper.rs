@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::display::{fmt_lambda_params, fmt_trait_ty, fmt_tuple, fmt_ty, fmt_type_params};
+use crate::display::{fmt_trait_ty, fmt_tuple, fmt_ty, fmt_type_params};
 use crate::{
     BytecodeBody, BytecodeOffset, BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, GlobalId,
     Program, Register, TypeParamMode, display_fct, display_fct_specialized, module_path_name, read,
@@ -217,14 +217,6 @@ pub fn dump(
                 align,
                 idx,
                 fmt_tuple(prog, subtypes, type_params)
-            )?,
-            ConstPoolEntry::Lambda(params, return_type, is_variadic) => writeln!(
-                w,
-                "{}{} => Lambda ({}): {}",
-                align,
-                idx,
-                fmt_lambda_params(prog, params, type_params, *is_variadic),
-                fmt_ty(prog, return_type, type_params, false)
             )?,
             ConstPoolEntry::JumpTable {
                 targets,
@@ -465,31 +457,10 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Fct(fct_id, _)
             | ConstPoolEntry::Generic { fct_id, .. }
             | ConstPoolEntry::TraitObjectMethod(_, fct_id) => fct_id,
-            ConstPoolEntry::Lambda(..) => return "lambda".into(),
             _ => unreachable!(),
         };
 
         display_fct(&self.prog, *fct_id)
-    }
-
-    fn emit_new_lambda(
-        &mut self,
-        name: &str,
-        r1: Register,
-        idx: ConstPoolIdx,
-        arguments: &[Register],
-    ) {
-        self.emit_start(name);
-        let (fct_id, _type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-        let fct = self.prog.fct(fct_id);
-        write!(self.w, " {}, {}", r1, idx).expect("write! failed");
-        for arg in arguments {
-            write!(self.w, ", {}", arg).expect("write! failed");
-        }
-        writeln!(self.w, " # {}", fct.name).expect("write! failed");
     }
 
     fn emit_new_object_with_args(
@@ -918,10 +889,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_invoke("InvokeStatic", dest, fctdef, &arguments);
     }
 
-    fn visit_invoke_lambda(&mut self, dest: Register, fct: ConstPoolIdx, arguments: Vec<Register>) {
-        self.emit_invoke("InvokeLambda", dest, fct, &arguments);
-    }
-
     fn visit_invoke_generic_static(
         &mut self,
         dest: Register,
@@ -945,9 +912,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
     }
     fn visit_new_trait_object(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         self.emit_new_trait_object("NewTraitObject", dest, src, idx);
-    }
-    fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
-        self.emit_new_lambda("NewLambda", dest, idx, &arguments);
     }
     fn visit_new_array(&mut self, dest: Register, length: Register, idx: ConstPoolIdx) {
         self.emit_new_array("NewArray", dest, length, idx);

@@ -1114,9 +1114,7 @@ fn compute_record_layout(
             BytecodeType::Int64 | BytecodeType::Float64 => {
                 add_field(8i32, 8i32, field_ty);
             }
-            BytecodeType::Class(..)
-            | BytecodeType::Lambda(..)
-            | BytecodeType::TraitObject(..) => {
+            BytecodeType::Class(..) | BytecodeType::TraitObject(..) => {
                 let offset = add_field(8i32, 8i32, field_ty);
                 refs.push(offset);
             }
@@ -1239,9 +1237,7 @@ pub fn is_reference(ci: CompilationInfo, ty: BytecodeType): Bool {
         | BytecodeType::Address
         | BytecodeType::Struct(..)
         | BytecodeType::Tuple(_) => false,
-        BytecodeType::Class(..)
-        | BytecodeType::Lambda(..)
-        | BytecodeType::TraitObject(..) => true,
+        BytecodeType::Class(..) | BytecodeType::TraitObject(..) => true,
         BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Bool](),
         BytecodeType::Enum(enum_id, type_params) => {
             let layout = compute_enum_layout(ci, enum_id, type_params);

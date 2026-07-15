@@ -1,12 +1,14 @@
+struct $Lambda1Env[$Self]:
+
 fn Maker::make:
   <no bytecode>
 
-fn lamba::$Lambda1[$Self]:
+fn <impl[$Self] Fn1[$Self, Bool] for $Lambda1Env[$Self]>::call:
   0: ConstTrue r2
   2: Ret r2
 
   Registers:
-   0 => class $Lambda[()]
+   0 => struct $Lambda1Env[$Self]
    1 => $Self
    2 => Bool
 
@@ -15,16 +17,18 @@ fn lamba::$Lambda1[$Self]:
   Locations:
 
 fn Maker::make$body[$Self]:
-  0: NewLambda r1, @0, r2 # $Lambda1
-  5: Ret r1
+  0: NewStruct r2, @0 # $Lambda1Env[$Self]
+  4: NewTraitObject r1, r2, @1 # Fn1[$Self, Bool] wrapping $Lambda1Env[$Self]
+  8: Ret r1
 
   Registers:
    0 => $Self
-   1 => ($Self): Bool
-   2 => ()
+   1 => Fn1[$Self, Bool]
+   2 => struct $Lambda1Env[$Self]
 
   Constants:
-   0 => Fct lamba::$Lambda1[T#0]
+   0 => Struct $Lambda1Env[$Self]
+   1 => Trait Fn1[$Self, Bool] from $Lambda1Env[$Self]
 
   Locations:
    0 => 3:9

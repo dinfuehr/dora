@@ -74,7 +74,6 @@ pub enum BytecodeOpcode {
     InvokeDirect,
     InvokeVirtual,
     InvokeStatic,
-    InvokeLambda,
     InvokeGenericStatic,
     InvokeGenericDirect,
     NewObject,
@@ -83,7 +82,6 @@ pub enum BytecodeOpcode {
     NewEnum,
     NewStruct,
     NewTraitObject,
-    NewLambda,
     ArrayLength,
     LoadArray,
     StoreArray,
@@ -152,7 +150,6 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::InvokeDirect => opc::BYTECODE_OPCODE_INVOKE_DIRECT,
             BytecodeOpcode::InvokeVirtual => opc::BYTECODE_OPCODE_INVOKE_VIRTUAL,
             BytecodeOpcode::InvokeStatic => opc::BYTECODE_OPCODE_INVOKE_STATIC,
-            BytecodeOpcode::InvokeLambda => opc::BYTECODE_OPCODE_INVOKE_LAMBDA,
             BytecodeOpcode::InvokeGenericStatic => opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC,
             BytecodeOpcode::InvokeGenericDirect => opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT,
             BytecodeOpcode::NewObject => opc::BYTECODE_OPCODE_NEW_OBJECT,
@@ -161,7 +158,6 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::NewEnum => opc::BYTECODE_OPCODE_NEW_ENUM,
             BytecodeOpcode::NewStruct => opc::BYTECODE_OPCODE_NEW_STRUCT,
             BytecodeOpcode::NewTraitObject => opc::BYTECODE_OPCODE_NEW_TRAIT_OBJECT,
-            BytecodeOpcode::NewLambda => opc::BYTECODE_OPCODE_NEW_LAMBDA,
             BytecodeOpcode::ArrayLength => opc::BYTECODE_OPCODE_ARRAY_LENGTH,
             BytecodeOpcode::LoadArray => opc::BYTECODE_OPCODE_LOAD_ARRAY,
             BytecodeOpcode::StoreArray => opc::BYTECODE_OPCODE_STORE_ARRAY,
@@ -234,7 +230,6 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_INVOKE_DIRECT => Ok(BytecodeOpcode::InvokeDirect),
             opc::BYTECODE_OPCODE_INVOKE_VIRTUAL => Ok(BytecodeOpcode::InvokeVirtual),
             opc::BYTECODE_OPCODE_INVOKE_STATIC => Ok(BytecodeOpcode::InvokeStatic),
-            opc::BYTECODE_OPCODE_INVOKE_LAMBDA => Ok(BytecodeOpcode::InvokeLambda),
             opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC => Ok(BytecodeOpcode::InvokeGenericStatic),
             opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT => Ok(BytecodeOpcode::InvokeGenericDirect),
             opc::BYTECODE_OPCODE_NEW_OBJECT => Ok(BytecodeOpcode::NewObject),
@@ -243,7 +238,6 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_NEW_ENUM => Ok(BytecodeOpcode::NewEnum),
             opc::BYTECODE_OPCODE_NEW_STRUCT => Ok(BytecodeOpcode::NewStruct),
             opc::BYTECODE_OPCODE_NEW_TRAIT_OBJECT => Ok(BytecodeOpcode::NewTraitObject),
-            opc::BYTECODE_OPCODE_NEW_LAMBDA => Ok(BytecodeOpcode::NewLambda),
             opc::BYTECODE_OPCODE_ARRAY_LENGTH => Ok(BytecodeOpcode::ArrayLength),
             opc::BYTECODE_OPCODE_LOAD_ARRAY => Ok(BytecodeOpcode::LoadArray),
             opc::BYTECODE_OPCODE_STORE_ARRAY => Ok(BytecodeOpcode::StoreArray),
@@ -296,21 +290,13 @@ impl BytecodeOpcode {
         }
     }
 
-    pub fn is_new_lambda(self) -> bool {
-        match self {
-            BytecodeOpcode::NewLambda => true,
-            _ => false,
-        }
-    }
-
     pub fn is_any_invoke(self) -> bool {
         match self {
             BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeGenericDirect
             | BytecodeOpcode::InvokeGenericStatic
             | BytecodeOpcode::InvokeStatic
-            | BytecodeOpcode::InvokeVirtual
-            | BytecodeOpcode::InvokeLambda => true,
+            | BytecodeOpcode::InvokeVirtual => true,
             _ => false,
         }
     }
@@ -329,7 +315,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeDirect
             | BytecodeOpcode::InvokeVirtual
             | BytecodeOpcode::InvokeStatic
-            | BytecodeOpcode::InvokeLambda
             | BytecodeOpcode::InvokeGenericStatic
             | BytecodeOpcode::InvokeGenericDirect
             | BytecodeOpcode::NewObject
@@ -338,7 +323,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::NewTuple
             | BytecodeOpcode::NewStruct
             | BytecodeOpcode::NewTraitObject
-            | BytecodeOpcode::NewLambda
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::LoadArray
             | BytecodeOpcode::StoreArray
@@ -616,12 +600,6 @@ pub enum BytecodeInstruction {
         arguments: Vec<Register>,
     },
 
-    InvokeLambda {
-        dest: Register,
-        idx: ConstPoolIdx,
-        arguments: Vec<Register>,
-    },
-
     InvokeGenericStatic {
         dest: Register,
         fct: ConstPoolIdx,
@@ -664,12 +642,6 @@ pub enum BytecodeInstruction {
         src: Register,
         idx: ConstPoolIdx,
     },
-    NewLambda {
-        dest: Register,
-        idx: ConstPoolIdx,
-        arguments: Vec<Register>,
-    },
-
     ArrayLength {
         dest: Register,
         arr: Register,
@@ -863,7 +835,6 @@ pub enum ConstPoolOpcode {
     TraitObject,
     TupleElement,
     Tuple,
-    Lambda,
     JumpTable,
 }
 
@@ -889,7 +860,6 @@ impl From<ConstPoolOpcode> for u8 {
             ConstPoolOpcode::TraitObject => opc::CONST_POOL_OPCODE_TRAIT_OBJECT,
             ConstPoolOpcode::TupleElement => opc::CONST_POOL_OPCODE_TUPLE_ELEMENT,
             ConstPoolOpcode::Tuple => opc::CONST_POOL_OPCODE_TUPLE,
-            ConstPoolOpcode::Lambda => opc::CONST_POOL_OPCODE_LAMBDA,
             ConstPoolOpcode::JumpTable => opc::CONST_POOL_OPCODE_JUMP_TABLE,
         }
     }
@@ -924,7 +894,6 @@ pub enum ConstPoolEntry {
     },
     TupleElement(BytecodeType, u32),
     Tuple(BytecodeTypeArray),
-    Lambda(BytecodeTypeArray, BytecodeType, bool),
     JumpTable {
         targets: Vec<u32>,
         default_target: u32,

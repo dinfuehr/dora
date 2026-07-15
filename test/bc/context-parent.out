@@ -5,39 +5,48 @@ class $Context1:
   parent_context: $Context2
   y: Int64
 
+struct $Lambda1Env:
+  context: $Context1
+
+struct $Lambda2Env:
+  context: $Context2
+
 fn f:
   0: NewObject r0, @0 # $Context2
   4: ConstInt64 r1, @1 # 10
   7: StoreField r1, r0, @2 # $Context2.x
- 11: NewLambda r2, @3, r0 # $Lambda2
- 16: Ret r2
+ 11: NewStruct r3, @3, r0 # $Lambda2Env
+ 16: NewTraitObject r2, r3, @4 # Fn0[Fn0[Int64]] wrapping $Lambda2Env
+ 20: Ret r2
 
   Registers:
    0 => class $Context2
    1 => Int64
-   2 => (): (): Int64
+   2 => Fn0[Fn0[Int64]]
+   3 => struct $Lambda2Env
 
   Constants:
    0 => Class $Context2
    1 => Int64 10
    2 => Field $Context2.x
-   3 => Fct lamba::$Lambda2
+   3 => Struct $Lambda2Env
+   4 => Trait Fn0[Fn0[Int64]] from $Lambda2Env
 
   Locations:
    0 => 1:1
    11 => 4:5
 
-fn lamba::$Lambda1:
-  0: LoadField r2, r0, @0 # $Lambda[$Context1].context
+fn <impl Fn0[Int64] for $Lambda1Env>::call:
+  0: LoadField r2, r0, @0 # $Lambda1Env.context
   4: LoadField r3, r2, @1 # $Context1.parent_context
   8: LoadField r4, r3, @2 # $Context2.x
- 12: LoadField r2, r0, @3 # $Lambda[$Context1].context
+ 12: LoadField r2, r0, @3 # $Lambda1Env.context
  16: LoadField r5, r2, @4 # $Context1.y
  20: CheckedAdd r1, r4, r5
  24: Ret r1
 
   Registers:
-   0 => class $Lambda[$Context1]
+   0 => struct $Lambda1Env
    1 => Int64
    2 => class $Context1
    3 => class $Context2
@@ -45,38 +54,41 @@ fn lamba::$Lambda1:
    5 => Int64
 
   Constants:
-   0 => Field std::$Lambda[$Context1].context
+   0 => StructField $Lambda1Env.context
    1 => Field $Context1.parent_context
    2 => Field $Context2.x
-   3 => Field std::$Lambda[$Context1].context
+   3 => StructField $Lambda1Env.context
    4 => Field $Context1.y
 
   Locations:
    20 => 6:21
 
-fn lamba::$Lambda2:
+fn <impl Fn0[Fn0[Int64]] for $Lambda2Env>::call:
   0: NewObject r1, @0 # $Context1
-  4: LoadField r2, r0, @1 # $Lambda[$Context2].context
+  4: LoadField r2, r0, @1 # $Lambda2Env.context
   8: StoreField r2, r1, @2 # $Context1.parent_context
  12: ConstInt64 r3, @3 # 20
  15: StoreField r3, r1, @4 # $Context1.y
- 19: NewLambda r4, @5, r1 # $Lambda1
- 24: Ret r4
+ 19: NewStruct r5, @5, r1 # $Lambda1Env
+ 24: NewTraitObject r4, r5, @6 # Fn0[Int64] wrapping $Lambda1Env
+ 28: Ret r4
 
   Registers:
-   0 => class $Lambda[$Context2]
+   0 => struct $Lambda2Env
    1 => class $Context1
    2 => class $Context2
    3 => Int64
-   4 => (): Int64
+   4 => Fn0[Int64]
+   5 => struct $Lambda1Env
 
   Constants:
    0 => Class $Context1
-   1 => Field std::$Lambda[$Context2].context
+   1 => StructField $Lambda2Env.context
    2 => Field $Context1.parent_context
    3 => Int64 20
    4 => Field $Context1.y
-   5 => Fct lamba::$Lambda1
+   5 => Struct $Lambda1Env
+   6 => Trait Fn0[Int64] from $Lambda1Env
 
   Locations:
    0 => 4:5

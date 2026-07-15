@@ -10,11 +10,11 @@ fn f:
  27: ConstInt32 r4, @6 # 3
  30: ConstInt64 r3, @7 # 2
  33: StoreArray r4, r2, r3
- 37: InvokeLambda r4, @8, r0, r2 # lambda
+ 37: InvokeVirtual r4, @8, r0, r2 # std::callable::FnVar1::call[A0, R]
  43: Ret r4
 
   Registers:
-   0 => (Int32...): Int32
+   0 => FnVar1[Int32, Int32]
    1 => Int64
    2 => class Array[Int32]
    3 => Int64
@@ -29,7 +29,7 @@ fn f:
    5 => Int64 1
    6 => Int32 3
    7 => Int64 2
-   8 => Lambda (Int32...): Int32
+   8 => TraitObjectMethod FnVar1[Int32, Int32].std::callable::FnVar1::call[A0, R]
 
   Locations:
    3 => 2:5

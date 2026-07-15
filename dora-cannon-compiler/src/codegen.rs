@@ -5,7 +5,7 @@ use crate::masm::{CondCode, JumpTable, Label, Mem};
 use dora_bytecode::{
     BytecodeBody, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId,
-    Location, Program, Register, display_fct, display_ty, read,
+    Location, Program, Register, display_ty, read,
 };
 use dora_compiler::cpu::{
     CALLEE_SAVED_REGS, FREG_PARAMS, FREG_RESULT, FREG_TMP1, REG_PARAMS, REG_RESULT, REG_SP,
@@ -1914,10 +1914,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let bytecode_type = self.specialize_register_type(lhs);
 
         match bytecode_type {
-            BytecodeType::Address
-            | BytecodeType::TraitObject(..)
-            | BytecodeType::Class(..)
-            | BytecodeType::Lambda(..) => {
+            BytecodeType::Address | BytecodeType::TraitObject(..) | BytecodeType::Class(..) => {
                 self.emit_load_register(lhs, REG_RESULT.into());
                 self.emit_load_register(rhs, REG_TMP1.into());
 
@@ -2445,85 +2442,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.asm.object_initialization_fence();
     }
 
-    fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
-        let (fct_id, type_params) = match self.bytecode().const_pool(idx) {
-            ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
-            _ => unreachable!(),
-        };
-
-        let fct = self.program.fct(fct_id);
-        assert!(matches!(fct.kind, FunctionKind::Lambda));
-        let type_params = self.specialize_ty_array(type_params);
-        let lambda_params = fct
-            .params
-            .iter()
-            .skip(1)
-            .map(|ty| specialize_ty_in_program(self.program, ty.clone(), &type_params))
-            .collect();
-        let lambda_return_type =
-            specialize_ty_in_program(self.program, fct.return_type.clone(), &type_params);
-        assert_eq!(
-            self.reg_ty(dest),
-            BytecodeType::Lambda(
-                BytecodeTypeArray::new(lambda_params),
-                Box::new(lambda_return_type),
-                fct.is_variadic,
-            )
-        );
-
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
-        let lambda_layout = self.layout.lambda_layout(fct_id, &type_params);
-        let alloc_size = lambda_layout.size as usize;
-        assert_eq!(arguments.len(), 1);
-        let environment_ty = self.reg_ty(arguments[0]);
-
-        let gcpoint = self.create_gcpoint();
-        let position = self
-            .bytecode()
-            .offset_location(self.current_offset.to_u32());
-        let object_reg = REG_TMP1;
-
-        self.asm.allocate(
-            object_reg,
-            AllocationSize::Fixed(alloc_size),
-            position,
-            gcpoint,
-        );
-
-        // store gc object in register
-        comment!(
-            self,
-            format!("NewLambda: store object address in register {}", dest)
-        );
-        self.emit_store_register_as(REG_TMP1.into(), dest, MachineMode::Ptr);
-
-        comment!(self, format!("NewLambda: initialize object"));
-        self.asm.initialize_object(
-            object_reg,
-            alloc_size as i32,
-            AotShapeKey::Lambda(fct_id, type_params),
-        );
-
-        if environment_ty.is_unit() {
-            assert!(lambda_layout.fields.is_empty());
-        } else {
-            let context_offset = lambda_layout
-                .fields
-                .first()
-                .expect("lambda context field missing")
-                .offset;
-            self.asm.store_field(
-                object_reg,
-                context_offset,
-                self.reg(arguments[0]),
-                environment_ty,
-            );
-        }
-
-        self.asm.object_initialization_fence();
-    }
-
     fn emit_array_length(&mut self, dest: Register, arr: Register) {
         assert_eq!(self.bytecode().register_type(dest), BytecodeType::Int64);
         assert!(self.bytecode().register_type(arr).is_class());
@@ -2649,8 +2567,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             | BytecodeType::Float64
             | BytecodeType::Address
             | BytecodeType::TraitObject(..)
-            | BytecodeType::Class(..)
-            | BytecodeType::Lambda(..) => {
+            | BytecodeType::Class(..) => {
                 let register = result_reg_mode(self.mode(dest_type.clone()));
                 self.asm
                     .load_array_elem(self.mode(dest_type), register, REG_RESULT, REG_TMP1);
@@ -2677,73 +2594,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             .offset_location(self.current_offset.to_u32());
 
         self.emit_invoke_virtual(dest, trait_object_ty, fct_id, arguments, location);
-    }
-
-    fn emit_invoke_lambda_from_bytecode(
-        &mut self,
-        dest: Register,
-        idx: ConstPoolIdx,
-        arguments: Vec<Register>,
-    ) {
-        let (params, return_type, is_variadic) = match self.bytecode().const_pool(idx) {
-            ConstPoolEntry::Lambda(params, return_type, is_variadic) => {
-                (params.clone(), return_type.clone(), *is_variadic)
-            }
-            _ => unreachable!(),
-        };
-
-        let location = self
-            .bytecode()
-            .offset_location(self.current_offset.to_u32());
-
-        self.emit_invoke_lambda(dest, params, return_type, is_variadic, arguments, location);
-    }
-
-    fn emit_invoke_lambda(
-        &mut self,
-        dest: Register,
-        _params: BytecodeTypeArray,
-        _return_type: BytecodeType,
-        _is_variadic: bool,
-        arguments: Vec<Register>,
-        location: Location,
-    ) {
-        let bytecode_type = self.specialize_register_type(dest);
-
-        let self_register = arguments
-            .first()
-            .copied()
-            .expect("lambda invocation requires receiver argument");
-
-        let bytecode_type_self = self.bytecode().register_type(self_register);
-        assert!(matches!(bytecode_type_self, BytecodeType::Lambda(..)));
-
-        let argsize = self.emit_invoke_arguments(dest, bytecode_type.clone(), arguments);
-
-        let vtable_index = 0;
-        let gcpoint = self.create_gcpoint();
-
-        let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type.clone());
-
-        let self_index = if self.argument_passing_mode(&bytecode_type) == ArgumentPassingMode::Stack
-        {
-            1
-        } else {
-            0
-        };
-
-        self.asm.virtual_call(
-            vtable_index,
-            self_index,
-            location,
-            gcpoint,
-            result_mode,
-            result_reg,
-        );
-
-        self.asm.decrease_stack_frame(argsize);
-
-        self.store_call_result(dest, result_reg);
     }
 
     fn emit_invoke_virtual(
@@ -4915,11 +4765,6 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
         self.emit_invoke_virtual_from_bytecode(dest, idx, arguments);
     }
 
-    fn visit_invoke_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
-        comment!(self, format!("InvokeLambda {}", dest));
-        self.emit_invoke_lambda_from_bytecode(dest, idx, arguments);
-    }
-
     fn visit_invoke_static(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, format!("InvokeStatic {}, {}", dest, idx.0));
         self.emit_invoke_static_from_bytecode(dest, idx, arguments);
@@ -5050,18 +4895,6 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
             )
         });
         self.emit_new_trait_object(dest, idx, src);
-    }
-
-    fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
-        comment!(self, {
-            let (fct_id, _type_params) = match self.bytecode().const_pool(idx) {
-                ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
-                _ => unreachable!(),
-            };
-            let fct_name = display_fct(self.program, fct_id);
-            format!("NewLambda {}, ConstPoolIdx({}) # {}", dest, idx.0, fct_name,)
-        });
-        self.emit_new_lambda(dest, idx, &arguments);
     }
 
     fn visit_array_length(&mut self, dest: Register, arr: Register) {

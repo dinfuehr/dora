@@ -30,7 +30,7 @@ pub fn native_function_path(program: &Program, fct_id: FunctionId) -> String {
                 fct.name
             )
         }
-        FunctionKind::Trait(_) | FunctionKind::Lambda => {
+        FunctionKind::Trait(_) => {
             panic!("{} cannot be native", display_fct(program, fct_id));
         }
     }

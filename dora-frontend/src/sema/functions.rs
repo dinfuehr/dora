@@ -46,6 +46,7 @@ pub struct FctDefinition {
     pub is_never_inline: bool,
     pub is_trait_object_ignore: bool,
     pub is_in_trait: bool,
+    pub is_lambda: bool,
     pub params: Params,
     pub return_type: ParsedType,
     pub type_refs: OnceCell<TypeRefArena>,
@@ -98,6 +99,7 @@ impl FctDefinition {
             is_never_inline: modifiers.is_never_inline,
             is_trait_object_ignore: modifiers.is_trait_object_ignore,
             is_in_trait,
+            is_lambda: false,
             body: OnceCell::new(),
             type_refs: OnceCell::new(),
             type_param_definition_id,
@@ -147,6 +149,7 @@ impl FctDefinition {
             is_never_inline: modifiers.is_never_inline,
             is_trait_object_ignore: modifiers.is_trait_object_ignore,
             is_in_trait,
+            is_lambda: false,
             body: OnceCell::new(),
             type_refs: OnceCell::new(),
             type_param_definition_id,
@@ -299,7 +302,7 @@ impl FctDefinition {
     }
 
     pub fn is_lambda(&self) -> bool {
-        self.parent.is_function()
+        self.is_lambda
     }
 
     pub fn needs_self_type_param(&self, sa: &Sema) -> bool {

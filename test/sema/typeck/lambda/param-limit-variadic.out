@@ -1,0 +1,3 @@
+error: lambdas cannot have more than 16 parameters.
+--> param-limit-variadic.dora:2:19 - 20:9
+1 error found.

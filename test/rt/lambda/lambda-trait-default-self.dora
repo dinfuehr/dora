@@ -1,0 +1,34 @@
+trait Maker {
+    type Item;
+
+    fn predicate(): (Self): Bool {
+        |_: Self|: Bool { true }
+    }
+
+    fn capture(): (): Self {
+        ||: Self { self }
+    }
+
+    fn identity(): (Self::Item): Self::Item {
+        |value: Self::Item|: Self::Item { value }
+    }
+
+    fn captureLocal(): (): Int32 {
+        let value = 12i32;
+        ||: Int32 { value }
+    }
+}
+
+class MyClass
+
+impl Maker for MyClass {
+    type Item = Int32;
+}
+
+fn main() {
+    let value = MyClass();
+    assert(value.predicate()(value));
+    let _captured = value.capture()();
+    assert(value.identity()(42i32) == 42i32);
+    assert(value.captureLocal()() == 12i32);
+}

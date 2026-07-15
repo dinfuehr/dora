@@ -292,6 +292,11 @@ pub static LAMBDA_PARAM_COUNT_MISMATCH: DiagnosticDescriptor = DiagnosticDescrip
     level: ErrorLevel::Error,
 };
 
+pub static LAMBDA_PARAM_LIMIT_EXCEEDED: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "lambdas cannot have more than {0} parameters.",
+    level: ErrorLevel::Error,
+};
+
 pub static WHILE_COND_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "`while` expects condition of type `bool` but got `{0}`.",
     level: ErrorLevel::Error,

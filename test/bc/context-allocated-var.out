@@ -1,6 +1,9 @@
 class $Context1:
   x: Int64
 
+struct $Lambda1Env:
+  context: $Context1
+
 fn f:
   0: NewObject r0, @0 # $Context1
   4: ConstInt64 r1, @1 # 10
@@ -9,15 +12,17 @@ fn f:
  14: StoreField r1, r0, @4 # $Context1.x
  18: LoadField r3, r0, @5 # $Context1.x
  22: Mov r1, r3
- 25: NewLambda r4, @6, r0 # $Lambda1
- 30: Ret r4
+ 25: NewStruct r5, @6, r0 # $Lambda1Env
+ 30: NewTraitObject r4, r5, @7 # Fn0[Int64] wrapping $Lambda1Env
+ 34: Ret r4
 
   Registers:
    0 => class $Context1
    1 => Int64
    2 => ()
    3 => Int64
-   4 => (): Int64
+   4 => Fn0[Int64]
+   5 => struct $Lambda1Env
 
   Constants:
    0 => Class $Context1
@@ -26,24 +31,25 @@ fn f:
    3 => Int64 11
    4 => Field $Context1.x
    5 => Field $Context1.x
-   6 => Fct lamba::$Lambda1
+   6 => Struct $Lambda1Env
+   7 => Trait Fn0[Int64] from $Lambda1Env
 
   Locations:
    0 => 1:1
    25 => 5:5
 
-fn lamba::$Lambda1:
-  0: LoadField r1, r0, @0 # $Lambda[$Context1].context
+fn <impl Fn0[Int64] for $Lambda1Env>::call:
+  0: LoadField r1, r0, @0 # $Lambda1Env.context
   4: LoadField r2, r1, @1 # $Context1.x
   8: Ret r2
 
   Registers:
-   0 => class $Lambda[$Context1]
+   0 => struct $Lambda1Env
    1 => class $Context1
    2 => Int64
 
   Constants:
-   0 => Field std::$Lambda[$Context1].context
+   0 => StructField $Lambda1Env.context
    1 => Field $Context1.x
 
   Locations:

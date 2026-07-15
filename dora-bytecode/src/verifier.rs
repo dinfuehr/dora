@@ -135,7 +135,7 @@ impl<'a> Verifier<'a> {
         let self_type = match function.kind {
             FunctionKind::Impl(id) => Some(&self.program.impl_(id).extended_ty),
             FunctionKind::Extension(id) => Some(&self.program.extension(id).extended_ty),
-            FunctionKind::Lambda | FunctionKind::Trait(_) | FunctionKind::Function => None,
+            FunctionKind::Trait(_) | FunctionKind::Function => None,
         };
         let mut params = specialize_function_params(function, &type_params, self_type);
 
@@ -382,37 +382,6 @@ impl<'a> Verifier<'a> {
                 arguments,
             } => self.verify_invoke_virtual(dest, fct, &arguments),
 
-            BytecodeInstruction::InvokeLambda {
-                dest,
-                idx,
-                arguments,
-            } => {
-                let ConstPoolEntry::Lambda(params, return_type, variadic) = self.const_pool(idx)
-                else {
-                    panic!("expected Lambda constant pool entry");
-                };
-                let BytecodeType::Lambda(receiver_params, receiver_return, receiver_variadic) =
-                    self.ty(arguments[0])
-                else {
-                    panic!("InvokeLambda receiver is not a lambda");
-                };
-                assert_eq!(receiver_params, params);
-                assert_eq!(receiver_return.as_ref(), return_type);
-                assert_eq!(receiver_variadic, variadic);
-                self.assert_invoke_return_type(dest, return_type);
-                let call_arguments = &arguments[1..];
-                assert_eq!(call_arguments.len(), params.len());
-                for (argument_idx, (&argument, expected)) in
-                    call_arguments.iter().zip(params.iter()).enumerate()
-                {
-                    if *variadic && argument_idx + 1 == params.len() {
-                        assert!(types_match(self.array_element_type(argument), &expected));
-                    } else {
-                        self.assert_type(argument, &expected);
-                    }
-                }
-            }
-
             BytecodeInstruction::InvokeGenericStatic {
                 dest,
                 fct,
@@ -520,39 +489,6 @@ impl<'a> Verifier<'a> {
                 self.assert_type(src, actual_object_ty);
             }
 
-            BytecodeInstruction::NewLambda {
-                dest,
-                idx,
-                arguments,
-            } => {
-                let ConstPoolEntry::Fct(function_id, type_params) = self.const_pool(idx) else {
-                    panic!("expected Fct constant pool entry");
-                };
-                let function = self.program.fct(*function_id);
-                assert!(matches!(function.kind, FunctionKind::Lambda));
-                let lambda_ty = BytecodeType::Lambda(
-                    BytecodeTypeArray::new(
-                        function
-                            .params
-                            .iter()
-                            .skip(1)
-                            .map(|ty| specialize_type(ty, type_params))
-                            .collect(),
-                    ),
-                    Box::new(specialize_type(&function.return_type, type_params)),
-                    function.is_variadic,
-                );
-                self.assert_type(dest, &lambda_ty);
-                assert_eq!(arguments.len(), 1);
-
-                let lambda_object_ty = specialize_type(&function.params[0], type_params);
-                let BytecodeType::Class(_, lambda_type_params) = lambda_object_ty else {
-                    panic!("lambda receiver is not a class");
-                };
-                assert_eq!(lambda_type_params.len(), 1);
-                self.assert_type(arguments[0], &lambda_type_params[0]);
-            }
-
             BytecodeInstruction::ArrayLength { dest, arr } => {
                 self.assert_type(dest, &BytecodeType::Int64);
                 self.indexed_element_type(arr);
@@ -630,7 +566,7 @@ impl<'a> Verifier<'a> {
                 &self.program.extension(id).extended_ty,
                 type_params,
             )),
-            FunctionKind::Lambda | FunctionKind::Trait(_) | FunctionKind::Function => None,
+            FunctionKind::Trait(_) | FunctionKind::Function => None,
         };
         let params = specialize_function_params(function, type_params, self_type.as_ref());
         self.assert_call_argument_types(arguments, &params, function.is_variadic);
@@ -907,14 +843,6 @@ fn types_match(actual: &BytecodeType, expected: &BytecodeType) -> bool {
                 && type_arrays_match(actual_params, expected_params)
                 && type_arrays_match(actual_bindings, expected_bindings)
         }
-        (
-            BytecodeType::Lambda(actual_params, actual_return, actual_variadic),
-            BytecodeType::Lambda(expected_params, expected_return, expected_variadic),
-        ) => {
-            actual_variadic == expected_variadic
-                && type_arrays_match(actual_params, expected_params)
-                && types_match(actual_return, expected_return)
-        }
         (BytecodeType::Ref(actual), BytecodeType::Ref(expected)) => types_match(actual, expected),
         _ => false,
     }
@@ -959,15 +887,6 @@ fn specialize_type_with_self(
             *id,
             specialize_types_with_self(types, type_params, self_type),
             specialize_types_with_self(bindings, type_params, self_type),
-        ),
-        BytecodeType::Lambda(params, return_type, variadic) => BytecodeType::Lambda(
-            specialize_types_with_self(params, type_params, self_type),
-            Box::new(specialize_type_with_self(
-                return_type,
-                type_params,
-                self_type,
-            )),
-            *variadic,
         ),
         BytecodeType::Assoc {
             ty,
@@ -1071,16 +990,6 @@ fn specialize_type_for_trait_object(
             *id,
             specialize_types_for_trait_object(program, types, type_params, bindings),
             specialize_types_for_trait_object(program, inner_bindings, type_params, bindings),
-        ),
-        BytecodeType::Lambda(params, return_type, variadic) => BytecodeType::Lambda(
-            specialize_types_for_trait_object(program, params, type_params, bindings),
-            Box::new(specialize_type_for_trait_object(
-                program,
-                return_type,
-                type_params,
-                bindings,
-            )),
-            *variadic,
         ),
         BytecodeType::Assoc { assoc_id, .. } => {
             bindings[program.alias(*assoc_id).idx_in_trait()].clone()
@@ -1423,10 +1332,6 @@ fn verify_type(ty: &BytecodeType, type_param_count: usize) {
             verify_types(type_params, type_param_count);
             verify_types(bindings, type_param_count);
         }
-        BytecodeType::Lambda(params, return_type, _) => {
-            verify_types(params, type_param_count);
-            verify_type(return_type, type_param_count);
-        }
         BytecodeType::Assoc { ty, trait_ty, .. } => {
             verify_type(ty, type_param_count);
             verify_trait_type(trait_ty, type_param_count);
@@ -1490,10 +1395,6 @@ fn verify_const_pool_entry(entry: &ConstPoolEntry, type_param_count: usize) {
             verify_type(trait_ty, type_param_count);
             verify_type(actual_object_ty, type_param_count);
         }
-        ConstPoolEntry::Lambda(params, return_type, _) => {
-            verify_types(params, type_param_count);
-            verify_type(return_type, type_param_count);
-        }
         ConstPoolEntry::String(_)
         | ConstPoolEntry::Float32(_)
         | ConstPoolEntry::Float64(_)
@@ -1515,9 +1416,6 @@ fn type_contains_this(ty: &BytecodeType) -> bool {
             .iter()
             .chain(bindings.iter())
             .any(|ty| type_contains_this(&ty)),
-        BytecodeType::Lambda(params, return_type, _) => {
-            params.iter().any(|ty| type_contains_this(&ty)) || type_contains_this(return_type)
-        }
         BytecodeType::Assoc { ty, trait_ty, .. } => {
             type_contains_this(ty) || trait_type_contains_this(trait_ty)
         }
@@ -1572,9 +1470,6 @@ fn const_pool_entry_contains_this(entry: &ConstPoolEntry) -> bool {
             trait_ty,
             actual_object_ty,
         } => type_contains_this(trait_ty) || type_contains_this(actual_object_ty),
-        ConstPoolEntry::Lambda(params, return_type, _) => {
-            params.iter().any(|ty| type_contains_this(&ty)) || type_contains_this(return_type)
-        }
         ConstPoolEntry::String(_)
         | ConstPoolEntry::Float32(_)
         | ConstPoolEntry::Float64(_)

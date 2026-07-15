@@ -765,9 +765,8 @@ pub(super) fn store_in_outer_context(
     let outer_cls_id = outer_context.class_id();
     let field_index = field_id_from_context_idx(context_idx, outer_context.has_parent_slot());
     let bc_class_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
-    let outer_cls = g.sa.class(outer_cls_id);
-    let type_params = g.type_params_for_generated(outer_cls.needs_self_type_param);
-    let bc_type_params = g.convert_tya(&type_params);
+    let context_type_params = g.context_type_params(context_id);
+    let bc_type_params = g.convert_tya(&context_type_params);
     let idx = g
         .builder
         .add_const_field_types(bc_class_id, bc_type_params, field_index.0 as u32);
@@ -789,17 +788,14 @@ pub(super) fn load_from_outer_context(
     let outer_cls_id = outer_context.class_id();
     let has_parent_slot = outer_context.has_parent_slot();
 
-    let outer_cls = g.sa.class(outer_cls_id);
     let field_index = field_id_from_context_idx(field_id, has_parent_slot);
-    let field_id = outer_cls.field_id(field_index);
-    let field = g.sa.field(field_id);
-
-    let ty: BytecodeType = g.emitter.convert_ty(g.sa, field.ty());
+    let field_ty = g.context_field_type(context_id, field_index);
+    let ty: BytecodeType = g.emitter.convert_ty(g.sa, field_ty);
     let dest = g.alloc_temp(ty);
 
     let bc_class_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
-    let type_params = g.type_params_for_generated(outer_cls.needs_self_type_param);
-    let bc_type_params = g.convert_tya(&type_params);
+    let context_type_params = g.context_type_params(context_id);
+    let bc_type_params = g.convert_tya(&context_type_params);
     let idx = g
         .builder
         .add_const_field_types(bc_class_id, bc_type_params, field_index.0 as u32);

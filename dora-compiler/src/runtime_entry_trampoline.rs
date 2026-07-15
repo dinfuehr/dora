@@ -781,7 +781,6 @@ fn mode(ty: BytecodeType) -> MachineMode {
         BytecodeType::Address
         | BytecodeType::TraitObject(..)
         | BytecodeType::Class(..)
-        | BytecodeType::Lambda(..)
         | BytecodeType::Ref(..) => MachineMode::Ptr,
         BytecodeType::Enum(..)
         | BytecodeType::TypeAlias(..)

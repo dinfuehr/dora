@@ -1,11 +1,11 @@
-use dora_bytecode::Register;
+use dora_bytecode::{BytecodeType, Register};
 
 use super::ensure_register;
 use crate::generator::{
     AstBytecodeGen, DataDest, enclosing_context_class, last_context_register,
     load_outer_context_object,
 };
-use crate::sema::{ExprId, LambdaExpr};
+use crate::sema::{Element, ExprId, LambdaExpr};
 
 pub(super) fn gen_expr_lambda(
     g: &mut AstBytecodeGen,
@@ -13,9 +13,9 @@ pub(super) fn gen_expr_lambda(
     _e: &LambdaExpr,
     dest: DataDest,
 ) -> Register {
-    let ty = g.ty(expr_id);
-    let ty = g.emitter.convert_ty(g.sa, ty);
-    let dest = ensure_register(g, dest, ty);
+    let source_ty = g.ty(expr_id);
+    let trait_object_ty = g.emitter.convert_ty(g.sa, source_ty);
+    let dest = ensure_register(g, dest, trait_object_ty.clone());
 
     let lambda_id = g
         .analysis
@@ -46,18 +46,26 @@ pub(super) fn gen_expr_lambda(
             ));
             arguments.push(outer_context_reg.expect("missing reg"));
         }
-    } else {
-        arguments.push(g.ensure_unit_register());
     }
 
-    assert_eq!(arguments.len(), 1);
-
-    let bc_fct_id = g.emitter.convert_function_id(g.sa, lambda_fct_id);
-    let type_params = g.type_params_for_generated(lambda_fct.needs_self_type_param(g.sa));
-    let bc_type_params = g.convert_tya(&type_params);
-    let idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
+    let env_struct_id = g.sa.lambda_env_struct_id(lambda_id);
+    let env_struct = g.sa.struct_(env_struct_id);
+    let bc_env_struct_id = g.emitter.convert_struct_id(g.sa, env_struct_id);
+    let env_type_params = g.identity_type_params();
+    let expected_type_params = env_struct.type_param_definition(g.sa).type_param_count()
+        + usize::from(env_struct.needs_self_type_param);
+    assert_eq!(expected_type_params, env_type_params.len());
+    let bc_type_params = g.convert_tya(&env_type_params);
+    let env_ty = BytecodeType::Struct(bc_env_struct_id, bc_type_params.clone());
+    let env_reg = g.alloc_temp(env_ty.clone());
+    let env_idx = g.builder.add_const_struct(bc_env_struct_id, bc_type_params);
     g.builder
-        .emit_new_lambda(dest, idx, &arguments, g.loc_for_expr(expr_id));
+        .emit_new_struct(env_reg, env_idx, &arguments, g.loc_for_expr(expr_id));
+
+    let trait_idx = g.builder.add_const_trait(trait_object_ty, env_ty);
+    g.builder
+        .emit_new_trait_object(dest, trait_idx, env_reg, g.loc_for_expr(expr_id));
+    g.free_temp(env_reg);
 
     if let Some(outer_context_reg) = outer_context_reg {
         g.free_if_temp(outer_context_reg);

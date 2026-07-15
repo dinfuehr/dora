@@ -88,6 +88,7 @@ fn create_equals_impl(sa: &mut Sema, target: EqualsTarget) {
         type_param_definition_id,
         trait_ty,
         extended_ty.clone(),
+        false,
     );
     let impl_id = sa.impls.alloc(impl_);
     assert!(sa.impls[impl_id].id.set(impl_id).is_ok());

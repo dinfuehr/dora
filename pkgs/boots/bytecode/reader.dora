@@ -323,12 +323,6 @@ impl BytecodeIterator {
                 let arguments = self.read_arguments();
                 BytecodeInstruction::InvokeStatic(dest, fct, arguments)
             }
-            opc::BYTECODE_OPCODE_INVOKE_LAMBDA => {
-                let dest = self.read_register();
-                let fct = self.read_const_pool_id();
-                let arguments = self.read_arguments();
-                BytecodeInstruction::InvokeLambda(dest, fct, arguments)
-            }
             opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC => {
                 let dest = self.read_register();
                 let fct = self.read_const_pool_id();
@@ -376,12 +370,6 @@ impl BytecodeIterator {
                 let obj = self.read_register();
                 let idx = self.read_const_pool_id();
                 BytecodeInstruction::NewTraitObject(dest, obj, idx)
-            }
-            opc::BYTECODE_OPCODE_NEW_LAMBDA => {
-                let dest = self.read_register();
-                let idx = self.read_const_pool_id();
-                let arguments = self.read_arguments();
-                BytecodeInstruction::NewLambda(dest, idx, arguments)
             }
             opc::BYTECODE_OPCODE_ARRAY_LENGTH => {
                 let dest = self.read_register();

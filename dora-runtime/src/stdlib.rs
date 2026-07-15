@@ -388,12 +388,12 @@ fn thread_main(thread: &DoraThread, thread_location: Address, runner_location: A
         .table()
         .first()
         .copied()
-        .expect("missing lambda vtable entry");
+        .expect("missing callable vtable entry");
     let fct_ptr = Address::from(fct_ptr);
 
     let tld = thread.tld_address();
 
-    // execute the runner/lambda
+    // Execute the runner callable.
     let dora_stub_address = rt
         .dora_entry_trampoline
         .expect("uninitialized dora_entry_trampoline");

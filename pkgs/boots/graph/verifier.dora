@@ -290,10 +290,6 @@ impl GraphVerifier {
                 inst.get_virtual_function_info();
             }
 
-            Op::InvokeLambda => {
-                inst.get_lambda_function_info();
-            }
-
             Op::Phi => {
                 assert(
                     inst.get_inputs().size() == self.current_block.predecessors.size()
@@ -303,7 +299,6 @@ impl GraphVerifier {
             Op::NewObject => {
                 assert(
                     inst.has_class_info() ||
-                    inst.has_function_info() ||
                     inst.has_trait_object_info() ||
                     inst.has_allocation_data()
                 );

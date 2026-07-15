@@ -1,5 +1,8 @@
+use crate::MAX_LAMBDA_PARAMS;
 use crate::args;
-use crate::error::diagnostics::{INVALID_TYPE, VARIADIC_PARAMETER_NEEDS_TO_BE_LAST};
+use crate::error::diagnostics::{
+    INVALID_TYPE, LAMBDA_PARAM_LIMIT_EXCEEDED, VARIADIC_PARAMETER_NEEDS_TO_BE_LAST,
+};
 use crate::sema::{Sema, SourceFileId, TypeRefArenaBuilder};
 
 use dora_parser::ast::{self, AstCommaList, SyntaxNodeBase};
@@ -30,6 +33,15 @@ pub(crate) fn lower_type(
 
             for ast_param in node.param_list().items() {
                 params.push(lower_type(sa, type_refs, file_id, ast_param));
+            }
+
+            if params.len() > MAX_LAMBDA_PARAMS {
+                sa.report(
+                    file_id,
+                    node.span(),
+                    &LAMBDA_PARAM_LIMIT_EXCEEDED,
+                    args!(MAX_LAMBDA_PARAMS.to_string()),
+                );
             }
 
             let return_ty = if let Some(ast_ret) = node.ret() {
