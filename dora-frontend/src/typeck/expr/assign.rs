@@ -1,6 +1,5 @@
 use std::rc::Rc;
 
-use super::bin::OpTraitInfo;
 use super::field::{check_expr_field_named, parse_field_index, starts_with_digit};
 use super::path::{PathResolution, resolve_path};
 use super::{MutabilityCheckReason, check_value_type_base_mutability};
@@ -102,7 +101,7 @@ fn check_assign_type(
     op: ast::AssignOp,
     lhs_type: SourceType,
     rhs_type: SourceType,
-) -> OpTraitInfo {
+) -> SourceType {
     ck.body.set_ty(expr_id, SourceType::Unit);
 
     match op {
@@ -231,10 +230,7 @@ fn check_assign_type(
                 );
             }
 
-            OpTraitInfo {
-                rhs_type: ty_error(),
-                return_type: ty_error(),
-            }
+            ty_error()
         }
     }
 }
@@ -280,7 +276,7 @@ fn check_expr_assign_trait(
     trait_method_name: &str,
     lhs_type: SourceType,
     rhs_type: SourceType,
-) -> OpTraitInfo {
+) -> SourceType {
     let trait_ty = TraitType::from_trait_id(trait_id);
 
     let impl_match = find_impl(
@@ -336,17 +332,9 @@ fn check_expr_assign_trait(
                 );
             }
 
-            let return_type = method.return_type();
-
-            OpTraitInfo {
-                rhs_type,
-                return_type,
-            }
+            rhs_type
         } else {
-            OpTraitInfo {
-                rhs_type: ty_error(),
-                return_type: ty_error(),
-            }
+            ty_error()
         }
     } else if lhs_type.is_type_param()
         && implements_trait(ck.sa, lhs_type.clone(), ck.element, trait_ty)
@@ -389,12 +377,7 @@ fn check_expr_assign_trait(
             );
         }
 
-        let return_type = method.return_type();
-
-        OpTraitInfo {
-            rhs_type,
-            return_type,
-        }
+        rhs_type
     } else {
         if !lhs_type.is_error() && !rhs_type.is_error() {
             let lhs_type_name = ck.ty_name(&lhs_type);
@@ -405,10 +388,7 @@ fn check_expr_assign_trait(
                 args![op.as_str().to_string(), lhs_type_name, rhs_type],
             );
         }
-        OpTraitInfo {
-            rhs_type: ty_error(),
-            return_type: ty_error(),
-        }
+        ty_error()
     }
 }
 
@@ -471,14 +451,13 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
         index_type = index_get_index;
         item_type = index_get_item.clone();
 
-        let op_trait_info = check_assign_type(
+        rhs_type = check_assign_type(
             ck,
             expr_id,
             sema_expr.op,
             index_get_item,
             value_type.clone(),
         );
-        rhs_type = op_trait_info.rhs_type;
     }
 
     let call_args = ck.call_args(call_expr_id);
@@ -600,14 +579,13 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
         index_type = index_get_index;
         item_type = index_get_item.clone();
 
-        let op_trait_info = check_assign_type(
+        rhs_type = check_assign_type(
             ck,
             expr_id,
             sema_expr.op,
             index_get_item,
             value_type.clone(),
         );
-        rhs_type = op_trait_info.rhs_type;
     }
 
     let call_args = ck.call_args(call_expr_id);
