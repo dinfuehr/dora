@@ -1,0 +1,13 @@
+enum Fields {
+    Direct(_),
+    Nested(Option[_]),
+    Tuple((Int32, _)),
+    Lambda(( _): Int32),
+    Named { value: _, reference: ref _ },
+}
+
+enum TypeParamBound[T: _] { Value }
+enum WhereClauseLeft[T] where _: Trait { Value }
+enum WhereClauseRight[T] where T: _ { Value }
+
+trait Trait {}

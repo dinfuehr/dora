@@ -14,6 +14,7 @@ pub(crate) fn lower_type(
 ) -> TypeRefId {
     let syntax_node_ptr = node.as_ptr();
     let type_ref = match node {
+        ast::AstType::InferType(..) => TypeRef::Infer,
         ast::AstType::PathType(node) => lower_path_type_in_arena(sa, type_refs, file_id, node),
         ast::AstType::TupleType(node) => {
             let mut subtypes = Vec::new();

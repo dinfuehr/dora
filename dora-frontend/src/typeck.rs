@@ -19,8 +19,8 @@ use crate::sema::{
     ContextId, Element, Expr, ExprId, ExprMapId, FctDefinition, FctParent, FieldDefinition,
     FieldIndex, GlobalDefinition, IdentType, LambdaExpr, ModuleDefinitionId, NestedScopeId,
     NestedVarId, PackageDefinitionId, Param, PatternId, ScopeId, Sema, SourceFileId, StmtId,
-    TypeParamDefinition, TypeParamDefinitionId, TypeRefId, Var, VarAccess, VarId, VarLocation,
-    Visibility, check_type_ref, convert_trait_type_ref, convert_type_ref,
+    TypeContext, TypeParamDefinition, TypeParamDefinitionId, TypeRefId, Var, VarAccess, VarId,
+    VarLocation, Visibility, check_type_ref, convert_trait_type_ref, convert_type_ref,
     generated_identity_type_params, lambda_object_type, parse_type_ref,
 };
 use crate::sym::ModuleSymTable;
@@ -579,8 +579,15 @@ impl<'a> TypeCheck<'a> {
             self.file_id,
             self.element,
             id,
+            TypeContext::FunctionBody,
         );
-        let ty = convert_type_ref(self.sa, type_refs, self.element, id);
+        let ty = convert_type_ref(
+            self.sa,
+            type_refs,
+            self.element,
+            id,
+            TypeContext::FunctionBody,
+        );
         let allow_self = self.self_ty.is_some();
         let ty = check_type_ref(self.sa, type_refs, self.element, id, ty, allow_self);
         crate::parsety::expand_st(self.sa, self.element, ty, self.self_ty.clone())
@@ -600,9 +607,17 @@ impl<'a> TypeCheck<'a> {
             self.file_id,
             self.element,
             id,
+            TypeContext::FunctionBody,
         );
         // Don't require all bindings for qualified paths
-        convert_trait_type_ref(self.sa, type_refs, self.element, id, false)
+        convert_trait_type_ref(
+            self.sa,
+            type_refs,
+            self.element,
+            id,
+            false,
+            TypeContext::FunctionBody,
+        )
     }
 
     pub(super) fn check_fct_return_type(

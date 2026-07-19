@@ -45,7 +45,7 @@ fn check_type_ref_inner(
             ty
         }
 
-        (TypeRef::Error, _) | (TypeRef::Ref { .. }, _) => ty,
+        (TypeRef::Infer, _) | (TypeRef::Error, _) | (TypeRef::Ref { .. }, _) => ty,
 
         // Empty tuple becomes Unit
         (TypeRef::Tuple { subtypes }, SourceType::Unit) if subtypes.is_empty() => ty,

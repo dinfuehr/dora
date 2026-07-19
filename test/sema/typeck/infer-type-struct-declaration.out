@@ -1,0 +1,96 @@
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:2:12
+ | struct NamedField {
+ |     value: _,
+              ~
+ |     nested: Option[_],
+ |     tuple: (Int32, _),
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:3:20
+ | struct NamedField {
+ |     value: _,
+ |     nested: Option[_],
+                      ~
+ |     tuple: (Int32, _),
+ |     lambda: (_): Int32,
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:4:20
+ |     value: _,
+ |     nested: Option[_],
+ |     tuple: (Int32, _),
+                      ~
+ |     lambda: (_): Int32,
+ |     reference: ref _,
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:5:14
+ |     nested: Option[_],
+ |     tuple: (Int32, _),
+ |     lambda: (_): Int32,
+                ~
+ |     reference: ref _,
+ | }
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:6:20
+ |     tuple: (Int32, _),
+ |     lambda: (_): Int32,
+ |     reference: ref _,
+                      ~
+ | }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:9:24
+ | }
+ | 
+ | struct PositionalField(_, Option[_], (Int32, _), (_): Int32)
+                          ~
+ | 
+ | struct TypeParamBound[T: _]
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:9:34
+ | }
+ | 
+ | struct PositionalField(_, Option[_], (Int32, _), (_): Int32)
+                                    ~
+ | 
+ | struct TypeParamBound[T: _]
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:9:46
+ | }
+ | 
+ | struct PositionalField(_, Option[_], (Int32, _), (_): Int32)
+                                                ~
+ | 
+ | struct TypeParamBound[T: _]
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:9:51
+ | }
+ | 
+ | struct PositionalField(_, Option[_], (Int32, _), (_): Int32)
+                                                     ~
+ | 
+ | struct TypeParamBound[T: _]
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:11:26
+ | struct PositionalField(_, Option[_], (Int32, _), (_): Int32)
+ | 
+ | struct TypeParamBound[T: _]
+                            ~
+ | struct WhereClauseLeft[T] where _: Trait
+ | struct WhereClauseRight[T] where T: _
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:12:33
+ | 
+ | struct TypeParamBound[T: _]
+ | struct WhereClauseLeft[T] where _: Trait
+                                   ~
+ | struct WhereClauseRight[T] where T: _
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-struct-declaration.dora:13:37
+ | struct TypeParamBound[T: _]
+ | struct WhereClauseLeft[T] where _: Trait
+ | struct WhereClauseRight[T] where T: _
+                                       ~
+ | 
+ | trait Trait {}
+12 errors found.

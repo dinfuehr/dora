@@ -1,0 +1,72 @@
+error: type inference is not allowed in declarations.
+--> infer-type-enum-declaration.dora:2:12
+ | enum Fields {
+ |     Direct(_),
+              ~
+ |     Nested(Option[_]),
+ |     Tuple((Int32, _)),
+error: type inference is not allowed in declarations.
+--> infer-type-enum-declaration.dora:3:19
+ | enum Fields {
+ |     Direct(_),
+ |     Nested(Option[_]),
+                     ~
+ |     Tuple((Int32, _)),
+ |     Lambda(( _): Int32),
+error: type inference is not allowed in declarations.
+--> infer-type-enum-declaration.dora:4:19
+ |     Direct(_),
+ |     Nested(Option[_]),
+ |     Tuple((Int32, _)),
+                     ~
+ |     Lambda(( _): Int32),
+ |     Named { value: _, reference: ref _ },
+error: type inference is not allowed in declarations.
+--> infer-type-enum-declaration.dora:5:14
+ |     Nested(Option[_]),
+ |     Tuple((Int32, _)),
+ |     Lambda(( _): Int32),
+                ~
+ |     Named { value: _, reference: ref _ },
+ | }
+error: type inference is not allowed in declarations.
+--> infer-type-enum-declaration.dora:6:20
+ |     Tuple((Int32, _)),
+ |     Lambda(( _): Int32),
+ |     Named { value: _, reference: ref _ },
+                      ~
+ | }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-enum-declaration.dora:6:38
+ |     Tuple((Int32, _)),
+ |     Lambda(( _): Int32),
+ |     Named { value: _, reference: ref _ },
+                                        ~
+ | }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-enum-declaration.dora:9:24
+ | }
+ | 
+ | enum TypeParamBound[T: _] { Value }
+                          ~
+ | enum WhereClauseLeft[T] where _: Trait { Value }
+ | enum WhereClauseRight[T] where T: _ { Value }
+error: type inference is not allowed in declarations.
+--> infer-type-enum-declaration.dora:10:31
+ | 
+ | enum TypeParamBound[T: _] { Value }
+ | enum WhereClauseLeft[T] where _: Trait { Value }
+                                 ~
+ | enum WhereClauseRight[T] where T: _ { Value }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-enum-declaration.dora:11:35
+ | enum TypeParamBound[T: _] { Value }
+ | enum WhereClauseLeft[T] where _: Trait { Value }
+ | enum WhereClauseRight[T] where T: _ { Value }
+                                     ~
+ | 
+ | trait Trait {}
+9 errors found.

@@ -1,0 +1,160 @@
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:2:26
+ | trait Interface {
+ |     fn parameter(_value: _);
+                            ~
+ |     fn return_type(): _;
+ |     fn nested(_value: Option[_]): (Int32, _);
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:3:23
+ | trait Interface {
+ |     fn parameter(_value: _);
+ |     fn return_type(): _;
+                         ~
+ |     fn nested(_value: Option[_]): (Int32, _);
+ |     fn function_type(_value: (_): Int32);
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:4:30
+ |     fn parameter(_value: _);
+ |     fn return_type(): _;
+ |     fn nested(_value: Option[_]): (Int32, _);
+                                ~
+ |     fn function_type(_value: (_): Int32);
+ |     fn reference(_value: ref _);
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:4:43
+ |     fn parameter(_value: _);
+ |     fn return_type(): _;
+ |     fn nested(_value: Option[_]): (Int32, _);
+                                             ~
+ |     fn function_type(_value: (_): Int32);
+ |     fn reference(_value: ref _);
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:5:31
+ |     fn return_type(): _;
+ |     fn nested(_value: Option[_]): (Int32, _);
+ |     fn function_type(_value: (_): Int32);
+                                 ~
+ |     fn reference(_value: ref _);
+ |     fn type_param_bound[T: _]();
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:6:30
+ |     fn nested(_value: Option[_]): (Int32, _);
+ |     fn function_type(_value: (_): Int32);
+ |     fn reference(_value: ref _);
+                                ~
+ |     fn type_param_bound[T: _]();
+ |     fn where_clause_left[T]() where _: Interface;
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:7:28
+ |     fn function_type(_value: (_): Int32);
+ |     fn reference(_value: ref _);
+ |     fn type_param_bound[T: _]();
+                              ~
+ |     fn where_clause_left[T]() where _: Interface;
+ |     fn where_clause_right[T]() where T: _;
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:8:37
+ |     fn reference(_value: ref _);
+ |     fn type_param_bound[T: _]();
+ |     fn where_clause_left[T]() where _: Interface;
+                                       ~
+ |     fn where_clause_right[T]() where T: _;
+ | }
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:9:41
+ |     fn type_param_bound[T: _]();
+ |     fn where_clause_left[T]() where _: Interface;
+ |     fn where_clause_right[T]() where T: _;
+                                           ~
+ | }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:15:26
+ | 
+ | impl Receiver {
+ |     fn parameter(_value: _) {}
+                            ~
+ |     fn return_type(): _ {}
+ |     static fn static_parameter(_value: _) {}
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:16:23
+ | impl Receiver {
+ |     fn parameter(_value: _) {}
+ |     fn return_type(): _ {}
+                         ~
+ |     static fn static_parameter(_value: _) {}
+ |     mutating fn mutating_parameter(_value: _) {}
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:17:40
+ |     fn parameter(_value: _) {}
+ |     fn return_type(): _ {}
+ |     static fn static_parameter(_value: _) {}
+                                          ~
+ |     mutating fn mutating_parameter(_value: _) {}
+ |     fn type_param_bound[T: _]() {}
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:18:44
+ |     fn return_type(): _ {}
+ |     static fn static_parameter(_value: _) {}
+ |     mutating fn mutating_parameter(_value: _) {}
+                                              ~
+ |     fn type_param_bound[T: _]() {}
+ |     fn where_clause_left[T]() where _: Interface {}
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:19:28
+ |     static fn static_parameter(_value: _) {}
+ |     mutating fn mutating_parameter(_value: _) {}
+ |     fn type_param_bound[T: _]() {}
+                              ~
+ |     fn where_clause_left[T]() where _: Interface {}
+ |     fn where_clause_right[T]() where T: _ {}
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:20:37
+ |     mutating fn mutating_parameter(_value: _) {}
+ |     fn type_param_bound[T: _]() {}
+ |     fn where_clause_left[T]() where _: Interface {}
+                                       ~
+ |     fn where_clause_right[T]() where T: _ {}
+ | }
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:21:41
+ |     fn type_param_bound[T: _]() {}
+ |     fn where_clause_left[T]() where _: Interface {}
+ |     fn where_clause_right[T]() where T: _ {}
+                                           ~
+ | }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:25:23
+ | 
+ | trait Implemented {
+ |     fn method(_value: _): _;
+                         ~
+ | }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:25:27
+ | 
+ | trait Implemented {
+ |     fn method(_value: _): _;
+                             ~
+ | }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:29:23
+ | 
+ | impl Implemented for Receiver {
+ |     fn method(_value: _): _ {}
+                         ~
+ | }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-method-declaration.dora:29:27
+ | 
+ | impl Implemented for Receiver {
+ |     fn method(_value: _): _ {}
+                             ~
+ | }
+ | 
+20 errors found.

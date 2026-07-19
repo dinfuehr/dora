@@ -114,8 +114,17 @@ impl TypeRefArenaBuilder {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum TypeContext {
+    Declaration,
+    FunctionBody,
+}
+
 #[derive(Debug)]
 pub enum TypeRef {
+    /// Inferred type (`_`).
+    Infer,
+
     This,
 
     Path {

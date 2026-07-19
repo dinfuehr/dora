@@ -94,11 +94,11 @@ pub use self::type_params::{
     Bound, TypeParam, TypeParamDefinition, TypeParamDefinitionId, TypeParamId, TypeParamIdx,
     TypeParamKind,
 };
-pub use self::type_refs::{TypeRef, TypeRefArena, TypeRefArenaBuilder, TypeRefId, TypeSymbol};
 pub(crate) use self::type_refs::{
-    check_trait_type_ref, check_type_ref, convert_trait_type_ref, convert_type_ref, lower_type,
-    parse_type_ref, type_ref_span,
+    TypeContext, check_trait_type_ref, check_type_ref, convert_trait_type_ref, convert_type_ref,
+    lower_type, parse_type_ref, type_ref_span,
 };
+pub use self::type_refs::{TypeRef, TypeRefArena, TypeRefArenaBuilder, TypeRefId, TypeSymbol};
 pub use self::uses::{UseDefinition, UseDefinitionId};
 
 mod aliases;

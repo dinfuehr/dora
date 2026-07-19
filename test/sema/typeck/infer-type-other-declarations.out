@@ -1,0 +1,133 @@
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:1:22
+ | fn parameter(_value: _) {}
+                        ~
+ | fn return_type(): _ {}
+ | fn nested(_value: Option[_]): (Int32, _) {}
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:2:19
+ | fn parameter(_value: _) {}
+ | fn return_type(): _ {}
+                     ~
+ | fn nested(_value: Option[_]): (Int32, _) {}
+ | fn type_param_bound[T: _]() {}
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:3:26
+ | fn parameter(_value: _) {}
+ | fn return_type(): _ {}
+ | fn nested(_value: Option[_]): (Int32, _) {}
+                            ~
+ | fn type_param_bound[T: _]() {}
+ | fn where_clause_left[T]() where _: Trait {}
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:3:39
+ | fn parameter(_value: _) {}
+ | fn return_type(): _ {}
+ | fn nested(_value: Option[_]): (Int32, _) {}
+                                         ~
+ | fn type_param_bound[T: _]() {}
+ | fn where_clause_left[T]() where _: Trait {}
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:4:24
+ | fn return_type(): _ {}
+ | fn nested(_value: Option[_]): (Int32, _) {}
+ | fn type_param_bound[T: _]() {}
+                          ~
+ | fn where_clause_left[T]() where _: Trait {}
+ | fn where_clause_right[T]() where T: _ {}
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:5:33
+ | fn nested(_value: Option[_]): (Int32, _) {}
+ | fn type_param_bound[T: _]() {}
+ | fn where_clause_left[T]() where _: Trait {}
+                                   ~
+ | fn where_clause_right[T]() where T: _ {}
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:6:37
+ | fn type_param_bound[T: _]() {}
+ | fn where_clause_left[T]() where _: Trait {}
+ | fn where_clause_right[T]() where T: _ {}
+                                       ~
+ | 
+ | let global: _ = 1i32;
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:8:13
+ | fn where_clause_right[T]() where T: _ {}
+ | 
+ | let global: _ = 1i32;
+               ~
+ | const constant: _ = 1i32;
+ | type Alias = _;
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:9:17
+ | 
+ | let global: _ = 1i32;
+ | const constant: _ = 1i32;
+                   ~
+ | type Alias = _;
+ | type WhereAlias[T] = T where _: Trait;
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:10:14
+ | let global: _ = 1i32;
+ | const constant: _ = 1i32;
+ | type Alias = _;
+                ~
+ | type WhereAlias[T] = T where _: Trait;
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:11:30
+ | const constant: _ = 1i32;
+ | type Alias = _;
+ | type WhereAlias[T] = T where _: Trait;
+                                ~
+ | 
+ | trait Trait: _ {
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:13:14
+ | type WhereAlias[T] = T where _: Trait;
+ | 
+ | trait Trait: _ {
+                ~
+ |     type Item = _;
+ | }
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:14:17
+ | 
+ | trait Trait: _ {
+ |     type Item = _;
+                   ~
+ | }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:20:6
+ | class Receiver
+ | 
+ | impl _ {}
+        ~
+ | impl Trait for _ {}
+ | impl GenericTrait[_] for Receiver {}
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:21:16
+ | 
+ | impl _ {}
+ | impl Trait for _ {}
+                  ~
+ | impl GenericTrait[_] for Receiver {}
+ | impl GenericTrait[Int32] for Receiver where _: Trait {}
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:22:19
+ | impl _ {}
+ | impl Trait for _ {}
+ | impl GenericTrait[_] for Receiver {}
+                     ~
+ | impl GenericTrait[Int32] for Receiver where _: Trait {}
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-other-declarations.dora:23:45
+ | impl Trait for _ {}
+ | impl GenericTrait[_] for Receiver {}
+ | impl GenericTrait[Int32] for Receiver where _: Trait {}
+                                               ~
+ | 
+17 errors found.

@@ -1,0 +1,30 @@
+trait Interface {
+    fn parameter(_value: _);
+    fn return_type(): _;
+    fn nested(_value: Option[_]): (Int32, _);
+    fn function_type(_value: (_): Int32);
+    fn reference(_value: ref _);
+    fn type_param_bound[T: _]();
+    fn where_clause_left[T]() where _: Interface;
+    fn where_clause_right[T]() where T: _;
+}
+
+class Receiver
+
+impl Receiver {
+    fn parameter(_value: _) {}
+    fn return_type(): _ {}
+    static fn static_parameter(_value: _) {}
+    mutating fn mutating_parameter(_value: _) {}
+    fn type_param_bound[T: _]() {}
+    fn where_clause_left[T]() where _: Interface {}
+    fn where_clause_right[T]() where T: _ {}
+}
+
+trait Implemented {
+    fn method(_value: _): _;
+}
+
+impl Implemented for Receiver {
+    fn method(_value: _): _ {}
+}

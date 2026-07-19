@@ -1168,6 +1168,11 @@ pub static INVALID_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
     level: ErrorLevel::Error,
 };
 
+pub static INFERRED_TYPE_NOT_ALLOWED_IN_DECLARATION: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "type inference is not allowed in declarations.",
+    level: ErrorLevel::Error,
+};
+
 use crate::error::DescriptorArgs;
 use crate::sema::Sema;
 

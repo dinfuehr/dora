@@ -4,8 +4,9 @@ use crate::args;
 use crate::error::diagnostics::TYPE_NOT_IMPLEMENTING_TRAIT;
 use crate::sema::{
     AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinition, TraitDefinitionId,
-    TypeParamDefinition, TypeRefId, check_trait_type_ref, check_type_ref, convert_trait_type_ref,
-    convert_type_ref, implements_trait, parent_element_or_self, parse_type_ref,
+    TypeContext, TypeParamDefinition, TypeRefId, check_trait_type_ref, check_type_ref,
+    convert_trait_type_ref, convert_type_ref, implements_trait, parent_element_or_self,
+    parse_type_ref,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
@@ -64,8 +65,22 @@ impl ParsedType {
         if let Some(type_ref_id) = self.type_ref_id {
             let type_refs = element.type_ref_arena();
             let file_id = element.file_id();
-            parse_type_ref(sa, type_refs, table, file_id, element, type_ref_id);
-            let ty = convert_type_ref(sa, type_refs, element, type_ref_id);
+            parse_type_ref(
+                sa,
+                type_refs,
+                table,
+                file_id,
+                element,
+                type_ref_id,
+                TypeContext::Declaration,
+            );
+            let ty = convert_type_ref(
+                sa,
+                type_refs,
+                element,
+                type_ref_id,
+                TypeContext::Declaration,
+            );
             self.set_ty(ty);
         }
     }
@@ -145,8 +160,23 @@ impl ParsedTraitType {
         if let Some(type_ref_id) = self.type_ref_id {
             let type_refs = element.type_ref_arena();
             let file_id = element.file_id();
-            parse_type_ref(sa, type_refs, table, file_id, element, type_ref_id);
-            let ty = convert_trait_type_ref(sa, type_refs, element, type_ref_id, allow_bindings);
+            parse_type_ref(
+                sa,
+                type_refs,
+                table,
+                file_id,
+                element,
+                type_ref_id,
+                TypeContext::Declaration,
+            );
+            let ty = convert_trait_type_ref(
+                sa,
+                type_refs,
+                element,
+                type_ref_id,
+                allow_bindings,
+                TypeContext::Declaration,
+            );
             self.set_ty(ty);
         }
     }

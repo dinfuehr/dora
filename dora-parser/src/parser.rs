@@ -692,6 +692,11 @@ impl Parser {
                 self.close(m, PATH_TYPE);
             }
 
+            UNDERSCORE => {
+                self.assert(UNDERSCORE);
+                self.close(m, INFER_TYPE);
+            }
+
             REF_KW => {
                 self.assert(REF_KW);
                 self.parse_type();

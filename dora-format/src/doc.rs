@@ -275,6 +275,7 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::FUNCTION => element::format_function(node.as_function(), f),
         TokenKind::IF_EXPR => expr::format_if(node.as_if_expr(), f),
         TokenKind::IMPL => element::format_impl(node.as_impl(), f),
+        TokenKind::INFER_TYPE => ty::format_infer_type(node.as_infer_type(), f),
         TokenKind::IS_EXPR => expr::format_is(node.as_is_expr(), f),
         TokenKind::LAMBDA_EXPR => expr::format_lambda(node.as_lambda_expr(), f),
         TokenKind::LIT_PATTERN_BOOL => {

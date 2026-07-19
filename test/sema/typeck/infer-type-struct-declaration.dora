@@ -1,0 +1,15 @@
+struct NamedField {
+    value: _,
+    nested: Option[_],
+    tuple: (Int32, _),
+    lambda: (_): Int32,
+    reference: ref _,
+}
+
+struct PositionalField(_, Option[_], (Int32, _), (_): Int32)
+
+struct TypeParamBound[T: _]
+struct WhereClauseLeft[T] where _: Trait
+struct WhereClauseRight[T] where T: _
+
+trait Trait {}

@@ -84,6 +84,7 @@ pub(crate) enum NodeKind {
     IdentPattern,
     IfExpr,
     Impl,
+    InferType,
     IsExpr,
     LambdaExpr,
     LambdaParamList,
@@ -2202,6 +2203,7 @@ pub enum AstStmt {
 pub enum AstType {
     #[ast_union_kind(ERROR_ELEM)]
     Error(SyntaxNode),
+    InferType(AstInferType),
     LambdaType(AstLambdaType),
     QualifiedPathType(AstQualifiedPathType),
     RefType(AstRefType),

@@ -6,8 +6,9 @@ use crate::TraitType;
 use crate::access::sym_accessible_from;
 use crate::args;
 use crate::error::diagnostics::{
-    AMBIGUOUS_ASSOC_TYPE, EXPECTED_PATH, EXPECTED_TYPE_NAME, NOT_ACCESSIBLE_IN_MODULE,
-    UNEXPECTED_ASSOC, UNKNOWN_ASSOC, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
+    AMBIGUOUS_ASSOC_TYPE, EXPECTED_PATH, EXPECTED_TYPE_NAME,
+    INFERRED_TYPE_NOT_ALLOWED_IN_DECLARATION, NOT_ACCESSIBLE_IN_MODULE, UNEXPECTED_ASSOC,
+    UNKNOWN_ASSOC, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
 };
 use crate::sema::{
     AliasDefinitionId, Element, ModuleDefinitionId, Sema, SourceFileId, TraitDefinition,
@@ -15,7 +16,7 @@ use crate::sema::{
 };
 use crate::sym::SymbolKind;
 
-use super::{TypeRef, TypeRefArena, TypeRefId, TypeSymbol, type_ref_span};
+use super::{TypeContext, TypeRef, TypeRefArena, TypeRefId, TypeSymbol, type_ref_span};
 
 pub(crate) fn parse_type_ref(
     sa: &Sema,
@@ -24,8 +25,19 @@ pub(crate) fn parse_type_ref(
     file_id: SourceFileId,
     element: &dyn Element,
     type_ref_id: TypeRefId,
+    type_context: TypeContext,
 ) {
     match type_refs.type_ref(type_ref_id) {
+        TypeRef::Infer => {
+            if type_context == TypeContext::Declaration {
+                sa.report(
+                    file_id,
+                    type_ref_span(sa, type_refs, file_id, type_ref_id),
+                    &INFERRED_TYPE_NOT_ALLOWED_IN_DECLARATION,
+                    args!(),
+                );
+            }
+        }
         TypeRef::Path {
             path,
             type_arguments,
@@ -37,12 +49,20 @@ pub(crate) fn parse_type_ref(
             }
 
             for arg in type_arguments {
-                parse_type_ref(sa, type_refs, table, file_id, element, arg.ty);
+                parse_type_ref(sa, type_refs, table, file_id, element, arg.ty, type_context);
             }
         }
         TypeRef::QualifiedPath { ty, trait_ty, name } => {
-            parse_type_ref(sa, type_refs, table, file_id, element, *ty);
-            parse_type_ref(sa, type_refs, table, file_id, element, *trait_ty);
+            parse_type_ref(sa, type_refs, table, file_id, element, *ty, type_context);
+            parse_type_ref(
+                sa,
+                type_refs,
+                table,
+                file_id,
+                element,
+                *trait_ty,
+                type_context,
+            );
 
             if let Some(TypeSymbol::Symbol(SymbolKind::Trait(trait_id))) =
                 type_refs.symbol(*trait_ty)
@@ -61,19 +81,35 @@ pub(crate) fn parse_type_ref(
         }
         TypeRef::Tuple { subtypes } => {
             for subtype in subtypes {
-                parse_type_ref(sa, type_refs, table, file_id, element, *subtype);
+                parse_type_ref(
+                    sa,
+                    type_refs,
+                    table,
+                    file_id,
+                    element,
+                    *subtype,
+                    type_context,
+                );
             }
         }
         TypeRef::Lambda {
             params, return_ty, ..
         } => {
             for param in params {
-                parse_type_ref(sa, type_refs, table, file_id, element, *param);
+                parse_type_ref(sa, type_refs, table, file_id, element, *param, type_context);
             }
-            parse_type_ref(sa, type_refs, table, file_id, element, *return_ty);
+            parse_type_ref(
+                sa,
+                type_refs,
+                table,
+                file_id,
+                element,
+                *return_ty,
+                type_context,
+            );
         }
         TypeRef::Ref { ty } => {
-            parse_type_ref(sa, type_refs, table, file_id, element, *ty);
+            parse_type_ref(sa, type_refs, table, file_id, element, *ty, type_context);
         }
         TypeRef::This => {}
         TypeRef::Error => {}

@@ -1,0 +1,23 @@
+fn parameter(_value: _) {}
+fn return_type(): _ {}
+fn nested(_value: Option[_]): (Int32, _) {}
+fn type_param_bound[T: _]() {}
+fn where_clause_left[T]() where _: Trait {}
+fn where_clause_right[T]() where T: _ {}
+
+let global: _ = 1i32;
+const constant: _ = 1i32;
+type Alias = _;
+type WhereAlias[T] = T where _: Trait;
+
+trait Trait: _ {
+    type Item = _;
+}
+
+trait GenericTrait[T] {}
+class Receiver
+
+impl _ {}
+impl Trait for _ {}
+impl GenericTrait[_] for Receiver {}
+impl GenericTrait[Int32] for Receiver where _: Trait {}

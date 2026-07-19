@@ -778,6 +778,13 @@ fn parse_type_regular() {
 }
 
 #[test]
+fn parse_type_infer() {
+    assert!(matches!(parse_type("_"), AstType::InferType(..)));
+    parse_type("Foo[_]");
+    parse_type("(_, (_): _)");
+}
+
+#[test]
 fn parse_type_regular_mod() {
     let regular = parse_type("foo::bla").as_path_type();
 

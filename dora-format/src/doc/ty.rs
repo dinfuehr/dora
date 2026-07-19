@@ -1,7 +1,7 @@
 use dora_parser::TokenKind::*;
 use dora_parser::ast::{
-    AstLambdaParamList, AstLambdaType, AstPathData, AstPathType, AstQualifiedPathType, AstRefType,
-    AstTupleType, AstType, AstTypeArgumentList, SyntaxNodeBase,
+    AstInferType, AstLambdaParamList, AstLambdaType, AstPathData, AstPathType,
+    AstQualifiedPathType, AstRefType, AstTupleType, AstType, AstTypeArgumentList, SyntaxNodeBase,
 };
 
 use crate::doc::Formatter;
@@ -10,6 +10,12 @@ use crate::doc::utils::{
     print_node, print_token,
 };
 use crate::with_iter;
+
+pub(crate) fn format_infer_type(node: AstInferType, f: &mut Formatter) {
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, UNDERSCORE, &opt);
+    });
+}
 
 pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
@@ -70,6 +76,13 @@ pub(crate) fn format_ref_type(node: AstRefType, f: &mut Formatter) {
 #[cfg(test)]
 mod tests {
     use crate::test_utils::assert_source;
+
+    #[test]
+    fn formats_infer_type() {
+        let input = "fn main() { let value : Foo [ _ , ( _ , _ ) ] = value; }";
+        let expected = "fn main() {\n    let value: Foo[_, (_, _)] = value;\n}\n";
+        assert_source(input, expected);
+    }
 
     #[test]
     fn formats_path_type() {

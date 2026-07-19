@@ -1,0 +1,15 @@
+class NamedField {
+    value: _,
+    nested: Option[_],
+    tuple: (Int32, _),
+    lambda: (_): Int32,
+    reference: ref _,
+}
+
+class PositionalField(_, Option[_], (Int32, _), (_): Int32)
+
+class TypeParamBound[T: _]
+class WhereClauseLeft[T] where _: Trait
+class WhereClauseRight[T] where T: _
+
+trait Trait {}

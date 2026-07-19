@@ -1,0 +1,96 @@
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:2:12
+ | class NamedField {
+ |     value: _,
+              ~
+ |     nested: Option[_],
+ |     tuple: (Int32, _),
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:3:20
+ | class NamedField {
+ |     value: _,
+ |     nested: Option[_],
+                      ~
+ |     tuple: (Int32, _),
+ |     lambda: (_): Int32,
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:4:20
+ |     value: _,
+ |     nested: Option[_],
+ |     tuple: (Int32, _),
+                      ~
+ |     lambda: (_): Int32,
+ |     reference: ref _,
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:5:14
+ |     nested: Option[_],
+ |     tuple: (Int32, _),
+ |     lambda: (_): Int32,
+                ~
+ |     reference: ref _,
+ | }
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:6:20
+ |     tuple: (Int32, _),
+ |     lambda: (_): Int32,
+ |     reference: ref _,
+                      ~
+ | }
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:9:23
+ | }
+ | 
+ | class PositionalField(_, Option[_], (Int32, _), (_): Int32)
+                         ~
+ | 
+ | class TypeParamBound[T: _]
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:9:33
+ | }
+ | 
+ | class PositionalField(_, Option[_], (Int32, _), (_): Int32)
+                                   ~
+ | 
+ | class TypeParamBound[T: _]
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:9:45
+ | }
+ | 
+ | class PositionalField(_, Option[_], (Int32, _), (_): Int32)
+                                               ~
+ | 
+ | class TypeParamBound[T: _]
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:9:50
+ | }
+ | 
+ | class PositionalField(_, Option[_], (Int32, _), (_): Int32)
+                                                    ~
+ | 
+ | class TypeParamBound[T: _]
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:11:25
+ | class PositionalField(_, Option[_], (Int32, _), (_): Int32)
+ | 
+ | class TypeParamBound[T: _]
+                           ~
+ | class WhereClauseLeft[T] where _: Trait
+ | class WhereClauseRight[T] where T: _
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:12:32
+ | 
+ | class TypeParamBound[T: _]
+ | class WhereClauseLeft[T] where _: Trait
+                                  ~
+ | class WhereClauseRight[T] where T: _
+ | 
+error: type inference is not allowed in declarations.
+--> infer-type-class-declaration.dora:13:36
+ | class TypeParamBound[T: _]
+ | class WhereClauseLeft[T] where _: Trait
+ | class WhereClauseRight[T] where T: _
+                                      ~
+ | 
+ | trait Trait {}
+12 errors found.
