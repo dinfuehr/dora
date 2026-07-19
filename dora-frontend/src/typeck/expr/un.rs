@@ -103,7 +103,7 @@ fn check_expr_un_trait(
 
         let method = ck.sa.fct(method_id);
 
-        let tp_id = ty.type_param_id().expect("type param expected");
+        let tp_id = ty.type_param_idx().expect("type param expected");
         let trait_ty = TraitType::from_trait_id(trait_id);
         let type_params = TypeArgs::from_definition(
             ck.sa,

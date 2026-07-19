@@ -8,11 +8,12 @@ use crate::{
 };
 
 pub type TypeParamDefinitionId = Id<TypeParamDefinition>;
+pub type TypeParamId = Id<TypeParam>;
 
 #[derive(Clone, Debug)]
 pub struct TypeParamDefinition {
     parent: Option<TypeParamDefinitionId>,
-    type_params: Vec<TypeParam>,
+    type_params: Vec<TypeParamId>,
     bounds: Vec<Bound>,
     container_type_params: usize,
     container_bounds: usize,
@@ -90,20 +91,24 @@ impl TypeParamDefinition {
         }
     }
 
-    pub fn name(&self, sa: &Sema, id: TypeParamId) -> Name {
-        self.type_param(sa, id).name
+    pub fn name(&self, sa: &Sema, id: TypeParamIdx) -> Name {
+        self.type_param(sa, id).name()
     }
 
-    fn type_param<'a>(&'a self, sa: &'a Sema, id: TypeParamId) -> &'a TypeParam {
+    pub fn type_param_id(&self, sa: &Sema, id: TypeParamIdx) -> TypeParamId {
         let id = id.index();
 
         if id < self.container_type_params() {
             let parent = self.parent.expect("parent missing");
             sa.type_param_definition(parent)
-                .type_param(sa, TypeParamId(id))
+                .type_param_id(sa, TypeParamIdx(id))
         } else {
-            &self.type_params[id - self.container_type_params()]
+            self.type_params[id - self.container_type_params()]
         }
+    }
+
+    fn type_param<'a>(&'a self, sa: &'a Sema, id: TypeParamIdx) -> &'a TypeParam {
+        sa.type_param(self.type_param_id(sa, id))
     }
 
     fn bound<'a>(&'a self, sa: &'a Sema, idx: usize) -> &'a Bound {
@@ -131,10 +136,11 @@ impl TypeParamDefinition {
         self.type_param_count() > self.container_type_params()
     }
 
-    pub fn add_type_param(&mut self, name: Name) -> TypeParamId {
-        let id = self.container_type_params + self.type_params.len();
-        self.type_params.push(TypeParam { name });
-        TypeParamId(id)
+    pub fn add_type_param(&mut self, sa: &mut Sema, name: Name) -> TypeParamIdx {
+        let idx = self.container_type_params + self.type_params.len();
+        let id = sa.type_params.alloc(TypeParam { name });
+        self.type_params.push(id);
+        TypeParamIdx(idx)
     }
 
     pub fn add_type_param_bound(
@@ -142,7 +148,7 @@ impl TypeParamDefinition {
         sa: &mut Sema,
         type_ref_arena: &mut TypeRefArenaBuilder,
         file_id: SourceFileId,
-        id: TypeParamId,
+        id: TypeParamIdx,
         ast_trait_ty: ast::AstType,
     ) {
         let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast_trait_ty);
@@ -175,7 +181,7 @@ impl TypeParamDefinition {
         self.bounds.push(bound);
     }
 
-    pub fn implements_trait(&self, sa: &Sema, id: TypeParamId, trait_ty: TraitType) -> bool {
+    pub fn implements_trait(&self, sa: &Sema, id: TypeParamIdx, trait_ty: TraitType) -> bool {
         for bound_trait_ty in self.bounds_for_type_param(sa, id) {
             if bound_trait_ty.implements_trait(sa, &trait_ty) {
                 return true;
@@ -206,7 +212,7 @@ impl TypeParamDefinition {
     pub fn bounds_for_type_param<'a>(
         &'a self,
         sa: &'a Sema,
-        id: TypeParamId,
+        id: TypeParamIdx,
     ) -> impl Iterator<Item = TraitType> + 'a {
         self.bounds(sa)
             .filter(move |b| b.ty() == SourceType::TypeParam(id) && b.trait_ty().is_some())
@@ -303,11 +309,11 @@ pub struct TypeParamNameIter<'a> {
 }
 
 impl<'a> Iterator for TypeParamNameIter<'a> {
-    type Item = (TypeParamId, Name);
+    type Item = (TypeParamIdx, Name);
 
-    fn next(&mut self) -> Option<(TypeParamId, Name)> {
+    fn next(&mut self) -> Option<(TypeParamIdx, Name)> {
         if self.current < self.total {
-            let current = TypeParamId(self.current);
+            let current = TypeParamIdx(self.current);
             self.current += 1;
             Some((current, self.data.name(self.sa, current)))
         } else {
@@ -317,14 +323,20 @@ impl<'a> Iterator for TypeParamNameIter<'a> {
 }
 
 #[derive(Clone, Debug)]
-struct TypeParam {
+pub struct TypeParam {
     name: Name,
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct TypeParamId(pub usize);
+impl TypeParam {
+    pub fn name(&self) -> Name {
+        self.name
+    }
+}
 
-impl TypeParamId {
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub struct TypeParamIdx(pub usize);
+
+impl TypeParamIdx {
     pub fn index(self) -> usize {
         self.0
     }
@@ -333,7 +345,7 @@ impl TypeParamId {
 pub fn new_identity_type_params(start: usize, number_type_params: usize) -> SourceTypeArray {
     let type_params = (start..start + number_type_params)
         .into_iter()
-        .map(|id| SourceType::TypeParam(TypeParamId(id)))
+        .map(|id| SourceType::TypeParam(TypeParamIdx(id)))
         .collect::<Vec<_>>();
     SourceTypeArray::with(type_params)
 }

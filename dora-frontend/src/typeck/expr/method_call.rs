@@ -14,7 +14,7 @@ use crate::error::diagnostics::{
 use crate::interner::Name;
 use crate::sema::{
     CallType, Element, ExprId, FctDefinitionId, IdentType, MethodCallExpr, Param, Sema,
-    TraitDefinition, TypeParamId, find_field_in_class, new_identity_type_params,
+    TraitDefinition, TypeParamIdx, find_field_in_class, new_identity_type_params,
 };
 use crate::specialize::replace_type;
 use crate::typeck::{TypeCheck, check_expr, check_type_params, find_method_call_candidates};
@@ -662,7 +662,7 @@ fn check_method_call_on_type_param(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     object_type: SourceType,
-    id: TypeParamId,
+    id: TypeParamIdx,
     name: String,
     pure_fct_type_params: SourceTypeArray,
     call_expr_id: ExprId,

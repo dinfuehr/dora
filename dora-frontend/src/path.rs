@@ -9,7 +9,7 @@ use crate::error::diagnostics::{
 };
 use crate::sema::{
     AliasDefinitionId, ClassDefinitionId, Element, EnumDefinitionId, Sema, SourceFileId,
-    StructDefinitionId, TraitDefinition, TraitDefinitionId, TypeParamId, parent_element_or_self,
+    StructDefinitionId, TraitDefinition, TraitDefinitionId, TypeParamIdx, parent_element_or_self,
 };
 use crate::{ModuleSymTable, Name, SymbolKind, TraitType};
 
@@ -21,9 +21,9 @@ pub enum PathKind {
     Struct(StructDefinitionId),
     Trait(TraitDefinitionId),
     Alias(AliasDefinitionId),
-    TypeParam(TypeParamId),
+    TypeParam(TypeParamIdx),
     GenericAssoc {
-        tp_id: TypeParamId,
+        tp_id: TypeParamIdx,
         trait_ty: TraitType,
         assoc_id: AliasDefinitionId,
     },
@@ -270,7 +270,7 @@ fn find_alias_in_super_traits_with_trait_ty(
 fn lookup_alias_on_type_param<'a>(
     sa: &'a Sema,
     element: &'a dyn Element,
-    id: TypeParamId,
+    id: TypeParamIdx,
     name: Name,
 ) -> Option<Vec<(TraitType, AliasDefinitionId)>> {
     let type_param_definition = element.type_param_definition(sa);

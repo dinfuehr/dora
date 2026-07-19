@@ -8,7 +8,7 @@ use crate::error::diagnostics::{
 };
 use crate::sema::{
     Element, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, TypeParamId, block_matches_ty,
+    TypeParamDefinition, TypeParamIdx, block_matches_ty,
 };
 use crate::{Name, SourceType};
 
@@ -210,7 +210,7 @@ pub fn check_for_unconstrained_type_params(
     bitset.toggle_range(..);
 
     for idx in bitset.ones() {
-        let type_param_def = type_params_defs.name(sa, TypeParamId(idx));
+        let type_param_def = type_params_defs.name(sa, TypeParamIdx(idx));
         let tp_name = sa.interner.str(type_param_def).to_string();
         sa.report(file_id, span, &UNCONSTRAINED_TYPE_PARAM, args!(tp_name));
     }

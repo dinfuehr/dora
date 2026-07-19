@@ -1852,10 +1852,10 @@ fn build_type_param_definition(
                     );
                 }
 
-                type_param_definition.add_type_param(iname)
+                type_param_definition.add_type_param(sa, iname)
             } else {
                 let name = sa.interner.intern("<missing name>");
-                type_param_definition.add_type_param(name)
+                type_param_definition.add_type_param(sa, name)
             };
 
             if let Some(ast_bounds) = type_param.bounds() {

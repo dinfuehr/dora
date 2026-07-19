@@ -89,7 +89,8 @@ pub use self::structs::{StructDefinition, StructDefinitionId};
 pub use self::traits::{TraitDefinition, TraitDefinitionId, is_trait_object_safe};
 pub use self::tuples::create_tuple;
 pub use self::type_params::{
-    Bound, TypeParamDefinition, TypeParamDefinitionId, TypeParamId, new_identity_type_params,
+    Bound, TypeParam, TypeParamDefinition, TypeParamDefinitionId, TypeParamId, TypeParamIdx,
+    new_identity_type_params,
 };
 pub use self::type_refs::{TypeRef, TypeRefArena, TypeRefArenaBuilder, TypeRefId, TypeSymbol};
 pub(crate) use self::type_refs::{
@@ -225,6 +226,7 @@ pub struct Sema {
     pub impls: Arena<ImplDefinition>,    // stores all impl definitions
     pub globals: Arena<GlobalDefinition>, // stores all global variables
     pub uses: Arena<UseDefinition>,      // stores all uses
+    pub type_params: Arena<TypeParam>,
     pub type_param_definitions: Arena<TypeParamDefinition>,
     pub contexts: Vec<ContextData>, // stores all potential context objects
     pub lambda_fct_ids: Vec<FctDefinitionId>, // maps lambda ids to function ids
@@ -272,6 +274,7 @@ impl Sema {
             impls: Arena::new(),
             globals: Arena::new(),
             uses: Arena::new(),
+            type_params: Arena::new(),
             type_param_definitions: Arena::new(),
             contexts: Vec::new(),
             lambda_fct_ids: Vec::new(),
@@ -308,6 +311,10 @@ impl Sema {
 
     pub fn type_param_definition(&self, id: TypeParamDefinitionId) -> &TypeParamDefinition {
         &self.type_param_definitions[id]
+    }
+
+    pub fn type_param(&self, id: TypeParamId) -> &TypeParam {
+        &self.type_params[id]
     }
 
     pub fn by_id<T: ElementAccess>(&self, id: T::Id) -> &T {

@@ -348,7 +348,7 @@ fn check_expr_assign_trait(
         let method = ck.sa.fct(method_id);
         let params = method.params_without_self();
 
-        let tp_id = lhs_type.type_param_id().expect("type param expected");
+        let tp_id = lhs_type.type_param_idx().expect("type param expected");
         let trait_ty = TraitType::from_trait_id(trait_id);
         let type_params = TypeArgs::from_definition(
             ck.sa,

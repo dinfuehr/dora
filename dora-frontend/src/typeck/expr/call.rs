@@ -23,7 +23,7 @@ use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, Element, ElementWithFields,
     EnumDefinitionId, Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema,
-    StructDefinitionId, TraitDefinition, TypeParamId, find_impl, implements_trait,
+    StructDefinitionId, TraitDefinition, TypeParamIdx, find_impl, implements_trait,
     new_identity_type_params,
 };
 use crate::specialize_ty_for_call;
@@ -260,7 +260,7 @@ pub(super) fn check_call_arguments_with_expected(
 fn check_expr_call_generic_static_method(
     ck: &mut TypeCheck,
     expr_id: ExprId,
-    tp_id: TypeParamId,
+    tp_id: TypeParamIdx,
     name: String,
     pure_fct_type_params: SourceTypeArray,
     call_expr_id: ExprId,
@@ -583,7 +583,7 @@ fn check_expr_call_self_assoc_type_static_method(
 fn check_expr_call_generic_assoc_static_method(
     ck: &mut TypeCheck,
     expr_id: ExprId,
-    tp_id: TypeParamId,
+    tp_id: TypeParamIdx,
     container_trait_ty: TraitType,
     assoc_id: AliasDefinitionId,
     method_name: String,

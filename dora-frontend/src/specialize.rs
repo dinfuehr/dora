@@ -1,5 +1,5 @@
 use crate::sema::{
-    Element, FctDefinition, ImplDefinition, Sema, TraitDefinitionId, TypeParamId, find_impl,
+    Element, FctDefinition, ImplDefinition, Sema, TraitDefinitionId, TypeParamIdx, find_impl,
 };
 use crate::{SourceType, SourceTypeArray, TraitType, TypeArgs};
 
@@ -629,7 +629,7 @@ pub fn specialize_ty_for_default_trait_method(
                 // This is a function-type parameter.
                 let id = impl_.type_param_definition(sa).type_param_count()
                     + (id.index() - trait_type_params);
-                SourceType::TypeParam(TypeParamId(id))
+                SourceType::TypeParam(TypeParamIdx(id))
             }
         }
 
@@ -735,7 +735,7 @@ pub fn specialize_ty_for_generic(
     sa: &Sema,
     ty: SourceType,
     element: &dyn Element,
-    type_param_id: TypeParamId,
+    type_param_idx: TypeParamIdx,
     trait_ty: &TraitType,
     type_params: &TypeArgs,
 ) -> SourceType {
@@ -746,7 +746,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 cls_type_params,
                 element,
-                type_param_id,
+                type_param_idx,
                 trait_ty,
                 type_params,
             ),
@@ -758,7 +758,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 trait_type_params,
                 element,
-                type_param_id,
+                type_param_idx,
                 trait_ty,
                 type_params,
             ),
@@ -766,7 +766,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 bindings,
                 element,
-                type_param_id,
+                type_param_idx,
                 trait_ty,
                 type_params,
             ),
@@ -778,7 +778,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 struct_type_params,
                 element,
-                type_param_id,
+                type_param_idx,
                 trait_ty,
                 type_params,
             ),
@@ -790,7 +790,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 enum_type_params,
                 element,
-                type_param_id,
+                type_param_idx,
                 trait_ty,
                 type_params,
             ),
@@ -802,7 +802,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 alias_type_params,
                 element,
-                type_param_id,
+                type_param_idx,
                 trait_ty,
                 type_params,
             ),
@@ -824,7 +824,7 @@ pub fn specialize_ty_for_generic(
                 ty.clone()
             } else {
                 SourceType::GenericAssoc {
-                    ty: Box::new(SourceType::TypeParam(type_param_id)),
+                    ty: Box::new(SourceType::TypeParam(type_param_idx)),
                     trait_ty: assoc_trait_ty,
                     assoc_id,
                 }
@@ -839,7 +839,7 @@ pub fn specialize_ty_for_generic(
             let assoc = sa.alias(assoc_id);
             assert!(assoc.parent.is_trait());
             let specialized_ty =
-                specialize_ty_for_generic(sa, *ty, element, type_param_id, trait_ty, type_params);
+                specialize_ty_for_generic(sa, *ty, element, type_param_idx, trait_ty, type_params);
 
             if specialized_ty.is_type_param() {
                 SourceType::GenericAssoc {
@@ -860,7 +860,7 @@ pub fn specialize_ty_for_generic(
                     .get(&assoc_id)
                     .map(|a| sa.alias(*a).ty())
                     .unwrap_or(SourceType::Error);
-                specialize_ty_for_generic(sa, ty, element, type_param_id, trait_ty, type_params)
+                specialize_ty_for_generic(sa, ty, element, type_param_idx, trait_ty, type_params)
             } else {
                 unimplemented!()
             }
@@ -871,7 +871,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 params,
                 element,
-                type_param_id,
+                type_param_idx,
                 trait_ty,
                 type_params,
             ),
@@ -879,7 +879,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 *return_type,
                 element,
-                type_param_id,
+                type_param_idx,
                 trait_ty,
                 type_params,
             )),
@@ -890,7 +890,7 @@ pub fn specialize_ty_for_generic(
             sa,
             subtypes,
             element,
-            type_param_id,
+            type_param_idx,
             trait_ty,
             type_params,
         )),
@@ -922,13 +922,13 @@ fn specialize_ty_for_generic_array(
     sa: &Sema,
     array: SourceTypeArray,
     element: &dyn Element,
-    type_param_id: TypeParamId,
+    type_param_idx: TypeParamIdx,
     trait_ty: &TraitType,
     type_params: &TypeArgs,
 ) -> SourceTypeArray {
     let new_array = array
         .iter()
-        .map(|ty| specialize_ty_for_generic(sa, ty, element, type_param_id, trait_ty, type_params))
+        .map(|ty| specialize_ty_for_generic(sa, ty, element, type_param_idx, trait_ty, type_params))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }

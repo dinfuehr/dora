@@ -13,7 +13,7 @@ use crate::error::diagnostics::{
 use crate::interner::Name;
 use crate::sema::NestedVarId;
 use crate::sema::{
-    AliasDefinitionId, ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind, TypeParamId,
+    AliasDefinitionId, ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind, TypeParamIdx,
 };
 use crate::specialize_type;
 use crate::typeck::{TypeCheck, check_type_params};
@@ -31,7 +31,7 @@ pub(crate) enum PathResolution {
     SelfAssocType(AliasDefinitionId),
     /// `T::Item` where T is a type param and Item is an associated type
     GenericAssoc {
-        tp_id: TypeParamId,
+        tp_id: TypeParamIdx,
         trait_ty: TraitType,
         assoc_id: AliasDefinitionId,
     },
@@ -478,7 +478,7 @@ pub(super) fn check_enum_variant_without_args(
 
 fn lookup_alias_on_type_param(
     ck: &TypeCheck,
-    tp_id: TypeParamId,
+    tp_id: TypeParamIdx,
     name: Name,
 ) -> Vec<(TraitType, AliasDefinitionId)> {
     let mut results = Vec::with_capacity(2);

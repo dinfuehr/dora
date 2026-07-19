@@ -11,7 +11,7 @@ use crate::error::diagnostics::{
 };
 use crate::sema::{
     AliasDefinitionId, Element, ModuleDefinitionId, Sema, SourceFileId, TraitDefinition,
-    TypeParamId, parent_element_or_self,
+    TypeParamIdx, parent_element_or_self,
 };
 use crate::sym::SymbolKind;
 
@@ -371,7 +371,7 @@ enum AliasLookupResult {
 fn lookup_alias_on_type_param(
     sa: &Sema,
     element: &dyn Element,
-    id: TypeParamId,
+    id: TypeParamIdx,
     name: Name,
 ) -> AliasLookupResult {
     let type_param_definition = element.type_param_definition(sa);

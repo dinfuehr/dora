@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::sema::{
     AliasDefinitionId, ClassDefinition, ClassDefinitionId, Element, EnumDefinition,
     EnumDefinitionId, FctDefinition, Sema, StructDefinition, StructDefinitionId, TraitDefinitionId,
-    TypeParamDefinition, TypeParamId,
+    TypeParamDefinition, TypeParamIdx,
 };
 use crate::specialize::specialize_trait_type_for_implements;
 
@@ -77,7 +77,7 @@ pub fn trait_(id: TraitDefinitionId, type_params: SourceTypeArray) -> SourceType
     SourceType::TraitObject(id, type_params, ().into())
 }
 
-pub fn type_param(id: TypeParamId) -> SourceType {
+pub fn type_param(id: TypeParamIdx) -> SourceType {
     SourceType::TypeParam(id)
 }
 
@@ -147,7 +147,7 @@ pub enum SourceType {
     TraitObject(TraitDefinitionId, SourceTypeArray, SourceTypeArray),
 
     // Some type variable.
-    TypeParam(TypeParamId),
+    TypeParam(TypeParamIdx),
 
     // Type alias.
     Alias(AliasDefinitionId, SourceTypeArray),
@@ -402,7 +402,7 @@ impl SourceType {
         }
     }
 
-    pub fn type_param_id(&self) -> Option<TypeParamId> {
+    pub fn type_param_idx(&self) -> Option<TypeParamIdx> {
         match self {
             SourceType::TypeParam(id) => Some(*id),
             _ => None,
@@ -774,7 +774,7 @@ pub fn empty_sta() -> SourceTypeArray {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TypeArgs {
-    // TypeParamId indexes container and own in order. self_ty substitutes SourceType::This.
+    // TypeParamIdx indexes container and own in order. self_ty substitutes SourceType::This.
     container: SourceTypeArray,
     own: SourceTypeArray,
     self_ty: Option<SourceType>,
@@ -838,7 +838,7 @@ impl TypeArgs {
         &self.own
     }
 
-    pub fn get(&self, id: TypeParamId) -> Option<&SourceType> {
+    pub fn get(&self, id: TypeParamIdx) -> Option<&SourceType> {
         let index = id.index();
 
         if index < self.container.len() {
@@ -875,10 +875,10 @@ impl TypeArgs {
     }
 }
 
-impl Index<TypeParamId> for TypeArgs {
+impl Index<TypeParamIdx> for TypeArgs {
     type Output = SourceType;
 
-    fn index(&self, id: TypeParamId) -> &SourceType {
+    fn index(&self, id: TypeParamIdx) -> &SourceType {
         self.get(id).expect("type argument index out-of-bounds")
     }
 }
@@ -1354,16 +1354,16 @@ mod tests {
     }
 
     #[test]
-    fn type_args_are_indexed_by_type_param_id() {
+    fn type_args_are_indexed_by_type_param_idx() {
         let type_args = TypeArgs::from_parts(
             &SourceTypeArray::single(SourceType::Int32),
             &SourceTypeArray::single(SourceType::Float64),
             Some(SourceType::Bool),
         );
 
-        assert_eq!(type_args[TypeParamId(0)], SourceType::Int32);
-        assert_eq!(type_args.get(TypeParamId(1)), Some(&SourceType::Float64));
-        assert_eq!(type_args.get(TypeParamId(2)), None);
+        assert_eq!(type_args[TypeParamIdx(0)], SourceType::Int32);
+        assert_eq!(type_args.get(TypeParamIdx(1)), Some(&SourceType::Float64));
+        assert_eq!(type_args.get(TypeParamIdx(2)), None);
         assert_eq!(type_args.self_ty(), Some(&SourceType::Bool));
         assert_eq!(type_args.len(), 2);
         assert_eq!(
