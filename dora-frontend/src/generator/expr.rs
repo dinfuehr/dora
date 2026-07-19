@@ -226,9 +226,13 @@ pub(super) fn specialize_type_for_call(
             fct_id,
         } => {
             let fct = g.sa.fct(*fct_id);
-            let type_args =
-                TypeArgs::from_definition(fct, &trait_ty.type_params, fct_type_params, None);
-            replace_type(g.sa, ty, Some(&type_args), Some(object_type.clone()))
+            let type_args = TypeArgs::from_definition(
+                fct,
+                &trait_ty.type_params,
+                fct_type_params,
+                Some(object_type.clone()),
+            );
+            replace_type(g.sa, ty, &type_args)
         }
 
         CallType::Lambda(..)

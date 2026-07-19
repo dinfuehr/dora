@@ -411,7 +411,7 @@ pub(crate) fn expand_st(
             assert!(alias.parent.is_none());
 
             let type_args = TypeArgs::from_own(type_params);
-            let alias_ty = replace_type(sa, alias.ty(), Some(&type_args), None);
+            let alias_ty = replace_type(sa, alias.ty(), &type_args);
             expand_st(sa, element, alias_ty, replace_self)
         }
 

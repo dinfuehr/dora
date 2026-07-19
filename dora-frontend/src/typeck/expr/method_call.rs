@@ -289,7 +289,7 @@ fn check_method_call_is_array_field_access(
             let field_id = struct_.field_id(field_index);
             let field = ck.sa.field(field_id);
             let type_args = TypeArgs::from_own(&struct_type_params);
-            let field_type = replace_type(ck.sa, field.ty(), Some(&type_args), None);
+            let field_type = replace_type(ck.sa, field.ty(), &type_args);
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
                 let syntax = ck.syntax::<ast::AstMethodCallExpr>(call_expr_id);
@@ -385,15 +385,10 @@ fn check_method_call_on_self(
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
         let trait_type_params = trait_ty.type_params.clone();
-        let type_args = TypeArgs::from_container(&trait_type_params);
+        let type_args = TypeArgs::from_container(&trait_type_params).with_self(SourceType::This);
 
         let trait_method = ck.sa.fct(trait_method_id);
-        let return_type = replace_type(
-            ck.sa,
-            trait_method.return_type(),
-            Some(&type_args),
-            Some(SourceType::This),
-        );
+        let return_type = replace_type(ck.sa, trait_method.return_type(), &type_args);
 
         ck.body.set_ty(expr_id, return_type.clone());
 
@@ -410,7 +405,7 @@ fn check_method_call_on_self(
         let expected = build_expected_method_call_args(
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            |ty| replace_type(ck.sa, ty, Some(&type_args), Some(SourceType::This)),
+            |ty| replace_type(ck.sa, ty, &type_args),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -476,7 +471,7 @@ fn check_method_call_on_assoc(
 
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
-        let type_args = TypeArgs::empty();
+        let type_args = TypeArgs::empty().with_self(SourceType::This);
 
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
@@ -496,7 +491,7 @@ fn check_method_call_on_assoc(
         let expected = build_expected_method_call_args(
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            |ty| replace_type(ck.sa, ty, Some(&type_args), Some(SourceType::This)),
+            |ty| replace_type(ck.sa, ty, &type_args),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -550,18 +545,13 @@ fn check_method_call_on_generic_assoc(
 
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
-        let type_args = TypeArgs::empty();
+        let return_type_args = TypeArgs::empty().with_self(object_type.clone());
 
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
 
         // Replace Self in the return type with the object type
-        let return_type = replace_type(
-            ck.sa,
-            return_type,
-            Some(&type_args),
-            Some(object_type.clone()),
-        );
+        let return_type = replace_type(ck.sa, return_type, &return_type_args);
 
         ck.body.set_ty(expr_id, return_type.clone());
 
@@ -575,10 +565,11 @@ fn check_method_call_on_generic_assoc(
             }),
         );
 
+        let type_args = TypeArgs::empty().with_self(SourceType::This);
         let expected = build_expected_method_call_args(
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            |ty| replace_type(ck.sa, ty, Some(&type_args), Some(SourceType::This)),
+            |ty| replace_type(ck.sa, ty, &type_args),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 

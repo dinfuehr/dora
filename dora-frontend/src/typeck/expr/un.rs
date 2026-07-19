@@ -109,8 +109,8 @@ fn check_expr_un_trait(
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let return_type = method.return_type();
-        let type_args = TypeArgs::empty();
-        let return_type = replace_type(ck.sa, return_type, Some(&type_args), Some(ty.clone()));
+        let type_args = TypeArgs::empty().with_self(ty.clone());
+        let return_type = replace_type(ck.sa, return_type, &type_args);
 
         ck.body.set_ty(expr_id, return_type.clone());
 

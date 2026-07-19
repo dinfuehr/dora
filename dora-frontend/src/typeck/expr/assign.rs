@@ -316,7 +316,7 @@ fn check_expr_assign_trait(
             assert_eq!(params.len(), 1);
 
             let param = params[0].ty();
-            let param = replace_type(ck.sa, param, Some(&type_params), None);
+            let param = replace_type(ck.sa, param, &type_params);
 
             if !param.allows(ck.sa, rhs_type.clone())
                 && !lhs_type.is_error()
@@ -368,8 +368,8 @@ fn check_expr_assign_trait(
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let param = params[0].ty();
-        let type_args = TypeArgs::empty();
-        let param = replace_type(ck.sa, param, Some(&type_args), Some(lhs_type.clone()));
+        let type_args = TypeArgs::empty().with_self(lhs_type.clone());
+        let param = replace_type(ck.sa, param, &type_args);
 
         if !param.allows(ck.sa, rhs_type.clone()) && !lhs_type.is_error() && !rhs_type.is_error() {
             let lhs_type = ck.ty_name(&lhs_type);
@@ -723,10 +723,11 @@ fn check_index_trait_on_ty(
             .expect("missing alias");
         let impl_item_type_alias = ck.sa.alias(impl_item_type_alias_id);
 
+        let type_args = TypeArgs::from_container(&impl_match.bindings).with_self(expr_type.clone());
         let call_type = Rc::new(CallType::Expr(
             expr_type.clone(),
             method_id,
-            TypeArgs::from_container(&impl_match.bindings),
+            type_args.clone(),
         ));
         if is_get {
             array_assignment.index_get = Some(call_type);
@@ -735,21 +736,10 @@ fn check_index_trait_on_ty(
         }
 
         let impl_index_type_alias_ty = impl_index_type_alias.ty();
-        let type_args = TypeArgs::from_container(&impl_match.bindings);
-        let impl_index_type_alias_ty = replace_type(
-            ck.sa,
-            impl_index_type_alias_ty,
-            Some(&type_args),
-            Some(expr_type.clone()),
-        );
+        let impl_index_type_alias_ty = replace_type(ck.sa, impl_index_type_alias_ty, &type_args);
 
         let impl_item_type_alias_ty = impl_item_type_alias.ty();
-        let impl_item_type_alias_ty = replace_type(
-            ck.sa,
-            impl_item_type_alias_ty,
-            Some(&type_args),
-            Some(expr_type),
-        );
+        let impl_item_type_alias_ty = replace_type(ck.sa, impl_item_type_alias_ty, &type_args);
 
         (impl_index_type_alias_ty, impl_item_type_alias_ty)
     } else {
@@ -795,7 +785,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
             let field = ck.sa.field(field_id);
 
             let type_args = TypeArgs::from_own(&class_type_params);
-            let fty = replace_type(ck.sa, field.ty(), Some(&type_args), None);
+            let fty = replace_type(ck.sa, field.ty(), &type_args);
 
             if !field.mutable {
                 ck.sa
@@ -818,7 +808,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
             let field = ck.sa.field(field_id);
 
             let type_args = TypeArgs::from_own(&struct_type_params);
-            let fty = replace_type(ck.sa, field.ty(), Some(&type_args), None);
+            let fty = replace_type(ck.sa, field.ty(), &type_args);
 
             if !field.mutable {
                 ck.sa
@@ -924,7 +914,7 @@ fn check_expr_assign_unnamed_field(
                 ck.body.insert_or_replace_ident(field_expr_id, ident_type);
 
                 let type_args = TypeArgs::from_own(&struct_type_params);
-                let fty = replace_type(ck.sa, field.ty(), Some(&type_args), None);
+                let fty = replace_type(ck.sa, field.ty(), &type_args);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
                     ck.report(ck.expr_span(field_expr_id), &NOT_ACCESSIBLE, args![]);
@@ -1005,7 +995,7 @@ fn check_expr_assign_unnamed_field(
                 ck.body.insert_or_replace_ident(field_expr_id, ident_type);
 
                 let type_args = TypeArgs::from_own(&class_type_params);
-                let fty = replace_type(ck.sa, field.ty(), Some(&type_args), None);
+                let fty = replace_type(ck.sa, field.ty(), &type_args);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
                     ck.report(ck.expr_span(field_expr_id), &NOT_ACCESSIBLE, args![]);

@@ -4,7 +4,7 @@ use crate::sema::{
 use crate::{SourceType, SourceTypeArray, TraitType, TypeArgs};
 
 pub fn specialize_trait_type(sa: &Sema, ty: TraitType, type_args: &TypeArgs) -> TraitType {
-    specialize_trait_type_generic(sa, ty, &|ty| replace_type(sa, ty, Some(type_args), None))
+    specialize_trait_type_generic(sa, ty, &|ty| replace_type(sa, ty, type_args))
 }
 
 pub fn specialize_trait_type_generic<S>(
@@ -49,7 +49,7 @@ where
 }
 
 pub fn specialize_type(sa: &Sema, ty: SourceType, type_args: &TypeArgs) -> SourceType {
-    replace_type(sa, ty, Some(type_args), None)
+    replace_type(sa, ty, type_args)
 }
 
 pub fn specialize_type_array(
@@ -65,63 +65,41 @@ pub fn specialize_type_array(
     SourceTypeArray::with(new_types)
 }
 
-pub fn replace_type(
-    sa: &Sema,
-    ty: SourceType,
-    type_args: Option<&TypeArgs>,
-    self_ty: Option<SourceType>,
-) -> SourceType {
+pub fn replace_type(sa: &Sema, ty: SourceType, type_args: &TypeArgs) -> SourceType {
     match ty {
         SourceType::Class(cls_id, cls_type_params) => {
-            SourceType::Class(cls_id, replace_sta(sa, cls_type_params, type_args, self_ty))
+            SourceType::Class(cls_id, replace_sta(sa, cls_type_params, type_args))
         }
 
         SourceType::TraitObject(trait_id, trait_type_params, bindings) => SourceType::TraitObject(
             trait_id,
-            replace_sta(sa, trait_type_params, type_args, self_ty.clone()),
-            replace_sta(sa, bindings, type_args, self_ty),
+            replace_sta(sa, trait_type_params, type_args),
+            replace_sta(sa, bindings, type_args),
         ),
 
-        SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
-            struct_id,
-            replace_sta(sa, struct_type_params, type_args, self_ty),
-        ),
+        SourceType::Struct(struct_id, struct_type_params) => {
+            SourceType::Struct(struct_id, replace_sta(sa, struct_type_params, type_args))
+        }
 
-        SourceType::Enum(enum_id, enum_type_params) => SourceType::Enum(
-            enum_id,
-            replace_sta(sa, enum_type_params, type_args, self_ty),
-        ),
+        SourceType::Enum(enum_id, enum_type_params) => {
+            SourceType::Enum(enum_id, replace_sta(sa, enum_type_params, type_args))
+        }
 
-        SourceType::Alias(alias_id, alias_type_params) => SourceType::Alias(
-            alias_id,
-            replace_sta(sa, alias_type_params, type_args, self_ty),
-        ),
+        SourceType::Alias(alias_id, alias_type_params) => {
+            SourceType::Alias(alias_id, replace_sta(sa, alias_type_params, type_args))
+        }
 
         SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
-            replace_sta(sa, params, type_args, self_ty.clone()),
-            Box::new(replace_type(sa, *return_type, type_args, self_ty)),
+            replace_sta(sa, params, type_args),
+            Box::new(replace_type(sa, *return_type, type_args)),
             is_variadic,
         ),
 
-        SourceType::Tuple(subtypes) => {
-            SourceType::Tuple(replace_sta(sa, subtypes, type_args, self_ty))
-        }
+        SourceType::Tuple(subtypes) => SourceType::Tuple(replace_sta(sa, subtypes, type_args)),
 
-        SourceType::This => {
-            if let Some(self_ty) = self_ty {
-                self_ty
-            } else {
-                ty
-            }
-        }
+        SourceType::This => type_args.self_ty().cloned().unwrap_or(ty),
 
-        SourceType::TypeParam(id) => {
-            if let Some(type_args) = type_args {
-                type_args[id].clone()
-            } else {
-                ty
-            }
-        }
+        SourceType::TypeParam(id) => type_args[id].clone(),
 
         SourceType::Unit
         | SourceType::UInt8
@@ -135,23 +113,16 @@ pub fn replace_type(
         | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. } => ty,
 
-        SourceType::Ref(inner) => {
-            SourceType::Ref(Box::new(replace_type(sa, *inner, type_args, self_ty)))
-        }
+        SourceType::Ref(inner) => SourceType::Ref(Box::new(replace_type(sa, *inner, type_args))),
 
         SourceType::Any | SourceType::Ptr => unreachable!(),
     }
 }
 
-fn replace_sta(
-    sa: &Sema,
-    array: SourceTypeArray,
-    type_args: Option<&TypeArgs>,
-    self_ty: Option<SourceType>,
-) -> SourceTypeArray {
+fn replace_sta(sa: &Sema, array: SourceTypeArray, type_args: &TypeArgs) -> SourceTypeArray {
     let new_array = array
         .iter()
-        .map(|ty| replace_type(sa, ty, type_args, self_ty.clone()))
+        .map(|ty| replace_type(sa, ty, type_args))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }
@@ -709,7 +680,7 @@ pub fn find_super_trait_ty(
             let specialized_type_params = bound
                 .type_params
                 .iter()
-                .map(|ty| replace_type(sa, ty, Some(&type_args), None))
+                .map(|ty| replace_type(sa, ty, &type_args))
                 .collect::<Vec<_>>();
             return Some(TraitType {
                 trait_id: target_trait_id,
@@ -730,7 +701,7 @@ pub fn find_super_trait_ty(
             let specialized_type_params = found
                 .type_params
                 .iter()
-                .map(|ty| replace_type(sa, ty, Some(&type_args), None))
+                .map(|ty| replace_type(sa, ty, &type_args))
                 .collect::<Vec<_>>();
             return Some(TraitType {
                 trait_id: target_trait_id,
@@ -1045,10 +1016,10 @@ pub fn specialize_for_element(
             sa, subtypes, element, type_args,
         )),
 
-        SourceType::This => {
+        SourceType::This => type_args.self_ty().cloned().unwrap_or_else(|| {
             assert!(element.is_trait());
             SourceType::This
-        }
+        }),
 
         SourceType::TypeParam(id) => type_args[id].clone(),
 
@@ -1204,9 +1175,10 @@ pub fn specialize_type_for_implements(ty: SourceType, type_args: &TypeArgs) -> S
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Error
-        | SourceType::This
         | SourceType::Any
         | SourceType::Ptr => ty,
+
+        SourceType::This => type_args.self_ty().cloned().unwrap_or(ty),
     }
 }
 

@@ -136,11 +136,8 @@ pub(crate) fn check_call_arguments_any(ck: &mut TypeCheck, call_expr_id: ExprId)
 }
 
 fn build_expected_call_args<S>(
-    ck: &TypeCheck,
     regular_params: &[Param],
     variadic_param: Option<&Param>,
-    type_args: Option<&TypeArgs>,
-    self_ty: Option<SourceType>,
     mut specialize: S,
 ) -> ExpectedCallArgs
 where
@@ -148,15 +145,9 @@ where
 {
     let regular_types = regular_params
         .iter()
-        .map(|param| {
-            let param_ty = specialize(param.ty().clone());
-            replace_type(ck.sa, param_ty, type_args, self_ty.clone())
-        })
+        .map(|param| specialize(param.ty().clone()))
         .collect::<Vec<_>>();
-    let variadic_type = variadic_param.map(|param| {
-        let param_ty = specialize(param.ty());
-        replace_type(ck.sa, param_ty, type_args, self_ty.clone())
-    });
+    let variadic_type = variadic_param.map(|param| specialize(param.ty()));
 
     ExpectedCallArgs {
         regular_types,
@@ -325,11 +316,8 @@ fn check_expr_call_generic_static_method(
         |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, tp_id, &trait_ty, &type_params, &tp),
     ) {
         let expected = build_expected_call_args(
-            ck,
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            None,
-            None,
             |ty| {
                 specialize_ty_for_generic(
                     ck.sa,
@@ -459,7 +447,11 @@ fn check_expr_call_self_static_method(
     let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
     let trait_method = ck.sa.fct(trait_method_id);
 
-    let type_params = TypeArgs::from_parts(&trait_ty.type_params, &pure_fct_type_params, None);
+    let type_params = TypeArgs::from_parts(
+        &trait_ty.type_params,
+        &pure_fct_type_params,
+        Some(SourceType::This),
+    );
 
     if check_type_params(
         ck.sa,
@@ -469,15 +461,12 @@ fn check_expr_call_self_static_method(
         &type_params,
         ck.file_id,
         || ck.expr_span(expr_id),
-        |ty| replace_type(ck.sa, ty, Some(&type_params), Some(SourceType::This)),
+        |ty| replace_type(ck.sa, ty, &type_params),
     ) {
         let expected = build_expected_call_args(
-            ck,
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            None,
-            None,
-            |ty| replace_type(ck.sa, ty, Some(&type_params), Some(SourceType::This)),
+            |ty| replace_type(ck.sa, ty, &type_params),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -489,12 +478,7 @@ fn check_expr_call_self_static_method(
         };
         ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
-        let return_type = replace_type(
-            ck.sa,
-            trait_method.return_type(),
-            Some(&type_params),
-            Some(SourceType::This),
-        );
+        let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
 
         ck.body.set_ty(expr_id, return_type.clone());
 
@@ -563,7 +547,11 @@ fn check_expr_call_self_assoc_type_static_method(
         trait_ty: parent_trait_ty.clone(),
         assoc_id: alias_id,
     };
-    let type_params = TypeArgs::from_parts(&trait_ty.type_params, &pure_fct_type_params, None);
+    let type_params = TypeArgs::from_parts(
+        &trait_ty.type_params,
+        &pure_fct_type_params,
+        Some(assoc_type.clone()),
+    );
 
     if check_type_params(
         ck.sa,
@@ -573,15 +561,12 @@ fn check_expr_call_self_assoc_type_static_method(
         &type_params,
         ck.file_id,
         || ck.expr_span(expr_id),
-        |ty| replace_type(ck.sa, ty, Some(&type_params), Some(assoc_type.clone())),
+        |ty| replace_type(ck.sa, ty, &type_params),
     ) {
         let expected = build_expected_call_args(
-            ck,
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            None,
-            None,
-            |ty| replace_type(ck.sa, ty, Some(&type_params), Some(assoc_type.clone())),
+            |ty| replace_type(ck.sa, ty, &type_params),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -594,12 +579,7 @@ fn check_expr_call_self_assoc_type_static_method(
         };
         ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
-        let return_type = replace_type(
-            ck.sa,
-            trait_method.return_type(),
-            Some(&type_params),
-            Some(assoc_type),
-        );
+        let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
 
         ck.body.set_ty(expr_id, return_type.clone());
 
@@ -657,7 +637,11 @@ fn check_expr_call_generic_assoc_static_method(
         trait_ty: container_trait_ty.clone(),
         assoc_id,
     };
-    let type_params = TypeArgs::from_parts(&trait_ty.type_params, &pure_fct_type_params, None);
+    let type_params = TypeArgs::from_parts(
+        &trait_ty.type_params,
+        &pure_fct_type_params,
+        Some(assoc_type.clone()),
+    );
 
     if check_type_params(
         ck.sa,
@@ -667,15 +651,12 @@ fn check_expr_call_generic_assoc_static_method(
         &type_params,
         ck.file_id,
         || ck.expr_span(expr_id),
-        |ty| replace_type(ck.sa, ty, Some(&type_params), Some(assoc_type.clone())),
+        |ty| replace_type(ck.sa, ty, &type_params),
     ) {
         let expected = build_expected_call_args(
-            ck,
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            None,
-            None,
-            |ty| replace_type(ck.sa, ty, Some(&type_params), Some(assoc_type.clone())),
+            |ty| replace_type(ck.sa, ty, &type_params),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -688,12 +669,7 @@ fn check_expr_call_generic_assoc_static_method(
         };
         ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
-        let return_type = replace_type(
-            ck.sa,
-            trait_method.return_type(),
-            Some(&type_params),
-            Some(assoc_type),
-        );
+        let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
 
         ck.body.set_ty(expr_id, return_type.clone());
 
@@ -847,8 +823,11 @@ fn check_expr_call_qualified_path(
         trait_ty: trait_ty.clone(),
         assoc_id,
     };
-    let type_params =
-        TypeArgs::from_parts(&method_trait_ty.type_params, &pure_fct_type_params, None);
+    let type_params = TypeArgs::from_parts(
+        &method_trait_ty.type_params,
+        &pure_fct_type_params,
+        Some(assoc_type.clone()),
+    );
 
     if check_type_params(
         ck.sa,
@@ -858,16 +837,13 @@ fn check_expr_call_qualified_path(
         &type_params,
         ck.file_id,
         || ck.expr_span(callee_expr_id),
-        |ty| replace_type(ck.sa, ty, Some(&type_params), Some(assoc_type.clone())),
+        |ty| replace_type(ck.sa, ty, &type_params),
     ) {
         // Check call arguments
         let expected = build_expected_call_args(
-            ck,
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            None,
-            None,
-            |ty| replace_type(ck.sa, ty, Some(&type_params), Some(assoc_type.clone())),
+            |ty| replace_type(ck.sa, ty, &type_params),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -880,12 +856,7 @@ fn check_expr_call_qualified_path(
         };
         ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
-        let return_type = replace_type(
-            ck.sa,
-            trait_method.return_type(),
-            Some(&type_params),
-            Some(assoc_type),
-        );
+        let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
 
         ck.body.set_ty(expr_id, return_type.clone());
 
@@ -948,12 +919,9 @@ pub(crate) fn check_expr_call_expr(
         let type_args = TypeArgs::from_container(&impl_match.bindings);
 
         let expected = build_expected_call_args(
-            ck,
             method.params.regular_params(),
             method.params.variadic_param(),
-            Some(&type_args),
-            None,
-            |ty| ty,
+            |ty| replace_type(ck.sa, ty, &type_args),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -1037,11 +1005,8 @@ fn check_expr_call_fct(
 
     let expected = type_params_ok.then(|| {
         build_expected_call_args(
-            ck,
             fct.params.regular_params(),
             fct.params.variadic_param(),
-            None, // type_params handled by specialize_ty_for_call
-            None,
             |ty| specialize_ty_for_call(ck.sa, ty, ck.element, &call_data),
         )
     });
@@ -1120,12 +1085,9 @@ fn check_expr_call_static_method(
 
         let expected = type_params_ok.then(|| {
             build_expected_call_args(
-                ck,
                 fct.params.regular_params(),
                 fct.params.variadic_param(),
-                Some(&type_params),
-                None,
-                |ty| ty,
+                |ty| replace_type(ck.sa, ty, &type_params),
             )
         });
         check_call_arguments_with_expected(ck, call_expr_id, expected.as_ref());

@@ -285,7 +285,7 @@ fn check_expr_bin_trait(
             assert_eq!(params.len(), 1);
 
             let param = params[0].ty();
-            let param = replace_type(ck.sa, param, Some(&type_params), None);
+            let param = replace_type(ck.sa, param, &type_params);
 
             if !param.allows(ck.sa, rhs_type.clone())
                 && !lhs_type.is_error()
@@ -337,8 +337,8 @@ fn check_expr_bin_trait(
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let param = params[0].ty();
-        let type_args = TypeArgs::empty();
-        let param = replace_type(ck.sa, param, Some(&type_args), Some(lhs_type.clone()));
+        let type_args = TypeArgs::empty().with_self(lhs_type.clone());
+        let param = replace_type(ck.sa, param, &type_args);
 
         if !param.allows(ck.sa, rhs_type.clone()) {
             let lhs_type = ck.ty_name(&lhs_type);
@@ -351,8 +351,7 @@ fn check_expr_bin_trait(
         }
 
         let return_type = method.return_type();
-        let return_type =
-            replace_type(ck.sa, return_type, Some(&type_args), Some(lhs_type.clone()));
+        let return_type = replace_type(ck.sa, return_type, &type_args);
 
         ck.body.set_ty(expr_id, return_type.clone());
 

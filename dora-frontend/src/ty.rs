@@ -774,7 +774,7 @@ pub fn empty_sta() -> SourceTypeArray {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TypeArgs {
-    // TypeParamId indexes these regions in order.
+    // TypeParamId indexes container and own in order. self_ty substitutes SourceType::This.
     container: SourceTypeArray,
     own: SourceTypeArray,
     self_ty: Option<SourceType>,
@@ -819,6 +819,16 @@ impl TypeArgs {
         TypeArgs::from_own(&SourceTypeArray::empty())
     }
 
+    pub fn with_self(mut self, self_ty: SourceType) -> TypeArgs {
+        assert!(self.self_ty.is_none());
+        self.self_ty = Some(self_ty);
+        self
+    }
+
+    pub fn self_ty(&self) -> Option<&SourceType> {
+        self.self_ty.as_ref()
+    }
+
     pub fn get(&self, id: TypeParamId) -> Option<&SourceType> {
         let index = id.index();
 
@@ -826,19 +836,17 @@ impl TypeArgs {
             self.container.types().get(index)
         } else if index < self.container.len() + self.own.len() {
             self.own.types().get(index - self.container.len())
-        } else if index == self.container.len() + self.own.len() {
-            self.self_ty.as_ref()
         } else {
             None
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.container.is_empty() && self.own.is_empty() && self.self_ty.is_none()
     }
 
     pub fn len(&self) -> usize {
-        self.container.len() + self.own.len() + usize::from(self.self_ty.is_some())
+        self.container.len() + self.own.len()
     }
 
     pub fn container_len(&self) -> usize {
@@ -850,20 +858,11 @@ impl TypeArgs {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = SourceType> + '_ {
-        self.container
-            .iter()
-            .chain(self.own.iter())
-            .chain(self.self_ty.iter().cloned())
+        self.container.iter().chain(self.own.iter())
     }
 
     pub fn to_array(&self) -> SourceTypeArray {
-        let args = self.container.connect(&self.own);
-
-        if let Some(self_ty) = &self.self_ty {
-            args.connect_single(self_ty.clone())
-        } else {
-            args
-        }
+        self.container.connect(&self.own)
     }
 }
 
@@ -1352,15 +1351,25 @@ mod tests {
 
         assert_eq!(type_args[TypeParamId(0)], SourceType::Int32);
         assert_eq!(type_args.get(TypeParamId(1)), Some(&SourceType::Float64));
-        assert_eq!(type_args.get(TypeParamId(2)), Some(&SourceType::Bool));
-        assert_eq!(type_args.get(TypeParamId(3)), None);
+        assert_eq!(type_args.get(TypeParamId(2)), None);
+        assert_eq!(type_args.self_ty(), Some(&SourceType::Bool));
+        assert_eq!(type_args.len(), 2);
         assert_eq!(
             type_args.iter().collect::<Vec<_>>(),
-            vec![SourceType::Int32, SourceType::Float64, SourceType::Bool]
+            vec![SourceType::Int32, SourceType::Float64]
         );
         assert_eq!(
             type_args.to_array().types(),
-            &[SourceType::Int32, SourceType::Float64, SourceType::Bool]
+            &[SourceType::Int32, SourceType::Float64]
         );
+    }
+
+    #[test]
+    fn type_args_with_only_self_are_not_empty() {
+        let type_args = TypeArgs::empty().with_self(SourceType::Bool);
+
+        assert!(!type_args.is_empty());
+        assert_eq!(type_args.len(), 0);
+        assert_eq!(type_args.self_ty(), Some(&SourceType::Bool));
     }
 }
