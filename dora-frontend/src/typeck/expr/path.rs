@@ -436,14 +436,14 @@ pub(super) fn check_enum_variant_without_args(
     } else {
         type_params
     };
-    let type_args = TypeArgs::from(&type_params);
+    let type_args = TypeArgs::from_own(&type_params);
 
     let type_params_ok = check_type_params(
         ck.sa,
         ck.element,
         ck.type_param_definition,
         enum_,
-        &type_params,
+        &type_args,
         ck.file_id,
         || ck.expr_span(expr_id),
         |ty| specialize_type(ck.sa, ty, &type_args),

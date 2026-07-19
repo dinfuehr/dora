@@ -59,7 +59,8 @@ pub fn block_matches_ty(
             .into_iter()
             .map(|t| t.expect("missing binding"))
             .collect();
-        let type_args = TypeArgs::new(SourceTypeArray::with(bindings.clone()));
+        let bindings_array = SourceTypeArray::with(bindings.clone());
+        let type_args = TypeArgs::from_own(&bindings_array);
 
         for bound in ext_type_param_defs.bounds() {
             let bound_ty = specialize_type(sa, bound.ty(), &type_args);

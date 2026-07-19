@@ -3,37 +3,32 @@ use dora_parser::Span;
 use crate::args;
 use crate::error::diagnostics::{TYPE_NOT_IMPLEMENTING_TRAIT, WRONG_NUMBER_TYPE_PARAMS};
 use crate::sema::{Element, Sema, SourceFileId, TypeParamDefinition, implements_trait};
-use crate::{SourceType, SourceTypeArray, specialize_trait_type_generic};
+use crate::{SourceType, TypeArgs, specialize_trait_type_generic};
 
 pub fn check_type_params<'a>(
     sa: &'a Sema,
     caller_element: &'a dyn Element,
     caller_type_param_defs: &'a TypeParamDefinition,
     callee_element: &'a dyn Element,
-    params: &'a SourceTypeArray,
+    params: &'a TypeArgs,
     file_id: SourceFileId,
     span: impl Fn() -> Span,
     specialize: impl Fn(SourceType) -> SourceType,
 ) -> bool {
     let callee_type_param_defs = callee_element.type_param_definition();
 
-    if callee_type_param_defs.type_param_count() != params.len() {
-        let exp_count;
-        let got_count;
+    let expected_container = callee_type_param_defs.container_type_params();
+    let expected_own = callee_type_param_defs.own_type_params_len();
 
-        if callee_type_param_defs.container_type_params() > 0 {
-            exp_count = callee_type_param_defs.own_type_params_len();
-            got_count = params.len() - callee_type_param_defs.container_type_params();
-        } else {
-            exp_count = callee_type_param_defs.type_param_count();
-            got_count = params.len();
-        }
-
+    if expected_container != params.container_len()
+        || expected_own != params.own_len()
+        || callee_type_param_defs.type_param_count() != params.len()
+    {
         sa.report(
             file_id,
             span(),
             &WRONG_NUMBER_TYPE_PARAMS,
-            args!(exp_count, got_count),
+            args!(expected_own, params.own_len()),
         );
         return false;
     }

@@ -200,7 +200,7 @@ fn trait_ty_match(
             .map(|t| t.expect("missing binding"))
             .collect(),
     );
-    let type_args = TypeArgs::from(&bindings);
+    let type_args = TypeArgs::from_own(&bindings);
 
     let trait_alias_map = impl_.trait_alias_map();
 

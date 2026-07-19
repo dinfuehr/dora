@@ -28,6 +28,7 @@ pub(super) fn gen_expr_for(
             .convert_ty(g.sa, for_type_info.iterator_type.clone());
         let iterator_reg = g.alloc_var(iterator_ty);
         let bc_fct_id = g.emitter.convert_function_id(g.sa, iter_fct_id);
+        let iter_type_params = iter_type_params.to_array();
         let bc_type_params = g.convert_tya(&iter_type_params);
         let fct_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
         g.builder

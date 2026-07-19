@@ -356,7 +356,7 @@ fn check_pattern_enum(
 
     if Some(enum_id) == ty.enum_id() {
         let value_type_params = ty.type_params();
-        let type_args = TypeArgs::from(&value_type_params);
+        let type_args = TypeArgs::from_own(&value_type_params);
 
         ck.body.insert_ident(
             pattern_id,
@@ -520,7 +520,7 @@ fn check_pattern_class(
 
     if Some(cls_id) == ty.cls_id() {
         let value_type_params = ty.type_params();
-        let type_args = TypeArgs::from(&value_type_params);
+        let type_args = TypeArgs::from_own(&value_type_params);
 
         ck.body.insert_ident(
             pattern_id,
@@ -577,7 +577,7 @@ fn check_pattern_struct(
 
     if Some(struct_id) == ty.struct_id() {
         let value_type_params = ty.type_params();
-        let type_args = TypeArgs::from(&value_type_params);
+        let type_args = TypeArgs::from_own(&value_type_params);
 
         ck.body.insert_ident(
             pattern_id,
@@ -619,7 +619,7 @@ fn check_subpatterns_named<'a>(
     element: &dyn ElementWithFields,
     element_type_params: &SourceTypeArray,
 ) {
-    let type_args = TypeArgs::from(element_type_params);
+    let type_args = TypeArgs::from_own(element_type_params);
     let pattern = ck.body.pattern(pattern_id);
     let sema_fields = match get_ctor_fields(pattern) {
         Some(fields) => fields,

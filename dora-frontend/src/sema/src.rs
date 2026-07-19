@@ -6,7 +6,7 @@ use crate::sema::{
     ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
     FieldDefinition, FieldIndex, GlobalDefinitionId, Intrinsic, StructDefinitionId, UniversalId,
 };
-use crate::ty::{SourceType, SourceTypeArray, TraitType};
+use crate::ty::{SourceType, SourceTypeArray, TraitType, TypeArgs};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct LambdaId(pub usize);
@@ -227,7 +227,7 @@ pub struct ContextFieldId(pub usize);
 
 #[derive(Debug, Clone)]
 pub struct ForTypeInfo {
-    pub iter: Option<(FctDefinitionId, SourceTypeArray)>,
+    pub iter: Option<(FctDefinitionId, TypeArgs)>,
     pub next: Option<FctDefinitionId>,
     pub iterator_type: SourceType,
     pub next_type: SourceType,
@@ -237,13 +237,13 @@ pub struct ForTypeInfo {
 #[derive(Debug, Clone)]
 pub enum CallType {
     // Function calls, e.g. fct(<args>) or Class::static_fct(<args>).
-    Fct(FctDefinitionId, SourceTypeArray),
+    Fct(FctDefinitionId, TypeArgs),
 
     // Direct or virtual method calls, e.g. obj.method(<args>).
-    Method(SourceType, FctDefinitionId, SourceTypeArray),
+    Method(SourceType, FctDefinitionId, TypeArgs),
 
     // Invoke on expression, e.g. <expr>(<args>). Used for array loads/stores.
-    Expr(SourceType, FctDefinitionId, SourceTypeArray),
+    Expr(SourceType, FctDefinitionId, TypeArgs),
 
     // Invoke method on trait object
     TraitObjectMethod(SourceType, FctDefinitionId),

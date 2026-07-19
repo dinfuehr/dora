@@ -104,7 +104,7 @@ fn gen_expr_method_call_field_object(
             let cls = g.sa.class(cls_id);
             let field_id = cls.field_id(field_index);
             let field = g.sa.field(field_id);
-            let type_args = TypeArgs::from(&type_params);
+            let type_args = TypeArgs::from_own(&type_params);
             let field_ty = specialize_type(g.sa, field.ty(), &type_args);
 
             let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
@@ -128,7 +128,7 @@ fn gen_expr_method_call_field_object(
             let struct_ = g.sa.struct_(struct_id);
             let field_id = struct_.field_id(field_index);
             let field = g.sa.field(field_id);
-            let type_args = TypeArgs::from(&type_params);
+            let type_args = TypeArgs::from_own(&type_params);
             let field_ty = specialize_type(g.sa, field.ty(), &type_args);
 
             let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
@@ -201,7 +201,7 @@ fn gen_expr_method_call_field_intrinsic(
                             let cls = g.sa.class(cls_id);
                             let field_id = cls.field_id(field_index);
                             let field = g.sa.field(field_id);
-                            let type_args = TypeArgs::from(&type_params);
+                            let type_args = TypeArgs::from_own(&type_params);
                             specialize_type(g.sa, field.ty(), &type_args)
                         }
                         IdentType::StructField(struct_ty, field_index) => {
@@ -209,7 +209,7 @@ fn gen_expr_method_call_field_intrinsic(
                             let struct_ = g.sa.struct_(struct_id);
                             let field_id = struct_.field_id(field_index);
                             let field = g.sa.field(field_id);
-                            let type_args = TypeArgs::from(&type_params);
+                            let type_args = TypeArgs::from_own(&type_params);
                             specialize_type(g.sa, field.ty(), &type_args)
                         }
                         _ => unreachable!(),

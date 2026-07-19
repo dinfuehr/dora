@@ -199,12 +199,12 @@ fn check_expr_call_method(
         let fct_id = candidate.fct_id;
         let fct = ck.sa.fct(fct_id);
 
-        let full_type_params = candidate.container_type_params.connect(&fct_type_params);
-        let type_args = TypeArgs::from(&full_type_params);
+        let type_params =
+            TypeArgs::from_parts(&candidate.container_type_params, &fct_type_params, None);
 
         let call_data = CallSpecializationData {
             object_ty: Some(candidate.object_type.clone()),
-            type_args: type_args.clone(),
+            type_args: type_params.clone(),
         };
 
         let type_params_ok = check_type_params(
@@ -212,10 +212,10 @@ fn check_expr_call_method(
             ck.element,
             &ck.type_param_definition,
             fct,
-            &full_type_params,
+            &type_params,
             ck.file_id,
             || ck.expr_span(call_expr_id),
-            |ty| specialize_type(ck.sa, ty, &type_args),
+            |ty| specialize_type(ck.sa, ty, &type_params),
         );
 
         let expected = type_params_ok.then(|| {
@@ -238,7 +238,7 @@ fn check_expr_call_method(
         } else if object_type.is_trait_object() && fct.parent.is_trait() {
             CallType::TraitObjectMethod(object_type, fct_id)
         } else {
-            CallType::Method(object_type, fct_id, full_type_params)
+            CallType::Method(object_type, fct_id, type_params)
         };
 
         ck.body.insert_call_type(call_expr_id, Rc::new(call_type));
@@ -288,7 +288,7 @@ fn check_method_call_is_array_field_access(
 
             let field_id = struct_.field_id(field_index);
             let field = ck.sa.field(field_id);
-            let type_args = TypeArgs::from(&struct_type_params);
+            let type_args = TypeArgs::from_own(&struct_type_params);
             let field_type = replace_type(ck.sa, field.ty(), Some(&type_args), None);
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
@@ -323,7 +323,7 @@ fn find_in_super_traits_self(
 ) {
     for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
         // Substitute the super trait's type params with the current trait's type params
-        let type_args = TypeArgs::from(trait_type_params);
+        let type_args = TypeArgs::from_own(trait_type_params);
         let specialized_super_trait_ty = specialize_trait_type(sa, super_trait_ty, &type_args);
         let super_trait_ = sa.trait_(specialized_super_trait_ty.trait_id);
 
@@ -385,7 +385,7 @@ fn check_method_call_on_self(
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
         let trait_type_params = trait_ty.type_params.clone();
-        let type_args = TypeArgs::from(&trait_type_params);
+        let type_args = TypeArgs::from_container(&trait_type_params);
 
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = replace_type(
@@ -648,15 +648,14 @@ fn check_method_call_on_type_param(
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
 
         let trait_method = ck.sa.fct(trait_method_id);
-        let combined_fct_type_params = trait_ty.type_params.connect(&pure_fct_type_params);
-        let type_args = TypeArgs::from(&combined_fct_type_params);
+        let type_params = TypeArgs::from_parts(&trait_ty.type_params, &pure_fct_type_params, None);
 
         let type_params_ok = check_type_params(
             ck.sa,
             ck.element,
             &ck.type_param_definition,
             trait_method,
-            &combined_fct_type_params,
+            &type_params,
             ck.file_id,
             || ck.expr_span(expr_id),
             |ty| {
@@ -666,7 +665,7 @@ fn check_method_call_on_type_param(
                     ck.element,
                     id,
                     &trait_ty,
-                    &type_args,
+                    &type_params,
                     &object_type,
                 )
             },
@@ -679,7 +678,7 @@ fn check_method_call_on_type_param(
                 ck.element,
                 id,
                 &trait_ty,
-                &type_args,
+                &type_params,
                 &object_type,
             );
 
@@ -703,7 +702,7 @@ fn check_method_call_on_type_param(
                         ck.element,
                         id,
                         &trait_ty,
-                        &type_args,
+                        &type_params,
                         &object_type,
                     )
                 },

@@ -305,6 +305,7 @@ fn check_expr_assign_trait(
             .get_method_for_trait_method_id(trait_method_id);
 
         if let Some(method_id) = method_id {
+            let type_params = TypeArgs::from_container(&type_params);
             let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
             ck.body
                 .insert_or_replace_call_type(expr_id, Rc::new(call_type));
@@ -314,9 +315,8 @@ fn check_expr_assign_trait(
 
             assert_eq!(params.len(), 1);
 
-            let type_args = TypeArgs::from(&type_params);
             let param = params[0].ty();
-            let param = replace_type(ck.sa, param, Some(&type_args), None);
+            let param = replace_type(ck.sa, param, Some(&type_params), None);
 
             if !param.allows(ck.sa, rhs_type.clone())
                 && !lhs_type.is_error()
@@ -726,7 +726,7 @@ fn check_index_trait_on_ty(
         let call_type = Rc::new(CallType::Expr(
             expr_type.clone(),
             method_id,
-            impl_match.bindings.clone(),
+            TypeArgs::from_container(&impl_match.bindings),
         ));
         if is_get {
             array_assignment.index_get = Some(call_type);
@@ -735,7 +735,7 @@ fn check_index_trait_on_ty(
         }
 
         let impl_index_type_alias_ty = impl_index_type_alias.ty();
-        let type_args = TypeArgs::from(&impl_match.bindings);
+        let type_args = TypeArgs::from_container(&impl_match.bindings);
         let impl_index_type_alias_ty = replace_type(
             ck.sa,
             impl_index_type_alias_ty,
@@ -794,7 +794,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
             let field_id = cls.field_id(field_index);
             let field = ck.sa.field(field_id);
 
-            let type_args = TypeArgs::from(&class_type_params);
+            let type_args = TypeArgs::from_own(&class_type_params);
             let fty = replace_type(ck.sa, field.ty(), Some(&type_args), None);
 
             if !field.mutable {
@@ -817,7 +817,7 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
             let field_id = struct_.field_id(field_index);
             let field = ck.sa.field(field_id);
 
-            let type_args = TypeArgs::from(&struct_type_params);
+            let type_args = TypeArgs::from_own(&struct_type_params);
             let fty = replace_type(ck.sa, field.ty(), Some(&type_args), None);
 
             if !field.mutable {
@@ -923,7 +923,7 @@ fn check_expr_assign_unnamed_field(
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
                 ck.body.insert_or_replace_ident(field_expr_id, ident_type);
 
-                let type_args = TypeArgs::from(&struct_type_params);
+                let type_args = TypeArgs::from_own(&struct_type_params);
                 let fty = replace_type(ck.sa, field.ty(), Some(&type_args), None);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
@@ -1004,7 +1004,7 @@ fn check_expr_assign_unnamed_field(
                 let ident_type = IdentType::ClassField(object_type.clone(), field.index);
                 ck.body.insert_or_replace_ident(field_expr_id, ident_type);
 
-                let type_args = TypeArgs::from(&class_type_params);
+                let type_args = TypeArgs::from_own(&class_type_params);
                 let fty = replace_type(ck.sa, field.ty(), Some(&type_args), None);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {

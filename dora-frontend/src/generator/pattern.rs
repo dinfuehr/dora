@@ -489,7 +489,7 @@ fn destruct_pattern_enum(
     variant_idx: u32,
 ) {
     let enum_ = g.sa.enum_(enum_id);
-    let type_args = TypeArgs::from(enum_type_params);
+    let type_args = TypeArgs::from_own(enum_type_params);
 
     let bc_enum_id = g.emitter.convert_enum_id(g.sa, enum_id);
     let bc_enum_type_params = g.emitter.convert_tya(g.sa, enum_type_params);
@@ -585,7 +585,7 @@ fn destruct_pattern_struct_with_fields(
     struct_type_params: &SourceTypeArray,
 ) {
     let struct_ = g.sa.struct_(struct_id);
-    let type_args = TypeArgs::from(struct_type_params);
+    let type_args = TypeArgs::from_own(struct_type_params);
 
     iterate_ctor_fields(
         g,
@@ -643,7 +643,7 @@ fn destruct_pattern_class_with_fields(
     class_type_params: &SourceTypeArray,
 ) {
     let class = g.sa.class(class_id);
-    let type_args = TypeArgs::from(class_type_params);
+    let type_args = TypeArgs::from_own(class_type_params);
 
     iterate_ctor_fields(
         g,

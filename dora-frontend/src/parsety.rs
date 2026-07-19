@@ -235,7 +235,8 @@ pub(crate) fn check_type_params(
         type_arguments.len()
     );
 
-    let type_args = TypeArgs::new(SourceTypeArray::with(type_arguments.to_vec()));
+    let type_arguments = SourceTypeArray::with(type_arguments.to_vec());
+    let type_args = TypeArgs::from_own(&type_arguments);
     let ctxt_type_param_definition = ctxt_element.type_param_definition();
 
     let mut success = true;
@@ -274,7 +275,8 @@ pub(crate) fn check_trait_type_param_definition(
     context_type_param_definition: &TypeParamDefinition,
 ) -> bool {
     let type_param_definition = trait_.type_param_definition();
-    let type_args = TypeArgs::new(SourceTypeArray::with(generic_arguments.to_vec()));
+    let generic_arguments = SourceTypeArray::with(generic_arguments.to_vec());
+    let type_args = TypeArgs::from_own(&generic_arguments);
 
     let mut success = true;
 
@@ -408,7 +410,7 @@ pub(crate) fn expand_st(
             let alias = sa.alias(*id);
             assert!(alias.parent.is_none());
 
-            let type_args = TypeArgs::from(type_params);
+            let type_args = TypeArgs::from_own(type_params);
             let alias_ty = replace_type(sa, alias.ty(), Some(&type_args), None);
             expand_st(sa, element, alias_ty, replace_self)
         }

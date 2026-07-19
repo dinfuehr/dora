@@ -267,7 +267,7 @@ pub fn find_field_in_class(
         for &field_id in cls.field_ids() {
             let field = sa.field(field_id);
             if field.name == Some(name) {
-                let type_args = TypeArgs::from(&type_params);
+                let type_args = TypeArgs::from_own(&type_params);
                 return Some((
                     field.index,
                     specialize_for_element(sa, field.ty(), cls, &type_args),

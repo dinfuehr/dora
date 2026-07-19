@@ -79,7 +79,7 @@ fn check_expr_un_trait(
             .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
 
-        let call_type = CallType::Method(ty.clone(), method_id, SourceTypeArray::empty());
+        let call_type = CallType::Method(ty.clone(), method_id, TypeArgs::empty());
         ck.body
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 

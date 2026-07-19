@@ -274,6 +274,7 @@ fn check_expr_bin_trait(
             .get_method_for_trait_method_id(trait_method_id);
 
         if let Some(method_id) = method_id {
+            let type_params = TypeArgs::from_container(&type_params);
             let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
             ck.body
                 .insert_or_replace_call_type(expr_id, Rc::new(call_type));
@@ -283,9 +284,8 @@ fn check_expr_bin_trait(
 
             assert_eq!(params.len(), 1);
 
-            let type_args = TypeArgs::from(&type_params);
             let param = params[0].ty();
-            let param = replace_type(ck.sa, param, Some(&type_args), None);
+            let param = replace_type(ck.sa, param, Some(&type_params), None);
 
             if !param.allows(ck.sa, rhs_type.clone())
                 && !lhs_type.is_error()

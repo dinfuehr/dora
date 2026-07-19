@@ -32,7 +32,10 @@ pub(crate) fn check_expr_for(
         {
             if let Some(iter_impl_fct_id) = into_iterator_data.iter_impl_fct_id {
                 // store fct ids for code generation
-                for_type_info.iter = Some((iter_impl_fct_id, into_iterator_data.bindings));
+                for_type_info.iter = Some((
+                    iter_impl_fct_id,
+                    TypeArgs::from_container(&into_iterator_data.bindings),
+                ));
                 ck.body.insert_for_type_info(expr_id, for_type_info);
             }
 
@@ -104,7 +107,7 @@ fn type_supports_into_iterator_trait(
 
     if let Some(impl_match) = impl_match {
         let impl_ = ck.sa.impl_(impl_match.id);
-        let type_args = TypeArgs::from(&impl_match.bindings);
+        let type_args = TypeArgs::from_own(&impl_match.bindings);
 
         let iter_impl_fct_id = impl_.trait_method_map().get(&iter_trait_fct_id).cloned();
 
@@ -162,12 +165,13 @@ fn type_supports_iterator_trait(
 
     if let Some(impl_match) = impl_match {
         let impl_ = ck.sa.impl_(impl_match.id);
-        let type_args = TypeArgs::from(&impl_match.bindings);
+        let impl_type_args = TypeArgs::from_own(&impl_match.bindings);
+        let method_type_args = TypeArgs::from_container(&impl_match.bindings);
         let next_impl_fct_id = impl_.trait_method_map().get(&next_trait_fct_id).cloned();
 
         let next_type = if let Some(next_impl_fct_id) = next_impl_fct_id {
             let next_impl_fct = ck.sa.fct(next_impl_fct_id);
-            specialize_type(ck.sa, next_impl_fct.return_type(), &type_args)
+            specialize_type(ck.sa, next_impl_fct.return_type(), &method_type_args)
         } else {
             SourceType::Error
         };
@@ -176,7 +180,7 @@ fn type_supports_iterator_trait(
             impl_.trait_alias_map().get(&item_trait_alias_id).cloned()
         {
             let impl_alias = ck.sa.alias(item_impl_alias_id);
-            specialize_type(ck.sa, impl_alias.ty(), &type_args)
+            specialize_type(ck.sa, impl_alias.ty(), &impl_type_args)
         } else {
             SourceType::Error
         };

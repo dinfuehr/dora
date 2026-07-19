@@ -261,7 +261,7 @@ pub fn specialize_ty_for_call(
                     .get(&assoc_id)
                     .map(|a| sa.alias(*a).ty())
                     .unwrap_or(SourceType::Error);
-                let type_args = TypeArgs::from(&impl_match.bindings);
+                let type_args = TypeArgs::from_own(&impl_match.bindings);
                 let ty = specialize_type(sa, ty, &type_args);
                 specialize_ty_for_call(sa, ty, caller_element, call_data)
             } else {
@@ -659,7 +659,7 @@ pub fn specialize_ty_for_default_trait_method(
 
             if id.index() < trait_type_params {
                 // This is a trait type parameter.
-                let type_args = TypeArgs::from(&trait_ty.type_params);
+                let type_args = TypeArgs::from_container(&trait_ty.type_params);
                 type_args[id].clone()
             } else {
                 // This is a function-type parameter.
@@ -705,7 +705,7 @@ pub fn find_super_trait_ty(
     for bound in trait_.type_param_definition().bounds_for_self() {
         if bound.trait_id == target_trait_id {
             // Found it - specialize the type parameters
-            let type_args = TypeArgs::from(&trait_ty.type_params);
+            let type_args = TypeArgs::from_own(&trait_ty.type_params);
             let specialized_type_params = bound
                 .type_params
                 .iter()
@@ -726,7 +726,7 @@ pub fn find_super_trait_ty(
         };
         if let Some(found) = find_super_trait_ty(sa, &super_trait_ty, target_trait_id) {
             // Specialize the found trait type
-            let type_args = TypeArgs::from(&trait_ty.type_params);
+            let type_args = TypeArgs::from_own(&trait_ty.type_params);
             let specialized_type_params = found
                 .type_params
                 .iter()

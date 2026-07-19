@@ -183,6 +183,7 @@ pub(super) fn add_const_pool_entry_for_call(
                 type_params.len()
             );
             let bc_fct_id = g.emitter.convert_function_id(g.sa, fct.id());
+            let type_params = type_params.to_array();
             let bc_type_params = g.convert_tya(&type_params);
             g.builder.add_const_fct_types(bc_fct_id, bc_type_params)
         }
@@ -199,10 +200,7 @@ pub(super) fn specialize_type_for_call(
     match call_type {
         CallType::Fct(_, type_params)
         | CallType::Expr(_, _, type_params)
-        | CallType::Method(_, _, type_params) => {
-            let type_args = TypeArgs::from(type_params);
-            specialize_type(g.sa, ty, &type_args)
-        }
+        | CallType::Method(_, _, type_params) => specialize_type(g.sa, ty, type_params),
 
         CallType::TraitObjectMethod(trait_ty, _actual_object_ty) => {
             let (trait_id, type_params, assoc_types) = match trait_ty {
@@ -211,7 +209,7 @@ pub(super) fn specialize_type_for_call(
                 }
                 _ => unreachable!(),
             };
-            let type_args = TypeArgs::from(type_params);
+            let type_args = TypeArgs::from_container(type_params);
             specialize_ty_for_trait_object(g.sa, ty, trait_id, &type_args, assoc_types)
         }
 
@@ -219,15 +217,17 @@ pub(super) fn specialize_type_for_call(
             object_type,
             trait_ty,
             fct_type_params,
-            ..
+            fct_id,
         }
         | CallType::GenericStaticMethod {
             object_type,
             trait_ty,
             fct_type_params,
-            ..
+            fct_id,
         } => {
-            let type_args = TypeArgs::new(trait_ty.type_params.connect(fct_type_params));
+            let fct = g.sa.fct(*fct_id);
+            let type_args =
+                TypeArgs::from_definition(fct, &trait_ty.type_params, fct_type_params, None);
             replace_type(g.sa, ty, Some(&type_args), Some(object_type.clone()))
         }
 
