@@ -22,7 +22,7 @@ use crate::sema::{
     ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param,
     PatternId, ScopeId, Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess,
     VarId, VarLocation, Visibility, check_type_ref, convert_trait_type_ref, convert_type_ref,
-    parse_type_ref,
+    new_identity_type_params, parse_type_ref,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
@@ -369,12 +369,14 @@ impl<'a> TypeCheck<'a> {
 
     fn enter_function_scope(&mut self) {
         self.start_context_id = self.context_classes.len();
-        self.context_classes.push(LazyContextData::new());
+        let parent = self.context_classes.last().cloned();
+        self.context_classes.push(LazyContextData::new(parent));
         self.vars.enter_function_scope();
     }
 
     pub fn enter_block_scope(&mut self) {
-        self.context_classes.push(LazyContextData::new());
+        let parent = self.context_classes.last().cloned();
+        self.context_classes.push(LazyContextData::new(parent));
         self.vars.enter_block_scope();
     }
 
@@ -444,26 +446,9 @@ impl<'a> TypeCheck<'a> {
     fn setup_context_class(&mut self, lazy_context_data: LazyContextData) {
         let scope = self.vars.current_scope();
         let number_fields = scope.next_field_id;
-        let mut fields = Vec::with_capacity(number_fields);
+        let field_offset = usize::from(lazy_context_data.has_parent_slot());
+        let mut fields = Vec::with_capacity(number_fields + field_offset);
         let map: Vec<OnceCell<NestedVarId>> = vec![OnceCell::new(); number_fields];
-
-        if lazy_context_data.has_parent_slot() {
-            let name = self.sa.interner.intern("parent_context");
-            let field = FieldDefinition {
-                id: None,
-                name: Some(name),
-                span: None,
-                index: FieldIndex(fields.len()),
-                parsed_ty: ParsedType::new_ty(SourceType::Ptr),
-                mutable: true,
-                visibility: Visibility::Module,
-                file_id: Some(self.file_id),
-                module_id: self.module_id,
-                package_id: self.package_id,
-            };
-
-            fields.push(field);
-        }
 
         for &var_id in &scope.vars {
             let var = self.vars.get_var(var_id);
@@ -484,7 +469,7 @@ impl<'a> TypeCheck<'a> {
                 id: None,
                 name: Some(var.name),
                 span: None,
-                index: FieldIndex(fields.len()),
+                index: FieldIndex(fields.len() + field_offset),
                 parsed_ty: ParsedType::new_ty(var.ty.clone()),
                 mutable: true,
                 visibility: Visibility::Module,
@@ -1186,12 +1171,48 @@ pub struct VarDefinition {
 }
 
 fn create_context_classes(sa: &mut Sema, lazy_classes: Vec<LazyContextClassCreationData>) {
-    for lazy_class in lazy_classes {
-        let class_id = sa.classes.alloc(lazy_class.class_definition);
-        sa.classes[class_id].id = Some(class_id);
+    let lazy_classes = lazy_classes
+        .into_iter()
+        .map(|lazy_class| {
+            let class_id = sa.classes.alloc(lazy_class.class_definition);
+            sa.classes[class_id].id = Some(class_id);
+            lazy_class.context.set_class_id(class_id);
 
-        let field_ids = lazy_class
-            .fields
+            (lazy_class.context, lazy_class.fields)
+        })
+        .collect::<Vec<_>>();
+
+    for (context, mut fields) in lazy_classes {
+        if context.has_parent_slot() {
+            let parent = enclosing_context_class(&context);
+            let parent_class_id = parent.class_id();
+            let parent_type_param_count = sa
+                .class(parent_class_id)
+                .type_param_definition()
+                .type_param_count();
+            let context_class = sa.class(context.class_id());
+            let context_type_param_count = context_class.type_param_definition().type_param_count();
+            assert_eq!(parent_type_param_count, context_type_param_count);
+
+            let parent_field = FieldDefinition {
+                id: None,
+                name: Some(sa.interner.intern("parent_context")),
+                span: None,
+                index: FieldIndex(0),
+                parsed_ty: ParsedType::new_ty(SourceType::Class(
+                    parent_class_id,
+                    new_identity_type_params(0, parent_type_param_count),
+                )),
+                mutable: true,
+                visibility: Visibility::Module,
+                file_id: context_class.file_id,
+                module_id: context_class.module_id,
+                package_id: context_class.package_id,
+            };
+            fields.insert(0, parent_field);
+        }
+
+        let field_ids = fields
             .into_iter()
             .map(|field| {
                 let field_id = sa.fields.alloc(field);
@@ -1199,10 +1220,23 @@ fn create_context_classes(sa: &mut Sema, lazy_classes: Vec<LazyContextClassCreat
                 field_id
             })
             .collect::<Vec<_>>();
-        assert!(sa.class(class_id).field_ids.set(field_ids).is_ok());
-
-        lazy_class.context.set_class_id(class_id);
+        assert!(
+            sa.class(context.class_id())
+                .field_ids
+                .set(field_ids)
+                .is_ok()
+        );
     }
+}
+
+fn enclosing_context_class(context: &LazyContextData) -> LazyContextData {
+    let mut parent = context.parent().expect("missing parent context");
+
+    while !parent.has_class_id() {
+        parent = parent.parent().expect("missing parent context class");
+    }
+
+    parent
 }
 
 fn create_lambda_functions(sa: &mut Sema, lazy_lambdas: Vec<LazyLambdaCreationData>) {

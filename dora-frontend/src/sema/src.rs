@@ -42,10 +42,11 @@ pub struct LazyLambdaCreationData {
 pub struct LazyContextData(Rc<ContextData>);
 
 impl LazyContextData {
-    pub fn new() -> LazyContextData {
+    pub fn new(parent: Option<LazyContextData>) -> LazyContextData {
         LazyContextData(Rc::new(ContextData {
             has_parent_slot: Cell::new(false),
             class_id: OnceCell::new(),
+            parent,
         }))
     }
 
@@ -72,12 +73,17 @@ impl LazyContextData {
     pub fn class_id(&self) -> ClassDefinitionId {
         self.0.class_id.get().cloned().expect("missing class id")
     }
+
+    pub fn parent(&self) -> Option<LazyContextData> {
+        self.0.parent.clone()
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct ContextData {
     pub has_parent_slot: Cell<bool>,
     pub class_id: OnceCell<ClassDefinitionId>,
+    pub parent: Option<LazyContextData>,
 }
 
 #[derive(Debug)]
