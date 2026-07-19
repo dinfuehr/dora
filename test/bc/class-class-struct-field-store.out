@@ -6,9 +6,9 @@ fn f:
  15: Ret r5
 
   Registers:
-   0 => Ptr
+   0 => class OuterContainer
    1 => Int32
-   2 => Ptr
+   2 => class InnerContainer
    3 => Address
    4 => Address
    5 => ()

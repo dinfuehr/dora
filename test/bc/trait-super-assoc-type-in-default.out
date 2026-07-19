@@ -10,7 +10,7 @@ fn <impl[T] Base for Wrapper[T]>::get:
   9: Ret r1
 
   Registers:
-   0 => Ptr
+   0 => class Wrapper[T]
    1 => [T as Base]::Item
    2 => T
 

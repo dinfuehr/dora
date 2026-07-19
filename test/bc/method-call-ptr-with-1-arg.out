@@ -4,9 +4,9 @@ fn f:
   9: Ret r1
 
   Registers:
-   0 => Ptr
-   1 => Ptr
-   2 => Ptr
+   0 => class Foo
+   1 => class String
+   2 => class String
    3 => ()
 
   Constants:
@@ -21,9 +21,9 @@ fn <impl Foo>::g:
   3: Ret r2
 
   Registers:
-   0 => Ptr
-   1 => Ptr
-   2 => Ptr
+   0 => class Foo
+   1 => class String
+   2 => class String
    3 => ()
 
   Constants:

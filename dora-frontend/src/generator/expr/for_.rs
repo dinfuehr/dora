@@ -23,7 +23,10 @@ pub(super) fn gen_expr_for(
 
     let iterator_reg = if let Some((iter_fct_id, iter_type_params)) = for_type_info.iter {
         // Emit: <iterator> = <obj>.iter();
-        let iterator_reg = g.alloc_var(BytecodeType::Ptr);
+        let iterator_ty = g
+            .emitter
+            .convert_ty(g.sa, for_type_info.iterator_type.clone());
+        let iterator_reg = g.alloc_var(iterator_ty);
         let bc_fct_id = g.emitter.convert_function_id(g.sa, iter_fct_id);
         let bc_type_params = g.convert_tya(&iter_type_params);
         let fct_idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
@@ -49,9 +52,7 @@ pub(super) fn gen_expr_for(
     let option_type_params = SourceTypeArray::single(value_ty.clone());
 
     // Emit: <next-temp> = <iterator>.next()
-    let next_result_ty = g
-        .emitter
-        .convert_ty_reg(g.sa, for_type_info.next_type.clone());
+    let next_result_ty = g.emitter.convert_ty(g.sa, for_type_info.next_type.clone());
     let next_result_reg = g.alloc_temp(next_result_ty);
 
     let next_fct_id = g
@@ -88,7 +89,7 @@ pub(super) fn gen_expr_for(
     if value_ty.is_unit() {
         g.free_temp(next_result_reg);
     } else {
-        let value_ty = g.emitter.convert_ty_reg(g.sa, value_ty);
+        let value_ty = g.emitter.convert_ty(g.sa, value_ty);
         let value_reg = g.alloc_var(value_ty);
         let unwrap_fct_id = g
             .emitter

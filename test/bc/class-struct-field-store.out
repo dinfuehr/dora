@@ -5,7 +5,7 @@ fn f:
  11: Ret r4
 
   Registers:
-   0 => Ptr
+   0 => class Container
    1 => Int32
    2 => Address
    3 => Address

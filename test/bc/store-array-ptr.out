@@ -4,8 +4,8 @@ fn f:
   7: Ret r3
 
   Registers:
-   0 => Ptr
-   1 => Ptr
+   0 => class Array[Object]
+   1 => class Object
    2 => Int64
    3 => ()
 

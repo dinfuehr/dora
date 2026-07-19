@@ -6,7 +6,8 @@ use self::expr::{gen_stmt_expr, gen_stmt_let};
 use crate::program_emitter::Emitter;
 use crate::sema::{
     AnalysisData, ContextFieldId, ExprMapId, FctDefinitionId, FieldIndex, Intrinsic,
-    LazyContextData, ScopeId, Sema, SourceFileId, Stmt, StmtId, VarId, new_identity_type_params,
+    LazyContextData, OuterContextIdx, ScopeId, Sema, SourceFileId, Stmt, StmtId, VarId,
+    new_identity_type_params,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
@@ -138,11 +139,12 @@ impl<'a> AstBytecodeGen<'a> {
     fn create_context(&mut self, context_data: LazyContextData) -> Register {
         let class_id = context_data.class_id();
 
-        let context_register = self.builder.alloc_global(BytecodeType::Ptr);
-        let bc_class_id = self.emitter.convert_class_id(self.sa, class_id);
-        let bc_type_params = self
-            .emitter
-            .convert_tya(self.sa, &self.identity_type_params());
+        let context_type = self.context_type(&context_data);
+        let (bc_class_id, bc_type_params) = match &context_type {
+            BytecodeType::Class(class_id, type_params) => (*class_id, type_params.clone()),
+            _ => unreachable!(),
+        };
+        let context_register = self.builder.alloc_global(context_type);
         let idx = self
             .builder
             .add_const_cls_types(bc_class_id, bc_type_params);
@@ -150,29 +152,18 @@ impl<'a> AstBytecodeGen<'a> {
             .emit_new_object_uninitialized(context_register, idx, self.loc(self.span));
 
         if context_data.has_parent_slot() {
-            // Load context field of lambda object in self.
-            let temp_parent_context_reg = self.alloc_temp(BytecodeType::Ptr);
-
             let parent_context_reg = if let Some(parent_context_reg) = last_context_register(self) {
                 parent_context_reg
             } else {
-                let self_reg = var_reg(self, SELF_VAR_ID);
-
-                let lambda_cls_id = self.sa.known.classes.lambda();
-                let bc_lambda_cls_id = self.emitter.convert_class_id(self.sa, lambda_cls_id);
-                let idx = self.builder.add_const_field_types(
-                    bc_lambda_cls_id,
-                    BytecodeTypeArray::empty(),
-                    0,
-                );
-                self.builder.emit_load_field(
-                    temp_parent_context_reg,
-                    self_reg,
-                    idx,
-                    self.loc(self.span),
-                );
-
-                temp_parent_context_reg
+                assert!(self.is_lambda);
+                let outer_contexts = self.analysis.outer_contexts();
+                let parent_context_id = outer_contexts
+                    .iter()
+                    .rposition(LazyContextData::has_class_id)
+                    .expect("missing parent context");
+                drop(outer_contexts);
+                let location = self.loc(self.span);
+                load_outer_context_object(self, OuterContextIdx(parent_context_id), location)
             };
 
             // Store value in parent field of context object.
@@ -190,8 +181,7 @@ impl<'a> AstBytecodeGen<'a> {
                 idx,
                 self.loc(self.span),
             );
-
-            self.free_temp(temp_parent_context_reg);
+            self.free_if_temp(parent_context_reg);
         }
 
         context_register
@@ -209,7 +199,7 @@ impl<'a> AstBytecodeGen<'a> {
     fn allocate_register_for_var(&mut self, var_id: VarId) {
         let vars = self.analysis.vars();
         let var = vars.get_var(var_id);
-        let bty: BytecodeType = self.emitter.convert_ty_reg(self.sa, var.ty.clone());
+        let bty: BytecodeType = self.emitter.convert_ty(self.sa, var.ty.clone());
         let reg = self.alloc_var(bty);
         set_var_reg(self, var_id, reg);
     }
@@ -248,6 +238,22 @@ impl<'a> AstBytecodeGen<'a> {
         self.emitter.convert_tya(self.sa, &ty)
     }
 
+    fn context_type(&mut self, context_data: &LazyContextData) -> BytecodeType {
+        let class_id = self
+            .emitter
+            .convert_class_id(self.sa, context_data.class_id());
+        let identity_type_params = self.identity_type_params();
+        let type_params = self.convert_tya(&identity_type_params);
+        BytecodeType::Class(class_id, type_params)
+    }
+
+    fn lambda_object_type(&mut self) -> BytecodeType {
+        let class_id = self
+            .emitter
+            .convert_class_id(self.sa, self.sa.known.classes.lambda());
+        BytecodeType::Class(class_id, BytecodeTypeArray::empty())
+    }
+
     fn ensure_unit_register(&mut self) -> Register {
         if let Some(register) = self.unit_register {
             return register;
@@ -267,12 +273,10 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn alloc_var(&mut self, ty: BytecodeType) -> Register {
-        assert!(!ty.is_class());
         self.builder.alloc_var(ty)
     }
 
     fn alloc_temp(&mut self, ty: BytecodeType) -> Register {
-        assert!(!ty.is_class());
         self.builder.alloc_temp(ty)
     }
 
@@ -310,9 +314,11 @@ impl From<Intrinsic> for IntrinsicInfo {
 
 fn gen_fatal_error(g: &mut AstBytecodeGen, msg: &str, span: Span) {
     let return_type = g.return_type.clone();
-    let register_bty = g.emitter.convert_ty_reg(g.sa, return_type.clone());
+    let register_bty = g.emitter.convert_ty(g.sa, return_type.clone());
     let dest_reg = g.alloc_temp(register_bty);
-    let msg_reg = g.alloc_temp(BytecodeType::Ptr);
+    let string_ty = SourceType::Class(g.sa.known.classes.string(), SourceTypeArray::empty());
+    let string_ty = g.emitter.convert_ty(g.sa, string_ty);
+    let msg_reg = g.alloc_temp(string_ty);
     g.builder.emit_const_string(msg_reg, msg.to_string());
     let fct_type_params = g.convert_tya(&SourceTypeArray::single(return_type));
     let fct_id = g
@@ -328,7 +334,7 @@ fn gen_fatal_error(g: &mut AstBytecodeGen, msg: &str, span: Span) {
 
 fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
     let return_type = g.return_type.clone();
-    let register_bty = g.emitter.convert_ty_reg(g.sa, return_type.clone());
+    let register_bty = g.emitter.convert_ty(g.sa, return_type.clone());
     let dest = g.alloc_temp(register_bty);
     let fct_type_params = g.convert_tya(&SourceTypeArray::single(return_type));
     let fct_id = g
@@ -343,6 +349,63 @@ fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
 
 fn last_context_register(g: &AstBytecodeGen) -> Option<Register> {
     g.entered_contexts.iter().rev().find_map(|ec| ec.register)
+}
+
+fn load_outer_context_object(
+    g: &mut AstBytecodeGen,
+    context_id: OuterContextIdx,
+    location: Location,
+) -> Register {
+    assert!(g.is_lambda);
+
+    let outer_contexts = g.analysis.outer_contexts();
+    assert!(context_id.0 < outer_contexts.len());
+    assert!(outer_contexts[context_id.0].has_class_id());
+    let context_chain = outer_contexts
+        .iter()
+        .skip(context_id.0)
+        .filter(|context| context.has_class_id())
+        .cloned()
+        .collect::<Vec<_>>();
+    drop(outer_contexts);
+
+    let innermost_context = context_chain.last().expect("missing outer context");
+    let innermost_type = g.context_type(innermost_context);
+    let mut context_register = g.alloc_temp(innermost_type);
+
+    let lambda_class_id = g
+        .emitter
+        .convert_class_id(g.sa, g.sa.known.classes.lambda());
+    let field_idx = g
+        .builder
+        .add_const_field_types(lambda_class_id, BytecodeTypeArray::empty(), 0);
+    g.builder.emit_load_field(
+        context_register,
+        var_reg(g, SELF_VAR_ID),
+        field_idx,
+        location,
+    );
+
+    for context_idx in (1..context_chain.len()).rev() {
+        let context = &context_chain[context_idx];
+        assert!(context.has_parent_slot());
+
+        let context_type = g.context_type(context);
+        let (class_id, type_params) = match context_type {
+            BytecodeType::Class(class_id, type_params) => (class_id, type_params),
+            _ => unreachable!(),
+        };
+        let field_idx = g.builder.add_const_field_types(class_id, type_params, 0);
+
+        let parent_type = g.context_type(&context_chain[context_idx - 1]);
+        let parent_register = g.alloc_temp(parent_type);
+        g.builder
+            .emit_load_field(parent_register, context_register, field_idx, location);
+        g.free_temp(context_register);
+        context_register = parent_register;
+    }
+
+    context_register
 }
 
 fn emit_mov(g: &mut AstBytecodeGen, dest: Register, src: Register) {

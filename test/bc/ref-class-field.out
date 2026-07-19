@@ -15,7 +15,7 @@ fn f:
   9: Ret r1
 
   Registers:
-   0 => Ptr
+   0 => class Foo
    1 => ()
    2 => ref Int32
 

@@ -46,7 +46,7 @@ pub(super) fn gen_expr_field(
 
     let field_ty = g.ty(expr_id);
 
-    let field_bc_ty: BytecodeType = g.emitter.convert_ty_reg(g.sa, field_ty);
+    let field_bc_ty: BytecodeType = g.emitter.convert_ty(g.sa, field_ty);
     let dest = ensure_register(g, dest, field_bc_ty);
     let obj = gen_expr(g, e.lhs, DataDest::Alloc);
 
@@ -81,7 +81,7 @@ fn gen_expr_field_struct(
         return g.ensure_unit_register();
     }
 
-    let ty: BytecodeType = g.emitter.convert_ty_reg(g.sa, fty);
+    let ty: BytecodeType = g.emitter.convert_ty(g.sa, fty);
     let dest = ensure_register(g, dest, ty);
     let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
     let bc_type_params = g.convert_tya(&type_params);
@@ -112,7 +112,7 @@ fn gen_expr_field_tuple(
     let subtypes: SourceTypeArray = tuple_ty.tuple_subtypes().expect("tuple expected");
     let ty = subtypes[idx as usize].clone();
 
-    let ty: BytecodeType = g.emitter.convert_ty_reg(g.sa, ty);
+    let ty: BytecodeType = g.emitter.convert_ty(g.sa, ty);
     let dest = ensure_register(g, dest, ty);
     let field_idx = g
         .builder

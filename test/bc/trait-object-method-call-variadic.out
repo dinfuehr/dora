@@ -20,7 +20,7 @@ fn f:
    0 => Sum
    1 => Int32
    2 => Int64
-   3 => Ptr
+   3 => class Array[Int32]
    4 => Int64
    5 => Int32
 

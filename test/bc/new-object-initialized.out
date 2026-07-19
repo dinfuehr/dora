@@ -5,7 +5,7 @@ fn f:
   Registers:
    0 => Int64
    1 => Bool
-   2 => Ptr
+   2 => class Foo
    3 => ()
 
   Constants:

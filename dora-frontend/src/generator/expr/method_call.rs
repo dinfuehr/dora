@@ -55,7 +55,7 @@ pub(super) fn gen_expr_method_call(
     let return_type = g.analysis.ty(expr_id);
 
     // Allocate register for result
-    let return_ty = g.emitter.convert_ty_reg(g.sa, return_type.clone());
+    let return_ty = g.emitter.convert_ty(g.sa, return_type.clone());
     let return_reg = ensure_register(g, dest, return_ty);
 
     // Evaluate object/self argument
@@ -113,7 +113,7 @@ fn gen_expr_method_call_field_object(
                     .add_const_field_types(bc_cls_id, bc_type_params, field_index.0 as u32);
 
             let obj_reg = gen_expr(g, e.object, DataDest::Alloc);
-            let field_ty = g.emitter.convert_ty_reg(g.sa, field_ty);
+            let field_ty = g.emitter.convert_ty(g.sa, field_ty);
             let field_reg = g.alloc_temp(field_ty);
             g.builder
                 .emit_load_field(field_reg, obj_reg, field_idx, g.loc_for_expr(e.object));
@@ -138,7 +138,7 @@ fn gen_expr_method_call_field_object(
             );
 
             let obj_reg = gen_expr(g, e.object, DataDest::Alloc);
-            let field_ty = g.emitter.convert_ty_reg(g.sa, field_ty);
+            let field_ty = g.emitter.convert_ty(g.sa, field_ty);
             let field_reg = g.alloc_temp(field_ty);
             g.builder
                 .emit_load_field(field_reg, obj_reg, field_idx, g.loc_for_expr(e.object));
@@ -216,7 +216,7 @@ fn gen_expr_method_call_field_intrinsic(
                         BytecodeType::UInt8
                     } else {
                         let element_ty = field_ty.type_params()[0].clone();
-                        g.emitter.convert_ty_reg(g.sa, element_ty)
+                        g.emitter.convert_ty(g.sa, element_ty)
                     };
 
                     let dest_reg = ensure_register(g, dest, ty);
@@ -310,7 +310,7 @@ fn gen_expr_method_call_lambda(
             .emit_invoke_lambda(dest, idx, &arguments, location);
         dest
     } else {
-        let bytecode_ty = g.emitter.convert_ty_reg(g.sa, return_type);
+        let bytecode_ty = g.emitter.convert_ty(g.sa, return_type);
         let dest_reg = ensure_register(g, dest, bytecode_ty);
         g.builder
             .emit_invoke_lambda(dest_reg, idx, &arguments, location);

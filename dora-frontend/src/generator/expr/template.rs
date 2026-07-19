@@ -11,7 +11,13 @@ pub(super) fn gen_expr_template(
     e: &TemplateExpr,
     dest: DataDest,
 ) -> Register {
-    let buffer_register = ensure_register(g, dest, BytecodeType::Ptr);
+    let string_ty = SourceType::Class(g.sa.known.classes.string(), SourceTypeArray::empty());
+    let string_ty = g.emitter.convert_ty(g.sa, string_ty);
+    let result_register = ensure_register(g, dest, string_ty.clone());
+
+    let buffer_ty = SourceType::Class(g.sa.known.classes.string_buffer(), SourceTypeArray::empty());
+    let buffer_ty = g.emitter.convert_ty(g.sa, buffer_ty);
+    let buffer_register = g.alloc_temp(buffer_ty);
 
     // build StringBuffer::empty() call
     let fct_id = g.sa.known.functions.string_buffer_empty();
@@ -21,7 +27,7 @@ pub(super) fn gen_expr_template(
     g.builder
         .emit_invoke_static(buffer_register, fct_idx, &[], g.loc_for_expr(expr_id));
 
-    let part_register = g.alloc_temp(BytecodeType::Ptr);
+    let part_register = g.alloc_temp(string_ty);
 
     for &part_id in &e.parts {
         let part_expr = g.analysis.expr(part_id);
@@ -123,11 +129,12 @@ pub(super) fn gen_expr_template(
         .builder
         .add_const_fct(g.emitter.convert_function_id(g.sa, fct_id));
     g.builder.emit_invoke_direct(
-        buffer_register,
+        result_register,
         fct_idx,
         &[buffer_register],
         g.loc_for_expr(expr_id),
     );
+    g.free_temp(buffer_register);
 
-    buffer_register
+    result_register
 }

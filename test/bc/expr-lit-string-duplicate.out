@@ -6,9 +6,9 @@ fn f:
  12: Ret r3
 
   Registers:
-   0 => Ptr
-   1 => Ptr
-   2 => Ptr
+   0 => class String
+   1 => class String
+   2 => class String
    3 => ()
 
   Constants:

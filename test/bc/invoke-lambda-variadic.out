@@ -14,9 +14,9 @@ fn f:
  43: Ret r4
 
   Registers:
-   0 => Ptr
+   0 => (Int32...): Int32
    1 => Int64
-   2 => Ptr
+   2 => class Array[Int32]
    3 => Int64
    4 => Int32
 

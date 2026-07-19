@@ -19,7 +19,7 @@ pub(super) fn gen_match(
     let expr_id_inner = e.expr.expect("missing match expr");
     let expr_ty = g.ty(expr_id_inner);
 
-    let result_bc_ty = g.emitter.convert_ty_reg(g.sa, result_ty);
+    let result_bc_ty = g.emitter.convert_ty(g.sa, result_ty);
     let dest = ensure_register(g, dest, result_bc_ty);
 
     let expr_reg = gen_expr(g, expr_id_inner, DataDest::Alloc);

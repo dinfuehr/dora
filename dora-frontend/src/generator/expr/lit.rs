@@ -104,7 +104,9 @@ pub(super) fn gen_expr_lit_string(
     expr_id: ExprId,
     dest: DataDest,
 ) -> Register {
-    let dest = ensure_register(g, dest, BytecodeType::Ptr);
+    let ty = g.ty(expr_id);
+    let ty = g.emitter.convert_ty(g.sa, ty);
+    let dest = ensure_register(g, dest, ty);
     let value = g
         .analysis
         .get_const_value(expr_id)

@@ -765,17 +765,14 @@ impl BytecodeBuilder {
     }
 
     pub fn alloc_var(&mut self, ty: BytecodeType) -> Register {
-        assert!(!ty.is_class());
         self.registers.alloc_var(ty)
     }
 
     pub fn alloc_temp(&mut self, ty: BytecodeType) -> Register {
-        assert!(!ty.is_class());
         self.registers.alloc_temp(ty)
     }
 
     pub fn alloc_global(&mut self, ty: BytecodeType) -> Register {
-        assert!(!ty.is_class());
         self.registers.alloc_global(ty)
     }
 

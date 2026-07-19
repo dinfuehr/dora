@@ -3,7 +3,7 @@ fn f:
   4: Ret r2
 
   Registers:
-   0 => Ptr
+   0 => class String
    1 => Int64
    2 => UInt8
 

@@ -38,7 +38,7 @@ fn gen_expr_ref_var(
     let var = vars.get_var(var_id);
 
     // Get the type of the reference
-    let inner_ty = g.emitter.convert_ty_reg(g.sa, var.ty.clone());
+    let inner_ty = g.emitter.convert_ty(g.sa, var.ty.clone());
     let ref_ty = BytecodeType::Ref(Box::new(inner_ty));
     let dest_reg = ensure_register(g, dest, ref_ty);
 
@@ -60,7 +60,7 @@ fn gen_expr_ref_field(
     dest: DataDest,
 ) -> Register {
     let field_ty = g.ty(e.expr);
-    let inner_ty = g.emitter.convert_ty_reg(g.sa, field_ty);
+    let inner_ty = g.emitter.convert_ty(g.sa, field_ty);
     let ref_ty = BytecodeType::Ref(Box::new(inner_ty));
     let dest_reg = ensure_register(g, dest, ref_ty);
 

@@ -6,8 +6,8 @@ fn <impl MyId for String>::f:
   3: Ret r2
 
   Registers:
-   0 => Ptr
-   1 => Ptr
+   0 => class String
+   1 => class String
    2 => ()
 
   Constants:

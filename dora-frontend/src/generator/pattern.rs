@@ -198,7 +198,7 @@ fn destruct_pattern_inner(
         }
 
         Pattern::LitFloat(_) => {
-            let bty = g.emitter.convert_ty_reg(g.sa, ty);
+            let bty = g.emitter.convert_ty(g.sa, ty);
             assert!(bty == BytecodeType::Float32 || bty == BytecodeType::Float64);
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
             let const_value = g
@@ -230,7 +230,8 @@ fn destruct_pattern_inner(
                 .expect("string expected")
                 .to_string();
             let tmp = g.alloc_temp(BytecodeType::Bool);
-            let expected = g.alloc_temp(BytecodeType::Ptr);
+            let expected_ty = g.emitter.convert_ty(g.sa, ty);
+            let expected = g.alloc_temp(expected_ty);
             g.builder.emit_const_string(expected, const_value);
             let fct_id = g.sa.known.functions.string_equals();
             let idx = g
@@ -245,7 +246,7 @@ fn destruct_pattern_inner(
         }
 
         Pattern::LitInt(_) => {
-            let bty = g.emitter.convert_ty_reg(g.sa, ty);
+            let bty = g.emitter.convert_ty(g.sa, ty);
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
             let const_value = g
                 .analysis
@@ -391,7 +392,7 @@ fn destruct_pattern_const_value(
         }
 
         ConstValue::Float(float_value) => {
-            let bty = g.emitter.convert_ty_reg(g.sa, ty);
+            let bty = g.emitter.convert_ty(g.sa, ty);
             assert!(bty == BytecodeType::Float32 || bty == BytecodeType::Float64);
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
             let tmp = g.alloc_temp(BytecodeType::Bool);
@@ -408,7 +409,7 @@ fn destruct_pattern_const_value(
         }
 
         ConstValue::Int(int_value) => {
-            let bty = g.emitter.convert_ty_reg(g.sa, ty);
+            let bty = g.emitter.convert_ty(g.sa, ty);
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
             let tmp = g.alloc_temp(BytecodeType::Bool);
             let expected = g.alloc_temp(bty.clone());
@@ -427,7 +428,8 @@ fn destruct_pattern_const_value(
         ConstValue::String(string_value) => {
             let mismatch_lbl = pck.ensure_label(&mut g.builder);
             let tmp = g.alloc_temp(BytecodeType::Bool);
-            let expected = g.alloc_temp(BytecodeType::Ptr);
+            let expected_ty = g.emitter.convert_ty(g.sa, ty);
+            let expected = g.alloc_temp(expected_ty);
             g.builder.emit_const_string(expected, string_value);
             let fct_id = g.sa.known.functions.string_equals();
             let idx = g
@@ -525,7 +527,7 @@ fn destruct_pattern_enum(
                 let field = g.sa.field(field_id);
                 let element_ty = field.ty();
                 let element_ty = specialize_type(g.sa, element_ty, enum_type_params);
-                let bty = g.emitter.convert_ty_reg(g.sa, element_ty.clone());
+                let bty = g.emitter.convert_ty(g.sa, element_ty.clone());
                 let field_reg = g.alloc_temp(bty);
 
                 let cp_idx = g.builder.add_const_enum_element(
@@ -593,7 +595,7 @@ fn destruct_pattern_struct_with_fields(
             let field_id = struct_.field_id(FieldIndex(field_idx));
             let field_ty = g.sa.field(field_id).ty();
             let field_ty = specialize_type(g.sa, field_ty, struct_type_params);
-            let register_ty = g.emitter.convert_ty_reg(g.sa, field_ty.clone());
+            let register_ty = g.emitter.convert_ty(g.sa, field_ty.clone());
             let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
             let bc_type_params = g.convert_tya(struct_type_params);
             let cp_idx =
@@ -650,7 +652,7 @@ fn destruct_pattern_class_with_fields(
             let field_id = class.field_id(FieldIndex(field_idx));
             let field_ty = g.sa.field(field_id).ty();
             let field_ty = specialize_type(g.sa, field_ty, class_type_params);
-            let register_ty = g.emitter.convert_ty_reg(g.sa, field_ty.clone());
+            let register_ty = g.emitter.convert_ty(g.sa, field_ty.clone());
             let bc_cls_id = g.emitter.convert_class_id(g.sa, class_id);
             let bc_type_params = g.convert_tya(class_type_params);
             let cp_idx =
@@ -687,7 +689,7 @@ fn destruct_pattern_tuple(
                     .get_field_id(subpattern_id)
                     .expect("missing field_id");
                 let subtype = tuple_subtypes[field_id].clone();
-                let register_ty = g.emitter.convert_ty_reg(g.sa, subtype.clone());
+                let register_ty = g.emitter.convert_ty(g.sa, subtype.clone());
                 let cp_idx = g.builder.add_const_tuple_element(
                     g.emitter.convert_ty(g.sa, ty.clone()),
                     field_id as u32,

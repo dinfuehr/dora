@@ -4,7 +4,7 @@ fn f:
 
   Registers:
    0 => Int32
-   1 => Ptr
+   1 => class Foo
    2 => ()
 
   Constants:
@@ -17,7 +17,7 @@ fn <impl Foo>::g:
   0: Ret r1
 
   Registers:
-   0 => Ptr
+   0 => class Foo
    1 => ()
 
   Constants:

@@ -3,7 +3,7 @@ fn f:
   5: Ret r2
 
   Registers:
-   0 => Ptr
+   0 => class Foo
    1 => UInt8
    2 => ()
 
@@ -18,7 +18,7 @@ fn <impl Foo>::g:
   3: Ret r1
 
   Registers:
-   0 => Ptr
+   0 => class Foo
    1 => UInt8
    2 => ()
 

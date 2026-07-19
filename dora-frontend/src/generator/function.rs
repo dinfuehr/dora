@@ -64,12 +64,14 @@ fn create_params(g: &mut AstBytecodeGen) {
         // The self type already includes Ref wrapper for mutating methods on value types.
         let var_ty = var_self.ty.clone();
 
-        let bty = g.emitter.convert_ty(g.sa, var_ty.clone());
-        params.push(bty);
+        let bty = if g.is_lambda {
+            g.lambda_object_type()
+        } else {
+            g.emitter.convert_ty(g.sa, var_ty)
+        };
+        params.push(bty.clone());
 
-        // For register allocation, use convert_ty_reg which converts classes to Ptr.
-        let bty_reg = g.emitter.convert_ty_reg(g.sa, var_ty);
-        let reg = g.alloc_var(bty_reg);
+        let reg = g.alloc_var(bty);
         set_var_reg(g, SELF_VAR_ID, reg);
     }
 
@@ -78,7 +80,7 @@ fn create_params(g: &mut AstBytecodeGen) {
         let bty = g.emitter.convert_ty(g.sa, ty.clone());
         params.push(bty);
 
-        let bty: BytecodeType = g.emitter.convert_ty_reg(g.sa, ty);
+        let bty: BytecodeType = g.emitter.convert_ty(g.sa, ty);
         g.alloc_var(bty);
     }
 

@@ -3,7 +3,7 @@ fn f:
   3: Ret r0
 
   Registers:
-   0 => Ptr
+   0 => class String
    1 => ()
 
   Constants:

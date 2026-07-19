@@ -14,7 +14,7 @@ fn f:
 
   Registers:
    0 => Int64
-   1 => Ptr
+   1 => class Array[Int32]
    2 => Int64
    3 => Int32
 

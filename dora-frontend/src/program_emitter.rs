@@ -1014,13 +1014,6 @@ impl Emitter {
         }
     }
 
-    pub fn convert_ty_reg(&mut self, _sa: &Sema, ty: SourceType) -> BytecodeType {
-        match ty {
-            SourceType::Class(..) | SourceType::Lambda(..) => BytecodeType::Ptr,
-            _ => self.convert_ty(_sa, ty),
-        }
-    }
-
     pub fn convert_tya(&mut self, _sa: &Sema, ty: &SourceTypeArray) -> BytecodeTypeArray {
         let mut bytecode_subtypes = Vec::with_capacity(ty.len());
         for subtype in ty.iter() {

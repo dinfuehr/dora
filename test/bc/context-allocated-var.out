@@ -10,11 +10,11 @@ fn f:
  29: Ret r4
 
   Registers:
-   0 => Ptr
+   0 => class $Context1
    1 => Int64
    2 => ()
    3 => Int64
-   4 => Ptr
+   4 => (): Int64
 
   Constants:
    0 => Class $Context1
@@ -35,8 +35,8 @@ fn lamba::$Lambda1:
   8: Ret r2
 
   Registers:
-   0 => Ptr
-   1 => Ptr
+   0 => class $Lambda
+   1 => class $Context1
    2 => Int64
 
   Constants:

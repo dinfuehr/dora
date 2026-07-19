@@ -6,7 +6,7 @@ fn f:
  14: Ret r1
 
   Registers:
-   0 => Ptr
+   0 => class Foo
    1 => Bool
    2 => Bool
    3 => Bool
@@ -24,7 +24,7 @@ fn <impl Foo>::g:
   2: Ret r4
 
   Registers:
-   0 => Ptr
+   0 => class Foo
    1 => Bool
    2 => Bool
    3 => Bool

@@ -3,7 +3,7 @@ fn f:
   4: Ret r3
 
   Registers:
-   0 => Ptr
+   0 => class Array[MyEnum]
    1 => Int64
    2 => enum MyEnum
    3 => ()

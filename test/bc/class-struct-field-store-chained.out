@@ -6,7 +6,7 @@ fn f:
  15: Ret r4
 
   Registers:
-   0 => Ptr
+   0 => class Wrapper
    1 => Int32
    2 => Address
    3 => Address

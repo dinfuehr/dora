@@ -3,8 +3,8 @@ fn f:
   5: Ret r1
 
   Registers:
-   0 => Ptr
-   1 => Ptr
+   0 => class Foo
+   1 => class String
    2 => ()
 
   Constants:
@@ -18,8 +18,8 @@ fn <impl Foo>::g:
   3: Ret r1
 
   Registers:
-   0 => Ptr
-   1 => Ptr
+   0 => class Foo
+   1 => class String
    2 => ()
 
   Constants:

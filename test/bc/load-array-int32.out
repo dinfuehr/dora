@@ -3,7 +3,7 @@ fn f:
   4: Ret r2
 
   Registers:
-   0 => Ptr
+   0 => class Array[Int32]
    1 => Int64
    2 => Int32
    3 => ()

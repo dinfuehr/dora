@@ -4,7 +4,7 @@ fn f:
   7: Ret r3
 
   Registers:
-   0 => Ptr
+   0 => class Array[Float32]
    1 => Float32
    2 => Int64
    3 => ()

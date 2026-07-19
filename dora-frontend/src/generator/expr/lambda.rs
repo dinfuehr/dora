@@ -1,8 +1,10 @@
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, Register};
+use dora_bytecode::Register;
 
 use super::ensure_register;
-use crate::generator::{AstBytecodeGen, DataDest, SELF_VAR_ID, last_context_register, var_reg};
-use crate::sema::{ExprId, LambdaExpr};
+use crate::generator::{
+    AstBytecodeGen, DataDest, last_context_register, load_outer_context_object,
+};
+use crate::sema::{ExprId, LambdaExpr, OuterContextIdx};
 
 pub(super) fn gen_expr_lambda(
     g: &mut AstBytecodeGen,
@@ -10,7 +12,9 @@ pub(super) fn gen_expr_lambda(
     _e: &LambdaExpr,
     dest: DataDest,
 ) -> Register {
-    let dest = ensure_register(g, dest, BytecodeType::Ptr);
+    let ty = g.ty(expr_id);
+    let ty = g.emitter.convert_ty(g.sa, ty);
+    let dest = ensure_register(g, dest, ty);
 
     let lambda_fct_id = g
         .analysis
@@ -32,19 +36,17 @@ pub(super) fn gen_expr_lambda(
             // pass down the parent context (the context in the lambda object).
             assert!(g.is_lambda);
             assert!(g.analysis.needs_context_slot_in_lambda_object());
-            outer_context_reg = Some(g.alloc_temp(BytecodeType::Ptr));
-            let lambda_cls_id = g.sa.known.classes.lambda();
-            let idx = g.builder.add_const_field_types(
-                g.emitter.convert_class_id(g.sa, lambda_cls_id),
-                BytecodeTypeArray::empty(),
-                0,
-            );
-            g.builder.emit_load_field(
-                outer_context_reg.expect("missing reg"),
-                var_reg(g, SELF_VAR_ID),
-                idx,
+            let outer_contexts = g.analysis.outer_contexts();
+            let context_id = outer_contexts
+                .iter()
+                .rposition(|context| context.has_class_id())
+                .expect("missing outer context");
+            drop(outer_contexts);
+            outer_context_reg = Some(load_outer_context_object(
+                g,
+                OuterContextIdx(context_id),
                 g.loc_for_expr(expr_id),
-            );
+            ));
             arguments.push(outer_context_reg.expect("missing reg"));
         }
     }

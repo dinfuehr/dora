@@ -9,7 +9,7 @@ fn f:
    0 => Int32
    1 => Int32
    2 => Int32
-   3 => Ptr
+   3 => class Foo
    4 => ()
 
   Constants:

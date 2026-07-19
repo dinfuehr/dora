@@ -6,7 +6,7 @@ fn <impl Foo for Bar>::bar:
   3: Ret r1
 
   Registers:
-   0 => Ptr
+   0 => class Bar
    1 => Int32
 
   Constants:
@@ -19,7 +19,7 @@ fn f:
   4: Ret r1
 
   Registers:
-   0 => Ptr
+   0 => class Bar
    1 => Foo
 
   Constants:

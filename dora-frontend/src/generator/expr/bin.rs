@@ -120,7 +120,7 @@ fn gen_expr_bin_cmp_as_method(
         specialize_type_for_call(g, &call_type, callee.return_type());
 
     let function_return_type_bc: BytecodeType =
-        g.emitter.convert_ty_reg(g.sa, function_return_type.clone());
+        g.emitter.convert_ty(g.sa, function_return_type.clone());
 
     let return_type = BytecodeType::Bool;
 
@@ -130,7 +130,7 @@ fn gen_expr_bin_cmp_as_method(
         dest
     } else {
         let function_result_register_ty: BytecodeType =
-            g.emitter.convert_ty_reg(g.sa, function_return_type.clone());
+            g.emitter.convert_ty(g.sa, function_return_type.clone());
         g.alloc_temp(function_result_register_ty)
     };
 
@@ -264,7 +264,7 @@ fn gen_expr_bin_method(
         specialize_type_for_call(g, &call_type, callee.return_type());
 
     let function_return_type_bc: BytecodeType =
-        g.emitter.convert_ty_reg(g.sa, function_return_type.clone());
+        g.emitter.convert_ty(g.sa, function_return_type.clone());
 
     let return_type = match e.op {
         ast::BinOp::Cmp(_) => BytecodeType::Bool,
@@ -277,7 +277,7 @@ fn gen_expr_bin_method(
         dest
     } else {
         let function_result_register_ty: BytecodeType =
-            g.emitter.convert_ty_reg(g.sa, function_return_type.clone());
+            g.emitter.convert_ty(g.sa, function_return_type.clone());
         g.alloc_temp(function_result_register_ty)
     };
 

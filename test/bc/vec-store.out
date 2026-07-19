@@ -3,7 +3,7 @@ fn f:
   7: Ret r3
 
   Registers:
-   0 => Ptr
+   0 => class Vec[Int32]
    1 => Int64
    2 => Int32
    3 => ()

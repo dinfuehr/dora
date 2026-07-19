@@ -69,7 +69,7 @@ pub(super) fn gen_expr_call(
     let return_type = g.analysis.ty(expr_id);
 
     // Allocate register for result
-    let return_ty = g.emitter.convert_ty_reg(g.sa, return_type.clone());
+    let return_ty = g.emitter.convert_ty(g.sa, return_type.clone());
     let return_reg = ensure_register(g, dest, return_ty);
 
     // Evaluate object/self argument
@@ -127,7 +127,7 @@ fn gen_expr_call_enum(
     let idx = g
         .builder
         .add_const_enum_variant(bc_enum_id, bc_type_params, variant_idx);
-    let bytecode_ty = g.emitter.convert_ty_reg(g.sa, enum_ty);
+    let bytecode_ty = g.emitter.convert_ty(g.sa, enum_ty);
     let dest_reg = ensure_register(g, dest, bytecode_ty);
     g.builder
         .emit_new_enum(dest_reg, idx, &arguments, g.loc_for_expr(expr_id));
@@ -180,7 +180,7 @@ fn gen_expr_call_lambda(
             .emit_invoke_lambda(dest, idx, &arguments, location);
         dest
     } else {
-        let bytecode_ty = g.emitter.convert_ty_reg(g.sa, return_type);
+        let bytecode_ty = g.emitter.convert_ty(g.sa, return_type);
         let dest_reg = ensure_register(g, dest, bytecode_ty);
         g.builder
             .emit_invoke_lambda(dest_reg, idx, &arguments, location);
@@ -253,8 +253,10 @@ fn gen_expr_call_class(
 
     let cls_id = g.emitter.convert_class_id(g.sa, cls_id);
     let bc_type_params = g.convert_tya(type_params);
-    let idx = g.builder.add_const_cls_types(cls_id, bc_type_params);
-    let dest_reg = ensure_register(g, dest, BytecodeType::Ptr);
+    let idx = g
+        .builder
+        .add_const_cls_types(cls_id, bc_type_params.clone());
+    let dest_reg = ensure_register(g, dest, BytecodeType::Class(cls_id, bc_type_params));
     g.builder
         .emit_new_object(dest_reg, idx, &flat_arguments, g.loc_for_expr(expr_id));
 
@@ -454,13 +456,15 @@ pub(super) fn emit_array_with_variadic_call_arguments(
     let (cls_id, type_params) = ty.to_class().expect("class expected");
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
     let bc_type_params = g.convert_tya(&type_params);
-    let cls_idx = g.builder.add_const_cls_types(bc_cls_id, bc_type_params);
+    let cls_idx = g
+        .builder
+        .add_const_cls_types(bc_cls_id, bc_type_params.clone());
 
     let length_reg = g.alloc_temp(BytecodeType::Int64);
     g.builder
         .emit_const_int64(length_reg, variadic_arguments as i64);
 
-    let array_reg = ensure_register(g, dest, BytecodeType::Ptr);
+    let array_reg = ensure_register(g, dest, BytecodeType::Class(bc_cls_id, bc_type_params));
     let location = g.loc_for_expr(location_expr_id);
     g.builder
         .emit_new_array(array_reg, length_reg, cls_idx, location);
@@ -496,7 +500,9 @@ fn emit_array_with_variadic_arguments_hir(
     let (cls_id, type_params) = ty.to_class().expect("class expected");
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
     let bc_type_params = g.convert_tya(&type_params);
-    let cls_idx = g.builder.add_const_cls_types(bc_cls_id, bc_type_params);
+    let cls_idx = g
+        .builder
+        .add_const_cls_types(bc_cls_id, bc_type_params.clone());
 
     let location = g.loc_for_expr(expr_id);
 
@@ -504,7 +510,7 @@ fn emit_array_with_variadic_arguments_hir(
     g.builder
         .emit_const_int64(length_reg, variadic_arguments as i64);
 
-    let array_reg = ensure_register(g, dest, BytecodeType::Ptr);
+    let array_reg = ensure_register(g, dest, BytecodeType::Class(bc_cls_id, bc_type_params));
     g.builder
         .emit_new_array(array_reg, length_reg, cls_idx, location);
 
@@ -569,9 +575,11 @@ pub(super) fn emit_intrinsic_new_array(
     let (cls_id, type_params) = element_ty.to_class().expect("class expected");
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
     let bc_type_params = g.convert_tya(&type_params);
-    let cls_idx = g.builder.add_const_cls_types(bc_cls_id, bc_type_params);
+    let cls_idx = g
+        .builder
+        .add_const_cls_types(bc_cls_id, bc_type_params.clone());
 
-    let array_reg = ensure_register(g, dest, BytecodeType::Ptr);
+    let array_reg = ensure_register(g, dest, BytecodeType::Class(bc_cls_id, bc_type_params));
     let length_reg = gen_expr(g, e.args[0].expr, DataDest::Alloc);
 
     g.builder
@@ -596,7 +604,7 @@ pub(super) fn emit_intrinsic_array_get(
         let ty = ty.type_params();
         let ty = ty[0].clone();
 
-        g.emitter.convert_ty_reg(g.sa, ty)
+        g.emitter.convert_ty(g.sa, ty)
     };
 
     let dest = ensure_register(g, dest, ty.clone());

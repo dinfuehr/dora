@@ -4,7 +4,7 @@ fn f:
   9: Ret r1
 
   Registers:
-   0 => Ptr
+   0 => class Foo
    1 => Int32
    2 => Int32
    3 => ()
@@ -21,7 +21,7 @@ fn <impl Foo>::g:
   3: Ret r2
 
   Registers:
-   0 => Ptr
+   0 => class Foo
    1 => Int32
    2 => Int32
    3 => ()

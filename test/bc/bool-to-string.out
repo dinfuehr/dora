@@ -4,7 +4,7 @@ fn f:
 
   Registers:
    0 => Bool
-   1 => Ptr
+   1 => class String
 
   Constants:
    0 => Fct std::primitives::<impl Stringable for Bool>::to_string

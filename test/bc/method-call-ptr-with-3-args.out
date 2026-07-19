@@ -6,11 +6,11 @@ fn f:
  17: Ret r1
 
   Registers:
-   0 => Ptr
-   1 => Ptr
-   2 => Ptr
-   3 => Ptr
-   4 => Ptr
+   0 => class Foo
+   1 => class String
+   2 => class String
+   3 => class String
+   4 => class String
    5 => ()
 
   Constants:
@@ -27,11 +27,11 @@ fn <impl Foo>::g:
   3: Ret r4
 
   Registers:
-   0 => Ptr
-   1 => Ptr
-   2 => Ptr
-   3 => Ptr
-   4 => Ptr
+   0 => class Foo
+   1 => class String
+   2 => class String
+   3 => class String
+   4 => class String
    5 => ()
 
   Constants:

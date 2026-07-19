@@ -3,8 +3,8 @@ fn <impl Comparable for X>::cmp:
   4: Ret r2
 
   Registers:
-   0 => Ptr
-   1 => Ptr
+   0 => class X
+   1 => class X
    2 => enum Ordering
 
   Constants:
@@ -19,8 +19,8 @@ fn f:
  11: Ret r2
 
   Registers:
-   0 => Ptr
-   1 => Ptr
+   0 => class X
+   1 => class X
    2 => Bool
    3 => enum Ordering
 
