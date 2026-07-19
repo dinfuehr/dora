@@ -1,0 +1,28 @@
+//= ignore
+// Generic associated type arguments are currently lost before default-method specialization.
+
+trait Container {
+    type Item[T];
+
+    fn wrap[T](value: T): Self::Item[T];
+
+    fn default_wrap[T](value: T): Self::Item[T] {
+        let identity = |item: Self::Item[T]|: Self::Item[T] { item };
+        identity(self.wrap[T](value))
+    }
+}
+
+class Source
+
+impl Container for Source {
+    type Item[T] = Option[T];
+
+    fn wrap[T](value: T): Option[T] {
+        Some[T](value)
+    }
+}
+
+fn main() {
+    assert(Source().default_wrap[Int64](42).get_or_panic() == 42);
+    assert(Source().default_wrap[String]("item").get_or_panic() == "item");
+}
