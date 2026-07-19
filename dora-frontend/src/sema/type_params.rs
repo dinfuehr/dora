@@ -97,11 +97,7 @@ impl TypeParamDefinition {
         }
     }
 
-    pub fn name(&self, sa: &Sema, id: TypeParamIdx) -> Name {
-        self.type_param(sa, id).name()
-    }
-
-    pub fn type_param_id(&self, sa: &Sema, id: TypeParamIdx) -> TypeParamId {
+    fn type_param_id(&self, sa: &Sema, id: TypeParamIdx) -> TypeParamId {
         let id = id.index();
 
         if id < self.container_type_params() {
@@ -130,10 +126,6 @@ impl TypeParamDefinition {
             .iter()
             .position(|&type_param_id| type_param_id == id)
             .map(|idx| TypeParamKind::Own(TypeParamIdx(self.container_type_params + idx)))
-    }
-
-    fn type_param<'a>(&'a self, sa: &'a Sema, id: TypeParamIdx) -> &'a TypeParam {
-        sa.type_param(self.type_param_id(sa, id))
     }
 
     fn bound<'a>(&'a self, sa: &'a Sema, idx: usize) -> &'a Bound {
