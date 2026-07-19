@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::args;
 use crate::error::Location;
@@ -8,14 +8,12 @@ use crate::error::diagnostics::{
 };
 use crate::sema::{
     Element, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, TypeParamIdx, block_matches_ty,
+    TypeParamDefinition, TypeParamId, block_matches_ty,
 };
 use crate::{Name, SourceType};
 
 use dora_parser::Span;
 use dora_parser::ast::SyntaxNodeBase;
-use fixedbitset::FixedBitSet;
-
 pub fn check(sa: &Sema) {
     let mut maybe_duplicate_names: HashMap<Name, Vec<FctDefinitionId>> = HashMap::new();
 
@@ -203,16 +201,15 @@ pub fn check_for_unconstrained_type_params(
     file_id: SourceFileId,
     span: Span,
 ) {
-    let mut bitset = FixedBitSet::with_capacity(type_params_defs.type_param_count());
+    let mut used_type_params = HashSet::new();
 
-    discover_type_params(sa, type_params_defs, ty, &mut bitset);
+    discover_type_params(sa, type_params_defs, ty, &mut used_type_params);
 
-    bitset.toggle_range(..);
-
-    for idx in bitset.ones() {
-        let type_param_def = type_params_defs.name(sa, TypeParamIdx(idx));
-        let tp_name = sa.interner.str(type_param_def).to_string();
-        sa.report(file_id, span, &UNCONSTRAINED_TYPE_PARAM, args!(tp_name));
+    for (id, name) in type_params_defs.names(sa) {
+        if !used_type_params.contains(&id) {
+            let name = sa.interner.str(name).to_string();
+            sa.report(file_id, span, &UNCONSTRAINED_TYPE_PARAM, args!(name));
+        }
     }
 }
 
@@ -220,7 +217,7 @@ fn discover_type_params(
     sa: &Sema,
     type_param_definition: &TypeParamDefinition,
     ty: SourceType,
-    used_type_params: &mut FixedBitSet,
+    used_type_params: &mut HashSet<TypeParamId>,
 ) {
     match ty {
         SourceType::Error
@@ -264,10 +261,13 @@ fn discover_type_params(
             discover_type_params(sa, type_param_definition, *return_type, used_type_params);
         }
         SourceType::TypeParam(tp_id) => {
-            let tp_idx = type_param_definition
-                .type_param_idx(sa, tp_id)
-                .expect("type parameter missing from definition");
-            used_type_params.insert(tp_idx.index());
+            assert!(
+                type_param_definition
+                    .classify_type_param(sa, tp_id)
+                    .is_some(),
+                "type parameter missing from definition"
+            );
+            used_type_params.insert(tp_id);
         }
         SourceType::Alias(..)
         | SourceType::Assoc { .. }
