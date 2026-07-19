@@ -773,6 +773,59 @@ pub fn empty_sta() -> SourceTypeArray {
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct TypeArgs(SourceTypeArray);
+
+impl TypeArgs {
+    pub fn new(args: SourceTypeArray) -> TypeArgs {
+        TypeArgs(args)
+    }
+
+    pub fn empty() -> TypeArgs {
+        TypeArgs(SourceTypeArray::empty())
+    }
+
+    pub fn get(&self, id: TypeParamId) -> Option<&SourceType> {
+        self.0.types().get(id.index())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn iter(&self) -> SourceTypeArrayIter<'_> {
+        self.0.iter()
+    }
+
+    pub fn connect(&self, other: &SourceTypeArray) -> TypeArgs {
+        TypeArgs::new(self.0.connect(other))
+    }
+}
+
+impl Index<TypeParamId> for TypeArgs {
+    type Output = SourceType;
+
+    fn index(&self, id: TypeParamId) -> &SourceType {
+        &self.0[id.index()]
+    }
+}
+
+impl From<SourceTypeArray> for TypeArgs {
+    fn from(value: SourceTypeArray) -> Self {
+        TypeArgs::new(value)
+    }
+}
+
+impl From<&SourceTypeArray> for TypeArgs {
+    fn from(value: &SourceTypeArray) -> Self {
+        TypeArgs::new(value.clone())
+    }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum SourceTypeArray {
     Empty,
     List(Arc<Vec<SourceType>>),
@@ -1182,8 +1235,9 @@ impl TraitType {
 
         for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
             // Specialize the super trait's type params with this trait's type params
+            let type_args = TypeArgs::from(&self.type_params);
             let specialized_super_trait_ty =
-                specialize_trait_type_for_implements(super_trait_ty, &self.type_params);
+                specialize_trait_type_for_implements(super_trait_ty, &type_args);
             if specialized_super_trait_ty.implements_trait(sa, check_trait_ty) {
                 return true;
             }
@@ -1236,5 +1290,17 @@ mod tests {
             e1.connect(&e2).types(),
             &[SourceType::Float32, SourceType::Int32]
         );
+    }
+
+    #[test]
+    fn type_args_are_indexed_by_type_param_id() {
+        let type_args = TypeArgs::new(SourceTypeArray::with(vec![
+            SourceType::Int32,
+            SourceType::Float64,
+        ]));
+
+        assert_eq!(type_args[TypeParamId(0)], SourceType::Int32);
+        assert_eq!(type_args.get(TypeParamId(1)), Some(&SourceType::Float64));
+        assert_eq!(type_args.get(TypeParamId(2)), None);
     }
 }

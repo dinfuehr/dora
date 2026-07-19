@@ -1,10 +1,10 @@
 use crate::sema::{
     Element, FctDefinition, ImplDefinition, Sema, TraitDefinitionId, TypeParamId, find_impl,
 };
-use crate::{SourceType, SourceTypeArray, TraitType};
+use crate::{SourceType, SourceTypeArray, TraitType, TypeArgs};
 
-pub fn specialize_trait_type(sa: &Sema, ty: TraitType, type_params: &SourceTypeArray) -> TraitType {
-    specialize_trait_type_generic(sa, ty, &|ty| replace_type(sa, ty, Some(type_params), None))
+pub fn specialize_trait_type(sa: &Sema, ty: TraitType, type_args: &TypeArgs) -> TraitType {
+    specialize_trait_type_generic(sa, ty, &|ty| replace_type(sa, ty, Some(type_args), None))
 }
 
 pub fn specialize_trait_type_generic<S>(
@@ -48,18 +48,18 @@ where
     }
 }
 
-pub fn specialize_type(sa: &Sema, ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
-    replace_type(sa, ty, Some(type_params), None)
+pub fn specialize_type(sa: &Sema, ty: SourceType, type_args: &TypeArgs) -> SourceType {
+    replace_type(sa, ty, Some(type_args), None)
 }
 
 pub fn specialize_type_array(
     sa: &Sema,
     types: &SourceTypeArray,
-    type_params: &SourceTypeArray,
+    type_args: &TypeArgs,
 ) -> SourceTypeArray {
     let new_types = types
         .iter()
-        .map(|ty| specialize_type(sa, ty, type_params))
+        .map(|ty| specialize_type(sa, ty, type_args))
         .collect();
 
     SourceTypeArray::with(new_types)
@@ -68,44 +68,43 @@ pub fn specialize_type_array(
 pub fn replace_type(
     sa: &Sema,
     ty: SourceType,
-    type_params: Option<&SourceTypeArray>,
+    type_args: Option<&TypeArgs>,
     self_ty: Option<SourceType>,
 ) -> SourceType {
     match ty {
-        SourceType::Class(cls_id, cls_type_params) => SourceType::Class(
-            cls_id,
-            replace_sta(sa, cls_type_params, type_params, self_ty),
-        ),
+        SourceType::Class(cls_id, cls_type_params) => {
+            SourceType::Class(cls_id, replace_sta(sa, cls_type_params, type_args, self_ty))
+        }
 
         SourceType::TraitObject(trait_id, trait_type_params, bindings) => SourceType::TraitObject(
             trait_id,
-            replace_sta(sa, trait_type_params, type_params, self_ty.clone()),
-            replace_sta(sa, bindings, type_params, self_ty),
+            replace_sta(sa, trait_type_params, type_args, self_ty.clone()),
+            replace_sta(sa, bindings, type_args, self_ty),
         ),
 
         SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
             struct_id,
-            replace_sta(sa, struct_type_params, type_params, self_ty),
+            replace_sta(sa, struct_type_params, type_args, self_ty),
         ),
 
         SourceType::Enum(enum_id, enum_type_params) => SourceType::Enum(
             enum_id,
-            replace_sta(sa, enum_type_params, type_params, self_ty),
+            replace_sta(sa, enum_type_params, type_args, self_ty),
         ),
 
         SourceType::Alias(alias_id, alias_type_params) => SourceType::Alias(
             alias_id,
-            replace_sta(sa, alias_type_params, type_params, self_ty),
+            replace_sta(sa, alias_type_params, type_args, self_ty),
         ),
 
         SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
-            replace_sta(sa, params, type_params, self_ty.clone()),
-            Box::new(replace_type(sa, *return_type, type_params, self_ty)),
+            replace_sta(sa, params, type_args, self_ty.clone()),
+            Box::new(replace_type(sa, *return_type, type_args, self_ty)),
             is_variadic,
         ),
 
         SourceType::Tuple(subtypes) => {
-            SourceType::Tuple(replace_sta(sa, subtypes, type_params, self_ty))
+            SourceType::Tuple(replace_sta(sa, subtypes, type_args, self_ty))
         }
 
         SourceType::This => {
@@ -117,8 +116,8 @@ pub fn replace_type(
         }
 
         SourceType::TypeParam(id) => {
-            if let Some(type_params) = type_params {
-                type_params[id.index()].clone()
+            if let Some(type_args) = type_args {
+                type_args[id].clone()
             } else {
                 ty
             }
@@ -137,7 +136,7 @@ pub fn replace_type(
         | SourceType::GenericAssoc { .. } => ty,
 
         SourceType::Ref(inner) => {
-            SourceType::Ref(Box::new(replace_type(sa, *inner, type_params, self_ty)))
+            SourceType::Ref(Box::new(replace_type(sa, *inner, type_args, self_ty)))
         }
 
         SourceType::Any | SourceType::Ptr => unreachable!(),
@@ -147,19 +146,19 @@ pub fn replace_type(
 fn replace_sta(
     sa: &Sema,
     array: SourceTypeArray,
-    type_params: Option<&SourceTypeArray>,
+    type_args: Option<&TypeArgs>,
     self_ty: Option<SourceType>,
 ) -> SourceTypeArray {
     let new_array = array
         .iter()
-        .map(|ty| replace_type(sa, ty, type_params.clone(), self_ty.clone()))
+        .map(|ty| replace_type(sa, ty, type_args, self_ty.clone()))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }
 
 pub struct CallSpecializationData {
     pub object_ty: Option<SourceType>,
-    pub type_params: SourceTypeArray,
+    pub type_args: TypeArgs,
 }
 
 pub fn specialize_ty_for_call(
@@ -235,7 +234,7 @@ pub fn specialize_ty_for_call(
                 let trait_ = sa.trait_(current_trait_id);
                 let trait_param_count = trait_.type_param_definition().type_param_count();
                 let trait_type_params = call_data
-                    .type_params
+                    .type_args
                     .iter()
                     .take(trait_param_count)
                     .collect::<Vec<_>>();
@@ -262,7 +261,8 @@ pub fn specialize_ty_for_call(
                     .get(&assoc_id)
                     .map(|a| sa.alias(*a).ty())
                     .unwrap_or(SourceType::Error);
-                let ty = specialize_type(sa, ty, &impl_match.bindings);
+                let type_args = TypeArgs::from(&impl_match.bindings);
+                let ty = specialize_type(sa, ty, &type_args);
                 specialize_ty_for_call(sa, ty, caller_element, call_data)
             } else {
                 unimplemented!()
@@ -287,7 +287,7 @@ pub fn specialize_ty_for_call(
             call_data,
         )),
 
-        SourceType::TypeParam(id) => call_data.type_params[id.index()].clone(),
+        SourceType::TypeParam(id) => call_data.type_args[id].clone(),
 
         SourceType::Unit
         | SourceType::UInt8
@@ -329,7 +329,7 @@ pub fn specialize_ty_for_trait_object(
     sa: &Sema,
     ty: SourceType,
     trait_id: TraitDefinitionId,
-    type_params: &SourceTypeArray,
+    type_args: &TypeArgs,
     assoc_types: &SourceTypeArray,
 ) -> SourceType {
     match ty {
@@ -339,7 +339,7 @@ pub fn specialize_ty_for_trait_object(
                 sa,
                 cls_type_params,
                 trait_id,
-                type_params,
+                type_args,
                 assoc_types,
             ),
         ),
@@ -350,10 +350,10 @@ pub fn specialize_ty_for_trait_object(
                 sa,
                 trait_type_params,
                 trait_id,
-                type_params,
+                type_args,
                 assoc_types,
             ),
-            specialize_ty_for_trait_object_array(sa, bindings, trait_id, type_params, assoc_types),
+            specialize_ty_for_trait_object_array(sa, bindings, trait_id, type_args, assoc_types),
         ),
 
         SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
@@ -362,7 +362,7 @@ pub fn specialize_ty_for_trait_object(
                 sa,
                 struct_type_params,
                 trait_id,
-                type_params,
+                type_args,
                 assoc_types,
             ),
         ),
@@ -373,7 +373,7 @@ pub fn specialize_ty_for_trait_object(
                 sa,
                 enum_type_params,
                 trait_id,
-                type_params,
+                type_args,
                 assoc_types,
             ),
         ),
@@ -384,7 +384,7 @@ pub fn specialize_ty_for_trait_object(
                 sa,
                 alias_type_params,
                 trait_id,
-                type_params,
+                type_args,
                 assoc_types,
             ),
         ),
@@ -395,12 +395,12 @@ pub fn specialize_ty_for_trait_object(
         }
 
         SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
-            specialize_ty_for_trait_object_array(sa, params, trait_id, type_params, assoc_types),
+            specialize_ty_for_trait_object_array(sa, params, trait_id, type_args, assoc_types),
             Box::new(specialize_ty_for_trait_object(
                 sa,
                 *return_type,
                 trait_id,
-                type_params,
+                type_args,
                 assoc_types,
             )),
             is_variadic,
@@ -410,11 +410,11 @@ pub fn specialize_ty_for_trait_object(
             sa,
             subtypes,
             trait_id,
-            type_params,
+            type_args,
             assoc_types,
         )),
 
-        SourceType::TypeParam(id) => type_params[id.index()].clone(),
+        SourceType::TypeParam(id) => type_args[id].clone(),
 
         SourceType::Unit
         | SourceType::UInt8
@@ -437,12 +437,12 @@ fn specialize_ty_for_trait_object_array(
     sa: &Sema,
     array: SourceTypeArray,
     trait_id: TraitDefinitionId,
-    type_params: &SourceTypeArray,
+    type_args: &TypeArgs,
     assoc_types: &SourceTypeArray,
 ) -> SourceTypeArray {
     let new_array = array
         .iter()
-        .map(|ty| specialize_ty_for_trait_object(sa, ty, trait_id, type_params, assoc_types))
+        .map(|ty| specialize_ty_for_trait_object(sa, ty, trait_id, type_args, assoc_types))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }
@@ -659,7 +659,8 @@ pub fn specialize_ty_for_default_trait_method(
 
             if id.index() < trait_type_params {
                 // This is a trait type parameter.
-                trait_ty.type_params[id.index()].clone()
+                let type_args = TypeArgs::from(&trait_ty.type_params);
+                type_args[id].clone()
             } else {
                 // This is a function-type parameter.
                 let id = impl_.type_param_definition().type_param_count()
@@ -704,10 +705,11 @@ pub fn find_super_trait_ty(
     for bound in trait_.type_param_definition().bounds_for_self() {
         if bound.trait_id == target_trait_id {
             // Found it - specialize the type parameters
+            let type_args = TypeArgs::from(&trait_ty.type_params);
             let specialized_type_params = bound
                 .type_params
                 .iter()
-                .map(|ty| replace_type(sa, ty, Some(&trait_ty.type_params), None))
+                .map(|ty| replace_type(sa, ty, Some(&type_args), None))
                 .collect::<Vec<_>>();
             return Some(TraitType {
                 trait_id: target_trait_id,
@@ -724,10 +726,11 @@ pub fn find_super_trait_ty(
         };
         if let Some(found) = find_super_trait_ty(sa, &super_trait_ty, target_trait_id) {
             // Specialize the found trait type
+            let type_args = TypeArgs::from(&trait_ty.type_params);
             let specialized_type_params = found
                 .type_params
                 .iter()
-                .map(|ty| replace_type(sa, ty, Some(&trait_ty.type_params), None))
+                .map(|ty| replace_type(sa, ty, Some(&type_args), None))
                 .collect::<Vec<_>>();
             return Some(TraitType {
                 trait_id: target_trait_id,
@@ -770,7 +773,7 @@ pub fn specialize_ty_for_generic(
     element: &dyn Element,
     type_param_id: TypeParamId,
     trait_ty: &TraitType,
-    type_params: &SourceTypeArray,
+    type_args: &TypeArgs,
     object_type: &SourceType,
 ) -> SourceType {
     match ty {
@@ -782,7 +785,7 @@ pub fn specialize_ty_for_generic(
                 element,
                 type_param_id,
                 trait_ty,
-                type_params,
+                type_args,
                 object_type,
             ),
         ),
@@ -795,7 +798,7 @@ pub fn specialize_ty_for_generic(
                 element,
                 type_param_id,
                 trait_ty,
-                type_params,
+                type_args,
                 object_type,
             ),
             specialize_ty_for_generic_array(
@@ -804,7 +807,7 @@ pub fn specialize_ty_for_generic(
                 element,
                 type_param_id,
                 trait_ty,
-                type_params,
+                type_args,
                 object_type,
             ),
         ),
@@ -817,7 +820,7 @@ pub fn specialize_ty_for_generic(
                 element,
                 type_param_id,
                 trait_ty,
-                type_params,
+                type_args,
                 object_type,
             ),
         ),
@@ -830,7 +833,7 @@ pub fn specialize_ty_for_generic(
                 element,
                 type_param_id,
                 trait_ty,
-                type_params,
+                type_args,
                 object_type,
             ),
         ),
@@ -843,7 +846,7 @@ pub fn specialize_ty_for_generic(
                 element,
                 type_param_id,
                 trait_ty,
-                type_params,
+                type_args,
                 object_type,
             ),
         ),
@@ -884,7 +887,7 @@ pub fn specialize_ty_for_generic(
                 element,
                 type_param_id,
                 trait_ty,
-                type_params,
+                type_args,
                 object_type,
             );
 
@@ -913,7 +916,7 @@ pub fn specialize_ty_for_generic(
                     element,
                     type_param_id,
                     trait_ty,
-                    type_params,
+                    type_args,
                     object_type,
                 )
             } else {
@@ -928,7 +931,7 @@ pub fn specialize_ty_for_generic(
                 element,
                 type_param_id,
                 trait_ty,
-                type_params,
+                type_args,
                 object_type,
             ),
             Box::new(specialize_ty_for_generic(
@@ -937,7 +940,7 @@ pub fn specialize_ty_for_generic(
                 element,
                 type_param_id,
                 trait_ty,
-                type_params,
+                type_args,
                 object_type,
             )),
             is_variadic,
@@ -949,7 +952,7 @@ pub fn specialize_ty_for_generic(
             element,
             type_param_id,
             trait_ty,
-            type_params,
+            type_args,
             object_type,
         )),
 
@@ -963,7 +966,7 @@ pub fn specialize_ty_for_generic(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::TypeParam(id) => type_params[id.index()].clone(),
+        SourceType::TypeParam(id) => type_args[id].clone(),
 
         SourceType::This => object_type.clone(),
 
@@ -979,7 +982,7 @@ fn specialize_ty_for_generic_array(
     element: &dyn Element,
     type_param_id: TypeParamId,
     trait_ty: &TraitType,
-    trait_type_params: &SourceTypeArray,
+    type_args: &TypeArgs,
     object_type: &SourceType,
 ) -> SourceTypeArray {
     let new_array = array
@@ -991,7 +994,7 @@ fn specialize_ty_for_generic_array(
                 element,
                 type_param_id,
                 trait_ty,
-                trait_type_params,
+                type_args,
                 object_type,
             )
         })
@@ -1003,51 +1006,43 @@ pub fn specialize_for_element(
     sa: &Sema,
     ty: SourceType,
     element: &dyn Element,
-    type_params_for_element: &SourceTypeArray,
+    type_args: &TypeArgs,
 ) -> SourceType {
     match ty {
         SourceType::Class(cls_id, cls_type_params) => SourceType::Class(
             cls_id,
-            specialize_for_element_array(sa, cls_type_params, element, type_params_for_element),
+            specialize_for_element_array(sa, cls_type_params, element, type_args),
         ),
 
         SourceType::TraitObject(trait_id, trait_type_params, bindings) => SourceType::TraitObject(
             trait_id,
-            specialize_for_element_array(sa, trait_type_params, element, type_params_for_element),
-            specialize_for_element_array(sa, bindings, element, type_params_for_element),
+            specialize_for_element_array(sa, trait_type_params, element, type_args),
+            specialize_for_element_array(sa, bindings, element, type_args),
         ),
 
         SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
             struct_id,
-            specialize_for_element_array(sa, struct_type_params, element, type_params_for_element),
+            specialize_for_element_array(sa, struct_type_params, element, type_args),
         ),
 
         SourceType::Enum(enum_id, enum_type_params) => SourceType::Enum(
             enum_id,
-            specialize_for_element_array(sa, enum_type_params, element, type_params_for_element),
+            specialize_for_element_array(sa, enum_type_params, element, type_args),
         ),
 
         SourceType::Alias(alias_id, alias_type_params) => SourceType::Alias(
             alias_id,
-            specialize_for_element_array(sa, alias_type_params, element, type_params_for_element),
+            specialize_for_element_array(sa, alias_type_params, element, type_args),
         ),
 
         SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
-            specialize_for_element_array(sa, params, element, type_params_for_element),
-            Box::new(specialize_for_element(
-                sa,
-                *return_type,
-                element,
-                type_params_for_element,
-            )),
+            specialize_for_element_array(sa, params, element, type_args),
+            Box::new(specialize_for_element(sa, *return_type, element, type_args)),
             is_variadic,
         ),
 
         SourceType::Tuple(subtypes) => SourceType::Tuple(specialize_for_element_array(
-            sa,
-            subtypes,
-            element,
-            type_params_for_element,
+            sa, subtypes, element, type_args,
         )),
 
         SourceType::This => {
@@ -1055,7 +1050,7 @@ pub fn specialize_for_element(
             SourceType::This
         }
 
-        SourceType::TypeParam(id) => type_params_for_element[id.index()].clone(),
+        SourceType::TypeParam(id) => type_args[id].clone(),
 
         SourceType::Unit
         | SourceType::UInt8
@@ -1074,7 +1069,7 @@ pub fn specialize_for_element(
         } => {
             let assoc = sa.alias(assoc_id);
             assert!(assoc.parent.is_trait());
-            let specialized_ty = specialize_for_element(sa, *ty, element, type_params_for_element);
+            let specialized_ty = specialize_for_element(sa, *ty, element, type_args);
 
             if specialized_ty.is_type_param() {
                 SourceType::GenericAssoc {
@@ -1095,7 +1090,7 @@ pub fn specialize_for_element(
                     .get(&assoc_id)
                     .map(|a| sa.alias(*a).ty())
                     .unwrap_or(SourceType::Error);
-                specialize_for_element(sa, ty, element, type_params_for_element)
+                specialize_for_element(sa, ty, element, type_args)
             } else {
                 unimplemented!()
             }
@@ -1111,11 +1106,11 @@ fn specialize_for_element_array(
     sa: &Sema,
     array: SourceTypeArray,
     element: &dyn Element,
-    type_params_for_element: &SourceTypeArray,
+    type_args: &TypeArgs,
 ) -> SourceTypeArray {
     let new_array = array
         .iter()
-        .map(|ty| specialize_for_element(sa, ty, element, type_params_for_element))
+        .map(|ty| specialize_for_element(sa, ty, element, type_args))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }
@@ -1124,22 +1119,22 @@ fn specialize_for_element_array(
 /// This is used by TraitType::implements_trait.
 pub fn specialize_trait_type_for_implements(
     trait_ty: TraitType,
-    type_params: &SourceTypeArray,
+    type_args: &TypeArgs,
 ) -> TraitType {
-    if type_params.is_empty() {
+    if type_args.is_empty() {
         return trait_ty;
     }
 
     let new_type_params = trait_ty
         .type_params
         .iter()
-        .map(|ty| specialize_type_for_implements(ty, type_params))
+        .map(|ty| specialize_type_for_implements(ty, type_args))
         .collect::<Vec<_>>();
 
     let new_bindings = trait_ty
         .bindings
         .iter()
-        .map(|(id, ty)| (*id, specialize_type_for_implements(ty.clone(), type_params)))
+        .map(|(id, ty)| (*id, specialize_type_for_implements(ty.clone(), type_args)))
         .collect();
 
     TraitType {
@@ -1150,32 +1145,32 @@ pub fn specialize_trait_type_for_implements(
 }
 
 /// Helper function to specialize a SourceType by replacing type parameters.
-pub fn specialize_type_for_implements(ty: SourceType, type_params: &SourceTypeArray) -> SourceType {
+pub fn specialize_type_for_implements(ty: SourceType, type_args: &TypeArgs) -> SourceType {
     match ty {
-        SourceType::TypeParam(id) => type_params[id.index()].clone(),
+        SourceType::TypeParam(id) => type_args[id].clone(),
         SourceType::Class(cls_id, cls_params) => {
-            let new_params = specialize_type_array_for_implements(&cls_params, type_params);
+            let new_params = specialize_type_array_for_implements(&cls_params, type_args);
             SourceType::Class(cls_id, new_params)
         }
         SourceType::Struct(struct_id, struct_params) => {
-            let new_params = specialize_type_array_for_implements(&struct_params, type_params);
+            let new_params = specialize_type_array_for_implements(&struct_params, type_args);
             SourceType::Struct(struct_id, new_params)
         }
         SourceType::Enum(enum_id, enum_params) => {
-            let new_params = specialize_type_array_for_implements(&enum_params, type_params);
+            let new_params = specialize_type_array_for_implements(&enum_params, type_args);
             SourceType::Enum(enum_id, new_params)
         }
         SourceType::TraitObject(trait_id, trait_params, bindings) => {
-            let new_params = specialize_type_array_for_implements(&trait_params, type_params);
-            let new_bindings = specialize_type_array_for_implements(&bindings, type_params);
+            let new_params = specialize_type_array_for_implements(&trait_params, type_args);
+            let new_bindings = specialize_type_array_for_implements(&bindings, type_args);
             SourceType::TraitObject(trait_id, new_params, new_bindings)
         }
         SourceType::Alias(alias_id, alias_params) => {
-            let new_params = specialize_type_array_for_implements(&alias_params, type_params);
+            let new_params = specialize_type_array_for_implements(&alias_params, type_args);
             SourceType::Alias(alias_id, new_params)
         }
         SourceType::Assoc { trait_ty, assoc_id } => SourceType::Assoc {
-            trait_ty: specialize_trait_type_for_implements(trait_ty, type_params),
+            trait_ty: specialize_trait_type_for_implements(trait_ty, type_args),
             assoc_id,
         },
         SourceType::GenericAssoc {
@@ -1183,23 +1178,22 @@ pub fn specialize_type_for_implements(ty: SourceType, type_params: &SourceTypeAr
             trait_ty,
             assoc_id,
         } => SourceType::GenericAssoc {
-            ty: Box::new(specialize_type_for_implements(*ty, type_params)),
-            trait_ty: specialize_trait_type_for_implements(trait_ty, type_params),
+            ty: Box::new(specialize_type_for_implements(*ty, type_args)),
+            trait_ty: specialize_trait_type_for_implements(trait_ty, type_args),
             assoc_id,
         },
         SourceType::Tuple(subtypes) => {
-            let new_subtypes = specialize_type_array_for_implements(&subtypes, type_params);
+            let new_subtypes = specialize_type_array_for_implements(&subtypes, type_args);
             SourceType::Tuple(new_subtypes)
         }
         SourceType::Lambda(params, return_type, is_variadic) => {
-            let new_params = specialize_type_array_for_implements(&params, type_params);
-            let new_return_type = specialize_type_for_implements(*return_type, type_params);
+            let new_params = specialize_type_array_for_implements(&params, type_args);
+            let new_return_type = specialize_type_for_implements(*return_type, type_args);
             SourceType::Lambda(new_params, Box::new(new_return_type), is_variadic)
         }
-        SourceType::Ref(inner) => SourceType::Ref(Box::new(specialize_type_for_implements(
-            *inner,
-            type_params,
-        ))),
+        SourceType::Ref(inner) => {
+            SourceType::Ref(Box::new(specialize_type_for_implements(*inner, type_args)))
+        }
         // Types that don't need specialization
         SourceType::Unit
         | SourceType::Bool
@@ -1218,11 +1212,11 @@ pub fn specialize_type_for_implements(ty: SourceType, type_params: &SourceTypeAr
 
 fn specialize_type_array_for_implements(
     array: &SourceTypeArray,
-    type_params: &SourceTypeArray,
+    type_args: &TypeArgs,
 ) -> SourceTypeArray {
     let new_array = array
         .iter()
-        .map(|ty| specialize_type_for_implements(ty, type_params))
+        .map(|ty| specialize_type_for_implements(ty, type_args))
         .collect::<Vec<_>>();
     SourceTypeArray::with(new_array)
 }

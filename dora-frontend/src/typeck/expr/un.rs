@@ -10,7 +10,7 @@ use crate::sema::{CallType, Expr, ExprId, TraitDefinitionId, UnExpr, find_impl, 
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
-use crate::{SourceType, SourceTypeArray, ty::error as ty_error};
+use crate::{SourceType, SourceTypeArray, TypeArgs, ty::error as ty_error};
 
 pub(super) fn check_expr_un(
     ck: &mut TypeCheck,
@@ -109,12 +109,8 @@ fn check_expr_un_trait(
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let return_type = method.return_type();
-        let return_type = replace_type(
-            ck.sa,
-            return_type,
-            Some(&SourceTypeArray::empty()),
-            Some(ty.clone()),
-        );
+        let type_args = TypeArgs::empty();
+        let return_type = replace_type(ck.sa, return_type, Some(&type_args), Some(ty.clone()));
 
         ck.body.set_ty(expr_id, return_type.clone());
 

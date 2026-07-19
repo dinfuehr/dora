@@ -16,7 +16,7 @@ use crate::sema::{
     IdentType, Intrinsic, MethodCallExpr, VarId, VarLocation,
 };
 use crate::specialize::specialize_type;
-use crate::ty::SourceType;
+use crate::ty::{SourceType, TypeArgs};
 
 /// Represents a chain of value-type (struct/tuple) field accesses.
 /// For an expression like `a.b.c.d` where all are struct fields,
@@ -373,7 +373,8 @@ fn gen_expr_field_access(
             let cls = g.sa.class(cls_id);
             let field_id = cls.field_id(field_index);
             let field = g.sa.field(field_id);
-            let field_ty = specialize_type(g.sa, field.ty(), &type_params);
+            let type_args = TypeArgs::from(&type_params);
+            let field_ty = specialize_type(g.sa, field.ty(), &type_args);
 
             let bc_class_id = g.emitter.convert_class_id(g.sa, cls_id);
             let bc_type_params = g.convert_tya(&type_params);
@@ -396,7 +397,8 @@ fn gen_expr_field_access(
             let struct_ = g.sa.struct_(struct_id);
             let field_id = struct_.field_id(field_index);
             let field = g.sa.field(field_id);
-            let field_ty = specialize_type(g.sa, field.ty(), &type_params);
+            let type_args = TypeArgs::from(&type_params);
+            let field_ty = specialize_type(g.sa, field.ty(), &type_args);
 
             let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
             let bc_type_params = g.convert_tya(&type_params);
@@ -508,7 +510,8 @@ fn gen_expr_assign_struct_field(
         let struct_ = g.sa.struct_(struct_id);
         let field_id = struct_.field_id(field_index);
         let ty = g.sa.field(field_id).ty();
-        let ty = specialize_type(g.sa, ty, &type_params);
+        let type_args = TypeArgs::from(&type_params);
+        let ty = specialize_type(g.sa, ty, &type_args);
         let ty = g.emitter.convert_ty(g.sa, ty);
         let current = g.alloc_temp(ty);
         g.builder.emit_load_address(current, address);

@@ -15,7 +15,7 @@ use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
 use crate::typeck::is_simple_enum;
-use crate::{SourceType, SourceTypeArray, ty::error as ty_error};
+use crate::{SourceType, SourceTypeArray, TypeArgs, ty::error as ty_error};
 
 pub(super) fn check_expr_bin(
     ck: &mut TypeCheck,
@@ -283,8 +283,9 @@ fn check_expr_bin_trait(
 
             assert_eq!(params.len(), 1);
 
+            let type_args = TypeArgs::from(&type_params);
             let param = params[0].ty();
-            let param = replace_type(ck.sa, param, Some(&type_params), None);
+            let param = replace_type(ck.sa, param, Some(&type_args), None);
 
             if !param.allows(ck.sa, rhs_type.clone())
                 && !lhs_type.is_error()
@@ -336,12 +337,8 @@ fn check_expr_bin_trait(
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let param = params[0].ty();
-        let param = replace_type(
-            ck.sa,
-            param,
-            Some(&SourceTypeArray::empty()),
-            Some(lhs_type.clone()),
-        );
+        let type_args = TypeArgs::empty();
+        let param = replace_type(ck.sa, param, Some(&type_args), Some(lhs_type.clone()));
 
         if !param.allows(ck.sa, rhs_type.clone()) {
             let lhs_type = ck.ty_name(&lhs_type);
@@ -354,12 +351,8 @@ fn check_expr_bin_trait(
         }
 
         let return_type = method.return_type();
-        let return_type = replace_type(
-            ck.sa,
-            return_type,
-            Some(&SourceTypeArray::empty()),
-            Some(lhs_type.clone()),
-        );
+        let return_type =
+            replace_type(ck.sa, return_type, Some(&type_args), Some(lhs_type.clone()));
 
         ck.body.set_ty(expr_id, return_type.clone());
 

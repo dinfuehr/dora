@@ -27,7 +27,7 @@ use crate::typeck::{
     TypeCheck, add_local, check_lit_char_from_text, check_lit_float_from_text,
     check_lit_int_from_text, check_lit_str_from_text,
 };
-use crate::{Name, SourceTypeArray, SymbolKind, specialize_type, ty};
+use crate::{Name, SourceTypeArray, SymbolKind, TypeArgs, specialize_type, ty};
 
 #[derive(Debug, Clone)]
 pub(super) struct BindingData {
@@ -356,6 +356,7 @@ fn check_pattern_enum(
 
     if Some(enum_id) == ty.enum_id() {
         let value_type_params = ty.type_params();
+        let type_args = TypeArgs::from(&value_type_params);
 
         ck.body.insert_ident(
             pattern_id,
@@ -376,7 +377,7 @@ fn check_pattern_enum(
                 .iter()
                 .map(|&field_id| {
                     let field = ck.sa.field(field_id);
-                    specialize_type(ck.sa, field.ty(), &value_type_params)
+                    specialize_type(ck.sa, field.ty(), &type_args)
                 })
                 .collect::<Vec<_>>();
             check_subpatterns(ck, ctxt, pattern_id, &expected_types);
@@ -519,6 +520,7 @@ fn check_pattern_class(
 
     if Some(cls_id) == ty.cls_id() {
         let value_type_params = ty.type_params();
+        let type_args = TypeArgs::from(&value_type_params);
 
         ck.body.insert_ident(
             pattern_id,
@@ -533,7 +535,7 @@ fn check_pattern_class(
                 .iter()
                 .map(|&field_id| {
                     let field = ck.sa.field(field_id);
-                    specialize_type(ck.sa, field.ty(), &value_type_params)
+                    specialize_type(ck.sa, field.ty(), &type_args)
                 })
                 .collect::<Vec<_>>();
             check_subpatterns(ck, ctxt, pattern_id, &expected_types);
@@ -575,6 +577,7 @@ fn check_pattern_struct(
 
     if Some(struct_id) == ty.struct_id() {
         let value_type_params = ty.type_params();
+        let type_args = TypeArgs::from(&value_type_params);
 
         ck.body.insert_ident(
             pattern_id,
@@ -589,7 +592,7 @@ fn check_pattern_struct(
                 .iter()
                 .map(|&field_id| {
                     let field = ck.sa.field(field_id);
-                    specialize_type(ck.sa, field.ty(), &value_type_params)
+                    specialize_type(ck.sa, field.ty(), &type_args)
                 })
                 .collect::<Vec<_>>();
 
@@ -616,6 +619,7 @@ fn check_subpatterns_named<'a>(
     element: &dyn ElementWithFields,
     element_type_params: &SourceTypeArray,
 ) {
+    let type_args = TypeArgs::from(element_type_params);
     let pattern = ck.body.pattern(pattern_id);
     let sema_fields = match get_ctor_fields(pattern) {
         Some(fields) => fields,
@@ -672,7 +676,7 @@ fn check_subpatterns_named<'a>(
         let field = ck.sa.field(field_id);
         if let Some(name) = field.name {
             if let Some(idx) = used_names.remove(&name) {
-                let ty = specialize_type(ck.sa, field.ty(), element_type_params);
+                let ty = specialize_type(ck.sa, field.ty(), &type_args);
                 if let Some(subpattern_id) = sema_fields[idx].pattern {
                     ck.body
                         .insert_field_id(subpattern_id, field.index.to_usize());

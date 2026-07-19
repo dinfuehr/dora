@@ -8,7 +8,9 @@ use crate::interner::Name;
 use crate::sema::{Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
 #[allow(unused)]
-use crate::ty::{SourceType, SourceTypeArray, TraitType, TyKind, contains_self, empty_sta};
+use crate::ty::{
+    SourceType, SourceTypeArray, TraitType, TyKind, TypeArgs, contains_self, empty_sta,
+};
 use dora_bytecode::{FunctionId, Program, TypeParamMode, display_fct, dump_stdout};
 use dora_parser::Span;
 

@@ -7,8 +7,7 @@ use crate::sema::{
     VarId, VarLocation,
 };
 use crate::specialize::specialize_type;
-use crate::ty::SourceType;
-use crate::ty::SourceTypeArray;
+use crate::ty::{SourceType, SourceTypeArray, TypeArgs};
 
 use super::AstBytecodeGen;
 use super::{emit_mov, gen_fatal_error, store_in_context, var_reg};
@@ -490,6 +489,7 @@ fn destruct_pattern_enum(
     variant_idx: u32,
 ) {
     let enum_ = g.sa.enum_(enum_id);
+    let type_args = TypeArgs::from(enum_type_params);
 
     let bc_enum_id = g.emitter.convert_enum_id(g.sa, enum_id);
     let bc_enum_type_params = g.emitter.convert_tya(g.sa, enum_type_params);
@@ -526,7 +526,7 @@ fn destruct_pattern_enum(
                 let field_id = variant.field_id(FieldIndex(field_idx));
                 let field = g.sa.field(field_id);
                 let element_ty = field.ty();
-                let element_ty = specialize_type(g.sa, element_ty, enum_type_params);
+                let element_ty = specialize_type(g.sa, element_ty, &type_args);
                 let bty = g.emitter.convert_ty(g.sa, element_ty.clone());
                 let field_reg = g.alloc_temp(bty);
 
@@ -585,6 +585,7 @@ fn destruct_pattern_struct_with_fields(
     struct_type_params: &SourceTypeArray,
 ) {
     let struct_ = g.sa.struct_(struct_id);
+    let type_args = TypeArgs::from(struct_type_params);
 
     iterate_ctor_fields(
         g,
@@ -594,7 +595,7 @@ fn destruct_pattern_struct_with_fields(
         |g, pck, field_idx, subpattern_id| {
             let field_id = struct_.field_id(FieldIndex(field_idx));
             let field_ty = g.sa.field(field_id).ty();
-            let field_ty = specialize_type(g.sa, field_ty, struct_type_params);
+            let field_ty = specialize_type(g.sa, field_ty, &type_args);
             let register_ty = g.emitter.convert_ty(g.sa, field_ty.clone());
             let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
             let bc_type_params = g.convert_tya(struct_type_params);
@@ -642,6 +643,7 @@ fn destruct_pattern_class_with_fields(
     class_type_params: &SourceTypeArray,
 ) {
     let class = g.sa.class(class_id);
+    let type_args = TypeArgs::from(class_type_params);
 
     iterate_ctor_fields(
         g,
@@ -651,7 +653,7 @@ fn destruct_pattern_class_with_fields(
         |g, pck, field_idx, subpattern_id| {
             let field_id = class.field_id(FieldIndex(field_idx));
             let field_ty = g.sa.field(field_id).ty();
-            let field_ty = specialize_type(g.sa, field_ty, class_type_params);
+            let field_ty = specialize_type(g.sa, field_ty, &type_args);
             let register_ty = g.emitter.convert_ty(g.sa, field_ty.clone());
             let bc_cls_id = g.emitter.convert_class_id(g.sa, class_id);
             let bc_type_params = g.convert_tya(class_type_params);

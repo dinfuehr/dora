@@ -9,7 +9,7 @@ use crate::sema::{
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
-    SourceType, SourceTypeArray, Span, TraitType, replace_type, specialize_trait_type,
+    SourceType, SourceTypeArray, Span, TraitType, TypeArgs, replace_type, specialize_trait_type,
     specialize_type,
 };
 
@@ -235,7 +235,7 @@ pub(crate) fn check_type_params(
         type_arguments.len()
     );
 
-    let type_arguments = SourceTypeArray::with(type_arguments.to_vec());
+    let type_args = TypeArgs::new(SourceTypeArray::with(type_arguments.to_vec()));
     let ctxt_type_param_definition = ctxt_element.type_param_definition();
 
     let mut success = true;
@@ -244,7 +244,7 @@ pub(crate) fn check_type_params(
         let tp_ty = bound.ty();
 
         if let Some(trait_ty) = bound.trait_ty() {
-            let tp_ty = specialize_type(sa, tp_ty, &type_arguments);
+            let tp_ty = specialize_type(sa, tp_ty, &type_args);
 
             if !implements_trait(sa, tp_ty.clone(), ctxt_element, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, ctxt_type_param_definition);
@@ -274,7 +274,7 @@ pub(crate) fn check_trait_type_param_definition(
     context_type_param_definition: &TypeParamDefinition,
 ) -> bool {
     let type_param_definition = trait_.type_param_definition();
-    let type_arguments = SourceTypeArray::with(generic_arguments.to_vec());
+    let type_args = TypeArgs::new(SourceTypeArray::with(generic_arguments.to_vec()));
 
     let mut success = true;
 
@@ -286,8 +286,8 @@ pub(crate) fn check_trait_type_param_definition(
         }
 
         if let Some(trait_ty) = bound.trait_ty() {
-            let tp_ty = specialize_type(sa, tp_ty, &type_arguments);
-            let trait_ty = specialize_trait_type(sa, trait_ty, &type_arguments);
+            let tp_ty = specialize_type(sa, tp_ty, &type_args);
+            let trait_ty = specialize_trait_type(sa, trait_ty, &type_args);
 
             if !implements_trait(sa, tp_ty.clone(), element, trait_ty.clone()) {
                 let name = tp_ty.name_with_type_params(sa, context_type_param_definition);
@@ -408,7 +408,8 @@ pub(crate) fn expand_st(
             let alias = sa.alias(*id);
             assert!(alias.parent.is_none());
 
-            let alias_ty = replace_type(sa, alias.ty(), Some(type_params), None);
+            let type_args = TypeArgs::from(type_params);
+            let alias_ty = replace_type(sa, alias.ty(), Some(&type_args), None);
             expand_st(sa, element, alias_ty, replace_self)
         }
 

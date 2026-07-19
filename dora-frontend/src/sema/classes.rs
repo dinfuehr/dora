@@ -12,7 +12,7 @@ use crate::sema::{
     FieldDefinitionId, FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
     TypeParamDefinition, TypeRefArena, module_path,
 };
-use crate::{SourceType, SourceTypeArray, Span, specialize_for_element};
+use crate::{SourceType, SourceTypeArray, Span, TypeArgs, specialize_for_element};
 
 pub type ClassDefinitionId = Id<ClassDefinition>;
 
@@ -267,9 +267,10 @@ pub fn find_field_in_class(
         for &field_id in cls.field_ids() {
             let field = sa.field(field_id);
             if field.name == Some(name) {
+                let type_args = TypeArgs::from(&type_params);
                 return Some((
                     field.index,
-                    specialize_for_element(sa, field.ty(), cls, &type_params),
+                    specialize_for_element(sa, field.ty(), cls, &type_args),
                 ));
             }
         }

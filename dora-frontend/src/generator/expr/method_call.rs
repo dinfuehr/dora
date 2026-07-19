@@ -11,7 +11,7 @@ use crate::sema::{
     CallType, ExprId, IdentType, Intrinsic, MethodCallExpr, emit_as_bytecode_operation,
 };
 use crate::specialize::specialize_type;
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::{SourceType, SourceTypeArray, TypeArgs};
 
 pub(super) fn gen_expr_method_call(
     g: &mut AstBytecodeGen,
@@ -104,7 +104,8 @@ fn gen_expr_method_call_field_object(
             let cls = g.sa.class(cls_id);
             let field_id = cls.field_id(field_index);
             let field = g.sa.field(field_id);
-            let field_ty = specialize_type(g.sa, field.ty(), &type_params);
+            let type_args = TypeArgs::from(&type_params);
+            let field_ty = specialize_type(g.sa, field.ty(), &type_args);
 
             let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
             let bc_type_params = g.convert_tya(&type_params);
@@ -127,7 +128,8 @@ fn gen_expr_method_call_field_object(
             let struct_ = g.sa.struct_(struct_id);
             let field_id = struct_.field_id(field_index);
             let field = g.sa.field(field_id);
-            let field_ty = specialize_type(g.sa, field.ty(), &type_params);
+            let type_args = TypeArgs::from(&type_params);
+            let field_ty = specialize_type(g.sa, field.ty(), &type_args);
 
             let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
             let bc_type_params = g.convert_tya(&type_params);
@@ -199,14 +201,16 @@ fn gen_expr_method_call_field_intrinsic(
                             let cls = g.sa.class(cls_id);
                             let field_id = cls.field_id(field_index);
                             let field = g.sa.field(field_id);
-                            specialize_type(g.sa, field.ty(), &type_params)
+                            let type_args = TypeArgs::from(&type_params);
+                            specialize_type(g.sa, field.ty(), &type_args)
                         }
                         IdentType::StructField(struct_ty, field_index) => {
                             let (struct_id, type_params) = struct_ty.to_struct().expect("struct");
                             let struct_ = g.sa.struct_(struct_id);
                             let field_id = struct_.field_id(field_index);
                             let field = g.sa.field(field_id);
-                            specialize_type(g.sa, field.ty(), &type_params)
+                            let type_args = TypeArgs::from(&type_params);
+                            specialize_type(g.sa, field.ty(), &type_args)
                         }
                         _ => unreachable!(),
                     };

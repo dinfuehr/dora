@@ -2,7 +2,7 @@ use crate::sema::{
     Element, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition, block_matches_ty,
     match_arrays, new_identity_type_params,
 };
-use crate::{SourceType, SourceTypeArray, TraitType, specialize_type};
+use crate::{SourceType, SourceTypeArray, TraitType, TypeArgs, specialize_type};
 
 pub fn impl_matches(
     sa: &Sema,
@@ -200,13 +200,14 @@ fn trait_ty_match(
             .map(|t| t.expect("missing binding"))
             .collect(),
     );
+    let type_args = TypeArgs::from(&bindings);
 
     let trait_alias_map = impl_.trait_alias_map();
 
     for (trait_alias_id, type_binding) in &check_trait_ty.bindings {
         let impl_alias_id = trait_alias_map.get(&trait_alias_id).expect("missing alias");
         let impl_alias_ty = sa.alias(*impl_alias_id).ty();
-        let impl_alias_ty = specialize_type(sa, impl_alias_ty, &bindings);
+        let impl_alias_ty = specialize_type(sa, impl_alias_ty, &type_args);
 
         if type_binding != &impl_alias_ty {
             return false;

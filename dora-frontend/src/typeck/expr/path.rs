@@ -17,7 +17,7 @@ use crate::sema::{
 };
 use crate::specialize_type;
 use crate::typeck::{TypeCheck, check_type_params};
-use crate::{SourceType, SourceTypeArray, SymbolKind, TraitType, ty::error as ty_error};
+use crate::{SourceType, SourceTypeArray, SymbolKind, TraitType, TypeArgs, ty::error as ty_error};
 
 /// Result of resolving a path. This is separate from SymbolKind because
 /// paths can resolve to things that aren't symbols (like `Self` in traits).
@@ -436,6 +436,7 @@ pub(super) fn check_enum_variant_without_args(
     } else {
         type_params
     };
+    let type_args = TypeArgs::from(&type_params);
 
     let type_params_ok = check_type_params(
         ck.sa,
@@ -445,7 +446,7 @@ pub(super) fn check_enum_variant_without_args(
         &type_params,
         ck.file_id,
         || ck.expr_span(expr_id),
-        |ty| specialize_type(ck.sa, ty, &type_params),
+        |ty| specialize_type(ck.sa, ty, &type_args),
     );
 
     let variant_id = enum_.variant_id_at(variant_idx as usize);

@@ -52,7 +52,7 @@ use super::{AstBytecodeGen, DataDest};
 use crate::sema::{CallType, Expr, ExprId, FctDefinition};
 use crate::specialize::{replace_type, specialize_type};
 use crate::specialize_ty_for_trait_object;
-use crate::ty::SourceType;
+use crate::ty::{SourceType, TypeArgs};
 
 pub(super) fn gen_expr(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataDest) -> Register {
     let expr = g.analysis.expr(expr_id);
@@ -199,7 +199,10 @@ pub(super) fn specialize_type_for_call(
     match call_type {
         CallType::Fct(_, type_params)
         | CallType::Expr(_, _, type_params)
-        | CallType::Method(_, _, type_params) => specialize_type(g.sa, ty, type_params),
+        | CallType::Method(_, _, type_params) => {
+            let type_args = TypeArgs::from(type_params);
+            specialize_type(g.sa, ty, &type_args)
+        }
 
         CallType::TraitObjectMethod(trait_ty, _actual_object_ty) => {
             let (trait_id, type_params, assoc_types) = match trait_ty {
@@ -208,7 +211,8 @@ pub(super) fn specialize_type_for_call(
                 }
                 _ => unreachable!(),
             };
-            specialize_ty_for_trait_object(g.sa, ty, trait_id, type_params, assoc_types)
+            let type_args = TypeArgs::from(type_params);
+            specialize_ty_for_trait_object(g.sa, ty, trait_id, &type_args, assoc_types)
         }
 
         CallType::GenericMethod {
@@ -222,12 +226,10 @@ pub(super) fn specialize_type_for_call(
             trait_ty,
             fct_type_params,
             ..
-        } => replace_type(
-            g.sa,
-            ty,
-            Some(&trait_ty.type_params.connect(fct_type_params)),
-            Some(object_type.clone()),
-        ),
+        } => {
+            let type_args = TypeArgs::new(trait_ty.type_params.connect(fct_type_params));
+            replace_type(g.sa, ty, Some(&type_args), Some(object_type.clone()))
+        }
 
         CallType::Lambda(..)
         | CallType::NewClass(..)

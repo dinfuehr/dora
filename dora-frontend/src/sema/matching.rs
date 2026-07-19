@@ -3,7 +3,7 @@ use crate::sema::{
     maybe_alias_ty,
 };
 use crate::specialize::specialize_type;
-use crate::{SourceType, SourceTypeArray, SymbolKind};
+use crate::{SourceType, SourceTypeArray, SymbolKind, TypeArgs};
 
 pub fn extension_matches(
     sa: &Sema,
@@ -59,10 +59,10 @@ pub fn block_matches_ty(
             .into_iter()
             .map(|t| t.expect("missing binding"))
             .collect();
-        let bindings_sta = SourceTypeArray::with(bindings.clone());
+        let type_args = TypeArgs::new(SourceTypeArray::with(bindings.clone()));
 
         for bound in ext_type_param_defs.bounds() {
-            let bound_ty = specialize_type(sa, bound.ty(), &bindings_sta);
+            let bound_ty = specialize_type(sa, bound.ty(), &type_args);
 
             if let Some(trait_ty) = bound.trait_ty() {
                 if !implements_trait(sa, bound_ty, check_element, trait_ty) {

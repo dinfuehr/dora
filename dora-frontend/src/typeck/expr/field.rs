@@ -6,7 +6,7 @@ use crate::sema::{ConstValue, ExprId, FieldExpr, FieldIndex, IdentType, find_fie
 use crate::ty::error as ty_error;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
-use crate::{CallSpecializationData, SourceType, specialize_ty_for_call};
+use crate::{CallSpecializationData, SourceType, TypeArgs, specialize_ty_for_call};
 use dora_parser::Span;
 use dora_parser::ast;
 
@@ -89,7 +89,7 @@ pub(super) fn check_expr_field_named(
                 let field = ck.sa.field(field_id);
                 let call_data = CallSpecializationData {
                     object_ty: None,
-                    type_params: class_type_params,
+                    type_args: TypeArgs::new(class_type_params),
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
@@ -111,7 +111,7 @@ pub(super) fn check_expr_field_named(
                 let field = &ck.sa.field(field_id);
                 let call_data = CallSpecializationData {
                     object_ty: None,
-                    type_params: struct_type_params,
+                    type_args: TypeArgs::new(struct_type_params),
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
@@ -210,7 +210,7 @@ fn check_expr_field_unnamed(
 
                 let call_data = CallSpecializationData {
                     object_ty: None,
-                    type_params: class_type_params,
+                    type_args: TypeArgs::new(class_type_params),
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 
@@ -242,7 +242,7 @@ fn check_expr_field_unnamed(
 
                 let call_data = CallSpecializationData {
                     object_ty: None,
-                    type_params: struct_type_params,
+                    type_args: TypeArgs::new(struct_type_params),
                 };
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &call_data);
 

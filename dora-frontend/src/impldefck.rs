@@ -17,7 +17,7 @@ use crate::sema::{
     type_ref_span,
 };
 use crate::{
-    SourceType, SourceTypeArray, TraitType, package_for_type, specialize_trait_type,
+    SourceType, SourceTypeArray, TraitType, TypeArgs, package_for_type, specialize_trait_type,
     specialize_ty_for_default_trait_method, specialize_type,
 };
 
@@ -216,7 +216,8 @@ fn check_impl_methods(
         if alias_id == trait_alias_id {
             let trait_alias = sa.alias(trait_alias_id);
             if let Some(parsed_ty) = trait_alias.parsed_ty() {
-                let specialized_ty = specialize_type(sa, parsed_ty.ty(), &trait_ty.type_params);
+                let type_args = TypeArgs::from(&trait_ty.type_params);
+                let specialized_ty = specialize_type(sa, parsed_ty.ty(), &type_args);
                 trait_alias_map.insert(trait_alias_id, specialized_ty);
             }
         } else {
@@ -252,7 +253,7 @@ fn check_impl_methods(
             if !method_definitions_compatible(
                 sa,
                 trait_method,
-                trait_ty.type_params.clone(),
+                TypeArgs::from(&trait_ty.type_params),
                 &trait_alias_map,
                 impl_method,
                 impl_.extended_ty().clone(),
@@ -269,7 +270,7 @@ fn check_impl_methods(
                 sa,
                 trait_method,
                 impl_method,
-                trait_ty.type_params.clone(),
+                TypeArgs::from(&trait_ty.type_params),
             );
         } else {
             sa.report(
@@ -318,7 +319,7 @@ fn check_impl_methods(
 fn method_definitions_compatible(
     sa: &Sema,
     trait_method: &FctDefinition,
-    trait_type_params: SourceTypeArray,
+    trait_type_args: TypeArgs,
     trait_alias_map: &HashMap<AliasDefinitionId, SourceType>,
     impl_method: &FctDefinition,
     self_ty: SourceType,
@@ -340,20 +341,20 @@ fn method_definitions_compatible(
         return false;
     }
 
-    let method_type_params = if fct_type_params > 0 {
-        trait_type_params.connect(&new_identity_type_params(
+    let method_type_args = if fct_type_params > 0 {
+        trait_type_args.connect(&new_identity_type_params(
             impl_method.type_param_definition().container_type_params(),
             fct_type_params,
         ))
     } else {
-        trait_type_params
+        trait_type_args
     };
 
     for (trait_arg_ty, impl_arg_ty) in trait_params.iter().zip(impl_params.iter()) {
         if !trait_and_impl_arg_ty_compatible(
             sa,
             trait_arg_ty.ty(),
-            method_type_params.clone(),
+            method_type_args.clone(),
             trait_alias_map,
             impl_arg_ty.ty(),
             self_ty.clone(),
@@ -365,7 +366,7 @@ fn method_definitions_compatible(
     trait_and_impl_arg_ty_compatible(
         sa,
         trait_method.return_type(),
-        method_type_params.clone(),
+        method_type_args,
         trait_alias_map,
         impl_method.return_type(),
         self_ty.clone(),
@@ -376,18 +377,18 @@ fn check_method_type_param_bounds(
     sa: &Sema,
     trait_method: &FctDefinition,
     impl_method: &FctDefinition,
-    trait_type_params: SourceTypeArray,
+    trait_type_args: TypeArgs,
 ) {
     let fct_type_params = trait_method.type_param_definition().own_type_params_len();
 
     // Build combined type params for specialization (trait params + identity for method params)
-    let method_type_params = if fct_type_params > 0 {
-        trait_type_params.connect(&new_identity_type_params(
+    let method_type_args = if fct_type_params > 0 {
+        trait_type_args.connect(&new_identity_type_params(
             impl_method.type_param_definition().container_type_params(),
             fct_type_params,
         ))
     } else {
-        trait_type_params
+        trait_type_args
     };
 
     // Check for missing bounds in impl
@@ -399,9 +400,9 @@ fn check_method_type_param_bounds(
         let trait_bound_trait = trait_bound.trait_ty().unwrap();
 
         // Specialize the trait bound using the impl's type params
-        let specialized_bound_ty = specialize_type(sa, trait_bound_ty.clone(), &method_type_params);
+        let specialized_bound_ty = specialize_type(sa, trait_bound_ty.clone(), &method_type_args);
         let specialized_trait_bound =
-            specialize_trait_type(sa, trait_bound_trait.clone(), &method_type_params);
+            specialize_trait_type(sa, trait_bound_trait.clone(), &method_type_args);
 
         let has_bound = impl_method
             .type_param_definition()
@@ -443,9 +444,9 @@ fn check_method_type_param_bounds(
                 let trait_bound_ty = trait_bound.ty();
                 let trait_bound_trait = trait_bound.trait_ty().unwrap();
 
-                let specialized_bound_ty = specialize_type(sa, trait_bound_ty, &method_type_params);
+                let specialized_bound_ty = specialize_type(sa, trait_bound_ty, &method_type_args);
                 let specialized_trait_bound =
-                    specialize_trait_type(sa, trait_bound_trait, &method_type_params);
+                    specialize_trait_type(sa, trait_bound_trait, &method_type_args);
 
                 impl_bound_ty == specialized_bound_ty && impl_bound_trait == specialized_trait_bound
             });
@@ -468,7 +469,7 @@ fn check_method_type_param_bounds(
 fn trait_and_impl_arg_ty_compatible(
     sa: &Sema,
     trait_arg_ty: SourceType,
-    trait_type_params: SourceTypeArray,
+    trait_type_args: TypeArgs,
     trait_alias_map: &HashMap<AliasDefinitionId, SourceType>,
     impl_arg_ty: SourceType,
     self_ty: SourceType,
@@ -480,7 +481,7 @@ fn trait_and_impl_arg_ty_compatible(
                     && trait_and_impl_arg_ty_compatible_array(
                         sa,
                         trait_cls_type_params,
-                        trait_type_params,
+                        trait_type_args,
                         trait_alias_map,
                         impl_cls_type_params,
                         self_ty,
@@ -501,7 +502,7 @@ fn trait_and_impl_arg_ty_compatible(
                         && trait_and_impl_arg_ty_compatible_array(
                             sa,
                             trait_trait_type_params,
-                            trait_type_params.clone(),
+                            trait_type_args.clone(),
                             trait_alias_map,
                             impl_trait_type_params,
                             self_ty.clone(),
@@ -509,7 +510,7 @@ fn trait_and_impl_arg_ty_compatible(
                         && trait_and_impl_arg_ty_compatible_array(
                             sa,
                             trait_trait_bindings,
-                            trait_type_params,
+                            trait_type_args,
                             trait_alias_map,
                             impl_trait_bindings,
                             self_ty,
@@ -526,7 +527,7 @@ fn trait_and_impl_arg_ty_compatible(
                     && trait_and_impl_arg_ty_compatible_array(
                         sa,
                         trait_struct_type_params,
-                        trait_type_params,
+                        trait_type_args,
                         trait_alias_map,
                         impl_struct_type_params,
                         self_ty,
@@ -542,7 +543,7 @@ fn trait_and_impl_arg_ty_compatible(
                     && trait_and_impl_arg_ty_compatible_array(
                         sa,
                         trait_enum_type_params,
-                        trait_type_params,
+                        trait_type_args,
                         trait_alias_map,
                         impl_enum_type_params,
                         self_ty,
@@ -558,7 +559,7 @@ fn trait_and_impl_arg_ty_compatible(
                     trait_and_impl_arg_ty_compatible_array(
                         sa,
                         trait_arg_params,
-                        trait_type_params.clone(),
+                        trait_type_args.clone(),
                         trait_alias_map,
                         impl_arg_params,
                         self_ty.clone(),
@@ -566,7 +567,7 @@ fn trait_and_impl_arg_ty_compatible(
                         && trait_and_impl_arg_ty_compatible(
                             sa,
                             *trait_arg_return_type,
-                            trait_type_params,
+                            trait_type_args,
                             trait_alias_map,
                             *impl_arg_return_type,
                             self_ty,
@@ -582,7 +583,7 @@ fn trait_and_impl_arg_ty_compatible(
                 trait_and_impl_arg_ty_compatible_array(
                     sa,
                     trait_tuple_subtypes,
-                    trait_type_params,
+                    trait_type_args,
                     trait_alias_map,
                     impl_tuple_subtypes,
                     self_ty,
@@ -597,7 +598,7 @@ fn trait_and_impl_arg_ty_compatible(
             ty.allows(sa, impl_arg_ty)
         }
 
-        SourceType::TypeParam(id) => trait_type_params[id.index()].allows(sa, impl_arg_ty),
+        SourceType::TypeParam(id) => trait_type_args[id].allows(sa, impl_arg_ty),
 
         SourceType::This => self_ty.allows(sa, impl_arg_ty),
 
@@ -626,7 +627,7 @@ fn trait_and_impl_arg_ty_compatible(
                 trait_and_impl_arg_ty_compatible(
                     sa,
                     *ty,
-                    trait_type_params,
+                    trait_type_args,
                     trait_alias_map,
                     *impl_ty,
                     self_ty,
@@ -634,7 +635,7 @@ fn trait_and_impl_arg_ty_compatible(
             }
             // Otherwise resolve the associated type
             _ => {
-                let resolved_ty = specialize_type(sa, *ty, &trait_type_params);
+                let resolved_ty = specialize_type(sa, *ty, &trait_type_args);
 
                 // Find the impl of the trait for the resolved type
                 let mut found_assoc_ty = None;
@@ -669,7 +670,7 @@ fn trait_and_impl_arg_ty_compatible(
 fn trait_and_impl_arg_ty_compatible_array(
     sa: &Sema,
     trait_arg_types: SourceTypeArray,
-    trait_type_params: SourceTypeArray,
+    trait_type_args: TypeArgs,
     trait_alias_map: &HashMap<AliasDefinitionId, SourceType>,
     impl_arg_types: SourceTypeArray,
     self_ty: SourceType,
@@ -684,7 +685,7 @@ fn trait_and_impl_arg_ty_compatible_array(
         if !trait_and_impl_arg_ty_compatible(
             sa,
             trait_tuple_subtype,
-            trait_type_params.clone(),
+            trait_type_args.clone(),
             trait_alias_map,
             impl_tuple_subtype,
             self_ty.clone(),
@@ -886,7 +887,8 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
     let type_param_definition = trait_.type_param_definition();
 
     for bound in type_param_definition.bounds_for_self() {
-        let bound = specialize_trait_type(sa, bound.clone(), &trait_ty.type_params);
+        let type_args = TypeArgs::from(&trait_ty.type_params);
+        let bound = specialize_trait_type(sa, bound.clone(), &type_args);
 
         if implements_trait(sa, impl_.extended_ty(), impl_, bound.clone()) {
             check_super_traits_for_bound(sa, impl_, bound);

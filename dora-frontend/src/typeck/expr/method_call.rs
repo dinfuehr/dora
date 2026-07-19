@@ -21,7 +21,7 @@ use crate::typeck::{TypeCheck, check_expr, check_type_params, find_method_call_c
 
 use super::call::{ExpectedCallArgs, check_call_arguments_with_expected};
 use crate::{
-    CallSpecializationData, SourceType, SourceTypeArray, TraitType, empty_sta,
+    CallSpecializationData, SourceType, SourceTypeArray, TraitType, TypeArgs,
     specialize_trait_type, specialize_ty_for_call, specialize_ty_for_generic, specialize_type,
     ty::error as ty_error,
 };
@@ -200,10 +200,11 @@ fn check_expr_call_method(
         let fct = ck.sa.fct(fct_id);
 
         let full_type_params = candidate.container_type_params.connect(&fct_type_params);
+        let type_args = TypeArgs::from(&full_type_params);
 
         let call_data = CallSpecializationData {
             object_ty: Some(candidate.object_type.clone()),
-            type_params: full_type_params.clone(),
+            type_args: type_args.clone(),
         };
 
         let type_params_ok = check_type_params(
@@ -214,7 +215,7 @@ fn check_expr_call_method(
             &full_type_params,
             ck.file_id,
             || ck.expr_span(call_expr_id),
-            |ty| specialize_type(ck.sa, ty, &full_type_params),
+            |ty| specialize_type(ck.sa, ty, &type_args),
         );
 
         let expected = type_params_ok.then(|| {
@@ -287,7 +288,8 @@ fn check_method_call_is_array_field_access(
 
             let field_id = struct_.field_id(field_index);
             let field = ck.sa.field(field_id);
-            let field_type = replace_type(ck.sa, field.ty(), Some(&struct_type_params), None);
+            let type_args = TypeArgs::from(&struct_type_params);
+            let field_type = replace_type(ck.sa, field.ty(), Some(&type_args), None);
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
                 let syntax = ck.syntax::<ast::AstMethodCallExpr>(call_expr_id);
@@ -321,8 +323,8 @@ fn find_in_super_traits_self(
 ) {
     for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
         // Substitute the super trait's type params with the current trait's type params
-        let specialized_super_trait_ty =
-            specialize_trait_type(sa, super_trait_ty, trait_type_params);
+        let type_args = TypeArgs::from(trait_type_params);
+        let specialized_super_trait_ty = specialize_trait_type(sa, super_trait_ty, &type_args);
         let super_trait_ = sa.trait_(specialized_super_trait_ty.trait_id);
 
         if let Some(trait_method_id) = super_trait_.get_method(name, false) {
@@ -383,12 +385,13 @@ fn check_method_call_on_self(
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
         let trait_type_params = trait_ty.type_params.clone();
+        let type_args = TypeArgs::from(&trait_type_params);
 
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = replace_type(
             ck.sa,
             trait_method.return_type(),
-            Some(&trait_type_params),
+            Some(&type_args),
             Some(SourceType::This),
         );
 
@@ -407,7 +410,7 @@ fn check_method_call_on_self(
         let expected = build_expected_method_call_args(
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            |ty| replace_type(ck.sa, ty, Some(&trait_type_params), Some(SourceType::This)),
+            |ty| replace_type(ck.sa, ty, Some(&type_args), Some(SourceType::This)),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -473,7 +476,7 @@ fn check_method_call_on_assoc(
 
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
-        let trait_type_params = empty_sta();
+        let type_args = TypeArgs::empty();
 
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
@@ -493,7 +496,7 @@ fn check_method_call_on_assoc(
         let expected = build_expected_method_call_args(
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            |ty| replace_type(ck.sa, ty, Some(&trait_type_params), Some(SourceType::This)),
+            |ty| replace_type(ck.sa, ty, Some(&type_args), Some(SourceType::This)),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -547,7 +550,7 @@ fn check_method_call_on_generic_assoc(
 
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
-        let trait_type_params = empty_sta();
+        let type_args = TypeArgs::empty();
 
         let trait_method = ck.sa.fct(trait_method_id);
         let return_type = trait_method.return_type();
@@ -556,7 +559,7 @@ fn check_method_call_on_generic_assoc(
         let return_type = replace_type(
             ck.sa,
             return_type,
-            Some(&trait_type_params),
+            Some(&type_args),
             Some(object_type.clone()),
         );
 
@@ -575,7 +578,7 @@ fn check_method_call_on_generic_assoc(
         let expected = build_expected_method_call_args(
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            |ty| replace_type(ck.sa, ty, Some(&trait_type_params), Some(SourceType::This)),
+            |ty| replace_type(ck.sa, ty, Some(&type_args), Some(SourceType::This)),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -646,6 +649,7 @@ fn check_method_call_on_type_param(
 
         let trait_method = ck.sa.fct(trait_method_id);
         let combined_fct_type_params = trait_ty.type_params.connect(&pure_fct_type_params);
+        let type_args = TypeArgs::from(&combined_fct_type_params);
 
         let type_params_ok = check_type_params(
             ck.sa,
@@ -662,7 +666,7 @@ fn check_method_call_on_type_param(
                     ck.element,
                     id,
                     &trait_ty,
-                    &combined_fct_type_params,
+                    &type_args,
                     &object_type,
                 )
             },
@@ -675,7 +679,7 @@ fn check_method_call_on_type_param(
                 ck.element,
                 id,
                 &trait_ty,
-                &combined_fct_type_params,
+                &type_args,
                 &object_type,
             );
 
@@ -699,7 +703,7 @@ fn check_method_call_on_type_param(
                         ck.element,
                         id,
                         &trait_ty,
-                        &combined_fct_type_params,
+                        &type_args,
                         &object_type,
                     )
                 },
