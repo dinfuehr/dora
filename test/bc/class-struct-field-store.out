@@ -1,3 +1,9 @@
+class Container:
+  data: Data
+
+struct Data:
+  value: Int32
+
 fn f:
   0: GetFieldAddress r2, r0, @0 # Container.data
   4: GetFieldAddress r3, r2, @1 # Data.value

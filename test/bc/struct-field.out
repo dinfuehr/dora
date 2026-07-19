@@ -1,3 +1,7 @@
+struct Foo:
+  f1: Int32
+  f2: Bool
+
 fn f:
   0: LoadField r1, r0, @0 # Foo.f1
   4: Ret r1

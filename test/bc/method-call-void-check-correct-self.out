@@ -1,3 +1,5 @@
+class Foo:
+
 fn f:
   0: InvokeDirect r2, @0, r1 # <impl Foo>::g
   5: Ret r2

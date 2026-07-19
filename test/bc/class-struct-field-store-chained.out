@@ -1,3 +1,12 @@
+class Wrapper:
+  middle: Middle
+
+struct Inner:
+  value: Int32
+
+struct Middle:
+  inner: Inner
+
 fn f:
   0: GetFieldAddress r2, r0, @0 # Wrapper.middle
   4: GetFieldAddress r3, r2, @1 # Middle.inner

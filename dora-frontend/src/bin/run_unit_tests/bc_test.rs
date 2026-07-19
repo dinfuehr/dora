@@ -1,7 +1,11 @@
+use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use dora_bytecode::{FunctionId, TypeParamMode, display_fct, dump};
+use dora_bytecode::{
+    BytecodeType, FunctionId, ModuleId, Program, TypeParamData, TypeParamMode, display_fct, dump,
+    fmt_ty, module_path_name,
+};
 use dora_frontend::sema::{Sema, SemaCreationParams};
 use dora_frontend::{check_program, emit_program};
 
@@ -77,6 +81,7 @@ fn generate_bytecode(code: &str, path: &Path) -> Result<String, String> {
     let program = emit_program(sa);
 
     let mut output = String::new();
+    dump_type_definitions(&mut output, &program);
 
     for (idx, fct) in program.functions.iter().enumerate() {
         if fct.package_id != program.program_package_id {
@@ -99,4 +104,78 @@ fn generate_bytecode(code: &str, path: &Path) -> Result<String, String> {
     }
 
     Ok(output)
+}
+
+fn dump_type_definitions(output: &mut String, program: &Program) {
+    for cls in &program.classes {
+        if cls.package_id == program.program_package_id {
+            dump_type_definition(
+                output,
+                program,
+                "class",
+                cls.module_id,
+                &cls.name,
+                &cls.type_params,
+                cls.fields
+                    .iter()
+                    .map(|field| (field.name.as_deref(), &field.ty)),
+            );
+        }
+    }
+
+    for struct_ in &program.structs {
+        if struct_.package_id == program.program_package_id {
+            dump_type_definition(
+                output,
+                program,
+                "struct",
+                struct_.module_id,
+                &struct_.name,
+                &struct_.type_params,
+                struct_
+                    .fields
+                    .iter()
+                    .map(|field| (field.name.as_deref(), &field.ty)),
+            );
+        }
+    }
+}
+
+fn dump_type_definition<'a>(
+    output: &mut String,
+    program: &Program,
+    kind: &str,
+    module_id: ModuleId,
+    name: &str,
+    type_params: &'a TypeParamData,
+    fields: impl Iterator<Item = (Option<&'a str>, &'a BytecodeType)>,
+) {
+    write!(
+        output,
+        "{} {}",
+        kind,
+        module_path_name(program, module_id, name)
+    )
+    .unwrap();
+
+    if !type_params.names.is_empty() {
+        write!(output, "[{}]", type_params.names.join(", ")).unwrap();
+    }
+
+    writeln!(output, ":").unwrap();
+
+    for (idx, (name, ty)) in fields.enumerate() {
+        let name = name
+            .map(|name| name.to_string())
+            .unwrap_or_else(|| idx.to_string());
+        writeln!(
+            output,
+            "  {}: {}",
+            name,
+            fmt_ty(program, ty, TypeParamMode::TypeParams(type_params), false)
+        )
+        .unwrap();
+    }
+
+    writeln!(output).unwrap();
 }

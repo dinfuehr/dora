@@ -1,3 +1,5 @@
+class Object:
+
 fn f:
   0: Ret r0
 

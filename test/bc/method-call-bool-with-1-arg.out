@@ -1,3 +1,5 @@
+class Foo:
+
 fn f:
   0: ConstTrue r2
   2: InvokeDirect r1, @0, r0, r2 # <impl Foo>::g

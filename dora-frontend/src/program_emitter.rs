@@ -278,6 +278,7 @@ impl Emitter {
 
         for _ in 0..count {
             self.classes.push(ClassData {
+                package_id: 0usize.into(),
                 module_id: 0usize.into(),
                 name: "<dummy>".into(),
                 type_params: TypeParamData {
@@ -294,6 +295,7 @@ impl Emitter {
 
         for _ in 0..count {
             self.structs.push(StructData {
+                package_id: 0usize.into(),
                 module_id: 0usize.into(),
                 name: "<dummy>".into(),
                 type_params: TypeParamData {
@@ -489,9 +491,11 @@ impl Emitter {
             let name = sa.interner.str(class.name).to_string();
             let fields = self.create_class_fields(sa, &*class);
 
+            let package_id = self.convert_package_id(sa, class.package_id);
             let module_id = self.convert_module_id(sa, class.module_id);
             let type_params = self.create_type_params(sa, class.type_param_definition());
             self.classes.push(ClassData {
+                package_id,
                 module_id,
                 name,
                 type_params,
@@ -551,10 +555,12 @@ impl Emitter {
         for (_struct_id, struct_) in sa.structs.iter() {
             let name = sa.interner.str(struct_.name).to_string();
             let fields = self.create_struct_fields(sa, struct_);
+            let package_id = self.convert_package_id(sa, struct_.package_id);
             let module_id = self.convert_module_id(sa, struct_.module_id);
             let type_params = self.create_type_params(sa, struct_.type_param_definition());
 
             self.structs.push(StructData {
+                package_id,
                 module_id,
                 name,
                 type_params,

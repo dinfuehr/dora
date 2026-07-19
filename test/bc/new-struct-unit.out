@@ -1,3 +1,11 @@
+struct Wrapper[T]:
+  0: T
+
+struct Mixed[T]:
+  0: T
+  1: Int32
+  2: T
+
 fn single:
   0: NewStruct r1, @0, r0 # Wrapper[()]
   5: Ret r1

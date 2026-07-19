@@ -153,6 +153,7 @@ pub struct GlobalData {
 
 #[derive(Debug, Decode, Encode)]
 pub struct ClassData {
+    pub package_id: PackageId,
     pub module_id: ModuleId,
     pub name: String,
     pub type_params: TypeParamData,
@@ -171,6 +172,7 @@ pub struct ClassField {
 
 #[derive(Debug, Decode, Encode)]
 pub struct StructData {
+    pub package_id: PackageId,
     pub module_id: ModuleId,
     pub name: String,
     pub type_params: TypeParamData,

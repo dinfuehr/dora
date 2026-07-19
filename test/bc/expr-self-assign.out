@@ -1,3 +1,5 @@
+class Foo:
+
 fn <impl Foo>::f:
   0: Mov r1, r0
   3: Ret r2

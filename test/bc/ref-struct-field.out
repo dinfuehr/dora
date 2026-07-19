@@ -1,3 +1,6 @@
+struct Foo:
+  x: Int32
+
 fn take_ref:
   0: Ret r1
 

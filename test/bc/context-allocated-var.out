@@ -1,3 +1,6 @@
+class $Context1:
+  x: Int64
+
 fn f:
   0: NewObjectUninitialized r0, @0 # $Context1
   3: ConstInt64 r1, @1 # 10

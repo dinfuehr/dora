@@ -1,3 +1,7 @@
+struct Foo[T]:
+  f1: T
+  f2: Bool
+
 fn f[T]:
   0: ConstFalse r1
   2: NewStruct r2, @0, r0, r1 # Foo[T]

@@ -1,3 +1,7 @@
+class Foo:
+  a: Int64
+  b: Bool
+
 fn f:
   0: NewObject r2, @0, r0, r1 # Foo
   6: Ret r2

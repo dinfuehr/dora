@@ -1,3 +1,5 @@
+class Foo:
+
 fn f:
   0: ConstChar r2, @1 # '1' 0x31
   3: ConstChar r3, @2 # '2' 0x32

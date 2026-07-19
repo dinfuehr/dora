@@ -1,3 +1,6 @@
+class Foo:
+  0: Array[Int64]
+
 fn f:
   0: LoadField r1, r0, @0 # Foo.0
   4: ConstInt64 r2, @1 # 1

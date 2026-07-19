@@ -1,3 +1,9 @@
+class InnerContainer:
+  data: (Int32, Bool)
+
+class OuterContainer:
+  inner: InnerContainer
+
 fn f:
   0: LoadField r2, r0, @0 # OuterContainer.inner
   4: GetFieldAddress r3, r2, @1 # InnerContainer.data

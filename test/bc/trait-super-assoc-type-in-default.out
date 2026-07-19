@@ -1,3 +1,6 @@
+class Wrapper[T]:
+  inner: T
+
 fn Base::get:
   <no bytecode>
 

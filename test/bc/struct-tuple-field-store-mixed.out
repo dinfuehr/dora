@@ -1,3 +1,9 @@
+struct Inner:
+  value: Int32
+
+struct Outer:
+  pair: (Inner, Bool)
+
 fn f:
   0: GetFieldAddress r2, r0, @0 # Outer.pair
   4: GetFieldAddress r3, r2, @1 # (Inner, Bool).0
