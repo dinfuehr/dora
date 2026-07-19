@@ -1,6 +1,6 @@
 use std::{BitSet, HashMap};
 
-use package::bytecode::{BytecodeFunction, BytecodeRegister, BytecodeType, EnumId};
+use package::bytecode::{BytecodeBody, BytecodeRegister, BytecodeType, EnumId};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
 use package::graph;
 use package::graph::{Block, Graph, Inst, Op};
@@ -12,7 +12,7 @@ use package::specialize::{specialize_array, specialize_ty};
 pub class SsaConstruction {
     ci: CompilationInfo,
     graph: Graph,
-    bc: BytecodeFunction,
+    bc: BytecodeBody,
     type_params: Array[BytecodeType],
     return_type: BytecodeType,
     specialize_self: Option[SpecializeSelf],

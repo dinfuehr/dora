@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use dora_bytecode::{
-    BytecodeFunction, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId, ConstId,
+    BytecodeBody, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId, ConstId,
     ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, GlobalId, Label, Location, Register,
     StructId,
 };
@@ -29,15 +29,6 @@ impl BytecodeBuilder {
 
     pub fn bind_label(&mut self, lbl: Label) {
         self.writer.bind_label(lbl)
-    }
-
-    pub fn set_params(&mut self, params: Vec<BytecodeType>) {
-        self.writer.set_arguments(params.len() as u32);
-        self.writer.set_params(params);
-    }
-
-    pub fn set_return_type(&mut self, return_type: BytecodeType) {
-        self.writer.set_return_type(return_type);
     }
 
     pub fn add_const(&mut self, entry: ConstPoolEntry) -> ConstPoolIdx {
@@ -746,7 +737,7 @@ impl BytecodeBuilder {
         self.writer.emit_load_ref(dest, reference);
     }
 
-    pub fn generate(self) -> BytecodeFunction {
+    pub fn generate(self) -> BytecodeBody {
         for reg in &self.registers.used {
             println!("used reg {}", reg);
         }

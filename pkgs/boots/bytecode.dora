@@ -1,5 +1,5 @@
 pub use package::bytecode::data::{
-    BytecodeFunction,
+    BytecodeBody,
     BytecodeRegister,
     BytecodeTraitType,
     BytecodeType,

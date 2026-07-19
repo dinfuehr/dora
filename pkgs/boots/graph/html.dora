@@ -6,8 +6,8 @@ use package::assembler::arm64::register_name as register_name_on_arm64;
 use package::assembler::x64::float_register_name as float_register_name_on_x64;
 use package::assembler::x64::register_name as register_name_on_x64;
 use package::bytecode::{
+    BytecodeBody,
     BytecodeDumper,
-    BytecodeFunction,
     BytecodeInstructionInfo,
     BytecodeIterator,
     BytecodeRegister,
@@ -251,7 +251,7 @@ function pass_collapse(element, event) {
         );
     }
 
-    pub fn dump_bytecode(bc: BytecodeFunction, analysis: BytecodeAnalysis) {
+    pub fn dump_bytecode(bc: BytecodeBody, analysis: BytecodeAnalysis) {
         self.write("<div class=\"pass\">");
         self.write("<div class=\"pass-name\">bytecode</div>");
         self.write("<div class=\"graph\"><code>");
@@ -581,7 +581,7 @@ fn escape_html(text: String): String {
 
 class HtmlBytecodeDumper {
     writer: Write,
-    bc: BytecodeFunction,
+    bc: BytecodeBody,
 }
 
 impl HtmlBytecodeDumper {

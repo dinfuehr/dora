@@ -3,7 +3,7 @@ use std::collections::VecIter;
 use std::traits::IntoIterator;
 
 use package::bytecode::{
-    BytecodeFunction,
+    BytecodeBody,
     BytecodeTraitType,
     BytecodeType,
     ConstPoolId,
@@ -22,7 +22,7 @@ use package::bytecode::{
     StructId,
     TraitId,
 };
-use package::compilation::{CompilationInfo, SpecializeSelf};
+use package::compilation::{CompilationInfo, FunctionSignature, SpecializeSelf};
 use package::compile_function;
 use package::deserializer::{
     decode_compilation_info,
@@ -121,7 +121,7 @@ pub fn get_field_offset_for_enum_variant_raw(data: Array[UInt8]): Int32;
 pub fn get_element_size_raw(data: Array[UInt8]): Int32;
 
 @native
-pub fn get_function_bytecode_data_for_inlining_raw(fct_id: Int32): Array[UInt8];
+pub fn get_inlining_function_data_raw(data: Array[UInt8]): Array[UInt8];
 
 @native
 pub fn get_const_value_raw(id: Int32): Array[UInt8];
@@ -390,10 +390,16 @@ pub fn get_element_size(
     get_element_size_raw(writer.to_array())
 }
 
-pub fn get_function_bytecode_data_for_inlining(fct_id: FunctionId): FunctionBytecodeData {
-    let encoded = get_function_bytecode_data_for_inlining_raw(fct_id.0);
+pub fn get_inlining_function_data(
+    fct_id: FunctionId,
+    type_params: Array[BytecodeType],
+): InliningFunctionData {
+    let writer = ByteWriter::new();
+    writer.emit_int32(fct_id.0);
+    encode_bytecode_type_array(writer, type_params);
+    let encoded = get_inlining_function_data_raw(writer.to_array());
     let reader = ByteReader::new(encoded);
-    let decoded = deserializer::decode_function_bytecode_data(reader);
+    let decoded = deserializer::decode_inlining_function_data(reader);
     assert(!reader.more_bytes());
     decoded
 }
@@ -771,10 +777,9 @@ impl std::traits::IntoIterator for GcPoint {
     }
 }
 
-pub struct FunctionBytecodeData {
-    pub bc: BytecodeFunction,
-    pub return_type: BytecodeType,
-    pub specialize_self: Option[SpecializeSelf],
+pub struct InliningFunctionData {
+    pub bc: BytecodeBody,
+    pub signature: FunctionSignature,
 }
 
 pub struct FunctionInliningInfo {

@@ -1,7 +1,7 @@
 use fixedbitset::FixedBitSet;
 
 use crate::{
-    BytecodeFunction, BytecodeInstruction, BytecodeOffset, BytecodeReader, BytecodeTraitType,
+    BytecodeBody, BytecodeInstruction, BytecodeOffset, BytecodeReader, BytecodeTraitType,
     BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, FunctionData,
     FunctionId, FunctionKind, Program, Register, TypeParamData, resolve_path,
 };
@@ -36,7 +36,7 @@ fn resolve_stdlib_class(program: &Program, path: &str) -> ClassId {
 struct Verifier<'a> {
     program: &'a Program,
     function_id: FunctionId,
-    bytecode: &'a BytecodeFunction,
+    bytecode: &'a BytecodeBody,
     array_class_id: ClassId,
     string_class_id: ClassId,
     offset: BytecodeOffset,
@@ -54,7 +54,7 @@ impl<'a> Verifier<'a> {
     fn new(
         program: &'a Program,
         function_id: FunctionId,
-        bytecode: &'a BytecodeFunction,
+        bytecode: &'a BytecodeBody,
         array_class_id: ClassId,
         string_class_id: ClassId,
     ) -> Verifier<'a> {
@@ -71,7 +71,7 @@ impl<'a> Verifier<'a> {
     }
 
     fn verify(mut self) {
-        assert!(self.bytecode.arguments() as usize <= self.bytecode.registers().len());
+        self.verify_signature();
         self.verify_types();
 
         for (offset, _, instruction) in BytecodeReader::new(self.bytecode.code()) {
@@ -94,9 +94,40 @@ impl<'a> Verifier<'a> {
         for ty in self.bytecode.registers() {
             verify_type(ty, type_param_count);
         }
-        verify_type(self.bytecode.return_type(), type_param_count);
         for entry in self.bytecode.const_pool_entries() {
             verify_const_pool_entry(entry, type_param_count);
+        }
+    }
+
+    fn verify_signature(&self) {
+        let function = self.program.fct(self.function_id);
+        let type_params = BytecodeTypeArray::new(
+            (0..function.type_params.type_param_count())
+                .map(|idx| {
+                    BytecodeType::TypeParam(idx.try_into().expect("type parameter overflow"))
+                })
+                .collect(),
+        );
+        let self_type = match function.kind {
+            FunctionKind::Impl(id) => Some(&self.program.impl_(id).extended_ty),
+            FunctionKind::Extension(id) => Some(&self.program.extension(id).extended_ty),
+            FunctionKind::Lambda | FunctionKind::Trait(_) | FunctionKind::Function => None,
+        };
+        let mut params = specialize_function_params(function, &type_params, self_type);
+
+        if function.is_variadic {
+            let element_type = params
+                .last_mut()
+                .expect("variadic function without parameter");
+            *element_type = BytecodeType::Class(
+                self.array_class_id,
+                BytecodeTypeArray::new(vec![element_type.clone()]),
+            );
+        }
+
+        assert!(params.len() <= self.bytecode.registers().len());
+        for (idx, expected) in params.iter().enumerate() {
+            self.assert_type(Register(idx), expected);
         }
     }
 

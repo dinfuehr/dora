@@ -2,7 +2,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
-use crate::{BytecodeFunction, BytecodeTraitType, BytecodeType, Location};
+use crate::{BytecodeBody, BytecodeTraitType, BytecodeType, Location};
 use bincode::{Decode, Encode, de::Decoder, enc::Encoder};
 
 #[repr(transparent)]
@@ -128,7 +128,7 @@ pub struct FunctionData {
     pub is_force_inline: bool,
     pub is_never_inline: bool,
     pub is_trait_object_ignore: bool,
-    pub bytecode: Option<BytecodeFunction>,
+    pub bytecode: Option<BytecodeBody>,
     pub trait_method_impl: Option<FunctionId>,
 }
 

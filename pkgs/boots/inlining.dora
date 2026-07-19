@@ -1,5 +1,5 @@
 use package::bytecode::{BytecodeType, FunctionId};
-use package::compilation::{CompilationInfo, FunctionCompilationInfo, FunctionSignature};
+use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::graph::{Block, Graph, Inst, create_goto_inst, create_undef_inst};
 use package::graph_builder;
 use package::interface as iface;
@@ -73,14 +73,12 @@ fn inline(
         type_params,
         inst.get_inlined_location(),
     );
-    let data = iface::get_function_bytecode_data_for_inlining(fct_id);
-    let signature = FunctionSignature::from_bytecode(
-        data.bc,
-        data.return_type,
-        type_params,
-        data.specialize_self,
+    let data = iface::get_inlining_function_data(fct_id, type_params);
+    let fct_compilation_info = FunctionCompilationInfo(
+        fct_id,
+        bc = data.bc,
+        signature = data.signature,
     );
-    let fct_compilation_info = FunctionCompilationInfo(fct_id, bc = data.bc, signature);
     let new_block = block.split_after(inst);
     let entry_block = Block::new();
     graph.add_block(entry_block);

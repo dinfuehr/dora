@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::time::Instant;
 
 use dora_bytecode::{
-    BytecodeFunction, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
+    BytecodeBody, BytecodeInstruction, BytecodeReader, BytecodeTraitType, BytecodeType,
     BytecodeTypeArray, ConstPoolEntry, FunctionId, ImplId, Program,
 };
 
@@ -95,27 +95,25 @@ impl<'a> TransitiveClosureComputation<'a> {
     fn trace(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
         let fct = &self.program.fct(fct_id);
 
-        if let Some((bytecode_function, specialize_self)) = get_bytecode(self.program, fct) {
-            self.iterate_bytecode(bytecode_function, type_params, specialize_self);
+        if let Some((bytecode_body, specialize_self)) = get_bytecode(self.program, fct) {
+            self.iterate_bytecode(bytecode_body, type_params, specialize_self);
         }
     }
 
     fn iterate_bytecode(
         &mut self,
-        bytecode_function: &BytecodeFunction,
+        bytecode_body: &BytecodeBody,
         type_params: BytecodeTypeArray,
         specialize_self: Option<SpecializeSelf>,
     ) {
-        let reader = BytecodeReader::new(bytecode_function.code());
+        let reader = BytecodeReader::new(bytecode_body.code());
         let specialize_self = specialize_self.as_ref();
 
         for (_start, _opcode, inst) in reader {
             match inst {
                 BytecodeInstruction::InvokeDirect { fct, .. }
                 | BytecodeInstruction::InvokeStatic { fct, .. } => {
-                    let (callee_fct_id, callee_type_params) = match bytecode_function
-                        .const_pool(fct)
-                    {
+                    let (callee_fct_id, callee_type_params) = match bytecode_body.const_pool(fct) {
                         ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
                         _ => unreachable!(),
                     };
@@ -136,7 +134,7 @@ impl<'a> TransitiveClosureComputation<'a> {
                         trait_ty,
                         fct_id: callee_trait_fct_id,
                         fct_type_params: callee_fct_type_params,
-                    } = bytecode_function.const_pool(fct)
+                    } = bytecode_body.const_pool(fct)
                     else {
                         unreachable!()
                     };
@@ -173,7 +171,7 @@ impl<'a> TransitiveClosureComputation<'a> {
                 }
 
                 BytecodeInstruction::NewLambda { idx, .. } => {
-                    let (callee_id, callee_type_params) = match bytecode_function.const_pool(idx) {
+                    let (callee_id, callee_type_params) = match bytecode_body.const_pool(idx) {
                         ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
                         _ => unreachable!(),
                     };
@@ -190,7 +188,7 @@ impl<'a> TransitiveClosureComputation<'a> {
                 }
 
                 BytecodeInstruction::NewTraitObject { idx, .. } => {
-                    let (trait_ty, actual_object_ty) = match bytecode_function.const_pool(idx) {
+                    let (trait_ty, actual_object_ty) = match bytecode_body.const_pool(idx) {
                         ConstPoolEntry::TraitObject {
                             trait_ty,
                             actual_object_ty,

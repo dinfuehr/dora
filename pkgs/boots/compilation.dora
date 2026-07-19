@@ -1,5 +1,5 @@
 use package::bytecode::{
-    BytecodeFunction,
+    BytecodeBody,
     BytecodeTraitType,
     BytecodeType,
     FunctionId,
@@ -98,28 +98,9 @@ pub class FunctionSignature {
     pub specialize_self: Option[SpecializeSelf],
 }
 
-impl FunctionSignature {
-    pub static fn from_bytecode(
-        bc: BytecodeFunction,
-        return_type: BytecodeType,
-        type_params: Array[BytecodeType],
-        specialize_self: Option[SpecializeSelf],
-    ): FunctionSignature {
-        let params = Array[BytecodeType]::fill(
-            bc.arguments.to_int64(),
-            BytecodeType::Unit,
-        );
-        for idx in std::range(0, bc.arguments.to_int64()) {
-            params(idx) = bc.registers(idx);
-        }
-
-        FunctionSignature(params, return_type, type_params, specialize_self)
-    }
-}
-
 pub class FunctionCompilationInfo {
     pub fct_id: FunctionId,
-    pub bc: BytecodeFunction,
+    pub bc: BytecodeBody,
     pub signature: FunctionSignature,
 }
 

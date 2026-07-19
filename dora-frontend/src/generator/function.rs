@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use dora_bytecode::{BytecodeFunction, BytecodeType, Register};
+use dora_bytecode::{BytecodeBody, Register};
 
 use crate::expr_block_always_returns;
 use crate::program_emitter::Emitter;
@@ -12,7 +12,7 @@ use super::{
     AstBytecodeGen, BytecodeBuilder, DataDest, SELF_VAR_ID, set_var_reg, store_in_context,
 };
 
-pub fn generate_fct_id(sa: &Sema, emitter: &mut Emitter, id: FctDefinitionId) -> BytecodeFunction {
+pub fn generate_fct_id(sa: &Sema, emitter: &mut Emitter, id: FctDefinitionId) -> BytecodeBody {
     let fct = sa.fct(id);
     let analysis = fct.analysis();
 
@@ -24,7 +24,7 @@ pub fn generate_fct(
     emitter: &mut Emitter,
     fct: &FctDefinition,
     src: &AnalysisData,
-) -> BytecodeFunction {
+) -> BytecodeBody {
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
         emitter,
@@ -44,7 +44,7 @@ pub fn generate_fct(
     generate_fct_impl(ast_bytecode_generator)
 }
 
-fn generate_fct_impl(mut g: AstBytecodeGen) -> BytecodeFunction {
+fn generate_fct_impl(mut g: AstBytecodeGen) -> BytecodeBody {
     g.push_scope();
     create_params(&mut g);
     g.enter_function_context();
@@ -56,8 +56,6 @@ fn generate_fct_impl(mut g: AstBytecodeGen) -> BytecodeFunction {
 }
 
 fn create_params(g: &mut AstBytecodeGen) {
-    let mut params = Vec::new();
-
     if g.analysis.has_self() {
         let vars = g.analysis.vars();
         let var_self = vars.get_self();
@@ -69,8 +67,6 @@ fn create_params(g: &mut AstBytecodeGen) {
         } else {
             g.emitter.convert_ty(g.sa, var_ty)
         };
-        params.push(bty.clone());
-
         let reg = g.alloc_var(bty);
         set_var_reg(g, SELF_VAR_ID, reg);
     }
@@ -78,13 +74,8 @@ fn create_params(g: &mut AstBytecodeGen) {
     for &param_id in g.analysis.param_pattern_ids() {
         let ty = g.ty(param_id);
         let bty = g.emitter.convert_ty(g.sa, ty.clone());
-        params.push(bty);
-
-        let bty: BytecodeType = g.emitter.convert_ty(g.sa, ty);
         g.alloc_var(bty);
     }
-
-    g.builder.set_params(params);
 }
 
 fn store_params_in_context(g: &mut AstBytecodeGen) {
@@ -138,9 +129,6 @@ fn store_params_in_context(g: &mut AstBytecodeGen) {
 }
 
 fn emit_function_body(g: &mut AstBytecodeGen) {
-    let bty_return_type = g.emitter.convert_ty(g.sa, g.return_type.clone());
-    g.builder.set_return_type(bty_return_type);
-
     let mut needs_return = true;
 
     let root_expr_id = g.analysis.root_expr_id();

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use dora_bytecode::{
-    BytecodeFunction, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx,
-    EnumId, FunctionData, FunctionId, Location, PackageId, Program, display_fct,
-    display_fct_specialized, display_ty, lookup_fct, resolve_path,
+    BytecodeBody, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId,
+    FunctionData, FunctionId, Location, PackageId, Program, display_fct, display_fct_specialized,
+    display_ty, lookup_fct, resolve_path,
 };
 
 use crate::runtime_entry_trampoline::{self, NativeFct};
@@ -291,15 +291,14 @@ fn compile_function(
         });
     } else if let Some(_) = get_bytecode(ctx.program, fct) {
         let program_fct = ctx.program.fct(fct_id);
-        let (bytecode_fct, specialize_self) =
+        let (bytecode_body, specialize_self) =
             get_bytecode(ctx.program, program_fct).expect("missing bytecode");
 
         let (code, code_kind) = compile_fct_to_descriptor(
             ctx,
             fct_id,
             program_fct,
-            program_fct.return_type.clone(),
-            bytecode_fct,
+            bytecode_body,
             &type_params,
             specialize_self,
         );
@@ -319,8 +318,7 @@ fn compile_fct_to_descriptor(
     ctx: &AotCodegenContext<'_>,
     fct_id: FunctionId,
     program_fct: &FunctionData,
-    return_type: BytecodeType,
-    bytecode_fct: &BytecodeFunction,
+    bytecode_body: &BytecodeBody,
     type_params: &BytecodeTypeArray,
     specialize_self: Option<SpecializeSelf>,
 ) -> (CodeDescriptor, CompiledCodeKind) {
@@ -328,11 +326,11 @@ fn compile_fct_to_descriptor(
 
     let compilation_data = CompilationData {
         program: ctx.program,
-        bytecode_fct,
+        bytecode_body,
         fct_id,
         signature: FunctionSignature::from_bytecode(
-            bytecode_fct,
-            return_type,
+            bytecode_body,
+            program_fct,
             type_params.clone(),
             specialize_self,
         ),

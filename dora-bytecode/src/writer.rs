@@ -1,7 +1,7 @@
 use std::mem;
 
 use crate::{
-    BytecodeFunction, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstId, ConstPoolEntry,
+    BytecodeBody, BytecodeOffset, BytecodeOpcode, BytecodeType, ConstId, ConstPoolEntry,
     ConstPoolIdx, GlobalId, Location, Register,
 };
 
@@ -10,7 +10,6 @@ pub struct Label(pub usize);
 
 pub struct BytecodeWriter {
     code: Vec<u8>,
-    arguments: u32,
 
     label_offsets: Vec<Option<BytecodeOffset>>,
     unresolved_jump_offsets: Vec<(BytecodeOffset, BytecodeOffset, Label)>,
@@ -21,16 +20,12 @@ pub struct BytecodeWriter {
 
     line_number_table: Vec<(BytecodeOffset, Location)>,
     current_location: Option<Location>,
-
-    params: Vec<BytecodeType>,
-    return_type: BytecodeType,
 }
 
 impl BytecodeWriter {
     pub fn new() -> BytecodeWriter {
         BytecodeWriter {
             code: Vec::new(),
-            arguments: 0,
 
             label_offsets: Vec::new(),
             unresolved_jump_offsets: Vec::new(),
@@ -41,9 +36,6 @@ impl BytecodeWriter {
 
             line_number_table: Vec::new(),
             current_location: None,
-
-            params: Vec::new(),
-            return_type: BytecodeType::Unit,
         }
     }
 
@@ -76,18 +68,6 @@ impl BytecodeWriter {
 
     fn offset(&self) -> BytecodeOffset {
         BytecodeOffset(self.code.len() as u32)
-    }
-
-    pub fn set_arguments(&mut self, arguments: u32) {
-        self.arguments = arguments;
-    }
-
-    pub fn set_params(&mut self, params: Vec<BytecodeType>) {
-        self.params = params;
-    }
-
-    pub fn set_return_type(&mut self, return_type: BytecodeType) {
-        self.return_type = return_type;
     }
 
     pub fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -450,33 +430,29 @@ impl BytecodeWriter {
         self.emit_reg2(BytecodeOpcode::GetRef, dest, src);
     }
 
-    pub fn generate(mut self) -> BytecodeFunction {
+    pub fn generate(mut self) -> BytecodeBody {
         self.resolve_forward_jumps();
         self.resolve_jump_tables();
 
-        BytecodeFunction::new(
+        BytecodeBody::new(
             self.code,
             self.const_pool,
             self.registers,
-            self.arguments,
             self.line_number_table,
-            self.return_type,
         )
     }
 
-    pub fn generate_with_registers(mut self, registers: Vec<BytecodeType>) -> BytecodeFunction {
+    pub fn generate_with_registers(mut self, registers: Vec<BytecodeType>) -> BytecodeBody {
         self.resolve_forward_jumps();
         self.resolve_jump_tables();
 
         assert!(self.registers.is_empty());
 
-        BytecodeFunction::new(
+        BytecodeBody::new(
             self.code,
             self.const_pool,
             registers,
-            self.arguments,
             self.line_number_table,
-            self.return_type,
         )
     }
 

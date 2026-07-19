@@ -15,23 +15,21 @@ use package::bytecode::{
 };
 use package::bytecode::opcode as opc;
 
-pub class BytecodeFunction {
+pub class BytecodeBody {
     pub code: Array[UInt8],
     pub const_pool: Array[ConstPoolEntry],
     pub registers: Array[BytecodeType],
     pub locations: Array[(Int32, Location)],
-    pub arguments: Int32,
 }
 
-impl BytecodeFunction {
+impl BytecodeBody {
     static fn new(
         code: Array[UInt8],
         const_pool: Array[ConstPoolEntry],
         registers: Array[BytecodeType],
         locations: Array[(Int32, Location)],
-        arguments: Int32,
-    ): BytecodeFunction {
-        BytecodeFunction(code, const_pool, registers, locations, arguments)
+    ): BytecodeBody {
+        BytecodeBody(code, const_pool, registers, locations)
     }
 
     pub fn const_pool_entry(idx: ConstPoolId): ConstPoolEntry {

@@ -14,7 +14,7 @@ use crate::sema::{
     TypeRefArenaBuilder, Visibility, lower_type, module_path,
 };
 use crate::ty::SourceType;
-use dora_bytecode::BytecodeFunction;
+use dora_bytecode::BytecodeBody;
 
 pub type FctDefinitionId = Id<FctDefinition>;
 
@@ -45,7 +45,7 @@ pub struct FctDefinition {
 
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub container_type_params: OnceCell<usize>,
-    pub bytecode: OnceCell<BytecodeFunction>,
+    pub bytecode: OnceCell<BytecodeBody>,
     pub intrinsic: OnceCell<Intrinsic>,
     pub trait_method_impl: OnceCell<FctDefinitionId>,
 }

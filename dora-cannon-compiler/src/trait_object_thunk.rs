@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use dora_bytecode::{
-    BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,
+    BytecodeBody, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,
     ConstPoolEntry, FunctionId, Register,
 };
 use dora_compiler::{
@@ -14,12 +14,12 @@ pub fn compile(
     compilation_data: TraitObjectThunkCompilationData<'_>,
     intrinsics: &HashMap<FunctionId, Intrinsic>,
 ) -> CodeDescriptor {
-    let bytecode_fct = generate_bytecode(&compilation_data);
-    let compilation_data = into_bytecode_compilation_data(compilation_data, &bytecode_fct);
+    let bytecode_body = generate_bytecode(&compilation_data);
+    let compilation_data = into_bytecode_compilation_data(compilation_data, &bytecode_body);
     CannonCodeGen::new(compilation_data, intrinsics).generate()
 }
 
-fn generate_bytecode(compilation_data: &TraitObjectThunkCompilationData<'_>) -> BytecodeFunction {
+fn generate_bytecode(compilation_data: &TraitObjectThunkCompilationData<'_>) -> BytecodeBody {
     let trait_object_type_param_id = compilation_data.signature.type_params.len() - 1;
     assert_eq!(
         &compilation_data.signature.type_params[trait_object_type_param_id],
@@ -35,14 +35,6 @@ fn generate_bytecode(compilation_data: &TraitObjectThunkCompilationData<'_>) -> 
     for param_ty in compilation_data.signature.params.iter() {
         w.add_register(register_ty(param_ty));
     }
-    w.set_arguments(
-        compilation_data
-            .signature
-            .params
-            .len()
-            .try_into()
-            .expect("overflow"),
-    );
 
     let actual_ty = register_ty(compilation_data.actual_object_ty.clone());
     let new_self_reg = w.add_register(actual_ty);
@@ -67,7 +59,6 @@ fn generate_bytecode(compilation_data: &TraitObjectThunkCompilationData<'_>) -> 
     });
 
     let return_ty = register_ty(compilation_data.signature.return_type.clone());
-    w.set_return_type(return_ty.clone());
     let result_reg = w.add_register(return_ty);
     w.set_location(compilation_data.loc);
     w.emit_invoke_generic_direct(result_reg, target_fct_idx, &arguments);
@@ -78,14 +69,14 @@ fn generate_bytecode(compilation_data: &TraitObjectThunkCompilationData<'_>) -> 
 
 fn into_bytecode_compilation_data<'a, 'b>(
     compilation_data: TraitObjectThunkCompilationData<'a>,
-    bytecode_fct: &'b BytecodeFunction,
+    bytecode_body: &'b BytecodeBody,
 ) -> CompilationData<'b>
 where
     'a: 'b,
 {
     CompilationData {
         program: compilation_data.program,
-        bytecode_fct,
+        bytecode_body,
         fct_id: compilation_data.trait_fct_id,
         signature: compilation_data.signature,
         loc: compilation_data.loc,

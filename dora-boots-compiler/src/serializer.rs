@@ -1,4 +1,6 @@
-pub(crate) use crate::wire_serializer::{encode_const_value, encode_function_bytecode_data};
+pub(crate) use crate::wire_serializer::{
+    encode_bytecode_body, encode_const_value, encode_function_signature,
+};
 use dora_bytecode::{EnumData, FunctionData, StructData, opcode as opc};
 pub(crate) use dora_compiler::wire::{
     ByteBuffer, encode_bytecode_type, encode_bytecode_type_array,

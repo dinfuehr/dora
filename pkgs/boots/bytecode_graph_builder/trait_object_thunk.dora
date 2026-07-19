@@ -1,6 +1,6 @@
 use std::BitSet;
 
-use package::bytecode::{BytecodeFunction, BytecodeType};
+use package::bytecode::{BytecodeBody, BytecodeType};
 use package::bytecode_graph_builder::{BytecodeAnalysis, BytecodeGraphBuilder};
 use package::calling_convention as cc;
 use package::calling_convention::ArgumentPassingMode;
@@ -22,7 +22,7 @@ impl BytecodeGraphBuilder {
             graph,
             fct_id = thunk.fct_id,
             inlined_function_id = None[InlinedFunctionId],
-            bc = None[BytecodeFunction],
+            bc = None[BytecodeBody],
             type_params = thunk.signature.type_params,
             return_type = thunk.signature.return_type,
             specialize_self = thunk.signature.specialize_self,

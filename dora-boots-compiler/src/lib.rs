@@ -12,8 +12,8 @@ use dora_compiler::wire::{
     ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array,
 };
 use dora_compiler::{
-    AotBackend, AotCodegenContext, AotContextGuard, CompilationData,
-    TraitObjectThunkCompilationData,
+    AotBackend, AotCodegenContext, AotContextGuard, CompilationData, FunctionSignature,
+    TraitObjectThunkCompilationData, get_bytecode,
 };
 use dora_runtime::runtime::{CodeDescriptor, get_runtime, impls, specialize_ty_in_program};
 use dora_runtime::{
@@ -451,16 +451,25 @@ extern "C" fn get_function_info_for_inlining_raw(id: FunctionId) -> Ref<UInt8Arr
     serializer::allocate_encoded_function_inlining_info(rt, fct)
 }
 
-#[dora_native("interface::get_function_bytecode_data_for_inlining_raw")]
-extern "C" fn get_function_bytecode_data_for_inlining_raw(id: FunctionId) -> Ref<UInt8Array> {
+#[dora_native("interface::get_inlining_function_data_raw")]
+extern "C" fn get_inlining_function_data_raw(data: Handle<UInt8Array>) -> Ref<UInt8Array> {
     let rt = get_runtime();
     let aot_context = active_aot_context();
     let program = aot_context.program();
 
+    let mut reader = ByteReader::new(handle_to_vec(data));
+    let id = (reader.read_u32() as usize).into();
+    let type_params = decode_bytecode_type_array(&mut reader);
+    assert!(!reader.has_more());
+
     let fct = program.fct(id);
+    let (bytecode_body, specialize_self) = get_bytecode(program, fct).expect("missing bytecode");
+    let signature =
+        FunctionSignature::from_bytecode(bytecode_body, fct, type_params, specialize_self);
 
     let mut buffer = ByteBuffer::new();
-    serializer::encode_function_bytecode_data(program, fct, &mut buffer);
+    serializer::encode_bytecode_body(bytecode_body, &mut buffer);
+    serializer::encode_function_signature(&signature, &mut buffer);
     byte_array_from_buffer(rt, buffer.data()).cast()
 }
 

@@ -1,5 +1,5 @@
 use package::bytecode::{
-    BytecodeFunction,
+    BytecodeBody,
     BytecodeRegister,
     BytecodeType,
     ClassFieldId,
@@ -17,7 +17,6 @@ pub class BytecodeBuilder {
     pub const_pool: Vec[ConstPoolEntry],
     pub registers: Vec[BytecodeType],
     pub unresolved_jumps: Vec[UnresolvedJump],
-    pub arguments: Int32,
 }
 
 impl BytecodeBuilder {
@@ -27,7 +26,6 @@ impl BytecodeBuilder {
             const_pool = Vec[ConstPoolEntry]::new(),
             registers = Vec[BytecodeType]::new(),
             unresolved_jumps = Vec[UnresolvedJump]::new(),
-            arguments = 0i32,
         )
     }
 
@@ -63,10 +61,6 @@ impl BytecodeBuilder {
 
     pub fn bind_label(lbl: BytecodeLabel) {
         lbl.bind_to(self.code.size().to_int32());
-    }
-
-    pub fn set_arguments(arguments: Int32) {
-        self.arguments = arguments;
     }
 
     pub fn emit_add(
@@ -412,15 +406,13 @@ impl BytecodeBuilder {
         self.emit_reg1(opc::BYTECODE_OPCODE_RET, opnd);
     }
 
-    pub fn generate(): BytecodeFunction {
+    pub fn generate(): BytecodeBody {
         self.resolve_jumps();
         let code = self.code.to_array();
         let const_pool = self.const_pool.to_array();
         let registers = self.registers.to_array();
         let locations = Array[(Int32, Location)]::new();
-        let arguments = self.arguments;
-        assert(arguments.to_int64() <= registers.size());
-        BytecodeFunction(code, const_pool, registers, locations, arguments)
+        BytecodeBody(code, const_pool, registers, locations)
     }
 
     fn resolve_jumps() {

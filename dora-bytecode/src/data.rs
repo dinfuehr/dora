@@ -794,31 +794,25 @@ impl std::fmt::Display for Location {
 }
 
 #[derive(Clone, Debug, Decode, Encode)]
-pub struct BytecodeFunction {
+pub struct BytecodeBody {
     code: Vec<u8>,
     registers: Vec<BytecodeType>,
     const_pool: Vec<ConstPoolEntry>,
-    arguments: u32,
     locations: Vec<(BytecodeOffset, Location)>,
-    return_ty: BytecodeType,
 }
 
-impl BytecodeFunction {
+impl BytecodeBody {
     pub fn new(
         code: Vec<u8>,
         const_pool: Vec<ConstPoolEntry>,
         registers: Vec<BytecodeType>,
-        arguments: u32,
         locations: Vec<(BytecodeOffset, Location)>,
-        return_ty: BytecodeType,
-    ) -> BytecodeFunction {
-        BytecodeFunction {
+    ) -> BytecodeBody {
+        BytecodeBody {
             code,
             const_pool,
             registers,
-            arguments,
             locations,
-            return_ty,
         }
     }
     pub fn code(&self) -> &[u8] {
@@ -838,14 +832,6 @@ impl BytecodeFunction {
             .get(register.0)
             .expect("register not found")
             .clone()
-    }
-
-    pub fn arguments(&self) -> u32 {
-        self.arguments
-    }
-
-    pub fn return_type(&self) -> &BytecodeType {
-        &self.return_ty
     }
 
     pub fn const_pool_entries(&self) -> &[ConstPoolEntry] {

@@ -1,14 +1,8 @@
-use package::bytecode::{
-    BytecodeFunction,
-    BytecodeRegister,
-    ConstId,
-    ConstPoolId,
-    GlobalId,
-};
+use package::bytecode::{BytecodeBody, BytecodeRegister, ConstId, ConstPoolId, GlobalId};
 use package::bytecode::{BytecodeInstructionInfo, BytecodeIterator};
 use package::bytecode::instruction::BytecodeInstruction;
 
-pub fn bytecode_dump(bc: BytecodeFunction) {
+pub fn bytecode_dump(bc: BytecodeBody) {
     let dumper = StdoutBytecodeDumper() as BytecodeDumper;
 
     for inst in BytecodeIterator::new(bc.code) {

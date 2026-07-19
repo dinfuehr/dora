@@ -1,5 +1,5 @@
 use dora_bytecode::{
-    BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx,
+    BytecodeBody, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx,
     EnumId, FunctionData, FunctionId, FunctionKind, GlobalId, ImplId, Location, Program,
 };
 use std::collections::HashSet;
@@ -87,18 +87,18 @@ pub struct FunctionSignature {
 }
 
 impl FunctionSignature {
-    pub(crate) fn from_bytecode(
-        bytecode_fct: &BytecodeFunction,
-        return_type: BytecodeType,
+    pub fn from_bytecode(
+        bytecode_body: &BytecodeBody,
+        function: &FunctionData,
         type_params: BytecodeTypeArray,
         specialize_self: Option<SpecializeSelf>,
     ) -> FunctionSignature {
-        let argument_count = bytecode_fct.arguments() as usize;
-        let params = BytecodeTypeArray::new(bytecode_fct.registers()[..argument_count].to_vec());
+        let argument_count = function.params.len();
+        let params = BytecodeTypeArray::new(bytecode_body.registers()[..argument_count].to_vec());
 
         FunctionSignature {
             params,
-            return_type,
+            return_type: function.return_type.clone(),
             type_params,
             specialize_self,
         }
@@ -115,7 +115,7 @@ pub struct CompilationOptions {
 
 pub struct CompilationData<'a> {
     pub program: &'a Program,
-    pub bytecode_fct: &'a BytecodeFunction,
+    pub bytecode_body: &'a BytecodeBody,
     pub fct_id: FunctionId,
     pub signature: FunctionSignature,
     pub loc: Location,
@@ -145,9 +145,9 @@ pub fn register_ty(ty: BytecodeType) -> BytecodeType {
 pub fn get_bytecode<'a>(
     program: &'a Program,
     program_fct: &'a FunctionData,
-) -> Option<(&'a BytecodeFunction, Option<SpecializeSelf>)> {
+) -> Option<(&'a BytecodeBody, Option<SpecializeSelf>)> {
     match program_fct.bytecode.as_ref() {
-        Some(bytecode_fct) => Some((bytecode_fct, None)),
+        Some(bytecode_body) => Some((bytecode_body, None)),
         None => {
             let trait_method_id = program_fct.trait_method_impl?;
             let trait_method = program.fct(trait_method_id);
@@ -157,7 +157,7 @@ pub fn get_bytecode<'a>(
                 _ => unreachable!(),
             };
 
-            let bytecode_fct = trait_method.bytecode.as_ref()?;
+            let bytecode_body = trait_method.bytecode.as_ref()?;
 
             let program_fct_impl = program.impl_(program_fct_impl_id);
 
@@ -168,7 +168,7 @@ pub fn get_bytecode<'a>(
                 extended_ty: program_fct_impl.extended_ty.clone(),
             };
 
-            Some((bytecode_fct, Some(specialize_self)))
+            Some((bytecode_body, Some(specialize_self)))
         }
     }
 }

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::program_emitter::Emitter;
 use crate::sema::{AnalysisData, ExprId, GlobalDefinition, Sema};
-use dora_bytecode::BytecodeFunction;
+use dora_bytecode::BytecodeBody;
 
 use super::expr::gen_expr;
 use super::{AstBytecodeGen, BytecodeBuilder, DataDest};
@@ -12,7 +12,7 @@ pub fn generate_global_initializer(
     emitter: &mut Emitter,
     global: &GlobalDefinition,
     src: &AnalysisData,
-) -> BytecodeFunction {
+) -> BytecodeBody {
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
         emitter,
@@ -34,9 +34,8 @@ pub fn generate_global_initializer(
     generate_global_initializer_impl(ast_bytecode_generator, expr_id)
 }
 
-fn generate_global_initializer_impl(mut g: AstBytecodeGen, expr_id: ExprId) -> BytecodeFunction {
+fn generate_global_initializer_impl(mut g: AstBytecodeGen, expr_id: ExprId) -> BytecodeBody {
     g.push_scope();
-    g.builder.set_params(Vec::new());
     g.enter_function_context();
     emit_global_initializer(&mut g, expr_id);
     g.leave_function_context();

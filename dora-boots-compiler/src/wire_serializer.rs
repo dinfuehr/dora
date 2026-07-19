@@ -2,17 +2,17 @@ use std::convert::TryInto;
 
 use dora_bytecode::opcode as opc;
 use dora_bytecode::{
-    BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ConstPoolEntry,
-    ConstPoolOpcode, ConstValue, EnumData, FunctionData, Location, Program, StructData,
+    BytecodeBody, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ConstPoolEntry,
+    ConstPoolOpcode, ConstValue, EnumData, FunctionData, Location, StructData,
 };
 use dora_compiler::wire::{ByteBuffer, encode_bytecode_type, encode_bytecode_type_array};
 use dora_compiler::{
     CompilationData, CompilationOptions, FunctionSignature, SpecializeSelf,
-    TraitObjectThunkCompilationData, get_bytecode,
+    TraitObjectThunkCompilationData,
 };
 
 pub fn encode_compilation_data(compilation_data: &CompilationData, buffer: &mut ByteBuffer) {
-    encode_bytecode_function(&compilation_data.bytecode_fct, buffer);
+    encode_bytecode_body(&compilation_data.bytecode_body, buffer);
     buffer.emit_id(compilation_data.fct_id.index());
     encode_function_signature(&compilation_data.signature, buffer);
     encode_location(&compilation_data.loc, buffer);
@@ -33,7 +33,7 @@ pub fn encode_trait_object_thunk_compilation_data(
     encode_compilation_options(&compilation_data.options, buffer);
 }
 
-fn encode_function_signature(signature: &FunctionSignature, buffer: &mut ByteBuffer) {
+pub(crate) fn encode_function_signature(signature: &FunctionSignature, buffer: &mut ByteBuffer) {
     encode_bytecode_type_array(&signature.params, buffer);
     encode_bytecode_type(&signature.return_type, buffer);
     encode_type_params(&signature.type_params, buffer);
@@ -108,26 +108,14 @@ pub fn encode_function_inlining_info(fct: &FunctionData, buffer: &mut ByteBuffer
     buffer.emit_bool(fct.is_never_inline);
 }
 
-pub fn encode_function_bytecode_data(
-    program: &Program,
-    fct: &FunctionData,
-    buffer: &mut ByteBuffer,
-) {
-    let (bc, specialize_self) = get_bytecode(program, fct).expect("missing bytecode");
-    encode_bytecode_function(bc, buffer);
-    encode_bytecode_type(&fct.return_type, buffer);
-    encode_optional_specialize_self(&specialize_self, buffer);
+pub(crate) fn encode_bytecode_body(bytecode_body: &BytecodeBody, buffer: &mut ByteBuffer) {
+    encode_bytecode_array(bytecode_body, buffer);
+    encode_constpool_array(bytecode_body, buffer);
+    encode_registers_array(bytecode_body, buffer);
+    encode_bytecode_locations(bytecode_body, buffer);
 }
 
-fn encode_bytecode_function(bytecode_fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
-    encode_bytecode_array(bytecode_fct, buffer);
-    encode_constpool_array(bytecode_fct, buffer);
-    encode_registers_array(bytecode_fct, buffer);
-    encode_bytecode_locations(bytecode_fct, buffer);
-    buffer.emit_u32(bytecode_fct.arguments());
-}
-
-fn encode_bytecode_array(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
+fn encode_bytecode_array(fct: &BytecodeBody, buffer: &mut ByteBuffer) {
     buffer.emit_u32(fct.code().len() as u32);
 
     for &byte in fct.code() {
@@ -135,7 +123,7 @@ fn encode_bytecode_array(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
     }
 }
 
-fn encode_registers_array(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
+fn encode_registers_array(fct: &BytecodeBody, buffer: &mut ByteBuffer) {
     buffer.emit_u32(fct.registers().len() as u32);
 
     for ty in fct.registers().iter() {
@@ -143,7 +131,7 @@ fn encode_registers_array(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
     }
 }
 
-fn encode_bytecode_locations(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
+fn encode_bytecode_locations(fct: &BytecodeBody, buffer: &mut ByteBuffer) {
     buffer.emit_u32(fct.locations().len() as u32);
 
     for (offset, loc) in fct.locations() {
@@ -180,7 +168,7 @@ fn encode_bytecode_trait_type(trait_ty: &BytecodeTraitType, buffer: &mut ByteBuf
     }
 }
 
-fn encode_constpool_array(fct: &BytecodeFunction, buffer: &mut ByteBuffer) {
+fn encode_constpool_array(fct: &BytecodeBody, buffer: &mut ByteBuffer) {
     buffer.emit_u32(fct.const_pool_entries().len() as u32);
 
     for const_entry in fct.const_pool_entries() {

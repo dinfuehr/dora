@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::asm::BaselineAssembler;
 use crate::masm::{CondCode, JumpTable, Label, Mem};
 use dora_bytecode::{
-    BytecodeFunction, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
+    BytecodeBody, BytecodeOffset, BytecodeTraitType, BytecodeType, BytecodeTypeArray,
     BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, FunctionId, FunctionKind, GlobalId,
     Location, Program, Register, display_fct, display_ty, read,
 };
@@ -39,7 +39,7 @@ pub struct CannonCodeGen<'a, 'i> {
     program: &'a Program,
     layout: AotLayout<'a>,
     asm: BaselineAssembler<'a>,
-    bytecode: &'a BytecodeFunction,
+    bytecode: &'a BytecodeBody,
 
     location: Location,
     params: BytecodeTypeArray,
@@ -90,7 +90,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             location: compilation_data.loc,
             emit_debug: options.emit_debug,
             asm: BaselineAssembler::new(compilation_data.program),
-            bytecode: compilation_data.bytecode_fct,
+            bytecode: compilation_data.bytecode_body,
             emit_code_comments: options.emit_code_comments,
             type_params: signature.type_params,
             specialize_self: signature.specialize_self,

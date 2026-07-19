@@ -1,6 +1,6 @@
 use package::bytecode::{
     AliasId,
-    BytecodeFunction,
+    BytecodeBody,
     BytecodeTraitType,
     BytecodeType,
     ClassFieldId,
@@ -25,7 +25,7 @@ use package::compilation::{
     TraitObjectThunk,
 };
 use package::interface::{Config, EnumData, EnumVariantData, StructData};
-use package::interface::{Architecture, FunctionBytecodeData, FunctionInliningInfo};
+use package::interface::{Architecture, FunctionInliningInfo, InliningFunctionData};
 
 pub fn decode_config(encoded: Array[UInt8]): Config {
     let reader = ByteReader::new(encoded);
@@ -56,7 +56,7 @@ pub fn decode_config(encoded: Array[UInt8]): Config {
 }
 
 pub fn decode_function_compilation_info(reader: ByteReader): FunctionCompilationInfo {
-    let bc = decode_bytecode_function(reader);
+    let bc = decode_bytecode_body(reader);
     let fct_id = FunctionId(reader.read_int32());
     let signature = decode_function_signature(reader);
     FunctionCompilationInfo(fct_id, bc, signature)
@@ -165,18 +165,16 @@ fn decode_enum_variant_data(reader: ByteReader): EnumVariantData {
     EnumVariantData(fields = fields)
 }
 
-pub fn decode_bytecode_function(reader: ByteReader): BytecodeFunction {
+pub fn decode_bytecode_body(reader: ByteReader): BytecodeBody {
     let code = decode_bytecode_array(reader);
     let constpool = decode_const_pool(reader);
     let registers = decode_registers(reader);
     let locations = decode_locations(reader);
-    let arguments = reader.read_int32();
-    BytecodeFunction(
+    BytecodeBody(
         code = code,
         const_pool = constpool,
         registers = registers,
         locations = locations,
-        arguments = arguments,
     )
 }
 
@@ -462,12 +460,11 @@ pub fn decode_bytecode_type_array(reader: ByteReader): Array[BytecodeType] {
     data
 }
 
-pub fn decode_function_bytecode_data(reader: ByteReader): FunctionBytecodeData {
-    let bc = decode_bytecode_function(reader);
-    let return_type = decode_bytecode_type(reader);
-    let specialize_self = decode_optional_specialize_self(reader);
+pub fn decode_inlining_function_data(reader: ByteReader): InliningFunctionData {
+    let bc = decode_bytecode_body(reader);
+    let signature = decode_function_signature(reader);
 
-    FunctionBytecodeData(bc, return_type, specialize_self)
+    InliningFunctionData(bc, signature)
 }
 
 pub fn decode_function_inlining_info(reader: ByteReader): FunctionInliningInfo {

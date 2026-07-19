@@ -1,7 +1,7 @@
 use std::BitSet;
 
 use package::bytecode::{
-    BytecodeFunction,
+    BytecodeBody,
     BytecodeRegister,
     BytecodeTraitType,
     BytecodeType,
@@ -81,7 +81,7 @@ pub class BytecodeGraphBuilder {
     graph: Graph,
     fct_id: FunctionId,
     inlined_function_id: Option[InlinedFunctionId],
-    bc: Option[BytecodeFunction],
+    bc: Option[BytecodeBody],
     type_params: Array[BytecodeType],
     return_type: BytecodeType,
     specialize_self: Option[SpecializeSelf],
@@ -113,7 +113,7 @@ impl BytecodeGraphBuilder {
             graph,
             fct_id = fct.fct_id,
             inlined_function_id = None[InlinedFunctionId],
-            bc = Some[BytecodeFunction](fct.bc),
+            bc = Some[BytecodeBody](fct.bc),
             type_params = fct.signature.type_params,
             return_type = fct.signature.return_type,
             specialize_self = fct.signature.specialize_self,
@@ -149,7 +149,7 @@ impl BytecodeGraphBuilder {
             graph,
             fct_id = fct.fct_id,
             inlined_function_id = Some[InlinedFunctionId](inlined_function_id),
-            bc = Some[BytecodeFunction](fct.bc),
+            bc = Some[BytecodeBody](fct.bc),
             type_params = fct.signature.type_params,
             return_type = fct.signature.return_type,
             specialize_self = fct.signature.specialize_self,
@@ -253,7 +253,7 @@ impl BytecodeGraphBuilder {
         self.setup_aggregate_registers(block);
 
         let mut reg_idx = 0i32;
-        while reg_idx < self.bc().arguments {
+        while reg_idx < self.signature.params.size().to_int32() {
             if arguments(reg_idx.to_int64()) is Some(arg_inst) {
                 let ty = self.reg_id(reg_idx);
                 let passing_mode = cc::argument_passing_mode(self.ci, ty);
@@ -338,7 +338,7 @@ impl BytecodeGraphBuilder {
         }
 
         let mut reg_idx = 0i32;
-        while reg_idx < self.bc().arguments {
+        while reg_idx < self.signature.params.size().to_int32() {
             let ty = self.reg_id(reg_idx);
 
             let passing_mode = cc::argument_passing_mode(self.ci, ty);
@@ -2818,7 +2818,7 @@ impl BytecodeGraphBuilder {
         InlinedLocation(inlined_function_id = self.inlined_function_id, location = loc)
     }
 
-    fn bc(): BytecodeFunction {
+    fn bc(): BytecodeBody {
         self.bc.get_or_panic()
     }
 
@@ -2888,7 +2888,7 @@ impl BytecodeGraphBuilder {
     }
 }
 
-pub fn analyze_bytecode(bc: BytecodeFunction): BytecodeAnalysis {
+pub fn analyze_bytecode(bc: BytecodeBody): BytecodeAnalysis {
     let starts = find_block_starts(bc);
 
     BytecodeAnalysis(starts)
@@ -2898,7 +2898,7 @@ pub class BytecodeAnalysis {
     pub starts: BitSet,
 }
 
-fn find_block_starts(bc: BytecodeFunction): BitSet {
+fn find_block_starts(bc: BytecodeBody): BitSet {
     let starts = BitSet::new(bc.code.size());
     starts.insert(0);
 

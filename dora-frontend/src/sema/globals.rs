@@ -10,7 +10,7 @@ use crate::sema::{
     module_path,
 };
 use crate::ty::SourceType;
-use dora_bytecode::BytecodeFunction;
+use dora_bytecode::BytecodeBody;
 use dora_parser::Span;
 use dora_parser::ast::{self, SyntaxNodeBase};
 use id_arena::Id;
@@ -34,7 +34,7 @@ pub struct GlobalDefinition {
     pub type_param_definition: Rc<TypeParamDefinition>,
     pub initializer: OnceCell<FctDefinitionId>,
     pub body: OnceCell<Body>,
-    pub bytecode: OnceCell<BytecodeFunction>,
+    pub bytecode: OnceCell<BytecodeBody>,
 }
 
 impl GlobalDefinition {
@@ -112,7 +112,7 @@ impl GlobalDefinition {
         assert!(self.body.set(body).is_ok());
     }
 
-    pub fn bytecode(&self) -> &BytecodeFunction {
+    pub fn bytecode(&self) -> &BytecodeBody {
         self.bytecode.get().expect("missing bytecode")
     }
 }

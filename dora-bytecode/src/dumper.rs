@@ -2,12 +2,11 @@ use std::io;
 
 use crate::display::{fmt_lambda_params, fmt_trait_ty, fmt_tuple, fmt_ty, fmt_type_params};
 use crate::{
-    BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx,
-    GlobalId, Program, Register, TypeParamMode, display_fct, display_fct_specialized,
-    module_path_name, read,
+    BytecodeBody, BytecodeOffset, BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx, GlobalId,
+    Program, Register, TypeParamMode, display_fct, display_fct_specialized, module_path_name, read,
 };
 
-pub fn dump_stdout(prog: &Program, bc: &BytecodeFunction, type_params: TypeParamMode) {
+pub fn dump_stdout(prog: &Program, bc: &BytecodeBody, type_params: TypeParamMode) {
     let mut stdout = io::stdout();
     dump(&mut stdout, prog, bc, type_params).expect("I/O failure");
 }
@@ -15,7 +14,7 @@ pub fn dump_stdout(prog: &Program, bc: &BytecodeFunction, type_params: TypeParam
 pub fn dump(
     w: &mut dyn io::Write,
     prog: &Program,
-    bc: &BytecodeFunction,
+    bc: &BytecodeBody,
     type_params: TypeParamMode,
 ) -> std::io::Result<()> {
     let mut visitor = BytecodeDumper {
@@ -257,7 +256,7 @@ pub fn dump(
 }
 
 struct BytecodeDumper<'a> {
-    bc: &'a BytecodeFunction,
+    bc: &'a BytecodeBody,
     pos: BytecodeOffset,
     w: &'a mut dyn io::Write,
     prog: &'a Program,
