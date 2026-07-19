@@ -656,6 +656,8 @@ impl<'a> DefaultTraitMethodSpecialization<'a> {
 
             SourceType::Tuple(subtypes) => SourceType::Tuple(self.specialize_array(subtypes)),
 
+            SourceType::Ref(inner) => SourceType::Ref(Box::new(self.specialize(*inner))),
+
             SourceType::TypeParam(type_param_id) => self.type_params.get(type_param_id),
 
             SourceType::Unit
@@ -670,7 +672,7 @@ impl<'a> DefaultTraitMethodSpecialization<'a> {
 
             SourceType::This => self.extended_ty.clone(),
 
-            SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
+            SourceType::Any | SourceType::Ptr => {
                 unreachable!()
             }
         }

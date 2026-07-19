@@ -1,0 +1,27 @@
+//= ok
+
+trait HasValue {
+    type Item;
+
+    fn read(value: ref Self::Item): Self::Item {
+        value
+    }
+
+    fn read_self(value: ref Self): Self {
+        value
+    }
+}
+
+struct Holder(Int64)
+
+impl HasValue for Holder {
+    type Item = Int64;
+}
+
+fn test() {
+    let value = 42;
+    assert(Holder(0).read(ref value) == 42);
+
+    let holder = Holder(77);
+    assert(Holder(0).read_self(ref holder).0 == 77);
+}
