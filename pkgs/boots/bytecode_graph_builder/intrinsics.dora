@@ -2,7 +2,7 @@ use package::bytecode::{BytecodeRegister, BytecodeType};
 use package::bytecode::opcode as opc;
 use package::bytecode_graph_builder::BytecodeGraphBuilder;
 use package::graph;
-use package::graph::{CallKind, Inst, InstExtraData, Op};
+use package::graph::{Inst, InstExtraData, Op};
 use package::graph::ty::Type;
 use package::interface as iface;
 use package::interface::RuntimeFunction;
@@ -1305,12 +1305,7 @@ impl BytecodeGraphBuilder {
 
     fn emit_intrinsic_unreachable() {
         let info = InstExtraData::RuntimeFunction(RuntimeFunction::UnreachableTrampoline);
-        let inst = graph::create_invoke_inst(
-            info,
-            CallKind::Static,
-            Vec[Inst]::new(),
-            Type::Unit,
-        );
+        let inst = graph::create_invoke_inst(info, Vec[Inst]::new(), Type::Unit);
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
 
@@ -1322,7 +1317,7 @@ impl BytecodeGraphBuilder {
         let args = Vec[Inst]::new(arg);
 
         let info = InstExtraData::RuntimeFunction(RuntimeFunction::FatalErrorTrampoline);
-        let inst = graph::create_invoke_inst(info, CallKind::Static, args, Type::Unit);
+        let inst = graph::create_invoke_inst(info, args, Type::Unit);
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
 

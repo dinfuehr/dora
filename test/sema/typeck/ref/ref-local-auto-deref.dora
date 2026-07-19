@@ -1,5 +1,5 @@
 //= ok
-fn take_ref(value: ref Int) {}
+fn take_ref(_value: ref Int) {}
 
 fn test() {
     let a: Int = 1;

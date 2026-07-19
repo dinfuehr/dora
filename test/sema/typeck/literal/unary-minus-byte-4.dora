@@ -1,1 +1,1 @@
-fn main() { let m1: UInt8 = -1u8; }
+fn main() { let _m1: UInt8 = -1u8; }

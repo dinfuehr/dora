@@ -1,2 +1,2 @@
 class Bar[T]
-fn f(x: Bar) {}
+fn f(_x: Bar) {}

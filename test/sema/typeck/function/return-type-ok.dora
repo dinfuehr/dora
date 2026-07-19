@@ -1,2 +1,2 @@
 //= ok
-fn foo(): Int32 { return 1i32; } fn f() { let i: Int32 = foo(); }
+fn foo(): Int32 { return 1i32; } fn f() { let _i: Int32 = foo(); }

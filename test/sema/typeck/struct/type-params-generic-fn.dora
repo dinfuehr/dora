@@ -1,2 +1,2 @@
 struct Foo[T](T, Bool)
-fn f[T](val: T): Foo[T] { Foo(val, false) }
+fn f[T](_val: T): Foo[T] { Foo(val, false) }

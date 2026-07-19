@@ -1,3 +1,3 @@
 fn f(x: (String, Bool)) {
-    let (y, 2) = x;
+    let (_y, 2) = x;
 }

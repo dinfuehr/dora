@@ -1,4 +1,4 @@
 //= ok
 fn f(x: (String, Char)) {
-    let (y, 'a') = x;
+    let (_y, 'a') = x;
 }

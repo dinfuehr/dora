@@ -1,4 +1,4 @@
 trait MyTraitA {}
 trait MyTraitB {}
 class Foo[T: MyTraitA + MyTraitB]
-fn bar[T: MyTraitA](arg: Foo[T]) {}
+fn bar[T: MyTraitA](_arg: Foo[T]) {}

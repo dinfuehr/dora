@@ -14,5 +14,5 @@ fn identity[T: Foo](x: T::Item): T::Item {
 }
 
 fn main() {
-    let result: Int64 = identity[Bar](42);
+    let _result: Int64 = identity[Bar](42);
 }

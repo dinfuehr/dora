@@ -2,7 +2,7 @@
 mod foo {
     class Foo(Bar)
     impl Foo {
-        fn foo(x: Bar) {}
+        fn foo(_x: Bar) {}
     }
     class Bar
 }

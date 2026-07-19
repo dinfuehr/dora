@@ -1,7 +1,7 @@
 //= ok
 class A
 impl std::traits::Equals for A {
-    fn equals(rhs: A): Bool { return true; }
+    fn equals(_rhs: A): Bool { return true; }
 }
 fn f1(): Bool { return A() == A(); }
 fn f2(): Bool { return A() != A(); }

@@ -1,10 +1,10 @@
 //= ok
 class X
 trait MyTrait {
-    fn f(x: Self) {}
+    fn f(_x: Self) {}
 }
 impl MyTrait for X {
     fn f(x: X) {
-        let tmp: Self = x;
+        let _tmp: Self = x;
     }
 }

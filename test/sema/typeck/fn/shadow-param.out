@@ -1,6 +1,6 @@
-error: Name `a` bound multiple times in parameter list.
---> shadow-param.dora:1:26
- | fn f(a: Int32, b: Int32, a: String) {}
-                            ~
+error: Name `_a` bound multiple times in parameter list.
+--> shadow-param.dora:1:28
+ | fn f(_a: Int32, _b: Int32, _a: String) {}
+                              ~~
  | 
 1 error found.

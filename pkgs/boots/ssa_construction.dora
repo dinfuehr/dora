@@ -378,7 +378,7 @@ impl RegisterTable {
     static fn new(registers: Int64): RegisterTable {
         let data = Vec[HashMap[Block, Inst]]::new();
 
-        for i in std::range(0, registers) {
+        for _ in std::range(0, registers) {
             data.push(HashMap[Block, Inst]::new());
         }
 

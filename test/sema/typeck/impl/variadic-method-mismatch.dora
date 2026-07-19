@@ -5,5 +5,5 @@ trait Foo {
 struct Bar
 
 impl Foo for Bar {
-    fn f(values: Int32) {}
+    fn f(_values: Int32) {}
 }

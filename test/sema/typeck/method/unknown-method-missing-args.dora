@@ -1,6 +1,6 @@
 class Foo
 impl Foo {
-    fn bar(a: Int32) { }
+    fn bar(_a: Int32) { }
 }
 
 fn f(x: Foo) { x.bar(); }

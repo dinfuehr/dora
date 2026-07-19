@@ -2,6 +2,6 @@ trait Foo {
     static fn bar[T](x: T);
 }
 
-fn f[T: Foo](x: T) {
+fn f[T: Foo](_x: T) {
     T::bar(1);
 }

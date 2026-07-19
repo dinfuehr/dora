@@ -1,1 +1,1 @@
-fn a(b: foo) {}
+fn a(_b: foo) {}

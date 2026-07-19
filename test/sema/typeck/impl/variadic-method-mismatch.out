@@ -2,8 +2,8 @@ error: impl method does not match definition in trait.
 --> variadic-method-mismatch.dora:8:5
  | 
  | impl Foo for Bar {
- |     fn f(values: Int32) {}
-       ~~~~~~~~~~~~~~~~~~~~~~
+ |     fn f(_values: Int32) {}
+       ~~~~~~~~~~~~~~~~~~~~~~~
  | }
  | 
 1 error found.

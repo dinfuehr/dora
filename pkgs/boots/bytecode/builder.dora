@@ -430,8 +430,6 @@ impl BytecodeBuilder {
             assert(jump.label.offset() > jump.inst);
             let offset = jump.label.offset() - jump.inst;
 
-            let opcode = self.code(jump.inst.to_int64()).to_int32();
-
             self.patch_int32(jump.target, offset);
         }
 

@@ -4,6 +4,6 @@ trait Foo {
 
 trait Bar {}
 
-fn f[T: Foo](x: T) {
+fn f[T: Foo](_x: T) {
     T::bar[Int](1);
 }

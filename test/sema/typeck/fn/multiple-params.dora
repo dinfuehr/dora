@@ -1,2 +1,2 @@
 //= ok
-fn f(a: Int32, b: Int32, c: String) {}
+fn f(_a: Int32, _b: Int32, _c: String) {}

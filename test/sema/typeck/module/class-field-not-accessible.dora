@@ -1,2 +1,2 @@
-fn f(x: foo::Foo) { let a = x.bar; }
+fn f(x: foo::Foo) { let _a = x.bar; }
 mod foo { pub class Foo { bar: Int32 } }

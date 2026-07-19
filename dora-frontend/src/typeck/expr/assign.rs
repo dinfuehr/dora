@@ -64,6 +64,10 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
                 ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
             }
 
+            if sema_expr.op != ast::AssignOp::Assign {
+                ck.vars.mark_used(var_id);
+            }
+
             // Variable may have to be context-allocated.
             let ident = ck.maybe_allocate_in_context(var_id);
             ck.body.insert_ident(lhs_id, ident);

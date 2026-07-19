@@ -1,2 +1,2 @@
-fn f(x: foo::Foo) { let a = x.bar(10i64); }
+fn f(x: foo::Foo) { let _a = x.bar(10i64); }
 mod foo { pub class Foo { bar: Array[Int32] } }

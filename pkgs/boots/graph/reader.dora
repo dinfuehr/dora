@@ -1,7 +1,7 @@
 use package::graph::Graph;
 use std::StringBuffer;
 
-fn read_graph(data: String): Graph {
+fn read_graph(_data: String): Graph {
     unreachable[Graph]()
 }
 

@@ -1,2 +1,2 @@
 //= ok
-fn f(a: Int32) { let b: Int32 = a; }
+fn f(a: Int32) { let _b: Int32 = a; }

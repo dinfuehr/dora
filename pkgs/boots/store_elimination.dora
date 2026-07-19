@@ -4,7 +4,7 @@ use package::compilation::CompilationInfo;
 use package::dominator::compute_post_order;
 use package::graph::{Block, ClassInfo, Graph, Inst, Op, Type};
 
-pub fn perform_store_elimination(ci: CompilationInfo, graph: Graph) {
+pub fn perform_store_elimination(_ci: CompilationInfo, graph: Graph) {
     StoreEliminationPass::new(graph).run();
 }
 
@@ -17,7 +17,7 @@ impl StoreEliminationPass {
     static fn new(graph: Graph): StoreEliminationPass {
         let in_data = Array[StoreData]::fill_with(
             graph.blocks.size(),
-            |i: Int64|: StoreData {
+            |_: Int64|: StoreData {
                 StoreData::new()
             },
         );

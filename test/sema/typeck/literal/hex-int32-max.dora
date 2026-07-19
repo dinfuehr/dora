@@ -1,2 +1,2 @@
 //= ok
-fn f() { let x: Int32 = 0xFF_FF_FF_FFi32; }
+fn f() { let _x: Int32 = 0xFF_FF_FF_FFi32; }

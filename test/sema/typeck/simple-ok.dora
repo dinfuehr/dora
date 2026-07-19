@@ -1,4 +1,4 @@
 //= ok
 fn main() {
-    let x: Int32 = 1;
+    let _x: Int32 = 1;
 }

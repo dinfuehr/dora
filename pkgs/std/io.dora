@@ -138,7 +138,7 @@ impl OpenFile {
 }
 
 impl Read for OpenFile {
-    fn read(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
+    fn read(array: Array[UInt8], _offset: Int64, _len: Int64): Result[Int64, IOError] {
         let read = file_read(self.fd, array, 0, array.size());
 
         if read >= 0 {

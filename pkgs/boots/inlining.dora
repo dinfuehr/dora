@@ -31,7 +31,7 @@ pub fn perform_inlining(ci: CompilationInfo, graph: Graph) {
 }
 
 fn select_next_call_site(
-    ci: CompilationInfo,
+    _ci: CompilationInfo,
     graph: Graph,
 ): Option[(Inst, FunctionInliningInfo)] {
     let mut i = 0;

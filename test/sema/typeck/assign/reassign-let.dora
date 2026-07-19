@@ -1,1 +1,1 @@
-fn f() { let a=1; a=2; }
+fn f() { let _a=1; _a=2; }

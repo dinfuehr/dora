@@ -1,1 +1,1 @@
-fn test[T](T: Int32) {}
+fn test[T](_T: Int32) {}

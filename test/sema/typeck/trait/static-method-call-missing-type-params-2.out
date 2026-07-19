@@ -1,7 +1,7 @@
 error: expected 1 type parameters but got 0.
 --> static-method-call-missing-type-params-2.dora:6:5
  | 
- | fn f[T: Foo[Int]](x: T) {
+ | fn f[T: Foo[Int]](_x: T) {
  |     T::bar(1);
        ~~~~~~~~~
  | }

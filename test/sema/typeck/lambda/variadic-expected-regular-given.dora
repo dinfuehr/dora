@@ -1,4 +1,4 @@
-fn expects_variadic(f: (Int32...): Int32) {}
+fn expects_variadic(_f: (Int32...): Int32) {}
 
 fn main() {
     let regular = |value: Int32|: Int32 {

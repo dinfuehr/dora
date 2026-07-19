@@ -1,1 +1,1 @@
-class Foo{a: Int32} impl Foo { fn set(x: Int32) { a = x; } }
+class Foo{a: Int32} impl Foo { fn set(_x: Int32) { a = x; } }

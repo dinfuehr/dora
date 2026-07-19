@@ -1,6 +1,6 @@
 error: type `Int32` doesn't implement IntoIterator or Iterator trait.
---> not-iterable-int.dora:1:19
- | fn f() { for i in 1i32 {} }
-                     ~~~~
+--> not-iterable-int.dora:1:20
+ | fn f() { for _i in 1i32 {} }
+                      ~~~~
  | 
 1 error found.

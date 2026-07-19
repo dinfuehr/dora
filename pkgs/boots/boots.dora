@@ -163,11 +163,11 @@ fn compile_graph(
         }
     }
 
-    prepare_register_allocation(graph, codegen, ci);
+    prepare_register_allocation(ci, graph, codegen);
 
     split_critical_edges(graph);
     build_dominator_tree(graph);
-    compute_liveness(graph, ci);
+    compute_liveness(ci, graph);
 
     pass(ci, graph, "before register allocation", || {});
 

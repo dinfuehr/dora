@@ -1,6 +1,6 @@
 //= ok
 enum A { V1(Int64), V2 }
-fn f(x: A, y: Bool): Int64 {
+fn f(x: A, _y: Bool): Int64 {
     match x {
         A::V1(a) if a > 10 => a,
         A::V1(..) => 1,

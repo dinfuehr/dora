@@ -2,8 +2,8 @@ error: pattern should be used without parens.
 --> match-const-with-args.dora:5:9
  | fn f(value: Int32): Int32 {
  |     match value {
- |         ZERO(1i32, a) => 1i32,
-           ~~~~~~~~~~~~~
+ |         ZERO(1i32, _a) => 1i32,
+           ~~~~~~~~~~~~~~
  |         _ => 2i32
  |     }
 1 error found.

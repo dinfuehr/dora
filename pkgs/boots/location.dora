@@ -31,7 +31,6 @@ pub fn ensure_location_data(
     let annotator = LocationAnnotation(
         graph,
         codegen,
-        ci,
         max_outgoing_args_size = 0i32,
         argument_locations,
     );
@@ -42,7 +41,6 @@ pub fn ensure_location_data(
 class LocationAnnotation {
     graph: Graph,
     codegen: CodeGen,
-    ci: CompilationInfo,
     max_outgoing_args_size: Int32,
     argument_locations: ArgumentLocations,
 }
@@ -79,7 +77,6 @@ impl LocationAnnotation {
     fn annotate_inst(inst: Inst) {
         let loc = LocationData::new(inst);
         inst.set_location_data(loc);
-        let arch = config.architecture;
 
         match inst.op() {
             Op::Arg => {
@@ -268,7 +265,7 @@ impl LocationAnnotation {
             }
 
             Op::Invoke | Op::InvokeVirtual | Op::InvokeLambda => {
-                let outgoing_args_size = annotate_call(inst, loc, self.codegen, self.ci);
+                let outgoing_args_size = annotate_call(inst, self.codegen);
                 self.max_outgoing_args_size =
                 Int32::max(self.max_outgoing_args_size, outgoing_args_size);
             }
@@ -597,12 +594,7 @@ fn compute_argument_locations(
     ArgumentLocations(locations = locations.to_array())
 }
 
-fn annotate_call(
-    inst: Inst,
-    loc: LocationData,
-    codegen: CodeGen,
-    ci: CompilationInfo,
-): Int32 {
+fn annotate_call(inst: Inst, codegen: CodeGen): Int32 {
     let mut idx = 0;
     let mut gp_idx = 0;
     let mut fp_idx = 0;

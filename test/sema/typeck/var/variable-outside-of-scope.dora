@@ -1,1 +1,1 @@
-fn f(): Int32 { { let a = 1i32; } return a; }
+fn f(): Int32 { { let _a = 1i32; } return a; }

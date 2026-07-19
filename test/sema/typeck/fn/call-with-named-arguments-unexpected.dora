@@ -1,4 +1,4 @@
-fn f(x: Int, y: Int) {}
+fn f(_x: Int, _y: Int) {}
 fn g() {
     f(1, 2, y = 3);
 }

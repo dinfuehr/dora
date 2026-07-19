@@ -1,4 +1,4 @@
 //= ok
 fn f(x: (String, Bool)) {
-    let (y, true) = x;
+    let (_y, true) = x;
 }

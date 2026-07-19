@@ -1,1 +1,1 @@
-fn f() { let b : Bool = 2i32; }
+fn f() { let _b : Bool = 2i32; }

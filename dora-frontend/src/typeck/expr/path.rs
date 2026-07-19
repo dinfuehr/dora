@@ -311,6 +311,7 @@ fn resolve_symbol(
                 }
             }
 
+            ck.vars.mark_used(var_id);
             let ident = ck.maybe_allocate_in_context(var_id);
             ck.body.insert_ident(expr_id, ident);
 

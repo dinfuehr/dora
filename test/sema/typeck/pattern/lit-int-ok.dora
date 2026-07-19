@@ -1,4 +1,4 @@
 //= ok
 fn f(x: (String, Int64)) {
-    let (y, -2) = x;
+    let (_y, -2) = x;
 }

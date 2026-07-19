@@ -1951,7 +1951,7 @@ impl Inst {
     pub fn get_true_block(): Block {
         assert(self.op() == Op::If);
         match self.extra {
-            InstExtraData::If(then_block, else_block) => then_block,
+            InstExtraData::If(then_block, _else_block) => then_block,
             _ => unreachable[Block](),
         }
     }
@@ -1959,7 +1959,7 @@ impl Inst {
     pub fn set_true_block(block: Block) {
         assert(self.op() == Op::If);
         match self.extra {
-            InstExtraData::If(then_block, else_block) => {
+            InstExtraData::If(_then_block, else_block) => {
                 self.extra = InstExtraData::If(block, else_block);
             }
             _ => unreachable[()](),
@@ -1969,7 +1969,7 @@ impl Inst {
     pub fn get_false_block(): Block {
         assert(self.op() == Op::If);
         match self.extra {
-            InstExtraData::If(then_block, else_block) => else_block,
+            InstExtraData::If(_then_block, else_block) => else_block,
             _ => unreachable[Block](),
         }
     }
@@ -2027,7 +2027,7 @@ impl Inst {
     pub fn set_false_block(block: Block) {
         assert(self.op() == Op::If);
         match self.extra {
-            InstExtraData::If(then_block, else_block) => {
+            InstExtraData::If(then_block, _else_block) => {
                 self.extra = InstExtraData::If(then_block, block);
             }
             _ => unreachable[()](),
@@ -2525,7 +2525,7 @@ impl Location {
 
     pub fn is_register(): Bool {
         match self {
-            Location::Reg(reg) => true,
+            Location::Reg(..) => true,
             _ => false,
         }
     }
@@ -2539,7 +2539,7 @@ impl Location {
 
     pub fn is_float_register(): Bool {
         match self {
-            Location::FloatReg(reg) => true,
+            Location::FloatReg(..) => true,
             _ => false,
         }
     }
@@ -2553,7 +2553,7 @@ impl Location {
 
     pub fn is_stack(): Bool {
         match self {
-            Location::Stack(slot) => true,
+            Location::Stack(..) => true,
             _ => false,
         }
     }
@@ -3208,12 +3208,7 @@ pub fn create_goto_inst(block: Block): Inst {
     inst
 }
 
-pub fn create_invoke_inst(
-    extra: InstExtraData,
-    kind: CallKind,
-    args: Vec[Inst],
-    return_ty: Type,
-): Inst {
+pub fn create_invoke_inst(extra: InstExtraData, args: Vec[Inst], return_ty: Type): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::Invoke);
     inst.extra = extra;

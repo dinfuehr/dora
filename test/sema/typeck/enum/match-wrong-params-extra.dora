@@ -1,7 +1,7 @@
 enum A { V1(Int32, Float32, Bool), V2 }
 fn f(x: A): Int32 {
     match x {
-        A::V1(a, b, c, d) => 0i32,
+        A::V1(_a, _b, _c, _d) => 0i32,
         A::V2 => 1i32
     }
 }

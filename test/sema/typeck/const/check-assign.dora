@@ -1,2 +1,2 @@
 const one: Int32 = 1i32;
-fn f() { let x: String = one; }
+fn f() { let _x: String = one; }

@@ -1,2 +1,2 @@
 fn foo() { bar[Int32](false); }
-fn bar[T](x: T) {}
+fn bar[T](_x: T) {}

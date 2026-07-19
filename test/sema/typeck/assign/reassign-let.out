@@ -1,6 +1,6 @@
 error: `let` binding cannot be reassigned.
---> reassign-let.dora:1:19
- | fn f() { let a=1; a=2; }
-                     ~~~
+--> reassign-let.dora:1:20
+ | fn f() { let _a=1; _a=2; }
+                      ~~~~
  | 
 1 error found.

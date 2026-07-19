@@ -1,2 +1,2 @@
 //= ok
-fn f() { let mut a=1; a=2; }
+fn f() { let mut _a=1; _a=2; }

@@ -4,7 +4,7 @@ struct Point(Int32, Int32)
 
 impl Point {
     fn test() {
-        let f = || {
+        let _f = || {
             self.0;
         };
     }

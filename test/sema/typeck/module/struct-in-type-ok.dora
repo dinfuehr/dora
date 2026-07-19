@@ -1,5 +1,5 @@
 //= ok
-fn f(value: foo::Foo) {}
+fn f(_value: foo::Foo) {}
 mod foo {
     pub struct Foo(Int32)
 }

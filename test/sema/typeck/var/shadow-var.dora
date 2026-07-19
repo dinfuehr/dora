@@ -1,2 +1,2 @@
 //= ok
-fn f() { let f = 1i32; let f = 2i32; }
+fn f() { let f = 1i32; f; let f = 2i32; f; }

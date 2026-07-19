@@ -1,1 +1,1 @@
-fn f(sum: (Int32..., Int32): Int32) {}
+fn f(_sum: (Int32..., Int32): Int32) {}

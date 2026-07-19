@@ -1,7 +1,7 @@
 use package::compilation::CompilationInfo;
 use package::graph::{Graph, Inst, Op};
 
-pub fn perform_late_escape_analysis(ci: CompilationInfo, graph: Graph) {
+pub fn perform_late_escape_analysis(_ci: CompilationInfo, graph: Graph) {
     let pass = LateEscapeAnalysisPass::new();
     pass.run(graph);
 }

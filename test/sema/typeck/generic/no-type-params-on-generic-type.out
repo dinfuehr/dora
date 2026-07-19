@@ -1,7 +1,7 @@
 error: expected 1 type parameters but got 0.
---> no-type-params-on-generic-type.dora:2:9
+--> no-type-params-on-generic-type.dora:2:10
  | class Bar[T]
- | fn f(x: Bar) {}
-           ~~~
+ | fn f(_x: Bar) {}
+            ~~~
  | 
 1 error found.

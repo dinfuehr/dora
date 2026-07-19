@@ -747,10 +747,10 @@ impl BytecodeGraphBuilder {
                 false
             }
             BytecodeInstruction::InvokeGenericStatic(dest, idx, arguments) => {
-                self.emit_invoke_generic(dest, idx, arguments, CallKind::Static)
+                self.emit_invoke_generic(dest, idx, arguments)
             }
             BytecodeInstruction::InvokeGenericDirect(dest, idx, arguments) => {
-                self.emit_invoke_generic(dest, idx, arguments, CallKind::Direct)
+                self.emit_invoke_generic(dest, idx, arguments)
             }
             BytecodeInstruction::NewObjectUninitialized(dest, idx) => {
                 self.emit_new_object_uninitialized(dest, idx);
@@ -1149,7 +1149,7 @@ impl BytecodeGraphBuilder {
         self.load_field_into(dest, ref_inst, InstExtraData::None, 0i32);
     }
 
-    fn emit_get_ref(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emit_get_ref(_dest: BytecodeRegister, _src: BytecodeRegister) {
         unreachable[()]();
     }
 
@@ -1691,7 +1691,7 @@ impl BytecodeGraphBuilder {
         arguments: Array[BytecodeRegister],
     ): Bool {
         let ConstPoolEntry::Fct(fct_id, type_params) = self.bc().const_pool_entry(idx);
-        self.emit_bytecode_call(dest, CallKind::Direct, fct_id, type_params, arguments)
+        self.emit_bytecode_call(dest, fct_id, type_params, arguments)
     }
 
     fn emit_invoke_static(
@@ -1700,7 +1700,7 @@ impl BytecodeGraphBuilder {
         arguments: Array[BytecodeRegister],
     ): Bool {
         let ConstPoolEntry::Fct(fct_id, type_params) = self.bc().const_pool_entry(idx);
-        self.emit_bytecode_call(dest, CallKind::Static, fct_id, type_params, arguments)
+        self.emit_bytecode_call(dest, fct_id, type_params, arguments)
     }
 
     fn emit_switch(opnd: BytecodeRegister, idx: ConstPoolId) {
@@ -1732,7 +1732,6 @@ impl BytecodeGraphBuilder {
 
     fn emit_bytecode_call(
         dest: BytecodeRegister,
-        kind: CallKind,
         fct_id: FunctionId,
         type_params: Array[BytecodeType],
         arguments: Array[BytecodeRegister],
@@ -1759,20 +1758,12 @@ impl BytecodeGraphBuilder {
             }
         }
 
-        let inst = self.emit_call(
-            kind,
-            fct_id,
-            type_params,
-            args,
-            return_address,
-            return_ty,
-        );
+        let inst = self.emit_call(fct_id, type_params, args, return_address, return_ty);
         self.store_call_result(dest, dest_ty, passing_mode, inst, return_ty);
         false
     }
 
     fn emit_call(
-        kind: CallKind,
         fct_id: FunctionId,
         type_params: Array[BytecodeType],
         args: Vec[Inst],
@@ -1790,7 +1781,7 @@ impl BytecodeGraphBuilder {
         let type_params = self.specialize_array(type_params);
         let fct_info = FunctionInfo(fct_id, type_params);
         let extra = InstExtraData::FunctionInfo(fct_info);
-        let inst = graph::create_invoke_inst(extra, kind, call_args, return_ty);
+        let inst = graph::create_invoke_inst(extra, call_args, return_ty);
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
         add_to_inlinable_calls(self.ci, self.graph, fct_id, inst);
@@ -1926,7 +1917,6 @@ impl BytecodeGraphBuilder {
         dest: BytecodeRegister,
         idx: ConstPoolId,
         arguments: Array[BytecodeRegister],
-        kind: CallKind,
     ): Bool {
         let (
             object_ty,
@@ -2016,7 +2006,7 @@ impl BytecodeGraphBuilder {
         let combined_type_params = container_bindings.append(pure_fct_type_params);
         assert(!combined_type_params.is_generic());
 
-        self.emit_bytecode_call(dest, kind, callee_id, combined_type_params, arguments)
+        self.emit_bytecode_call(dest, callee_id, combined_type_params, arguments)
     }
 
     fn emit_new_object_uninitialized(dest: BytecodeRegister, idx: ConstPoolId) {
@@ -2399,9 +2389,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn store_global(ty: BytecodeType, id: GlobalId, value: Inst) {
-        if ty is BytecodeType::Struct(struct_id, type_params) {
-            let layout = self.compute_struct_layout(struct_id, type_params);
-
+        if ty is BytecodeType::Struct(..) {
             let dest = graph::create_get_global_address_inst(id);
             self.current().append_inst(dest);
             self.copy_struct(
@@ -2415,9 +2403,6 @@ impl BytecodeGraphBuilder {
                 false,
             );
         } else if ty.is_tuple() {
-            let BytecodeType::Tuple(subtypes) = ty;
-            let layout = self.compute_tuple_layout(subtypes);
-
             let dest = graph::create_get_global_address_inst(id);
             self.current().append_inst(dest);
             self.copy_tuple(

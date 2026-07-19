@@ -1,6 +1,6 @@
 error: Argument expects value of type `Bool` but got `Int32`.
 --> params-wrong-type-2.dora:2:20
- | fn foo(a: Int32, b: Bool) {}
+ | fn foo(_a: Int32, _b: Bool) {}
  | fn f() { foo(1i32, 2i32); }
                       ~~~~
  | 

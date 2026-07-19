@@ -3,7 +3,7 @@ trait MyTrait {}
 
 trait Foo[T] {
     type X: MyTrait;
-    static fn foo(value: Self::X) {}
+    static fn foo(_value: Self::X) {}
 }
 
 class Bar

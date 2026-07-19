@@ -4,6 +4,6 @@ mod foo {
     trait Bar { fn f(x: Foo); }
     class AnotherClass
     impl Bar for AnotherClass {
-        fn f(x: Foo) {}
+        fn f(_x: Foo) {}
     }
 }

@@ -1,5 +1,5 @@
 struct Foo(Int64)
 fn f(x: Foo): Int64 {
-    let Foo(a, b) = x;
+    let Foo(_a, b) = x;
     b
 }

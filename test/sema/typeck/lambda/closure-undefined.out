@@ -3,6 +3,6 @@ error: unknown identifier `x`.
  | fn f() {
  |     ||: Int32 { x };
                    ~
- |     let x: Int32 = 10i32;
+ |     let _x: Int32 = 10i32;
  | }
 1 error found.

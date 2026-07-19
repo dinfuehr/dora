@@ -7,7 +7,7 @@ trait Foo[T] {
 class Bar
 
 impl Foo[Int64] for Bar {
-    fn take(x: Int64) {}
+    fn take(_x: Int64) {}
 }
 
 fn main() {

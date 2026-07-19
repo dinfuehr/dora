@@ -592,12 +592,12 @@ impl HtmlBytecodeDumper {
 }
 
 impl BytecodeDumper for HtmlBytecodeDumper {
-    fn emit_inst(inst: BytecodeInstructionInfo, name: String) {
+    fn emit_inst(_inst: BytecodeInstructionInfo, name: String) {
         self.write(name);
     }
 
     fn emit_reg3(
-        inst: BytecodeInstructionInfo,
+        _inst: BytecodeInstructionInfo,
         name: String,
         r1: BytecodeRegister,
         r2: BytecodeRegister,
@@ -607,7 +607,7 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emit_reg2(
-        inst: BytecodeInstructionInfo,
+        _inst: BytecodeInstructionInfo,
         name: String,
         r1: BytecodeRegister,
         r2: BytecodeRegister,
@@ -616,7 +616,7 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emit_reg2_and_idx(
-        inst: BytecodeInstructionInfo,
+        _inst: BytecodeInstructionInfo,
         name: String,
         r1: BytecodeRegister,
         r2: BytecodeRegister,
@@ -625,12 +625,12 @@ impl BytecodeDumper for HtmlBytecodeDumper {
         self.write("${name} ${reg(r1)}, ${reg(r2)}, ${cp(idx)}");
     }
 
-    fn emit_reg1(inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister) {
+    fn emit_reg1(_inst: BytecodeInstructionInfo, name: String, r1: BytecodeRegister) {
         self.write("${name} ${reg(r1)}");
     }
 
     fn emit_reg1_and_int(
-        inst: BytecodeInstructionInfo,
+        _inst: BytecodeInstructionInfo,
         name: String,
         r1: BytecodeRegister,
         value: Int32,
@@ -639,7 +639,7 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emit_reg1_and_idx(
-        inst: BytecodeInstructionInfo,
+        _inst: BytecodeInstructionInfo,
         name: String,
         r1: BytecodeRegister,
         idx: ConstPoolId,
@@ -658,7 +658,7 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emit_switch(
-        inst: BytecodeInstructionInfo,
+        _inst: BytecodeInstructionInfo,
         opnd: BytecodeRegister,
         idx: ConstPoolId,
     ) {
@@ -676,7 +676,7 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emit_global(
-        inst: BytecodeInstructionInfo,
+        _inst: BytecodeInstructionInfo,
         name: String,
         r1: BytecodeRegister,
         gid: GlobalId,
@@ -685,7 +685,7 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emit_const(
-        inst: BytecodeInstructionInfo,
+        _inst: BytecodeInstructionInfo,
         name: String,
         r1: BytecodeRegister,
         cid: ConstId,
@@ -694,7 +694,7 @@ impl BytecodeDumper for HtmlBytecodeDumper {
     }
 
     fn emit_invoke(
-        inst: BytecodeInstructionInfo,
+        _inst: BytecodeInstructionInfo,
         name: String,
         dest: BytecodeRegister,
         idx: ConstPoolId,

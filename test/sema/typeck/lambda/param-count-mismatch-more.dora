@@ -1,1 +1,1 @@
-fn f(): (Int32): Int32 { |a, b|: Int32 { a } }
+fn f(): (Int32): Int32 { |a, _b|: Int32 { a } }

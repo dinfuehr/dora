@@ -1,3 +1,3 @@
 fn f(x: (String, Int64)) {
-    let (y, "a") = x;
+    let (_y, "a") = x;
 }

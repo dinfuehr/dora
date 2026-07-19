@@ -47,6 +47,7 @@ pub(super) fn check_expr_ref(
             let inner_ty = ck.vars.get_var(var_id).ty.clone();
 
             // Record the identifier type for the inner expression
+            ck.vars.mark_used(var_id);
             let ident = ck.maybe_allocate_in_context(var_id);
             ck.body.insert_ident(sema_expr.expr, ident.clone());
             ck.body.set_ty(sema_expr.expr, inner_ty.clone());

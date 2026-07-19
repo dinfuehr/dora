@@ -1,0 +1,31 @@
+fn simple() {
+    let unused = 1;
+}
+
+fn unused_parameter(unused: Int64) {}
+
+fn assigned_only() {
+    let mut assigned = 1;
+    assigned = 2;
+}
+
+fn destructuring(value: (Int64, Int64)): Int64 {
+    let (used, unused) = value;
+    used
+}
+
+fn for_binding() {
+    for item in std::range(0, 1) {}
+}
+
+fn lambda_local() {
+    let lambda = || {
+        let unused = 1;
+    };
+    lambda();
+}
+
+fn lambda_parameter() {
+    let lambda = |unused: Int64| {};
+    lambda(1);
+}

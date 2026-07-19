@@ -1,2 +1,2 @@
 //= ok
-class Foo impl Foo { fn take(value: Int32) {} } fn f(foo: Foo) { foo.take(1); }
+class Foo impl Foo { fn take(_value: Int32) {} } fn f(foo: Foo) { foo.take(1); }

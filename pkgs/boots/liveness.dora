@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use package::compilation::CompilationInfo;
 use package::graph::{Block, Graph, Input, InstSet};
 
-pub fn compute_liveness(graph: Graph, ci: CompilationInfo) {
+pub fn compute_liveness(_ci: CompilationInfo, graph: Graph) {
     compute_linear_order_index(graph);
 
     for block in graph.insertion_order_iterator() {

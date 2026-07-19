@@ -1,7 +1,7 @@
 use package::compilation::CompilationInfo;
 use package::graph::{Graph, Inst, Op, Type};
 
-pub fn perform_simplification(ci: CompilationInfo, graph: Graph): Bool {
+pub fn perform_simplification(_ci: CompilationInfo, graph: Graph): Bool {
     SimplificationPass::new(graph).run()
 }
 

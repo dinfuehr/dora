@@ -12,7 +12,7 @@ use crate::error::DescriptorArgs;
 use crate::error::diagnostics::{
     ASSIGN_TYPE, DiagnosticDescriptor, INVALID_CHAR_LITERAL, INVALID_ESCAPE_SEQUENCE,
     INVALID_NUMBER_FORMAT, NAME_BOUND_MULTIPLE_TIMES_IN_PARAMS, NEGATIVE_UNSIGNED,
-    NUMBER_LIMIT_OVERFLOW, NUMBER_OVERFLOW, RETURN_TYPE, UNKNOWN_SUFFIX,
+    NUMBER_LIMIT_OVERFLOW, NUMBER_OVERFLOW, RETURN_TYPE, UNKNOWN_SUFFIX, UNUSED_VARIABLE,
 };
 use crate::interner::Name;
 use crate::sema::{
@@ -399,6 +399,22 @@ impl<'a> TypeCheck<'a> {
         // Store var definitions for all local and context vars defined in this function.
         let vars = self.vars.leave_function_scope();
 
+        for var in &vars {
+            let Some(span) = var.span else {
+                continue;
+            };
+
+            let name = self.sa.interner.str(var.name);
+            if !var.used && !name.starts_with('_') {
+                self.sa.warn(
+                    self.file_id,
+                    span,
+                    &UNUSED_VARIABLE,
+                    args!(name.to_string()),
+                );
+            }
+        }
+
         let vars = vars
             .into_iter()
             .map(|vd| Var {
@@ -574,7 +590,7 @@ impl<'a> TypeCheck<'a> {
 
         assert!(!self.vars.has_vars());
         let name = self.sa.interner.intern("self");
-        self.vars.add_var(name, hidden_self_ty, false);
+        self.vars.add_var(name, hidden_self_ty, false, None);
     }
 
     pub(super) fn read_type(&mut self, id: TypeRefId) -> SourceType {
@@ -645,6 +661,11 @@ impl<'a> TypeCheck<'a> {
         let ptr = self.body.patterns().syntax_node_ptr(id);
         let node = self.sa.syntax::<SyntaxNode>(self.file_id, ptr);
         node.span()
+    }
+
+    pub fn pattern_syntax<T: SyntaxNodeBase>(&self, id: PatternId) -> T {
+        let ptr = self.body.patterns().syntax_node_ptr(id);
+        self.sa.file(self.file_id).ast().syntax_by_ptr(ptr)
     }
 }
 
@@ -1081,7 +1102,13 @@ impl VarManager {
         field_idx
     }
 
-    pub(super) fn add_var(&mut self, name: Name, ty: SourceType, mutable: bool) -> NestedVarId {
+    pub(super) fn add_var(
+        &mut self,
+        name: Name,
+        ty: SourceType,
+        mutable: bool,
+        span: Option<Span>,
+    ) -> NestedVarId {
         let id = NestedVarId(self.vars.len());
 
         let var = VarDefinition {
@@ -1092,6 +1119,8 @@ impl VarManager {
             location: VarLocation::Stack,
             scope_id: self.current_scope().id,
             function_id: self.current_function().id,
+            span,
+            used: false,
         };
 
         self.vars.push(var);
@@ -1102,6 +1131,10 @@ impl VarManager {
 
     pub(super) fn get_var(&self, idx: NestedVarId) -> &VarDefinition {
         &self.vars[idx.0]
+    }
+
+    pub(super) fn mark_used(&mut self, idx: NestedVarId) {
+        self.vars[idx.0].used = true;
     }
 
     fn enter_function_scope(&mut self) {
@@ -1148,6 +1181,8 @@ pub struct VarDefinition {
     pub location: VarLocation,
     pub scope_id: NestedScopeId,
     pub function_id: usize,
+    pub span: Option<Span>,
+    pub used: bool,
 }
 
 fn create_context_classes(sa: &mut Sema, lazy_classes: Vec<LazyContextClassCreationData>) {

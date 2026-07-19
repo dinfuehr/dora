@@ -1,6 +1,6 @@
 error: Argument expects value of type `Int32` but got `Bool`.
 --> variadic-param-wrong-type.dora:3:7
- | fn f(x: Int32...) {}
+ | fn f(_x: Int32...) {}
  | fn g() {
  |     f(true);
          ~~~~

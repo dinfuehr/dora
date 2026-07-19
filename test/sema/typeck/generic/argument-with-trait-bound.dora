@@ -1,2 +1,2 @@
-fn f[X: std::Comparable](x: X) {}
+fn f[X: std::Comparable](_x: X) {}
 fn g[T](t: T) { f[T](t); }

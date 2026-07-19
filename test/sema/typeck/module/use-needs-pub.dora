@@ -1,5 +1,5 @@
 use self::test::Bar;
-fn foo(x: Bar) {}
+fn foo(_x: Bar) {}
 mod test {
     use self::Foo as Bar;
     pub struct Foo { i: Int64 }

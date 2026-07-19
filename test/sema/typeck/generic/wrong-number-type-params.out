@@ -2,6 +2,6 @@ error: Argument expects value of type `Int32` but got `Bool`.
 --> wrong-number-type-params.dora:1:23
  | fn foo() { bar[Int32](false); }
                          ~~~~~
- | fn bar[T](x: T) {}
+ | fn bar[T](_x: T) {}
  | 
 1 error found.

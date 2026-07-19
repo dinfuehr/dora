@@ -1,8 +1,8 @@
 error: type `T` does not implement trait `MyTrait`.
---> type-param-bounds-1.dora:3:16
+--> type-param-bounds-1.dora:3:17
  | trait MyTrait {}
  | class Foo[T: MyTrait]
- | fn bar[T](arg: Foo[T]) {}
-                  ~~~~~~
+ | fn bar[T](_arg: Foo[T]) {}
+                   ~~~~~~
  | 
 1 error found.

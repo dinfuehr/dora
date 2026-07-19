@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
-use package::bytecode::{BytecodeType, ClassId, EnumId, StructId};
+use package::bytecode::{BytecodeType, EnumId, StructId};
 use package::codegen::CodeGen;
 use package::codegen::STACK_FRAME_ALIGNMENT;
 use package::compilation::{CompilationInfo, FunctionSignature, SpecializeSelf};
@@ -586,8 +586,6 @@ impl SimpleRegisterAllocator {
     fn allocate_output_register_generic[
         T: RegisterType
     ](registers: RegisterTracker[T], hint: Option[T], inst: Inst, output: Operand) {
-        let loc_data = inst.get_location_data();
-
         if hint is Some(hint) && registers.allocate_fixed_register(hint, inst) {
             output.set_location(hint.to_location());
             return;
@@ -639,8 +637,6 @@ impl SimpleRegisterAllocator {
     }
 
     fn free_dead_inputs(inst: Inst) {
-        let loc_data = inst.get_location_data();
-
         for input in inst.get_inputs() {
             if input.is_last_use() {
                 let value = input.get_value();
@@ -656,7 +652,7 @@ impl SimpleRegisterAllocator {
             Location::None => unreachable[()](),
             Location::Reg(reg) => self.registers().free_register_raw(reg),
             Location::FloatReg(reg) => self.float_registers().free_register_raw(reg),
-            Location::Stack(slot) => unreachable[()](),
+            Location::Stack(..) => unreachable[()](),
         }
     }
 
@@ -1199,13 +1195,6 @@ fn compute_record_layout(
         fields = fields.to_array(),
         refs = refs.to_array(),
     )
-}
-
-pub fn compute_class_layout(
-    class_id: ClassId,
-    type_params: Array[BytecodeType],
-): RecordLayout {
-    unreachable[RecordLayout]()
 }
 
 pub fn compute_enum_layout(

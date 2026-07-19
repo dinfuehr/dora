@@ -6,7 +6,7 @@ use package::graph::dump::assert_graph;
 use package::graph::ty::Type;
 use package::graph::verifier::verify_graph;
 
-pub fn perform_dead_code_elimination(ci: CompilationInfo, graph: Graph) {
+pub fn perform_dead_code_elimination(_ci: CompilationInfo, graph: Graph) {
     compute_post_order(graph);
 
     for block in graph.post_order_iterator() {

@@ -1,6 +1,6 @@
 class Foo
 fn bar(x: Foo) {
     for i in x {
-        let x: Foo = i;
+        let _x: Foo = i;
     }
 }

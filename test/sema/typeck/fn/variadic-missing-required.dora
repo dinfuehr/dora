@@ -1,4 +1,4 @@
-fn f(x: Int32, y: Int32...) {}
+fn f(_x: Int32, _y: Int32...) {}
 fn g() {
     f();
 }

@@ -1,5 +1,5 @@
 enum Foo { A(Int64), B }
 fn f(x: Foo): Int64 {
-    let Foo::A(y, z) = x;
+    let Foo::A(_y, z) = x;
     z
 }

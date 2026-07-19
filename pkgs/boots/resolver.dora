@@ -214,9 +214,7 @@ impl ParallelMoveResolver {
         }
 
         for move in self.parallel_moves {
-            let ty = move.ty;
             let dest = move.dest;
-            let src = move.src;
 
             if !self.locations.contains(dest) {
                 assert(self.todo.contains(dest));

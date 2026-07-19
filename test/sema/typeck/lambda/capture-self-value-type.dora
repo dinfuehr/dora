@@ -2,7 +2,7 @@ struct Point(Int32, Int32)
 
 impl Point {
     mutating fn test() {
-        let f = || {
+        let _f = || {
             self.0;
         };
     }

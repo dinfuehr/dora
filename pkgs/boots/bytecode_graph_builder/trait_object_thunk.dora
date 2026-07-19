@@ -6,7 +6,7 @@ use package::calling_convention as cc;
 use package::calling_convention::ArgumentPassingMode;
 use package::compilation::{CompilationInfo, TraitObjectThunk};
 use package::graph;
-use package::graph::{Block, CallKind, Graph, Inst, InstExtraData};
+use package::graph::{Block, Graph, Inst, InstExtraData};
 use package::graph::ty::Type;
 use package::interface as iface;
 use package::interface::InlinedFunctionId;
@@ -70,7 +70,6 @@ impl BytecodeGraphBuilder {
         let intrinsic = iface::get_intrinsic_for_function(thunk.callee_fct_id);
         assert(!self.is_intrinsic(intrinsic));
         let invoke = self.emit_call(
-            CallKind::Direct,
             thunk.callee_fct_id,
             thunk.callee_type_params,
             args,

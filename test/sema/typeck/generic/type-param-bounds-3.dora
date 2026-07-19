@@ -3,5 +3,5 @@ trait MyTraitB {}
 class Foo[T: MyTraitA + MyTraitB]
 class Baz[X]
 impl[X] Baz[X] {
-    fn bar[T: MyTraitA](arg: Foo[T]) {}
+    fn bar[T: MyTraitA](_arg: Foo[T]) {}
 }

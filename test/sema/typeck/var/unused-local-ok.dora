@@ -1,0 +1,44 @@
+//= ok
+fn reads(value: Int64, pair: (Int64, Int64)) {
+    let used = value;
+    used;
+
+    let mut assigned_then_read = 1;
+    assigned_then_read = 2;
+    assigned_then_read;
+
+    let mut compound_assignment = 1;
+    compound_assignment += 1;
+
+    let (first, second) = pair;
+    first;
+    second;
+}
+
+fn capture() {
+    let captured = 1;
+    let lambda = || {
+        captured;
+    };
+    lambda();
+}
+
+fn explicit_suppression() {
+    let _ignored = 1;
+}
+
+fn explicit_parameter_suppression(_ignored: Int64) {}
+
+trait Bodyless {
+    fn method(unused: Int64);
+}
+
+@native
+fn native(unused: Int64);
+
+fn take_ref(_value: ref Int64) {}
+
+fn reference() {
+    let referenced = 1;
+    take_ref(ref referenced);
+}

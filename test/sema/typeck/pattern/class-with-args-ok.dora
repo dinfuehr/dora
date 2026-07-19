@@ -1,6 +1,6 @@
 //= ok
 class Foo(Int64, String)
 fn f(x: Foo): Int64 {
-    let Foo(a, b) = x;
+    let Foo(a, _b) = x;
     a
 }

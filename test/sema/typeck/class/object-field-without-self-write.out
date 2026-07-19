@@ -1,6 +1,6 @@
 error: unknown identifier `a`.
---> object-field-without-self-write.dora:1:51
- | class Foo{a: Int32} impl Foo { fn set(x: Int32) { a = x; } }
-                                                     ~
+--> object-field-without-self-write.dora:1:52
+ | class Foo{a: Int32} impl Foo { fn set(_x: Int32) { a = x; } }
+                                                      ~
  | 
 1 error found.

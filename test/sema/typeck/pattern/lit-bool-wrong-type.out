@@ -1,8 +1,8 @@
 error: Int64 expected but got type Bool.
---> lit-bool-wrong-type.dora:2:13
+--> lit-bool-wrong-type.dora:2:14
  | fn f(x: (String, Int64)) {
- |     let (y, true) = x;
-               ~~~~
+ |     let (_y, true) = x;
+                ~~~~
  | }
  | 
 1 error found.

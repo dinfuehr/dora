@@ -1,4 +1,4 @@
 class A[T]
 fn foo() {
-    let a = A();
+    let _a = A();
 }

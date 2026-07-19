@@ -1,6 +1,6 @@
 error: variadic parameter is not allowed in tuple types.
---> variadic-tuple-type.dora:1:19
- | fn f(value: (Int32...)) {}
-                     ~~~
+--> variadic-tuple-type.dora:1:20
+ | fn f(_value: (Int32...)) {}
+                      ~~~
  | 
 1 error found.

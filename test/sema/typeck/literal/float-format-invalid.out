@@ -1,6 +1,6 @@
 error: invalid number format.
---> float-format-invalid.dora:1:18
- | fn f() { let x = 0b1001f32; }
-                    ~~~~~~~~~
+--> float-format-invalid.dora:1:19
+ | fn f() { let _x = 0b1001f32; }
+                     ~~~~~~~~~
  | 
 1 error found.

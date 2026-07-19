@@ -1,4 +1,4 @@
 class A[T]
 fn foo() {
-    let a = A[Int32, Int32]();
+    let _a = A[Int32, Int32]();
 }

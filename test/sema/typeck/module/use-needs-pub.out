@@ -2,13 +2,13 @@ error: `use` not accessible.
 --> use-needs-pub.dora:1:17
  | use self::test::Bar;
                    ~~~
- | fn foo(x: Bar) {}
+ | fn foo(_x: Bar) {}
  | mod test {
 error: unknown identifier `Bar`.
---> use-needs-pub.dora:2:11
+--> use-needs-pub.dora:2:12
  | use self::test::Bar;
- | fn foo(x: Bar) {}
-             ~~~
+ | fn foo(_x: Bar) {}
+              ~~~
  | mod test {
  |     use self::Foo as Bar;
 2 errors found.

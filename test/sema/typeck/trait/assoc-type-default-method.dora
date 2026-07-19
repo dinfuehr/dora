@@ -12,5 +12,5 @@ impl Foo for Bar {
 
 fn main() {
     let b = Bar();
-    let x: Int64 = b.get();
+    let _x: Int64 = b.get();
 }

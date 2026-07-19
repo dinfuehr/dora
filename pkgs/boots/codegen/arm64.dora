@@ -270,7 +270,7 @@ impl CodeGenArm64 {
         self.asm.sub(shape_reg, shape_reg, base_reg);
     }
 
-    fn trap(tmp: Register, trap: Int32, inlined_location: InlinedLocation) {
+    fn trap(trap: Int32, inlined_location: InlinedLocation) {
         self.asm.movz(CCALL_REG_PARAMS(0), trap, 0i32);
         let pos = self.asm.position();
         self.asm.bl_imm(0i32);
@@ -448,7 +448,7 @@ impl CodeGenArm64 {
                 };
                 self.emit_comment("slow path for ${op} overflow");
                 self.asm.bind_label(lbl_overflow);
-                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
+                self.trap(iface::TRAP_OVERFLOW, inst.get_inlined_location());
             }
         );
     }
@@ -938,8 +938,8 @@ impl CodeGenArm64 {
                 assert(src != REG_TEMP2);
                 REG_TEMP2
             };
-            self.mov_imm(REG_TEMP, offset.to_int64());
-            self.asm.ldr_reg_s(dest, src, REG_TEMP, Extend::LSL, 0i32);
+            self.mov_imm(tmp, offset.to_int64());
+            self.asm.ldr_reg_s(dest, src, tmp, Extend::LSL, 0i32);
         }
     }
 
@@ -1689,7 +1689,7 @@ impl CodeGen for CodeGenArm64 {
             || {
                 self.emit_comment("slow path for CheckedAdd overflow");
                 self.asm.bind_label(lbl_overflow);
-                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
+                self.trap(iface::TRAP_OVERFLOW, inst.get_inlined_location());
             }
         );
     }
@@ -1765,7 +1765,7 @@ impl CodeGen for CodeGenArm64 {
             || {
                 self.emit_comment("slow path for CheckedSub overflow");
                 self.asm.bind_label(lbl_overflow);
-                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
+                self.trap(iface::TRAP_OVERFLOW, inst.get_inlined_location());
             }
         );
     }
@@ -1826,7 +1826,7 @@ impl CodeGen for CodeGenArm64 {
             || {
                 self.emit_comment("slow path for CheckedMul overflow");
                 self.asm.bind_label(lbl_overflow);
-                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
+                self.trap(iface::TRAP_OVERFLOW, inst.get_inlined_location());
             }
         );
     }
@@ -1902,7 +1902,7 @@ impl CodeGen for CodeGenArm64 {
             || {
                 self.emit_comment("slow path for div-by-0 check");
                 self.asm.bind_label(lbl_failure);
-                self.trap(REG_TEMP, iface::TRAP_DIV0, inst.get_inlined_location());
+                self.trap(iface::TRAP_DIV0, inst.get_inlined_location());
             }
         );
     }
@@ -1928,7 +1928,7 @@ impl CodeGen for CodeGenArm64 {
             || {
                 self.emit_comment("slow path for CheckShiftAmount");
                 self.asm.bind_label(lbl_failure);
-                self.trap(REG_TEMP, iface::TRAP_SHIFT, inst.get_inlined_location());
+                self.trap(iface::TRAP_SHIFT, inst.get_inlined_location());
             }
         );
     }
@@ -1953,7 +1953,7 @@ impl CodeGen for CodeGenArm64 {
             || {
                 self.emit_comment("slow path for CheckedNeg overflow");
                 self.asm.bind_label(lbl_overflow);
-                self.trap(REG_TEMP, iface::TRAP_OVERFLOW, inst.get_inlined_location());
+                self.trap(iface::TRAP_OVERFLOW, inst.get_inlined_location());
             }
         );
     }
@@ -2446,8 +2446,6 @@ impl CodeGen for CodeGenArm64 {
         let obj = loc.get_input(receiver_idx).get_register();
         let tmp = loc.get_temp(0).get_register();
 
-        let BytecodeType::TraitObject(trait_id, ..) = fct_info.trait_object_ty;
-
         self.emit_virtual_call(obj, REG_TEMP, tmp, inst, fct_info.vtable_index);
     }
 
@@ -2479,11 +2477,7 @@ impl CodeGen for CodeGenArm64 {
             || {
                 self.emit_comment("slow path for CheckArrayBounds");
                 self.asm.bind_label(label_oob);
-                self.trap(
-                    REG_TEMP,
-                    iface::TRAP_INDEX_OUT_OF_BOUNDS,
-                    inst.get_inlined_location(),
-                );
+                self.trap(iface::TRAP_INDEX_OUT_OF_BOUNDS, inst.get_inlined_location());
             }
         );
     }
@@ -3042,7 +3036,7 @@ impl CodeGen for CodeGenArm64 {
         );
     }
 
-    fn emit_abort(inst: Inst) {
+    fn emit_abort(_inst: Inst) {
         self.emit_breakpoint();
     }
 
@@ -3057,7 +3051,7 @@ impl CodeGen for CodeGenArm64 {
             || {
                 self.emit_comment("marking barrier slow path");
                 self.asm.bind_label(lbl_failure);
-                self.trap(REG_TEMP, iface::TRAP_ASSERT, inst.get_inlined_location());
+                self.trap(iface::TRAP_ASSERT, inst.get_inlined_location());
             }
         );
     }
@@ -3447,7 +3441,7 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
-    fn emit_unreachable(inst: Inst) {
+    fn emit_unreachable(_inst: Inst) {
         // Instruction should never be reached.
         self.asm.brk(0i32);
     }
@@ -3506,7 +3500,7 @@ impl CodeGen for CodeGenArm64 {
         }
     }
 
-    fn emit_debug(inst: Inst) {
+    fn emit_debug(_inst: Inst) {
         self.emit_breakpoint();
     }
 

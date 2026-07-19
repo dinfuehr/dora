@@ -1,2 +1,2 @@
 //= ok
-fn f(mut x: Int64) { x = 10; }
+fn f(mut _x: Int64) { _x = 10; }

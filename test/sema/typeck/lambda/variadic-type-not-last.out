@@ -1,6 +1,6 @@
 error: variadic parameter needs to be last.
---> variadic-type-not-last.dora:1:11
- | fn f(sum: (Int32..., Int32): Int32) {}
-             ~~~~~~~~~~~~~~~~~~~~~~~~
+--> variadic-type-not-last.dora:1:12
+ | fn f(_sum: (Int32..., Int32): Int32) {}
+              ~~~~~~~~~~~~~~~~~~~~~~~~
  | 
 1 error found.

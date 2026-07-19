@@ -1,6 +1,6 @@
 error: number does not fit into type Int32.
---> int32-overflow.dora:1:18
- | fn f() { let x = 2147483648i32; }
-                    ~~~~~~~~~~~~~
+--> int32-overflow.dora:1:19
+ | fn f() { let _x = 2147483648i32; }
+                     ~~~~~~~~~~~~~
  | 
 1 error found.

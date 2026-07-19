@@ -1,2 +1,2 @@
-fn f(x: foo::Foo) {}
+fn f(_x: foo::Foo) {}
 mod foo { class Foo }

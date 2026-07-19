@@ -182,7 +182,7 @@ fn compute_live_in(block: Block): InstSet {
 fn build_interference_graph(graph: Graph): Array[Vec[InstId]] {
     let interference = Array[Vec[InstId]]::fill_with(
         graph.inst_count().to_int64(),
-        |i: Int64|: Vec[InstId] {
+        |_: Int64|: Vec[InstId] {
             Vec[InstId]::new()
         },
     );

@@ -1,2 +1,2 @@
 //= ok
-fn f() { let x: UInt8 = 1; }
+fn f() { let _x: UInt8 = 1; }

@@ -1,6 +1,6 @@
 error: Named argument not expected here.
 --> call-with-named-arguments-unexpected.dora:3:13
- | fn f(x: Int, y: Int) {}
+ | fn f(_x: Int, _y: Int) {}
  | fn g() {
  |     f(1, 2, y = 3);
                ~
@@ -8,7 +8,7 @@ error: Named argument not expected here.
  | 
 error: Superfluous argument.
 --> call-with-named-arguments-unexpected.dora:3:13
- | fn f(x: Int, y: Int) {}
+ | fn f(_x: Int, _y: Int) {}
  | fn g() {
  |     f(1, 2, y = 3);
                ~~~~~

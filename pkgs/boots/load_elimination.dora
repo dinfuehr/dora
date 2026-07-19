@@ -5,7 +5,7 @@ use package::compilation::CompilationInfo;
 use package::dominator::compute_post_order;
 use package::graph::{Block, ClassInfo, Graph, Inst, Op, create_phi_inst};
 
-pub fn perform_load_elimination(ci: CompilationInfo, graph: Graph) {
+pub fn perform_load_elimination(_ci: CompilationInfo, graph: Graph) {
     LoadEliminationPass::new(graph).run();
 }
 
@@ -305,7 +305,7 @@ impl LoadEliminationPass {
                     let cur_value = data.class_field_infos.get(field);
 
                     data.class_field_infos.retain_if(
-                        |field: Field, value: Inst|: Bool {
+                        |field: Field, _value: Inst|: Bool {
                             field.class_info != class_info || field.offset != field_offset
                         }
                     );

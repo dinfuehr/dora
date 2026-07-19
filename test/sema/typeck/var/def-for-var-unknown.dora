@@ -1,1 +1,1 @@
-fn a() { let a : test = 1; }
+fn a() { let a : test = 1; a; }

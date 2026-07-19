@@ -1538,7 +1538,7 @@ mod tests {
             fn f(x: Foo) {
                 match x {
                     Foo::A => {}
-                    v => {}
+                    _v => {}
                     Foo::C => {}
                 }
             }

@@ -1,6 +1,6 @@
 class Foo
 impl Foo {
-    fn f(a: String) {}
+    fn f(_a: String) {}
 }
 fn g[T](foo: Foo, value: T) {
     foo.f(value);

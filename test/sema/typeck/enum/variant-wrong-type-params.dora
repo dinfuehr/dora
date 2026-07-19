@@ -1,2 +1,2 @@
 enum Foo[T] { A(T, Bool), B }
-fn f[T](val: T): Foo[T] { Foo::A[T, String](val, false) }
+fn f[T](_val: T): Foo[T] { Foo::A[T, String](val, false) }

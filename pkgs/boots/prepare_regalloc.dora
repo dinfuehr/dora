@@ -3,7 +3,11 @@ use package::compilation::CompilationInfo;
 use package::graph::{Graph, Inst, Op, Type};
 use package::interface::config;
 
-pub fn prepare_register_allocation(graph: Graph, codegen: CodeGen, ci: CompilationInfo) {
+pub fn prepare_register_allocation(
+    _ci: CompilationInfo,
+    graph: Graph,
+    _codegen: CodeGen,
+) {
     for block in graph.insertion_order_iterator() {
         for inst in block.instructions_iterator() {
             if inst.op().is_compare() && get_single_if_user(inst) is Some(user) {

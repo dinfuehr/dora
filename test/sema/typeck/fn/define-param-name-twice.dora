@@ -1,1 +1,1 @@
-fn test(x: String, x: Int32) {}
+fn test(_x: String, _x: Int32) {}

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use dora_parser::Span;
+use dora_parser::ast;
 
 use crate::access::{
     class_accessible_from, const_accessible_from, enum_accessible_from, is_default_accessible,
@@ -799,7 +800,13 @@ fn check_pattern_var(
         let var_id = if let Some(data) = ctxt.alt_bindings.get(&name) {
             data.var_id
         } else {
-            let nested_var_id = ck.vars.add_var(name, ty.clone(), ident_pattern.mutable);
+            let span = ck
+                .pattern_syntax::<ast::AstIdentPattern>(pattern_id)
+                .name()
+                .span();
+            let nested_var_id =
+                ck.vars
+                    .add_var(name, ty.clone(), ident_pattern.mutable, Some(span));
             let var_id = ck.vars.local_var_id(nested_var_id);
 
             add_local(

@@ -1,0 +1,55 @@
+warning: unused variable `unused`.
+--> unused-local.dora:2:9
+ | fn simple() {
+ |     let unused = 1;
+           ~~~~~~
+ | }
+ | 
+warning: unused variable `unused`.
+--> unused-local.dora:5:21
+ | }
+ | 
+ | fn unused_parameter(unused: Int64) {}
+                       ~~~~~~
+ | 
+ | fn assigned_only() {
+warning: unused variable `assigned`.
+--> unused-local.dora:8:13
+ | 
+ | fn assigned_only() {
+ |     let mut assigned = 1;
+               ~~~~~~~~
+ |     assigned = 2;
+ | }
+warning: unused variable `unused`.
+--> unused-local.dora:13:16
+ | 
+ | fn destructuring(value: (Int64, Int64)): Int64 {
+ |     let (used, unused) = value;
+                  ~~~~~~
+ |     used
+ | }
+warning: unused variable `item`.
+--> unused-local.dora:18:9
+ | 
+ | fn for_binding() {
+ |     for item in std::range(0, 1) {}
+           ~~~~
+ | }
+ | 
+warning: unused variable `unused`.
+--> unused-local.dora:23:13
+ | fn lambda_local() {
+ |     let lambda = || {
+ |         let unused = 1;
+               ~~~~~~
+ |     };
+ |     lambda();
+warning: unused variable `unused`.
+--> unused-local.dora:29:19
+ | 
+ | fn lambda_parameter() {
+ |     let lambda = |unused: Int64| {};
+                     ~~~~~~
+ |     lambda(1);
+ | }

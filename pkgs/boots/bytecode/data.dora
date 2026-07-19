@@ -300,16 +300,16 @@ impl BytecodeType {
             | BytecodeType::Float32
             | BytecodeType::Float64 => false,
             BytecodeType::This | BytecodeType::Assoc(..) => true,
-            BytecodeType::Struct(struct_id, type_params) => type_params.is_generic(),
-            BytecodeType::Enum(enum_id, type_params) => type_params.is_generic(),
-            BytecodeType::Class(class_id, type_params) => type_params.is_generic(),
+            BytecodeType::Struct(_struct_id, type_params) => type_params.is_generic(),
+            BytecodeType::Enum(_enum_id, type_params) => type_params.is_generic(),
+            BytecodeType::Class(_class_id, type_params) => type_params.is_generic(),
             BytecodeType::TraitObject(
-                trait_id,
+                _trait_id,
                 type_params,
                 _assocTypes,
             ) => type_params.is_generic(),
             BytecodeType::Tuple(subtypes) => subtypes.is_generic(),
-            BytecodeType::TypeParam(idx) => true,
+            BytecodeType::TypeParam(_idx) => true,
             BytecodeType::Lambda(
                 params,
                 ret,

@@ -1,6 +1,6 @@
 enum Foo { A(Int64), B }
 fn f(x: Foo): Int64 {
-    if x is Foo::A(y) {
+    if x is Foo::A(_y) {
         0
     } else {
         y
