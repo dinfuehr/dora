@@ -1,0 +1,20 @@
+trait Foo {
+    fn value(): Int;
+
+    fn foo(): Int {
+        let lambda = ||: Int { self.value() };
+        lambda()
+    }
+}
+
+class MyClass(Int)
+
+impl Foo for MyClass {
+    fn value(): Int {
+        self.0
+    }
+}
+
+fn main() {
+    assert(MyClass(42).foo() == 42);
+}

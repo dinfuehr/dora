@@ -1,0 +1,8 @@
+trait Foo {
+    fn value(): Int;
+
+    fn foo(): Int {
+        let lambda = ||: Int { self.value() };
+        lambda()
+    }
+}

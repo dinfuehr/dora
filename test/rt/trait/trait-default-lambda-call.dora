@@ -1,0 +1,12 @@
+trait Foo {
+    fn foo(): Self {
+        let lambda = ||: Self { self };
+        lambda()
+    }
+}
+
+impl Foo for Int {}
+
+fn main() {
+    assert(42.foo() == 42);
+}
