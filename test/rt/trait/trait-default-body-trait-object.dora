@@ -1,0 +1,50 @@
+trait Value {
+    fn to_int(): Int64;
+}
+
+class Item(Int64)
+
+impl Value for Item {
+    fn to_int(): Int64 { self.0 }
+}
+
+trait ObjectDefault[Tag] {
+    type Item: Value;
+
+    fn item(): Self::Item;
+
+    fn default_through_object(tag: Tag): (Self::Item, Tag) {
+        let lambda = |value: Self::Item, lambda_tag: Tag|: (Self::Item, Tag) {
+            (value, lambda_tag)
+        };
+
+        lambda(self.item(), tag)
+    }
+}
+
+class ClassSource(Item)
+
+impl ObjectDefault[String] for ClassSource {
+    type Item = Item;
+
+    fn item(): Item { self.0 }
+}
+
+struct StructSource(Item)
+
+impl ObjectDefault[String] for StructSource {
+    type Item = Item;
+
+    fn item(): Item { self.0 }
+}
+
+fn invoke(source: ObjectDefault[String, Item=Item], tag: String): Int64 {
+    let result = source.default_through_object(tag);
+    assert(result.1 == tag);
+    result.0.to_int()
+}
+
+fn main() {
+    assert(invoke(ClassSource(Item(42)) as ObjectDefault[String, Item=Item], "class") == 42);
+    assert(invoke(StructSource(Item(77)) as ObjectDefault[String, Item=Item], "struct") == 77);
+}
