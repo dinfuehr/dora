@@ -157,11 +157,17 @@ fn convert_type_ref_inner(
                     alias_id,
                     tp_id,
                     trait_ty,
-                } => SourceType::GenericAssoc {
-                    ty: Box::new(SourceType::TypeParam(tp_id)),
-                    trait_ty,
-                    assoc_id: alias_id,
-                },
+                } => {
+                    let tp_idx = ctxt_element
+                        .type_param_definition(sa)
+                        .type_param_idx(sa, tp_id)
+                        .expect("type parameter missing from definition");
+                    SourceType::GenericAssoc {
+                        ty: Box::new(SourceType::TypeParam(tp_idx)),
+                        trait_ty,
+                        assoc_id: alias_id,
+                    }
+                }
             }
         }
         TypeRef::Assoc { .. } => match type_ref_arena.symbol(type_ref_id) {
@@ -330,7 +336,11 @@ fn convert_type_ref_symbol(
                 return SourceType::Error;
             }
 
-            SourceType::TypeParam(id)
+            let idx = ctxt_element
+                .type_param_definition(sa)
+                .type_param_idx(sa, id)
+                .expect("type parameter missing from definition");
+            SourceType::TypeParam(idx)
         }
         SymbolKind::Trait(trait_id) => convert_type_ref_trait_object(
             sa,

@@ -2,7 +2,7 @@ use id_arena::{Arena, Id};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use crate::sema::{AliasDefinitionId, Sema, SourceFileId, TypeParamIdx};
+use crate::sema::{AliasDefinitionId, Sema, SourceFileId, TypeParamId};
 use crate::{Name, SymbolKind, TraitType};
 
 use dora_parser::Span;
@@ -22,7 +22,7 @@ pub enum TypeSymbol {
     /// Associated type accessed through a type parameter (e.g., T::Item where T: Iterator).
     GenericAssoc {
         alias_id: AliasDefinitionId,
-        tp_id: TypeParamIdx,
+        tp_id: TypeParamId,
         trait_ty: TraitType,
     },
 }

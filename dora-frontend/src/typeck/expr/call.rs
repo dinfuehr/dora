@@ -23,7 +23,7 @@ use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, Element, ElementWithFields,
     EnumDefinitionId, Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema,
-    StructDefinitionId, TraitDefinition, TypeParamIdx, find_impl, implements_trait,
+    StructDefinitionId, TraitDefinition, TypeParamId, find_impl, implements_trait,
     new_identity_type_params,
 };
 use crate::specialize_ty_for_call;
@@ -260,15 +260,22 @@ pub(super) fn check_call_arguments_with_expected(
 fn check_expr_call_generic_static_method(
     ck: &mut TypeCheck,
     expr_id: ExprId,
-    tp_id: TypeParamIdx,
+    tp_id: TypeParamId,
     name: String,
     pure_fct_type_params: SourceTypeArray,
     call_expr_id: ExprId,
 ) -> SourceType {
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
+    let tp_idx = ck
+        .type_param_definition
+        .type_param_idx(ck.sa, tp_id)
+        .expect("type parameter missing from definition");
 
-    for trait_ty in ck.type_param_definition.bounds_for_type_param(ck.sa, tp_id) {
+    for trait_ty in ck
+        .type_param_definition
+        .bounds_for_type_param(ck.sa, tp_idx)
+    {
         let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
@@ -302,7 +309,7 @@ fn check_expr_call_generic_static_method(
     let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
     let trait_method = ck.sa.fct(trait_method_id);
 
-    let tp = SourceType::TypeParam(tp_id);
+    let tp = SourceType::TypeParam(tp_idx);
     let type_params = TypeArgs::from_parts(
         &trait_ty.type_params,
         &pure_fct_type_params,
@@ -317,12 +324,12 @@ fn check_expr_call_generic_static_method(
         &type_params,
         ck.file_id,
         || ck.expr_span(expr_id),
-        |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, tp_id, &trait_ty, &type_params),
+        |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, tp_idx, &trait_ty, &type_params),
     ) {
         let expected = build_expected_call_args(
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, tp_id, &trait_ty, &type_params),
+            |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, tp_idx, &trait_ty, &type_params),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -337,7 +344,7 @@ fn check_expr_call_generic_static_method(
             ck.sa,
             trait_method.return_type(),
             ck.element,
-            tp_id,
+            tp_idx,
             &trait_ty,
             &type_params,
         );
@@ -583,7 +590,7 @@ fn check_expr_call_self_assoc_type_static_method(
 fn check_expr_call_generic_assoc_static_method(
     ck: &mut TypeCheck,
     expr_id: ExprId,
-    tp_id: TypeParamIdx,
+    tp_id: TypeParamId,
     container_trait_ty: TraitType,
     assoc_id: AliasDefinitionId,
     method_name: String,
@@ -593,6 +600,10 @@ fn check_expr_call_generic_assoc_static_method(
     let mut matched_methods = Vec::new();
     let interned_method_name = ck.sa.interner.intern(&method_name);
     let alias = ck.sa.alias(assoc_id);
+    let tp_idx = ck
+        .type_param_definition
+        .type_param_idx(ck.sa, tp_id)
+        .expect("type parameter missing from definition");
 
     // Look for static methods in the bounds of the associated type
     for bound in alias.bounds() {
@@ -623,7 +634,7 @@ fn check_expr_call_generic_assoc_static_method(
 
     // The GenericAssoc type: T::Item
     let assoc_type = SourceType::GenericAssoc {
-        ty: Box::new(SourceType::TypeParam(tp_id)),
+        ty: Box::new(SourceType::TypeParam(tp_idx)),
         trait_ty: container_trait_ty.clone(),
         assoc_id,
     };

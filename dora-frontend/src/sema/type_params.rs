@@ -107,6 +107,19 @@ impl TypeParamDefinition {
         }
     }
 
+    pub fn type_param_idx(&self, sa: &Sema, id: TypeParamId) -> Option<TypeParamIdx> {
+        if let Some(parent) = self.parent {
+            if let Some(idx) = sa.type_param_definition(parent).type_param_idx(sa, id) {
+                return Some(idx);
+            }
+        }
+
+        self.type_params
+            .iter()
+            .position(|&type_param_id| type_param_id == id)
+            .map(|idx| TypeParamIdx(self.container_type_params + idx))
+    }
+
     fn type_param<'a>(&'a self, sa: &'a Sema, id: TypeParamIdx) -> &'a TypeParam {
         sa.type_param(self.type_param_id(sa, id))
     }
@@ -309,13 +322,13 @@ pub struct TypeParamNameIter<'a> {
 }
 
 impl<'a> Iterator for TypeParamNameIter<'a> {
-    type Item = (TypeParamIdx, Name);
+    type Item = (TypeParamId, Name);
 
-    fn next(&mut self) -> Option<(TypeParamIdx, Name)> {
+    fn next(&mut self) -> Option<(TypeParamId, Name)> {
         if self.current < self.total {
-            let current = TypeParamIdx(self.current);
+            let current = self.data.type_param_id(self.sa, TypeParamIdx(self.current));
             self.current += 1;
-            Some((current, self.data.name(self.sa, current)))
+            Some((current, self.sa.type_param(current).name()))
         } else {
             None
         }

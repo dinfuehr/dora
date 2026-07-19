@@ -9,7 +9,7 @@ use crate::error::diagnostics::{
 };
 use crate::sema::{
     AliasDefinitionId, ClassDefinitionId, Element, EnumDefinitionId, Sema, SourceFileId,
-    StructDefinitionId, TraitDefinition, TraitDefinitionId, TypeParamIdx, parent_element_or_self,
+    StructDefinitionId, TraitDefinition, TraitDefinitionId, TypeParamId, parent_element_or_self,
 };
 use crate::{ModuleSymTable, Name, SymbolKind, TraitType};
 
@@ -21,9 +21,9 @@ pub enum PathKind {
     Struct(StructDefinitionId),
     Trait(TraitDefinitionId),
     Alias(AliasDefinitionId),
-    TypeParam(TypeParamIdx),
+    TypeParam(TypeParamId),
     GenericAssoc {
-        tp_id: TypeParamIdx,
+        tp_id: TypeParamId,
         trait_ty: TraitType,
         assoc_id: AliasDefinitionId,
     },
@@ -270,13 +270,16 @@ fn find_alias_in_super_traits_with_trait_ty(
 fn lookup_alias_on_type_param<'a>(
     sa: &'a Sema,
     element: &'a dyn Element,
-    id: TypeParamIdx,
+    id: TypeParamId,
     name: Name,
 ) -> Option<Vec<(TraitType, AliasDefinitionId)>> {
     let type_param_definition = element.type_param_definition(sa);
+    let idx = type_param_definition
+        .type_param_idx(sa, id)
+        .expect("type parameter missing from definition");
     let mut results = Vec::with_capacity(2);
 
-    for bound in type_param_definition.bounds_for_type_param(sa, id) {
+    for bound in type_param_definition.bounds_for_type_param(sa, idx) {
         let trait_id = bound.trait_id;
         let trait_ = sa.trait_(trait_id);
 

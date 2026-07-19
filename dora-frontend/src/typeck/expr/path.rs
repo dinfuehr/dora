@@ -13,7 +13,7 @@ use crate::error::diagnostics::{
 use crate::interner::Name;
 use crate::sema::NestedVarId;
 use crate::sema::{
-    AliasDefinitionId, ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind, TypeParamIdx,
+    AliasDefinitionId, ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind, TypeParamId,
 };
 use crate::specialize_type;
 use crate::typeck::{TypeCheck, check_type_params};
@@ -31,7 +31,7 @@ pub(crate) enum PathResolution {
     SelfAssocType(AliasDefinitionId),
     /// `T::Item` where T is a type param and Item is an associated type
     GenericAssoc {
-        tp_id: TypeParamIdx,
+        tp_id: TypeParamId,
         trait_ty: TraitType,
         assoc_id: AliasDefinitionId,
     },
@@ -478,12 +478,19 @@ pub(super) fn check_enum_variant_without_args(
 
 fn lookup_alias_on_type_param(
     ck: &TypeCheck,
-    tp_id: TypeParamIdx,
+    tp_id: TypeParamId,
     name: Name,
 ) -> Vec<(TraitType, AliasDefinitionId)> {
     let mut results = Vec::with_capacity(2);
+    let tp_idx = ck
+        .type_param_definition
+        .type_param_idx(ck.sa, tp_id)
+        .expect("type parameter missing from definition");
 
-    for bound in ck.type_param_definition.bounds_for_type_param(ck.sa, tp_id) {
+    for bound in ck
+        .type_param_definition
+        .bounds_for_type_param(ck.sa, tp_idx)
+    {
         let trait_id = bound.trait_id;
         let trait_ = ck.sa.trait_(trait_id);
 

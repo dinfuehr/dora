@@ -11,7 +11,7 @@ use crate::error::diagnostics::{
 };
 use crate::sema::{
     AliasDefinitionId, Element, ModuleDefinitionId, Sema, SourceFileId, TraitDefinition,
-    TypeParamIdx, parent_element_or_self,
+    TypeParamId, parent_element_or_self,
 };
 use crate::sym::SymbolKind;
 
@@ -371,13 +371,16 @@ enum AliasLookupResult {
 fn lookup_alias_on_type_param(
     sa: &Sema,
     element: &dyn Element,
-    id: TypeParamIdx,
+    id: TypeParamId,
     name: Name,
 ) -> AliasLookupResult {
     let type_param_definition = element.type_param_definition(sa);
+    let idx = type_param_definition
+        .type_param_idx(sa, id)
+        .expect("type parameter missing from definition");
     let mut results = Vec::with_capacity(2);
 
-    for bound in type_param_definition.bounds_for_type_param(sa, id) {
+    for bound in type_param_definition.bounds_for_type_param(sa, idx) {
         let trait_id = bound.trait_id;
         let trait_ = sa.trait_(trait_id);
 

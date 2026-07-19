@@ -13,7 +13,7 @@ use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
     FieldIndex, GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema, SourceFileId,
-    StructDefinitionId, TraitDefinitionId, TypeParamIdx, Visibility,
+    StructDefinitionId, TraitDefinitionId, TypeParamId, Visibility,
 };
 
 pub struct ModuleSymTable {
@@ -369,7 +369,7 @@ pub enum SymbolKind {
     Class(ClassDefinitionId),
     Struct(StructDefinitionId),
     Trait(TraitDefinitionId),
-    TypeParam(TypeParamIdx),
+    TypeParam(TypeParamId),
     Enum(EnumDefinitionId),
     Field(FieldIndex),
     Fct(FctDefinitionId),
