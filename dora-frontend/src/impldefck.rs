@@ -12,12 +12,13 @@ use crate::error::diagnostics::{
 };
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
-    AliasDefinitionId, Element, FctDefinition, FctDefinitionId, FctParent, ImplDefinition,
-    ImplDefinitionId, Sema, TraitDefinition, implements_trait, type_ref_span,
+    AliasDefinitionId, Element, FctDefinition, FctDefinitionId, ImplDefinition, ImplDefinitionId,
+    Sema, TraitDefinition, implements_trait, type_ref_span,
 };
+use crate::specialize::DefaultTraitMethodSpecialization;
 use crate::{
     SourceType, SourceTypeArray, TraitType, TypeArgs, package_for_type, specialize_trait_type,
-    specialize_ty_for_default_trait_method, specialize_type,
+    specialize_type,
 };
 
 type TraitAliasMap = HashMap<AliasDefinitionId, (AliasDefinitionId, SourceType)>;
@@ -121,51 +122,18 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                 name,
                 params,
                 return_type,
-                type_param_definition,
+                source_type_param_definition,
+                trait_ty,
+                extended_ty,
                 modifiers,
             ) = {
                 let impl_ = sa.impl_(setter.impl_id);
                 let trait_method = sa.fct(*trait_method_id);
-
                 let params = trait_method.params.clone();
                 let trait_ty = impl_.trait_ty().expect("expected trait_ty");
                 let extended_ty = impl_.extended_ty();
-
-                for param in &params.params {
-                    let orig_ty = param.ty();
-                    let param_ty = specialize_ty_for_default_trait_method(
-                        sa,
-                        orig_ty.clone(),
-                        trait_method,
-                        impl_,
-                        &trait_ty,
-                        &extended_ty,
-                    );
-                    param.set_ty(param_ty);
-                }
-
                 let return_type = trait_method.return_type();
-                let return_type = specialize_ty_for_default_trait_method(
-                    sa,
-                    return_type,
-                    trait_method,
-                    impl_,
-                    &trait_ty,
-                    &extended_ty,
-                );
-
-                let type_param_definition = trait_method
-                    .type_param_definition(sa)
-                    .specialize_for_default_trait_method(sa, impl_, &|ty| {
-                        specialize_ty_for_default_trait_method(
-                            sa,
-                            ty,
-                            trait_method,
-                            impl_,
-                            &trait_ty,
-                            &extended_ty,
-                        )
-                    });
+                let source_type_param_definition = trait_method.type_param_definition(sa).clone();
 
                 let modifiers = Annotations {
                     is_pub: trait_method.visibility.is_public(),
@@ -189,28 +157,57 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     trait_method.name,
                     params,
                     return_type,
-                    type_param_definition,
+                    source_type_param_definition,
+                    trait_ty,
+                    extended_ty,
                     modifiers,
                 )
             };
 
+            let impl_type_param_definition_id = sa.impl_(impl_id).type_param_definition_id();
+            let type_param_builder = source_type_param_definition
+                .builder_for_default_trait_method(sa, impl_type_param_definition_id);
+            let adapter_method_type_params = type_param_builder.own_identity_type_params();
+
+            let (params, return_type, type_param_definition) = {
+                let impl_ = sa.impl_(impl_id);
+                let trait_method = sa.fct(*trait_method_id);
+                let specialization = DefaultTraitMethodSpecialization::new(
+                    sa,
+                    trait_method,
+                    impl_,
+                    &trait_ty,
+                    &extended_ty,
+                    &adapter_method_type_params,
+                );
+
+                for param in &params.params {
+                    let param_ty = specialization.specialize(param.ty());
+                    param.set_ty(param_ty);
+                }
+
+                let return_type = specialization.specialize(return_type);
+                let type_param_definition =
+                    type_param_builder.finish(sa, &|ty| specialization.specialize(ty));
+
+                (params, return_type, type_param_definition)
+            };
+
             let type_param_definition_id = sa.type_param_definitions.alloc(type_param_definition);
-            let fct = FctDefinition::new_no_source(
+            let fct = FctDefinition::new_default_trait_method_adapter(
                 package_id,
                 module_id,
                 file_id,
                 declaration_span,
                 span,
-                None,
                 modifiers,
                 name,
                 type_param_definition_id,
                 params,
                 return_type,
-                FctParent::Impl(impl_id),
-                false,
+                impl_id,
+                *trait_method_id,
             );
-            assert!(fct.trait_method_impl.set(*trait_method_id).is_ok());
             new_fcts.push(fct);
         }
 

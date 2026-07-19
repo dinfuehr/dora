@@ -15,6 +15,6 @@ impl[T] Base[Array[T]] for Foo[T] {
 
 impl Derived[Int32] for Foo[Int32] {}
 
-fn test(foo: Foo[Int32], arr: Array[Int32]) {
-    foo.demo(arr);
+fn test(foo: Foo[Int32], value: Int32) {
+    foo.demo(value);
 }

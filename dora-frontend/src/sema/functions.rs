@@ -48,6 +48,7 @@ pub struct FctDefinition {
     pub bytecode: OnceCell<BytecodeBody>,
     pub intrinsic: OnceCell<Intrinsic>,
     pub trait_method_impl: OnceCell<FctDefinitionId>,
+    is_default_trait_method_adapter: bool,
 }
 
 impl FctDefinition {
@@ -94,6 +95,7 @@ impl FctDefinition {
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
             trait_method_impl: OnceCell::new(),
+            is_default_trait_method_adapter: false,
         }
     }
 
@@ -141,7 +143,42 @@ impl FctDefinition {
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
             trait_method_impl: OnceCell::new(),
+            is_default_trait_method_adapter: false,
         }
+    }
+
+    pub(crate) fn new_default_trait_method_adapter(
+        package_id: PackageDefinitionId,
+        module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
+        declaration_span: Span,
+        span: Span,
+        modifiers: Annotations,
+        name: Name,
+        type_param_definition_id: TypeParamDefinitionId,
+        params: Params,
+        return_type: SourceType,
+        impl_id: ImplDefinitionId,
+        trait_method_id: FctDefinitionId,
+    ) -> FctDefinition {
+        let mut fct = FctDefinition::new_no_source(
+            package_id,
+            module_id,
+            file_id,
+            declaration_span,
+            span,
+            None,
+            modifiers,
+            name,
+            type_param_definition_id,
+            params,
+            return_type,
+            FctParent::Impl(impl_id),
+            false,
+        );
+        fct.is_default_trait_method_adapter = true;
+        assert!(fct.trait_method_impl.set(trait_method_id).is_ok());
+        fct
     }
 
     pub fn id(&self) -> FctDefinitionId {
@@ -186,19 +223,8 @@ impl FctDefinition {
         }
     }
 
-    pub fn use_trait_default_impl(&self, sa: &Sema) -> bool {
-        if self.parent.is_impl() {
-            let trait_method_id = self
-                .trait_method_impl
-                .get()
-                .cloned()
-                .expect("missing trait method");
-
-            let trait_method = sa.fct(trait_method_id);
-            trait_method.has_body(sa)
-        } else {
-            false
-        }
+    pub fn is_default_trait_method_adapter(&self) -> bool {
+        self.is_default_trait_method_adapter
     }
 
     pub fn is_self_allowed(&self) -> bool {

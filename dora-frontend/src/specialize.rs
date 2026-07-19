@@ -1,6 +1,7 @@
+use std::collections::HashMap;
+
 use crate::sema::{
-    Element, FctDefinition, ImplDefinition, Sema, TraitDefinitionId, TypeParamId, TypeParamKind,
-    find_impl,
+    Element, FctDefinition, ImplDefinition, Sema, TraitDefinitionId, TypeParamId, find_impl,
 };
 use crate::{SourceType, SourceTypeArray, TraitType, TypeArgs};
 
@@ -426,255 +427,255 @@ fn specialize_ty_for_trait_object_array(
     SourceTypeArray::with(new_array)
 }
 
-pub fn specialize_ty_for_default_trait_method(
-    sa: &Sema,
-    ty: SourceType,
-    trait_method: &FctDefinition,
-    impl_: &ImplDefinition,
-    trait_ty: &TraitType,
-    extended_ty: &SourceType,
-) -> SourceType {
-    match ty {
-        SourceType::Class(cls_id, cls_type_params) => SourceType::Class(
-            cls_id,
-            specialize_ty_array_for_default_trait_method(
-                sa,
-                cls_type_params,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
-            ),
-        ),
+#[derive(Clone)]
+struct TypeParamSubstitution {
+    bindings: HashMap<TypeParamId, SourceType>,
+}
 
-        SourceType::TraitObject(trait_id, trait_type_params, bindings) => SourceType::TraitObject(
-            trait_id,
-            specialize_ty_array_for_default_trait_method(
-                sa,
-                trait_type_params,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
-            ),
-            specialize_ty_array_for_default_trait_method(
-                sa,
-                bindings,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
-            ),
-        ),
+impl TypeParamSubstitution {
+    fn new() -> TypeParamSubstitution {
+        TypeParamSubstitution {
+            bindings: HashMap::new(),
+        }
+    }
 
-        SourceType::Struct(struct_id, struct_type_params) => SourceType::Struct(
-            struct_id,
-            specialize_ty_array_for_default_trait_method(
-                sa,
-                struct_type_params,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
-            ),
-        ),
+    fn insert(&mut self, type_param_id: TypeParamId, ty: SourceType) {
+        let previous = self.bindings.insert(type_param_id, ty.clone());
+        assert!(previous.is_none() || previous == Some(ty));
+    }
 
-        SourceType::Enum(enum_id, enum_type_params) => SourceType::Enum(
-            enum_id,
-            specialize_ty_array_for_default_trait_method(
-                sa,
-                enum_type_params,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
-            ),
-        ),
+    fn insert_definition(
+        &mut self,
+        sa: &Sema,
+        definition: &crate::sema::TypeParamDefinition,
+        type_args: &SourceTypeArray,
+    ) {
+        assert_eq!(definition.type_param_count(), type_args.len());
 
-        SourceType::Alias(alias_id, alias_type_params) => SourceType::Alias(
-            alias_id,
-            specialize_ty_array_for_default_trait_method(
-                sa,
-                alias_type_params,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
-            ),
-        ),
+        for ((type_param_id, _), ty) in definition.names(sa).zip(type_args.iter()) {
+            self.insert(type_param_id, ty);
+        }
+    }
 
-        SourceType::Assoc { assoc_id, .. } => {
-            let assoc = sa.alias(assoc_id);
-            assert!(assoc.parent.is_trait());
+    fn insert_own_definition(
+        &mut self,
+        sa: &Sema,
+        definition: &crate::sema::TypeParamDefinition,
+        type_args: &SourceTypeArray,
+    ) {
+        assert_eq!(definition.own_type_params_len(), type_args.len());
 
-            let impl_alias_id = impl_.trait_alias_map().get(&assoc_id).cloned();
+        for ((type_param_id, _), ty) in definition
+            .names(sa)
+            .skip(definition.container_type_params())
+            .zip(type_args.iter())
+        {
+            self.insert(type_param_id, ty);
+        }
+    }
 
-            if let Some(impl_alias_id) = impl_alias_id {
-                let impl_alias = sa.alias(impl_alias_id);
-                impl_alias.ty()
-            } else {
-                // Associated type is from a super trait, find the impl for that super trait
-                let assoc_trait_id = assoc.parent.to_trait_id().expect("trait expected");
+    fn get(&self, type_param_id: TypeParamId) -> SourceType {
+        self.bindings
+            .get(&type_param_id)
+            .cloned()
+            .expect("type parameter missing from default trait method substitution")
+    }
+}
 
-                // Build a TraitType for the super trait
-                // We need to get the type arguments from the trait's bounds
-                let super_trait_ty = find_super_trait_ty(sa, trait_ty, assoc_trait_id);
+pub(crate) struct DefaultTraitMethodSpecialization<'a> {
+    sa: &'a Sema,
+    trait_method: &'a FctDefinition,
+    impl_: &'a ImplDefinition,
+    trait_ty: TraitType,
+    extended_ty: SourceType,
+    type_params: TypeParamSubstitution,
+}
 
-                if let Some(super_trait_ty) = super_trait_ty {
-                    if let Some(impl_match) = find_impl(
-                        sa,
-                        trait_method,
-                        extended_ty.clone(),
-                        trait_method.type_param_definition(sa),
-                        super_trait_ty.clone(),
-                    ) {
-                        let found_impl = sa.impl_(impl_match.id);
-                        let ty = found_impl
-                            .trait_alias_map()
-                            .get(&assoc_id)
-                            .map(|a| sa.alias(*a).ty())
-                            .unwrap_or(SourceType::Error);
-                        specialize_ty_for_default_trait_method(
-                            sa,
-                            ty,
-                            trait_method,
-                            found_impl,
-                            &super_trait_ty,
-                            extended_ty,
-                        )
+impl<'a> DefaultTraitMethodSpecialization<'a> {
+    pub(crate) fn new(
+        sa: &'a Sema,
+        trait_method: &'a FctDefinition,
+        impl_: &'a ImplDefinition,
+        trait_ty: &'a TraitType,
+        extended_ty: &'a SourceType,
+        adapter_method_type_params: &SourceTypeArray,
+    ) -> DefaultTraitMethodSpecialization<'a> {
+        let mut type_params = TypeParamSubstitution::new();
+        let trait_definition = sa.trait_(trait_ty.trait_id).type_param_definition(sa);
+        // Rewrite the trait's type parameters to the type arguments from the implemented trait.
+        type_params.insert_definition(sa, trait_definition, &trait_ty.type_params);
+        // Rewrite the trait method's own type parameters to the adapter method's fresh parameters.
+        type_params.insert_own_definition(
+            sa,
+            trait_method.type_param_definition(sa),
+            adapter_method_type_params,
+        );
+
+        DefaultTraitMethodSpecialization {
+            sa,
+            trait_method,
+            impl_,
+            trait_ty: trait_ty.clone(),
+            extended_ty: extended_ty.clone(),
+            type_params,
+        }
+    }
+
+    pub(crate) fn specialize(&self, ty: SourceType) -> SourceType {
+        match ty {
+            SourceType::Class(cls_id, cls_type_params) => {
+                SourceType::Class(cls_id, self.specialize_array(cls_type_params))
+            }
+
+            SourceType::TraitObject(trait_id, trait_type_params, bindings) => {
+                SourceType::TraitObject(
+                    trait_id,
+                    self.specialize_array(trait_type_params),
+                    self.specialize_array(bindings),
+                )
+            }
+
+            SourceType::Struct(struct_id, struct_type_params) => {
+                SourceType::Struct(struct_id, self.specialize_array(struct_type_params))
+            }
+
+            SourceType::Enum(enum_id, enum_type_params) => {
+                SourceType::Enum(enum_id, self.specialize_array(enum_type_params))
+            }
+
+            SourceType::Alias(alias_id, alias_type_params) => {
+                SourceType::Alias(alias_id, self.specialize_array(alias_type_params))
+            }
+
+            SourceType::Assoc { assoc_id, .. } => {
+                let assoc = self.sa.alias(assoc_id);
+                assert!(assoc.parent.is_trait());
+
+                let impl_alias_id = self.impl_.trait_alias_map().get(&assoc_id).cloned();
+
+                if let Some(impl_alias_id) = impl_alias_id {
+                    let impl_alias = self.sa.alias(impl_alias_id);
+                    impl_alias.ty()
+                } else {
+                    // Associated type is from a super trait, find the impl for that super trait
+                    let assoc_trait_id = assoc.parent.to_trait_id().expect("trait expected");
+
+                    // Build a TraitType for the super trait
+                    // We need to get the type arguments from the trait's bounds
+                    let super_trait_ty =
+                        find_super_trait_ty(self.sa, &self.trait_ty, assoc_trait_id);
+
+                    if let Some(super_trait_ty) = super_trait_ty {
+                        if let Some(impl_match) = find_impl(
+                            self.sa,
+                            self.trait_method,
+                            self.extended_ty.clone(),
+                            self.trait_method.type_param_definition(self.sa),
+                            super_trait_ty.clone(),
+                        ) {
+                            let found_impl = self.sa.impl_(impl_match.id);
+                            let ty = found_impl
+                                .trait_alias_map()
+                                .get(&assoc_id)
+                                .map(|a| self.sa.alias(*a).ty())
+                                .unwrap_or(SourceType::Error);
+                            let nested =
+                                self.new_for_impl(found_impl, super_trait_ty, &impl_match.bindings);
+                            nested.specialize(ty)
+                        } else {
+                            SourceType::Error
+                        }
                     } else {
                         SourceType::Error
                     }
+                }
+            }
+
+            SourceType::GenericAssoc {
+                ty,
+                trait_ty: local_trait_ty,
+                assoc_id,
+            } => {
+                let assoc = self.sa.alias(assoc_id);
+                assert!(assoc.parent.is_trait());
+                let specialized_ty = self.specialize(*ty);
+
+                if specialized_ty.is_type_param() {
+                    SourceType::GenericAssoc {
+                        ty: Box::new(specialized_ty),
+                        trait_ty: local_trait_ty,
+                        assoc_id,
+                    }
+                } else if let Some(impl_match) = find_impl(
+                    self.sa,
+                    self.trait_method,
+                    specialized_ty.clone(),
+                    self.trait_method.type_param_definition(self.sa),
+                    local_trait_ty.clone(),
+                ) {
+                    let found_impl = self.sa.impl_(impl_match.id);
+                    let ty = found_impl
+                        .trait_alias_map()
+                        .get(&assoc_id)
+                        .map(|a| self.sa.alias(*a).ty())
+                        .unwrap_or(SourceType::Error);
+                    let nested =
+                        self.new_for_impl(found_impl, self.trait_ty.clone(), &impl_match.bindings);
+                    nested.specialize(ty)
                 } else {
-                    SourceType::Error
+                    unimplemented!()
                 }
             }
-        }
 
-        SourceType::GenericAssoc {
-            ty,
-            trait_ty: local_trait_ty,
-            assoc_id,
-        } => {
-            let assoc = sa.alias(assoc_id);
-            assert!(assoc.parent.is_trait());
-            let specialized_ty = specialize_ty_for_default_trait_method(
-                sa,
-                *ty,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
-            );
-
-            if specialized_ty.is_type_param() {
-                SourceType::GenericAssoc {
-                    ty: Box::new(specialized_ty),
-                    trait_ty: local_trait_ty,
-                    assoc_id,
-                }
-            } else if let Some(impl_match) = find_impl(
-                sa,
-                trait_method,
-                specialized_ty.clone(),
-                trait_method.type_param_definition(sa),
-                local_trait_ty.clone(),
-            ) {
-                let found_impl = sa.impl_(impl_match.id);
-                let ty = found_impl
-                    .trait_alias_map()
-                    .get(&assoc_id)
-                    .map(|a| sa.alias(*a).ty())
-                    .unwrap_or(SourceType::Error);
-                specialize_ty_for_default_trait_method(
-                    sa,
-                    ty,
-                    trait_method,
-                    found_impl,
-                    trait_ty,
-                    extended_ty,
-                )
-            } else {
-                unimplemented!()
-            }
-        }
-
-        SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
-            specialize_ty_array_for_default_trait_method(
-                sa,
-                params,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
+            SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
+                self.specialize_array(params),
+                Box::new(self.specialize(*return_type)),
+                is_variadic,
             ),
-            Box::new(specialize_ty_for_default_trait_method(
-                sa,
-                *return_type,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
-            )),
-            is_variadic,
-        ),
 
-        SourceType::Tuple(subtypes) => {
-            SourceType::Tuple(specialize_ty_array_for_default_trait_method(
-                sa,
-                subtypes,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
-            ))
-        }
+            SourceType::Tuple(subtypes) => SourceType::Tuple(self.specialize_array(subtypes)),
 
-        SourceType::TypeParam(id) => {
-            let trait_method_type_param_definition = trait_method.type_param_definition(sa);
+            SourceType::TypeParam(type_param_id) => self.type_params.get(type_param_id),
 
-            match trait_method_type_param_definition.classify_type_param(sa, id) {
-                Some(TypeParamKind::Container(_)) => {
-                    let trait_type_param_definition =
-                        sa.trait_(trait_ty.trait_id).type_param_definition(sa);
-                    let type_args =
-                        TypeArgs::from_own(sa, trait_type_param_definition, &trait_ty.type_params);
-                    type_args[id].clone()
-                }
-                Some(TypeParamKind::Own(_)) => SourceType::TypeParam(id),
-                None => {
-                    let idx = impl_
-                        .type_param_definition(sa)
-                        .type_param_idx(sa, id)
-                        .expect("type parameter missing from trait method and impl definitions");
+            SourceType::Unit
+            | SourceType::UInt8
+            | SourceType::Bool
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::Error => ty,
 
-                    // Preserve the positional specialization used for an impl's
-                    // parameters when resolving associated types in default methods.
-                    trait_ty
-                        .type_params
-                        .types()
-                        .get(idx.index())
-                        .cloned()
-                        .unwrap_or(SourceType::TypeParam(id))
-                }
+            SourceType::This => self.extended_ty.clone(),
+
+            SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
+                unreachable!()
             }
         }
+    }
 
-        SourceType::Unit
-        | SourceType::UInt8
-        | SourceType::Bool
-        | SourceType::Char
-        | SourceType::Int32
-        | SourceType::Int64
-        | SourceType::Float32
-        | SourceType::Float64
-        | SourceType::Error => ty,
+    fn new_for_impl<'b>(
+        &'b self,
+        impl_: &'b ImplDefinition,
+        trait_ty: TraitType,
+        bindings: &SourceTypeArray,
+    ) -> DefaultTraitMethodSpecialization<'b> {
+        let mut type_params = self.type_params.clone();
+        type_params.insert_definition(self.sa, impl_.type_param_definition(self.sa), bindings);
 
-        SourceType::This => extended_ty.clone(),
-
-        SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
-            unreachable!()
+        DefaultTraitMethodSpecialization {
+            sa: self.sa,
+            trait_method: self.trait_method,
+            impl_,
+            trait_ty,
+            extended_ty: self.extended_ty.clone(),
+            type_params,
         }
+    }
+
+    fn specialize_array(&self, array: SourceTypeArray) -> SourceTypeArray {
+        SourceTypeArray::with(array.iter().map(|ty| self.specialize(ty)).collect())
     }
 }
 
@@ -734,30 +735,6 @@ pub fn find_super_trait_ty(
     }
 
     None
-}
-
-fn specialize_ty_array_for_default_trait_method(
-    sa: &Sema,
-    array: SourceTypeArray,
-    trait_method: &FctDefinition,
-    impl_: &ImplDefinition,
-    trait_ty: &TraitType,
-    extended_ty: &SourceType,
-) -> SourceTypeArray {
-    let new_array = array
-        .iter()
-        .map(|ty| {
-            specialize_ty_for_default_trait_method(
-                sa,
-                ty,
-                trait_method,
-                impl_,
-                trait_ty,
-                extended_ty,
-            )
-        })
-        .collect::<Vec<_>>();
-    SourceTypeArray::with(new_array)
 }
 
 pub fn specialize_ty_for_generic(

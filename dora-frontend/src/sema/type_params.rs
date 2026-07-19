@@ -1,7 +1,7 @@
 use dora_parser::ast;
 use id_arena::Id;
 
-use crate::sema::{Element, ImplDefinition, Sema, SourceFileId, TypeRefArenaBuilder, lower_type};
+use crate::sema::{Sema, SourceFileId, TypeRefArenaBuilder, lower_type};
 use crate::{
     Name, ParsedTraitType, ParsedType, SourceType, SourceTypeArray, TraitType,
     specialize_trait_type_generic,
@@ -48,42 +48,25 @@ impl TypeParamDefinition {
         }
     }
 
-    pub fn specialize_for_default_trait_method<S>(
+    pub(crate) fn builder_for_default_trait_method(
         &self,
-        sa: &Sema,
-        impl_: &ImplDefinition,
-        specialize: &S,
-    ) -> TypeParamDefinition
-    where
-        S: Fn(SourceType) -> SourceType,
-    {
-        let parent = impl_.type_param_definition_id();
-        let parent_definition = sa.type_param_definition(parent);
-        let container_type_params = parent_definition.type_param_count();
-        let container_bounds = parent_definition.bounds_count();
+        sa: &mut Sema,
+        parent: TypeParamDefinitionId,
+    ) -> DefaultTraitMethodTypeParamsBuilder {
+        let names = self
+            .type_params
+            .iter()
+            .map(|&type_param_id| sa.type_param(type_param_id).name())
+            .collect::<Vec<_>>();
+        let mut definition = TypeParamDefinition::new(sa, Some(parent));
 
-        let mut new_bounds = Vec::with_capacity(self.bounds.len());
-
-        for bound in &self.bounds {
-            let ty = specialize(bound.ty());
-            let trait_ty = if let Some(trait_ty) = bound.trait_ty() {
-                Some(specialize_trait_type_generic(sa, trait_ty, specialize))
-            } else {
-                None
-            };
-            let bound = Bound {
-                parsed_ty: ParsedType::new_ty(ty),
-                parsed_trait_ty: ParsedTraitType::new_ty(trait_ty),
-            };
-            new_bounds.push(bound);
+        for name in names {
+            definition.add_type_param(sa, name);
         }
 
-        TypeParamDefinition {
-            parent: Some(parent),
-            type_params: self.type_params.clone(),
-            bounds: new_bounds,
-            container_type_params,
-            container_bounds,
+        DefaultTraitMethodTypeParamsBuilder {
+            definition,
+            source_bounds: self.bounds.clone(),
         }
     }
 
@@ -292,6 +275,39 @@ impl TypeParamDefinition {
 
     pub fn own_identity_type_params(&self) -> SourceTypeArray {
         source_types_for_type_params(self.type_params.iter().copied())
+    }
+}
+
+pub(crate) struct DefaultTraitMethodTypeParamsBuilder {
+    definition: TypeParamDefinition,
+    source_bounds: Vec<Bound>,
+}
+
+impl DefaultTraitMethodTypeParamsBuilder {
+    pub(crate) fn own_identity_type_params(&self) -> SourceTypeArray {
+        self.definition.own_identity_type_params()
+    }
+
+    pub(crate) fn finish<S>(mut self, sa: &Sema, specialize: &S) -> TypeParamDefinition
+    where
+        S: Fn(SourceType) -> SourceType,
+    {
+        self.definition.bounds = self
+            .source_bounds
+            .into_iter()
+            .map(|bound| {
+                let ty = specialize(bound.ty());
+                let trait_ty = bound
+                    .trait_ty()
+                    .map(|trait_ty| specialize_trait_type_generic(sa, trait_ty, specialize));
+
+                Bound {
+                    parsed_ty: ParsedType::new_ty(ty),
+                    parsed_trait_ty: ParsedTraitType::new_ty(trait_ty),
+                }
+            })
+            .collect();
+        self.definition
     }
 }
 
