@@ -1,0 +1,125 @@
+struct Wrapper[T](T)
+
+impl[T] std::traits::Add for Wrapper[T] {
+    fn add(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Sub for Wrapper[T] {
+    fn sub(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Mul for Wrapper[T] {
+    fn mul(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Div for Wrapper[T] {
+    fn div(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Mod for Wrapper[T] {
+    fn modulo(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::BitAnd for Wrapper[T] {
+    fn bitand(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::BitOr for Wrapper[T] {
+    fn bitor(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::BitXor for Wrapper[T] {
+    fn bitxor(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Shl for Wrapper[T] {
+    fn shl(_rhs: Int32): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Shr for Wrapper[T] {
+    fn shr(_rhs: Int32): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Sar for Wrapper[T] {
+    fn sar(_rhs: Int32): Wrapper[T] {
+        self
+    }
+}
+
+fn add(lhs: Wrapper[Int64], rhs: Wrapper[Int64]): Wrapper[Int64] {
+    lhs + rhs
+}
+
+fn sub(lhs: Wrapper[Int64], rhs: Wrapper[Int64]): Wrapper[Int64] {
+    lhs - rhs
+}
+
+fn mul(lhs: Wrapper[Int64], rhs: Wrapper[Int64]): Wrapper[Int64] {
+    lhs * rhs
+}
+
+fn div(lhs: Wrapper[Int64], rhs: Wrapper[Int64]): Wrapper[Int64] {
+    lhs / rhs
+}
+
+fn modulo(lhs: Wrapper[Int64], rhs: Wrapper[Int64]): Wrapper[Int64] {
+    lhs % rhs
+}
+
+fn bitand(lhs: Wrapper[Int64], rhs: Wrapper[Int64]): Wrapper[Int64] {
+    lhs & rhs
+}
+
+fn bitor(lhs: Wrapper[Int64], rhs: Wrapper[Int64]): Wrapper[Int64] {
+    lhs | rhs
+}
+
+fn bitxor(lhs: Wrapper[Int64], rhs: Wrapper[Int64]): Wrapper[Int64] {
+    lhs ^ rhs
+}
+
+fn shl(lhs: Wrapper[Int64], rhs: Int32): Wrapper[Int64] {
+    lhs << rhs
+}
+
+fn shr(lhs: Wrapper[Int64], rhs: Int32): Wrapper[Int64] {
+    lhs >>> rhs
+}
+
+fn sar(lhs: Wrapper[Int64], rhs: Int32): Wrapper[Int64] {
+    lhs >> rhs
+}
+
+fn main() {
+    assert(add(Wrapper[Int64](1), Wrapper[Int64](2)).0 == 1);
+    assert(sub(Wrapper[Int64](2), Wrapper[Int64](1)).0 == 2);
+    assert(mul(Wrapper[Int64](3), Wrapper[Int64](4)).0 == 3);
+    assert(div(Wrapper[Int64](4), Wrapper[Int64](2)).0 == 4);
+    assert(modulo(Wrapper[Int64](5), Wrapper[Int64](2)).0 == 5);
+    assert(bitand(Wrapper[Int64](6), Wrapper[Int64](3)).0 == 6);
+    assert(bitor(Wrapper[Int64](7), Wrapper[Int64](8)).0 == 7);
+    assert(bitxor(Wrapper[Int64](8), Wrapper[Int64](9)).0 == 8);
+    assert(shl(Wrapper[Int64](9), 1i32).0 == 9);
+    assert(shr(Wrapper[Int64](10), 1i32).0 == 10);
+    assert(sar(Wrapper[Int64](11), 1i32).0 == 11);
+}

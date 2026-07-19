@@ -1,0 +1,26 @@
+struct Wrapper[T](T)
+
+impl[T] std::traits::Neg for Wrapper[T] {
+    fn neg(): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Not for Wrapper[T] {
+    fn not(): Wrapper[T] {
+        self
+    }
+}
+
+fn negate(value: Wrapper[Int64]): Wrapper[Int64] {
+    -value
+}
+
+fn not(value: Wrapper[Int64]): Wrapper[Int64] {
+    !value
+}
+
+fn main() {
+    assert(negate(Wrapper[Int64](1)).0 == 1);
+    assert(not(Wrapper[Int64](2)).0 == 2);
+}
