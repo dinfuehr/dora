@@ -1,0 +1,13 @@
+struct Pair(Int64, Int64)
+
+fn f(value: Int64) {
+    let _value = value else { return; };
+}
+
+fn tuple(value: (Int64, Int64)) {
+    let (_first, _second) = value else { return; };
+}
+
+fn struct_(value: Pair) {
+    let Pair(_first, _second) = value else { return; };
+}

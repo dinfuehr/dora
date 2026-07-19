@@ -447,6 +447,16 @@ pub static LET_MISSING_INITIALIZATION: DiagnosticDescriptor = DiagnosticDescript
     level: ErrorLevel::Error,
 };
 
+pub static LET_ELSE_NOT_DIVERGING: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`else` block in `let` binding must not complete normally.",
+    level: ErrorLevel::Error,
+};
+
+pub static LET_ELSE_IRREFUTABLE_PATTERN: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`else` block is unreachable because `let` pattern always matches.",
+    level: ErrorLevel::Error,
+};
+
 pub static LET_REASSIGNED: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "`let` binding cannot be reassigned.",
     level: ErrorLevel::Error,

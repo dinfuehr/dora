@@ -187,6 +187,10 @@ pub fn expr_always_returns(body: &sema::Body, expr_id: sema::ExprId) -> bool {
     returnck::expr_returns_value(body, expr_id)
 }
 
+pub fn expr_always_exits(sa: &Sema, body: &sema::Body, expr_id: sema::ExprId) -> bool {
+    returnck::expr_always_exits(sa, body, expr_id)
+}
+
 pub fn expr_block_always_returns(body: &sema::Body, e: &sema::BlockExpr) -> bool {
     returnck::expr_block_returns_value(body, e)
 }

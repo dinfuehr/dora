@@ -1,0 +1,12 @@
+enum Foo { A(Int64), B }
+
+fn main() {
+    assert(valueOrDefault(Foo::A(12)) == 12);
+    assert(valueOrDefault(Foo::A(-3)) == -3);
+    assert(valueOrDefault(Foo::B) == 10);
+}
+
+fn valueOrDefault(value: Foo): Int64 {
+    let Foo::A(value) = value else { return 10; };
+    value
+}

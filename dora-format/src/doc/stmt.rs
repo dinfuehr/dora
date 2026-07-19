@@ -22,6 +22,12 @@ pub(crate) fn format_let(node: AstLet, f: &mut Formatter) {
             f.text(" ");
             print_node::<AstExpr>(f, &mut iter, &opt);
         }
+        if is_token(&mut iter, ELSE_KW) {
+            f.text(" ");
+            print_token(f, &mut iter, ELSE_KW, &opt);
+            f.text(" ");
+            print_node::<AstExpr>(f, &mut iter, &opt);
+        }
         print_token(f, &mut iter, SEMICOLON, &opt);
     });
 }
@@ -51,6 +57,13 @@ mod tests {
     fn keep_empty_line_for_let() {
         let input = "fn main() { f(); g();\n\nlet x=1;}";
         let expected = "fn main() {\n    f();\n    g();\n\n    let x = 1;\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn format_let_else() {
+        let input = "fn f(input:Foo){let Foo::A(value)=input else{return;};}";
+        let expected = "fn f(input: Foo) {\n    let Foo::A(value) = input else {\n        return;\n    };\n}\n";
         assert_source(input, expected);
     }
 }

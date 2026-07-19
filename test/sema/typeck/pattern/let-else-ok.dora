@@ -1,0 +1,46 @@
+//= ok
+enum Foo { A(Int64), B }
+
+fn withReturn(value: Foo): Int64 {
+    let Foo::A(value) = value else { return 10; };
+    value
+}
+
+fn withUnreachable(value: Foo): Int64 {
+    let Foo::A(value) = value else { unreachable[()](); };
+    value
+}
+
+fn withUnimplemented(value: Foo): Int64 {
+    let Foo::A(value) = value else { unimplemented[()](); };
+    value
+}
+
+fn withFatalError(value: Foo): Int64 {
+    let Foo::A(value) = value else { std::fatal_error[()]("unexpected value"); };
+    value
+}
+
+fn withAbort(value: Foo): Int64 {
+    let Foo::A(value) = value else { std::abort(); };
+    value
+}
+
+fn withExit(value: Foo): Int64 {
+    let Foo::A(value) = value else { std::exit(1i32); };
+    value
+}
+
+fn withBreak(value: Foo) {
+    while true {
+        let Foo::A(_value) = value else { break; };
+        return;
+    }
+}
+
+fn withContinue(value: Foo) {
+    while true {
+        let Foo::A(_value) = value else { continue; };
+        return;
+    }
+}

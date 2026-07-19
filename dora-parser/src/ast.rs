@@ -1660,6 +1660,13 @@ impl AstLet {
         self.syntax_node().children().find_map(|n| AstExpr::cast(n))
     }
 
+    pub fn else_block(&self) -> Option<AstExpr> {
+        self.syntax_node()
+            .children()
+            .filter_map(|n| AstExpr::cast(n))
+            .nth(1)
+    }
+
     pub fn data_type(&self) -> Option<AstType> {
         self.syntax_node().children().find_map(|n| AstType::cast(n))
     }

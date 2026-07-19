@@ -310,7 +310,10 @@ pub struct KnownFunctions {
     pub string_buffer_to_string: Option<FctDefinitionId>,
     pub assert: Option<FctDefinitionId>,
     pub unreachable: Option<FctDefinitionId>,
+    pub unimplemented: Option<FctDefinitionId>,
     pub fatal_error: Option<FctDefinitionId>,
+    pub abort: Option<FctDefinitionId>,
+    pub exit: Option<FctDefinitionId>,
     pub uint8_to_int32: Option<FctDefinitionId>,
     pub int64_to_int32: Option<FctDefinitionId>,
     pub option_is_some: Option<FctDefinitionId>,
@@ -331,7 +334,10 @@ impl KnownFunctions {
             string_buffer_to_string: None,
             assert: None,
             unreachable: None,
+            unimplemented: None,
             fatal_error: None,
+            abort: None,
+            exit: None,
             uint8_to_int32: None,
             int64_to_int32: None,
             option_is_none: None,
@@ -370,6 +376,14 @@ impl KnownFunctions {
 
     pub fn fatal_error(&self) -> FctDefinitionId {
         self.fatal_error.expect("uninitialized")
+    }
+
+    pub fn is_diverging(&self, fct_id: FctDefinitionId) -> bool {
+        self.unreachable == Some(fct_id)
+            || self.unimplemented == Some(fct_id)
+            || self.fatal_error == Some(fct_id)
+            || self.abort == Some(fct_id)
+            || self.exit == Some(fct_id)
     }
 
     pub fn uint8_to_int32(&self) -> FctDefinitionId {

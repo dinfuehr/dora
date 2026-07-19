@@ -1,0 +1,3 @@
+fn f(value: Bool) {
+    let true = value else {};
+}

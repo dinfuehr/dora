@@ -515,6 +515,15 @@ fn parse_let_without_type() {
 
     assert!(var.data_type().is_none());
     assert!(var.expr().unwrap().is_lit_int_expr());
+    assert!(var.else_block().is_none());
+}
+
+#[test]
+fn parse_let_with_else() {
+    let var = parse_let("let (true, value) = input else { return; };");
+
+    assert!(var.expr().unwrap().is_path_expr());
+    assert!(var.else_block().unwrap().is_block_expr());
 }
 
 #[test]

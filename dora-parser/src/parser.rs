@@ -809,6 +809,10 @@ impl Parser {
         }
         if self.eat(EQ) {
             self.parse_expr();
+
+            if self.eat(ELSE_KW) {
+                self.parse_block();
+            }
         }
 
         self.expect(SEMICOLON);

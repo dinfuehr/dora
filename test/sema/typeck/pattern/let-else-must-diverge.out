@@ -1,0 +1,8 @@
+error: `else` block in `let` binding must not complete normally.
+--> let-else-must-diverge.dora:2:27
+ | fn f(value: Bool) {
+ |     let true = value else {};
+                             ~~
+ | }
+ | 
+1 error found.

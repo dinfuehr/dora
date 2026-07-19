@@ -1,0 +1,25 @@
+error: `else` block is unreachable because `let` pattern always matches.
+--> let-else-irrefutable.dora:4:9
+ | 
+ | fn f(value: Int64) {
+ |     let _value = value else { return; };
+           ~~~~~~
+ | }
+ | 
+error: `else` block is unreachable because `let` pattern always matches.
+--> let-else-irrefutable.dora:8:9
+ | 
+ | fn tuple(value: (Int64, Int64)) {
+ |     let (_first, _second) = value else { return; };
+           ~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `else` block is unreachable because `let` pattern always matches.
+--> let-else-irrefutable.dora:12:9
+ | 
+ | fn struct_(value: Pair) {
+ |     let Pair(_first, _second) = value else { return; };
+           ~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+3 errors found.

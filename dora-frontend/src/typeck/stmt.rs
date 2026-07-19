@@ -1,7 +1,8 @@
 use crate::args;
 use crate::error::diagnostics::{
-    ASSIGN_TYPE, LET_MISSING_INITIALIZATION, VAR_NEEDS_TYPE_OR_EXPRESSION,
+    ASSIGN_TYPE, LET_ELSE_NOT_DIVERGING, LET_MISSING_INITIALIZATION, VAR_NEEDS_TYPE_OR_EXPRESSION,
 };
+use crate::expr_always_exits;
 use crate::sema::{LetStmt, Stmt, StmtId};
 use crate::ty::SourceType;
 use crate::typeck::{TypeCheck, check_expr, check_pattern};
@@ -35,6 +36,14 @@ fn check_stmt_let(ck: &mut TypeCheck, stmt_id: StmtId, stmt: &LetStmt) {
     } else {
         expr_type.clone()
     };
+
+    if let Some(else_expr) = stmt.else_expr {
+        check_expr(ck, else_expr, SourceType::Any);
+
+        if !expr_always_exits(ck.sa, ck.body, else_expr) {
+            ck.report(ck.expr_span(else_expr), &LET_ELSE_NOT_DIVERGING, args!());
+        }
+    }
 
     if !defined_type.is_error() && !defined_type.is_defined_type(ck.sa) {
         ck.report_stmt_id(stmt_id, &VAR_NEEDS_TYPE_OR_EXPRESSION, args!());

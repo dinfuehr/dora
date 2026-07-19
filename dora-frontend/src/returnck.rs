@@ -1,4 +1,4 @@
-use crate::sema::{BlockExpr, Body, Expr, ExprId, IfExpr, MatchExpr, Stmt, StmtId};
+use crate::sema::{BlockExpr, Body, Expr, ExprId, IfExpr, MatchExpr, Sema, Stmt, StmtId};
 
 pub fn stmt_returns_value(body: &Body, stmt_id: StmtId) -> bool {
     let stmt = body.stmt(stmt_id);
@@ -53,6 +53,51 @@ fn expr_if_returns_value(body: &Body, e: &IfExpr) -> bool {
 
 fn expr_match_returns_value(body: &Body, e: &MatchExpr) -> bool {
     e.arms.iter().all(|arm| expr_returns_value(body, arm.value))
+}
+
+pub fn expr_always_exits(sa: &Sema, body: &Body, expr_id: ExprId) -> bool {
+    match body.expr(expr_id) {
+        Expr::Block(e) => {
+            for &stmt_id in &e.stmts {
+                if stmt_always_exits(sa, body, stmt_id) {
+                    return true;
+                }
+            }
+
+            e.expr
+                .map(|expr_id| expr_always_exits(sa, body, expr_id))
+                .unwrap_or(false)
+        }
+        Expr::If(e) => {
+            expr_always_exits(sa, body, e.then_expr)
+                && e.else_expr
+                    .map(|expr_id| expr_always_exits(sa, body, expr_id))
+                    .unwrap_or(false)
+        }
+        Expr::Match(e) => e
+            .arms
+            .iter()
+            .all(|arm| expr_always_exits(sa, body, arm.value)),
+        Expr::Paren(expr_id) => expr_always_exits(sa, body, *expr_id),
+        Expr::Break | Expr::Continue | Expr::Return(_) | Expr::Error => true,
+        Expr::Call(_) => body
+            .get_call_type(expr_id)
+            .and_then(|call_type| call_type.fct_id())
+            .map(|fct_id| sa.known.functions.is_diverging(fct_id))
+            .unwrap_or(false),
+        _ => false,
+    }
+}
+
+fn stmt_always_exits(sa: &Sema, body: &Body, stmt_id: StmtId) -> bool {
+    match body.stmt(stmt_id) {
+        Stmt::Let(stmt) => stmt
+            .expr
+            .map(|expr_id| expr_always_exits(sa, body, expr_id))
+            .unwrap_or(false),
+        Stmt::Expr(expr_id) => expr_always_exits(sa, body, *expr_id),
+        Stmt::Error => true,
+    }
 }
 
 #[cfg(test)]

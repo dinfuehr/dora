@@ -326,6 +326,21 @@ fn gen_fatal_error(g: &mut AstBytecodeGen, msg: &str, span: Span) {
     g.free_temp(msg_reg);
 }
 
+fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
+    let return_type = g.return_type.clone();
+    let register_bty = g.emitter.convert_ty_reg(g.sa, return_type.clone());
+    let dest = g.alloc_temp(register_bty);
+    let fct_type_params = g.convert_tya(&SourceTypeArray::single(return_type));
+    let fct_id = g
+        .emitter
+        .convert_function_id(g.sa, g.sa.known.functions.unreachable());
+    let fct_idx = g.builder.add_const_fct_types(fct_id, fct_type_params);
+    g.builder
+        .emit_invoke_direct(dest, fct_idx, &[], g.loc(span));
+    g.builder.emit_ret(dest);
+    g.free_temp(dest);
+}
+
 fn last_context_register(g: &AstBytecodeGen) -> Option<Register> {
     g.entered_contexts.iter().rev().find_map(|ec| ec.register)
 }

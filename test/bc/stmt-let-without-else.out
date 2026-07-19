@@ -1,0 +1,29 @@
+fn f:
+  0: LoadEnumVariant r3, r0, @0 # Foo
+  4: ConstInt32 r4, @1 # 0
+  7: TestEq r2, r3, r4
+ 11: JumpIfFalse r2, 29 (+18)
+ 17: LoadEnumElement r5, r0, @2, 0 # Foo::A.0
+ 21: Mov r1, r5
+ 24: Jump 35 (+11)
+ 29: InvokeDirect r4, @3 # std::unreachable[T]
+ 33: Ret r4
+ 35: Ret r1
+
+  Registers:
+   0 => enum Foo
+   1 => Int32
+   2 => Bool
+   3 => Int32
+   4 => Int32
+   5 => Int32
+
+  Constants:
+   0 => Enum Foo
+   1 => Int32 0
+   2 => EnumVariantElement Foo::A::0
+   3 => Fct std::unreachable[Int32]
+
+  Locations:
+   0 => 4:9
+

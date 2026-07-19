@@ -51,6 +51,7 @@ pub struct LetStmt {
     pub pattern: PatternId,
     pub data_type: Option<TypeRefId>,
     pub expr: Option<ExprId>,
+    pub else_expr: Option<ExprId>,
 }
 
 pub(crate) fn lower_stmt(
@@ -80,6 +81,17 @@ pub(crate) fn lower_stmt(
                 .data_type()
                 .map(|ty| lower_type(sa, type_ref_arena, file_id, ty)),
             expr: stmt.expr().map(|expr| {
+                lower_expr(
+                    sa,
+                    expr_arena,
+                    stmt_arena,
+                    pattern_arena,
+                    type_ref_arena,
+                    file_id,
+                    expr,
+                )
+            }),
+            else_expr: stmt.else_block().map(|expr| {
                 lower_expr(
                     sa,
                     expr_arena,

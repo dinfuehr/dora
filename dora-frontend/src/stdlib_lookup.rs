@@ -324,7 +324,10 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
 
 fn resolve_functions(sa: &mut Sema) {
     sa.known.functions.unreachable = Some(lookup_fct(sa, "std::unreachable"));
+    sa.known.functions.unimplemented = Some(lookup_fct(sa, "std::unimplemented"));
     sa.known.functions.fatal_error = Some(lookup_fct(sa, "std::fatal_error"));
+    sa.known.functions.abort = Some(lookup_fct(sa, "std::abort"));
+    sa.known.functions.exit = Some(lookup_fct(sa, "std::exit"));
 }
 
 fn lookup_ordering(sa: &mut Sema) {

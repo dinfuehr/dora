@@ -1,11 +1,9 @@
 use dora_bytecode::Register;
-use dora_parser::Span;
 
 use super::{ensure_register, gen_expr};
 use crate::generator::pattern::{destruct_pattern, setup_pattern_vars};
-use crate::generator::{AstBytecodeGen, DataDest};
+use crate::generator::{AstBytecodeGen, DataDest, gen_unreachable};
 use crate::sema::{ExprId, MatchExpr};
-use crate::ty::SourceTypeArray;
 
 mod enum_;
 mod int;
@@ -84,19 +82,4 @@ pub(super) fn gen_match(
     g.free_if_temp(expr_reg);
 
     dest
-}
-
-fn gen_unreachable(g: &mut AstBytecodeGen, span: Span) {
-    let return_type = g.return_type.clone();
-    let register_bty = g.emitter.convert_ty_reg(g.sa, return_type.clone());
-    let dest = g.alloc_temp(register_bty);
-    let fct_type_params = g.convert_tya(&SourceTypeArray::single(return_type));
-    let fct_id = g
-        .emitter
-        .convert_function_id(g.sa, g.sa.known.functions.unreachable());
-    let fct_idx = g.builder.add_const_fct_types(fct_id, fct_type_params);
-    g.builder
-        .emit_invoke_direct(dest, fct_idx, &[], g.loc(span));
-    g.builder.emit_ret(dest);
-    g.free_temp(dest);
 }

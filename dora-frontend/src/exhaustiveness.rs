@@ -5,7 +5,9 @@ use dora_parser::Span;
 use dora_parser::ast::{AstExpr, AstPattern, SyntaxNodeBase};
 
 use crate::args;
-use crate::error::diagnostics::{NON_EXHAUSTIVE_MATCH, USELESS_PATTERN};
+use crate::error::diagnostics::{
+    LET_ELSE_IRREFUTABLE_PATTERN, NON_EXHAUSTIVE_MATCH, USELESS_PATTERN,
+};
 use crate::interner::Name;
 use crate::sema::{
     Body, ClassDefinitionId, ConstDefinitionId, ConstValue, CtorPattern, ElementWithFields,
@@ -143,14 +145,34 @@ fn visit_stmt_for_matches(
     let stmt = body.stmt(stmt_id);
     match stmt {
         Stmt::Let(let_stmt) => {
+            if let_stmt.else_expr.is_some() {
+                check_let_pattern(sa, body, file_id, let_stmt.pattern);
+            }
             if let Some(init) = let_stmt.expr {
                 visit_expr_for_matches(sa, body, file_id, init);
+            }
+            if let Some(else_expr) = let_stmt.else_expr {
+                visit_expr_for_matches(sa, body, file_id, else_expr);
             }
         }
         Stmt::Expr(expr_id) => {
             visit_expr_for_matches(sa, body, file_id, *expr_id);
         }
         Stmt::Error => {}
+    }
+}
+
+fn check_let_pattern(sa: &Sema, body: &Body, file_id: SourceFileId, pattern_id: PatternId) {
+    let pattern = convert_pattern(sa, body, file_id, pattern_id);
+    let missing_patterns = check_exhaustive(sa, vec![vec![pattern]], 1);
+
+    if missing_patterns.is_empty() {
+        sa.report(
+            file_id,
+            pattern_span(sa, body, file_id, pattern_id),
+            &LET_ELSE_IRREFUTABLE_PATTERN,
+            args!(),
+        );
     }
 }
 

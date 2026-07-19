@@ -1,0 +1,6 @@
+enum Foo { A(Int32), B }
+
+fn f(value: Foo): Int32 {
+    let Foo::A(value) = value else { return 10; };
+    value
+}
