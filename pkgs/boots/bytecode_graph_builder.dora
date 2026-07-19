@@ -2063,6 +2063,8 @@ impl BytecodeGraphBuilder {
             actual_object_ty,
         ) = self.bc().const_pool_entry(idx);
 
+        let trait_ty = self.specialize_ty(trait_ty);
+        let actual_object_ty = self.specialize_ty(actual_object_ty);
         let info = TraitObjectInfo(trait_ty, actual_object_ty);
         let info = InstExtraData::TraitObjectInfo(info);
         let obj_inst = graph::create_new_object_inst(info);

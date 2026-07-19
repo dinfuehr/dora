@@ -1,0 +1,144 @@
+use std::Stringable;
+
+trait Value: Stringable {
+    static fn from_int(value: Int64): Self;
+    fn to_int(): Int64;
+    fn select[T](value: T): T;
+}
+
+class Item(Int64)
+
+impl Value for Item {
+    static fn from_int(value: Int64): Item { Item(value) }
+    fn to_int(): Int64 { self.0 }
+    fn select[T](value: T): T { value }
+}
+
+impl Stringable for Item {
+    fn to_string(): String { self.0.to_string() }
+}
+
+class Wrapper[T] {
+    value: T,
+}
+
+trait Erased[T] {
+    fn get(): T;
+}
+
+impl[T] Erased[T] for Wrapper[T] {
+    fn get(): T { self.value }
+}
+
+fn identity[T](value: T): T { value }
+
+trait DefaultExpressions {
+    type Item: Value;
+
+    fn item(): Self::Item;
+
+    fn paths_and_containers(): Int64 {
+        let item: Self::Item = self.item();
+        let from_path = Self::Item::from_int(2);
+        let from_qualified_path = [Self as DefaultExpressions]::Item::from_int(3);
+        let nested: Wrapper[Wrapper[Self::Item]] =
+            Wrapper[Wrapper[Self::Item]](Wrapper[Self::Item](item));
+        let pair: (Self, Self::Item) = (self, nested.value.value);
+        let self_wrapper: Wrapper[Self] = Wrapper[Self](pair.0);
+        let generic_call = identity[Self::Item](pair.1);
+
+        self_wrapper.value.item().to_int()
+            + generic_call.to_int()
+            + from_path.to_int()
+            + from_qualified_path.to_int()
+    }
+
+    fn lambdas(): Int64 {
+        let captured: Self::Item = self.item();
+        let typed: (Self::Item): Self::Item =
+            |value: Self::Item|: Self::Item { value };
+        let inferred = |value: Self::Item|: Self::Item {
+            if value.to_int() > captured.to_int() { value } else { captured }
+        };
+
+        typed(inferred(Self::Item::from_int(7))).to_int()
+    }
+
+    fn generic_method_on_associated_type(): String {
+        self.item().select[String]("associated")
+    }
+
+    fn control_flow(): Int64 {
+        let mut values: Array[Self::Item] = Array[Self::Item]::new(
+            Self::Item::from_int(1),
+            Self::Item::from_int(2),
+            Self::Item::from_int(3),
+            Self::Item::from_int(4),
+        );
+        values(0) = self.item();
+
+        let mut total = 0;
+        for value in values {
+            if value.to_int() == 2 {
+                continue;
+            }
+
+            total = total + value.to_int();
+            if total > 10 {
+                break;
+            }
+        }
+
+        let mut count = 0;
+        while count < 2 {
+            count = count + 1;
+        }
+
+        let option: Option[Self::Item] = Some[Self::Item](Self::Item::from_int(total + count));
+        let matched = match option {
+            Some(value) if value.to_int() > 0 => value,
+            Some(value) => value,
+            None => Self::Item::from_int(-1),
+        };
+
+        let pattern_value = if Some[Self::Item](matched) is Some(value) {
+            value
+        } else {
+            Self::Item::from_int(-2)
+        };
+
+        let Some(let_else_value) = Some[Self::Item](pattern_value) else {
+            return -3;
+        };
+
+        ({ let_else_value.to_int() })
+    }
+
+    fn trait_object_cast(): Int64 {
+        let wrapper = Wrapper[Self::Item](self.item());
+        let erased = wrapper as Erased[Self::Item];
+        erased.get().to_int()
+    }
+
+    fn template(): String {
+        "item=${self.item()}"
+    }
+}
+
+class Source(Item)
+
+impl DefaultExpressions for Source {
+    type Item = Item;
+
+    fn item(): Item { self.0 }
+}
+
+fn main() {
+    let source = Source(Item(5));
+    assert(source.paths_and_containers() == 15);
+    assert(source.lambdas() == 7);
+    assert(source.generic_method_on_associated_type() == "associated");
+    assert(source.control_flow() == 14);
+    assert(source.trait_object_cast() == 5);
+    assert(source.template() == "item=5");
+}

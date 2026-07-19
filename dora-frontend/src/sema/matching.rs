@@ -285,9 +285,18 @@ fn match_concrete_types(
             _ => false,
         },
 
-        SourceType::Alias(..) | SourceType::Assoc { .. } => {
-            unimplemented!()
-        }
+        SourceType::Alias(..) => unreachable!(),
+
+        SourceType::Assoc {
+            trait_ty: check_trait_ty,
+            assoc_id: check_assoc_id,
+        } => match ext_ty {
+            SourceType::Assoc {
+                trait_ty: ext_trait_ty,
+                assoc_id: ext_assoc_id,
+            } => check_trait_ty == ext_trait_ty && check_assoc_id == ext_assoc_id,
+            _ => false,
+        },
 
         SourceType::Tuple(check_subtypes) => match ext_ty {
             SourceType::Tuple(ext_subtypes) => match_arrays(
