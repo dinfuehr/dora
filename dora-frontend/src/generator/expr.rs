@@ -144,21 +144,24 @@ pub(super) fn add_const_pool_entry_for_call(
 ) -> ConstPoolIdx {
     match call_type {
         CallType::GenericMethod {
-            object_type,
             trait_ty,
             fct_id,
-            fct_type_params,
+            type_params,
         }
         | CallType::GenericStaticMethod {
-            object_type,
             trait_ty,
             fct_id,
-            fct_type_params,
+            type_params,
         } => {
+            assert_eq!(type_params.container(), &trait_ty.type_params);
+            let object_type = type_params
+                .self_ty()
+                .cloned()
+                .expect("generic call requires Self type");
             let bc_object_type = g.emitter.convert_ty(g.sa, object_type.clone());
             let bc_trait_ty = g.emitter.convert_trait_ty(g.sa, &trait_ty);
             let bc_fct_id = g.emitter.convert_function_id(g.sa, *fct_id);
-            let bc_fct_type_params = g.convert_tya(fct_type_params);
+            let bc_fct_type_params = g.convert_tya(type_params.own());
             g.builder.add_const(ConstPoolEntry::Generic {
                 object_type: bc_object_type,
                 trait_ty: bc_trait_ty,
@@ -213,27 +216,8 @@ pub(super) fn specialize_type_for_call(
             specialize_ty_for_trait_object(g.sa, ty, trait_id, &type_args, assoc_types)
         }
 
-        CallType::GenericMethod {
-            object_type,
-            trait_ty,
-            fct_type_params,
-            fct_id,
-        }
-        | CallType::GenericStaticMethod {
-            object_type,
-            trait_ty,
-            fct_type_params,
-            fct_id,
-        } => {
-            let fct = g.sa.fct(*fct_id);
-            let type_args = TypeArgs::from_definition(
-                fct,
-                &trait_ty.type_params,
-                fct_type_params,
-                Some(object_type.clone()),
-            );
-            replace_type(g.sa, ty, &type_args)
-        }
+        CallType::GenericMethod { type_params, .. }
+        | CallType::GenericStaticMethod { type_params, .. } => replace_type(g.sa, ty, type_params),
 
         CallType::Lambda(..)
         | CallType::NewClass(..)

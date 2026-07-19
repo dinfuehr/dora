@@ -274,12 +274,17 @@ fn check_expr_bin_trait(
             .get_method_for_trait_method_id(trait_method_id);
 
         if let Some(method_id) = method_id {
-            let type_params = TypeArgs::from_container(&type_params);
+            let method = ck.sa.fct(method_id);
+            // The impl method can be malformed; don't assert its type-parameter count during recovery.
+            let type_params = TypeArgs::from_parts(
+                &type_params,
+                &SourceTypeArray::empty(),
+                Some(lhs_type.clone()),
+            );
             let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
             ck.body
                 .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
-            let method = ck.sa.fct(method_id);
             let params = method.params_without_self();
 
             assert_eq!(params.len(), 1);
@@ -300,7 +305,7 @@ fn check_expr_bin_trait(
                 );
             }
 
-            let return_type = method.return_type();
+            let return_type = replace_type(ck.sa, method.return_type(), &type_params);
             ck.body.set_ty(expr_id, return_type.clone());
 
             OpTraitInfo {
@@ -327,18 +332,23 @@ fn check_expr_bin_trait(
         let params = method.params_without_self();
 
         let tp_id = lhs_type.type_param_id().expect("type param expected");
+        let trait_ty = TraitType::from_trait_id(trait_id);
+        let type_params = TypeArgs::from_definition(
+            method,
+            &trait_ty.type_params,
+            &SourceTypeArray::empty(),
+            Some(SourceType::TypeParam(tp_id)),
+        );
         let call_type = CallType::GenericMethod {
-            object_type: SourceType::TypeParam(tp_id),
-            trait_ty: TraitType::from_trait_id(trait_id),
+            trait_ty,
             fct_id: method_id,
-            fct_type_params: SourceTypeArray::empty(),
+            type_params: type_params.clone(),
         };
         ck.body
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let param = params[0].ty();
-        let type_args = TypeArgs::empty().with_self(lhs_type.clone());
-        let param = replace_type(ck.sa, param, &type_args);
+        let param = replace_type(ck.sa, param, &type_params);
 
         if !param.allows(ck.sa, rhs_type.clone()) {
             let lhs_type = ck.ty_name(&lhs_type);
@@ -351,7 +361,7 @@ fn check_expr_bin_trait(
         }
 
         let return_type = method.return_type();
-        let return_type = replace_type(ck.sa, return_type, &type_args);
+        let return_type = replace_type(ck.sa, return_type, &type_params);
 
         ck.body.set_ty(expr_id, return_type.clone());
 

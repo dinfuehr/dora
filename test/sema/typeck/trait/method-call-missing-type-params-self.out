@@ -1,0 +1,25 @@
+error: expected 1 type parameters but got 0.
+--> method-call-missing-type-params-self.dora:5:9
+ | 
+ |     fn call_on_self() {
+ |         self.generic();
+           ~~~~~~~~~~~~~~
+ |     }
+ | }
+error: expected 1 type parameters but got 0.
+--> method-call-missing-type-params-self.dora:13:9
+ | 
+ |     fn call_on_assoc(value: Self::Item) {
+ |         value.generic();
+           ~~~~~~~~~~~~~~~
+ |     }
+ | }
+error: expected 1 type parameters but got 0.
+--> method-call-missing-type-params-self.dora:18:5
+ | 
+ | fn call_on_generic_assoc[T: Container](value: T::Item) {
+ |     value.generic();
+       ~~~~~~~~~~~~~~~
+ | }
+ | 
+3 errors found.

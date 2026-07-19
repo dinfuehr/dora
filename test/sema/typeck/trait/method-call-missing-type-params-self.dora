@@ -1,0 +1,19 @@
+trait GenericMethod {
+    fn generic[T]();
+
+    fn call_on_self() {
+        self.generic();
+    }
+}
+
+trait Container {
+    type Item: GenericMethod;
+
+    fn call_on_assoc(value: Self::Item) {
+        value.generic();
+    }
+}
+
+fn call_on_generic_assoc[T: Container](value: T::Item) {
+    value.generic();
+}

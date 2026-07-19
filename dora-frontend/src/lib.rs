@@ -19,10 +19,10 @@ pub use parsety::{ParsedTraitType, ParsedType};
 pub use path::{PathKind, parse_path};
 pub use program_emitter::emit_program;
 pub use specialize::{
-    CallSpecializationData, find_super_trait_ty, replace_type, specialize_for_element,
-    specialize_trait_type, specialize_trait_type_generic, specialize_ty_for_call,
-    specialize_ty_for_default_trait_method, specialize_ty_for_generic,
-    specialize_ty_for_trait_object, specialize_type, specialize_type_array,
+    find_super_trait_ty, replace_type, specialize_for_element, specialize_trait_type,
+    specialize_trait_type_generic, specialize_ty_for_call, specialize_ty_for_default_trait_method,
+    specialize_ty_for_generic, specialize_ty_for_trait_object, specialize_type,
+    specialize_type_array,
 };
 pub use vfs::Vfs;
 

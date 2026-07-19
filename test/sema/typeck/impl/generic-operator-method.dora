@@ -1,0 +1,49 @@
+class AddValue
+
+impl std::traits::Add for AddValue {
+    fn add[T](_rhs: AddValue): AddValue {
+        AddValue()
+    }
+}
+
+class NegValue
+
+impl std::traits::Neg for NegValue {
+    fn neg[T](): NegValue {
+        NegValue()
+    }
+}
+
+class IndexedValue
+
+impl std::traits::IndexGet for IndexedValue {
+    type Index = Int;
+    type Item = Int;
+
+    fn get[T](_index: Int): Int {
+        0
+    }
+}
+
+impl std::traits::IndexSet for IndexedValue {
+    type Index = Int;
+    type Item = Int;
+
+    fn set[T](_index: Int, _value: Int) {}
+}
+
+fn test_add() {
+    AddValue() + AddValue();
+
+    let mut value = AddValue();
+    value += AddValue();
+}
+
+fn test_neg() {
+    -NegValue();
+}
+
+fn test_index(value: IndexedValue) {
+    value(0);
+    value(0) = 1;
+}

@@ -1,0 +1,15 @@
+error: impl method does not match definition in trait.
+--> generic-operator-method.dora:4:5 - 6:6
+error: impl method does not match definition in trait.
+--> generic-operator-method.dora:12:5 - 14:6
+error: impl method does not match definition in trait.
+--> generic-operator-method.dora:23:5 - 25:6
+error: impl method does not match definition in trait.
+--> generic-operator-method.dora:32:5
+ |     type Item = Int;
+ | 
+ |     fn set[T](_index: Int, _value: Int) {}
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+4 errors found.

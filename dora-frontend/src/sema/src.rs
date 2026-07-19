@@ -256,18 +256,16 @@ pub enum CallType {
 
     // Invoke trait method on type param, Self, or associated type, e.g. (T: SomeTrait).method(), self.method() in trait defaults
     GenericMethod {
-        object_type: SourceType,
         trait_ty: TraitType,
         fct_id: FctDefinitionId,
-        fct_type_params: SourceTypeArray,
+        type_params: TypeArgs,
     },
 
     // Invoke static trait method on type param, Self, or associated type, e.g. T::method(), Self::method(), Self::T::method()
     GenericStaticMethod {
-        object_type: SourceType,
         trait_ty: TraitType,
         fct_id: FctDefinitionId,
-        fct_type_params: SourceTypeArray,
+        type_params: TypeArgs,
     },
 
     // Class constructor of new class syntax, i.e. ClassName(<args>).

@@ -305,12 +305,17 @@ fn check_expr_assign_trait(
             .get_method_for_trait_method_id(trait_method_id);
 
         if let Some(method_id) = method_id {
-            let type_params = TypeArgs::from_container(&type_params);
+            let method = ck.sa.fct(method_id);
+            // The impl method can be malformed; don't assert its type-parameter count during recovery.
+            let type_params = TypeArgs::from_parts(
+                &type_params,
+                &SourceTypeArray::empty(),
+                Some(lhs_type.clone()),
+            );
             let call_type = CallType::Method(lhs_type.clone(), method_id, type_params.clone());
             ck.body
                 .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
-            let method = ck.sa.fct(method_id);
             let params = method.params_without_self();
 
             assert_eq!(params.len(), 1);
@@ -332,14 +337,12 @@ fn check_expr_assign_trait(
             }
 
             let return_type = method.return_type();
-            ck.body.set_ty(expr_id, return_type.clone());
 
             OpTraitInfo {
                 rhs_type,
                 return_type,
             }
         } else {
-            ck.body.set_ty(expr_id, ty_error());
             OpTraitInfo {
                 rhs_type: ty_error(),
                 return_type: ty_error(),
@@ -358,18 +361,23 @@ fn check_expr_assign_trait(
         let params = method.params_without_self();
 
         let tp_id = lhs_type.type_param_id().expect("type param expected");
+        let trait_ty = TraitType::from_trait_id(trait_id);
+        let type_params = TypeArgs::from_definition(
+            method,
+            &trait_ty.type_params,
+            &SourceTypeArray::empty(),
+            Some(SourceType::TypeParam(tp_id)),
+        );
         let call_type = CallType::GenericMethod {
-            object_type: SourceType::TypeParam(tp_id),
-            trait_ty: TraitType::from_trait_id(trait_id),
+            trait_ty,
             fct_id: method_id,
-            fct_type_params: SourceTypeArray::empty(),
+            type_params: type_params.clone(),
         };
         ck.body
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let param = params[0].ty();
-        let type_args = TypeArgs::empty().with_self(lhs_type.clone());
-        let param = replace_type(ck.sa, param, &type_args);
+        let param = replace_type(ck.sa, param, &type_params);
 
         if !param.allows(ck.sa, rhs_type.clone()) && !lhs_type.is_error() && !rhs_type.is_error() {
             let lhs_type = ck.ty_name(&lhs_type);
@@ -382,7 +390,6 @@ fn check_expr_assign_trait(
         }
 
         let return_type = method.return_type();
-        ck.body.set_ty(expr_id, return_type.clone());
 
         OpTraitInfo {
             rhs_type,
@@ -398,7 +405,6 @@ fn check_expr_assign_trait(
                 args![op.as_str().to_string(), lhs_type_name, rhs_type],
             );
         }
-        ck.body.set_ty(expr_id, ty_error());
         OpTraitInfo {
             rhs_type: ty_error(),
             return_type: ty_error(),
@@ -723,11 +729,16 @@ fn check_index_trait_on_ty(
             .expect("missing alias");
         let impl_item_type_alias = ck.sa.alias(impl_item_type_alias_id);
 
-        let type_args = TypeArgs::from_container(&impl_match.bindings).with_self(expr_type.clone());
+        // The impl method can be malformed; don't assert its type-parameter count during recovery.
+        let type_params = TypeArgs::from_parts(
+            &impl_match.bindings,
+            &SourceTypeArray::empty(),
+            Some(expr_type.clone()),
+        );
         let call_type = Rc::new(CallType::Expr(
             expr_type.clone(),
             method_id,
-            type_args.clone(),
+            type_params.clone(),
         ));
         if is_get {
             array_assignment.index_get = Some(call_type);
@@ -736,10 +747,10 @@ fn check_index_trait_on_ty(
         }
 
         let impl_index_type_alias_ty = impl_index_type_alias.ty();
-        let impl_index_type_alias_ty = replace_type(ck.sa, impl_index_type_alias_ty, &type_args);
+        let impl_index_type_alias_ty = replace_type(ck.sa, impl_index_type_alias_ty, &type_params);
 
         let impl_item_type_alias_ty = impl_item_type_alias.ty();
-        let impl_item_type_alias_ty = replace_type(ck.sa, impl_item_type_alias_ty, &type_args);
+        let impl_item_type_alias_ty = replace_type(ck.sa, impl_item_type_alias_ty, &type_params);
 
         (impl_index_type_alias_ty, impl_item_type_alias_ty)
     } else {

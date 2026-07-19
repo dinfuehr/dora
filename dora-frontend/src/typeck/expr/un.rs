@@ -78,14 +78,19 @@ fn check_expr_un_trait(
             .impl_(impl_match.id)
             .get_method_for_trait_method_id(trait_method_id)
             .expect("method not found");
+        let method = ck.sa.fct(method_id);
+        // The impl method can be malformed; don't assert its type-parameter count during recovery.
+        let type_params = TypeArgs::from_parts(
+            &impl_match.bindings,
+            &SourceTypeArray::empty(),
+            Some(ty.clone()),
+        );
 
-        let call_type = CallType::Method(ty.clone(), method_id, TypeArgs::empty());
+        let call_type = CallType::Method(ty.clone(), method_id, type_params.clone());
         ck.body
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
-        let method = ck.sa.fct(method_id);
-
-        let return_type = method.return_type();
+        let return_type = replace_type(ck.sa, method.return_type(), &type_params);
         ck.body.set_ty(expr_id, return_type.clone());
 
         return_type
@@ -99,18 +104,23 @@ fn check_expr_un_trait(
         let method = ck.sa.fct(method_id);
 
         let tp_id = ty.type_param_id().expect("type param expected");
+        let trait_ty = TraitType::from_trait_id(trait_id);
+        let type_params = TypeArgs::from_definition(
+            method,
+            &trait_ty.type_params,
+            &SourceTypeArray::empty(),
+            Some(SourceType::TypeParam(tp_id)),
+        );
         let call_type = CallType::GenericMethod {
-            object_type: SourceType::TypeParam(tp_id),
-            trait_ty: TraitType::from_trait_id(trait_id),
+            trait_ty,
             fct_id: method_id,
-            fct_type_params: SourceTypeArray::empty(),
+            type_params: type_params.clone(),
         };
         ck.body
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 
         let return_type = method.return_type();
-        let type_args = TypeArgs::empty().with_self(ty.clone());
-        let return_type = replace_type(ck.sa, return_type, &type_args);
+        let return_type = replace_type(ck.sa, return_type, &type_params);
 
         ck.body.set_ty(expr_id, return_type.clone());
 

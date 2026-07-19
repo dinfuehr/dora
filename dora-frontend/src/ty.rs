@@ -829,6 +829,14 @@ impl TypeArgs {
         self.self_ty.as_ref()
     }
 
+    pub fn container(&self) -> &SourceTypeArray {
+        &self.container
+    }
+
+    pub fn own(&self) -> &SourceTypeArray {
+        &self.own
+    }
+
     pub fn get(&self, id: TypeParamId) -> Option<&SourceType> {
         let index = id.index();
 
