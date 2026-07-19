@@ -106,7 +106,6 @@ pub(super) fn check_expr_lambda(
             ck.body.pattern_arena(),
             ck.body.type_ref_arena(),
         );
-        body.set_outer_contexts(ck.context_classes.clone());
         body.set_param_pattern_ids(param_pattern_ids);
         body.set_root_expr_id(sema_expr.block);
 
@@ -129,10 +128,10 @@ pub(super) fn check_expr_lambda(
             is_mutating: ck.is_mutating,
             self_ty: ck.self_ty.clone(),
             vars: ck.vars,
-            lazy_context_class_creation: ck.lazy_context_class_creation,
             lazy_lambda_creation: ck.lazy_lambda_creation,
-            context_classes: ck.context_classes,
-            start_context_id: 0,
+            contexts: ck.contexts,
+            active_contexts: ck.active_contexts,
+            start_context_idx: 0,
             needs_context_slot_in_lambda_object: false,
             element: ck.element,
         };

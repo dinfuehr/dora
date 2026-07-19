@@ -77,10 +77,9 @@ pub use self::patterns::{
 pub(crate) use self::patterns::{lower_pattern, lower_pattern_opt};
 pub use self::source_files::{SourceFile, SourceFileId};
 pub use self::src::{
-    ArrayAssignment, CallType, ContextData, ContextFieldId, ForTypeInfo, IdentType, InnerContextId,
-    LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData, LazyLambdaId,
-    NestedScopeId, NestedVarId, NodeMap, OuterContextIdx, ScopeId, Var, VarAccess, VarId,
-    VarLocation,
+    ArrayAssignment, CallType, ContextData, ContextFieldId, ContextId, ForTypeInfo, IdentType,
+    InnerContextId, LazyLambdaCreationData, LazyLambdaId, NestedScopeId, NestedVarId, NodeMap,
+    ScopeId, Var, VarAccess, VarId, VarLocation,
 };
 pub(crate) use self::stmts::lower_stmt;
 pub use self::stmts::{LetStmt, Stmt, StmtId};
@@ -224,6 +223,7 @@ pub struct Sema {
     pub impls: Arena<ImplDefinition>,    // stores all impl definitions
     pub globals: Arena<GlobalDefinition>, // stores all global variables
     pub uses: Arena<UseDefinition>,      // stores all uses
+    pub contexts: Vec<ContextData>,      // stores all potential context objects
     type_refs: TypeRefArena,             // stores all type references with metadata
     pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
@@ -268,6 +268,7 @@ impl Sema {
             impls: Arena::new(),
             globals: Arena::new(),
             uses: Arena::new(),
+            contexts: Vec::new(),
             type_refs: TypeRefArena::new(),
             interner: Interner::new(),
             known: KnownElements::new(),
@@ -329,6 +330,10 @@ impl Sema {
 
     pub fn field(&self, id: FieldDefinitionId) -> &FieldDefinition {
         &self.fields[id]
+    }
+
+    pub fn context(&self, id: ContextId) -> &ContextData {
+        &self.contexts[id.0]
     }
 
     pub fn extension(&self, id: ExtensionDefinitionId) -> &ExtensionDefinition {

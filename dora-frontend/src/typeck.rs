@@ -16,13 +16,13 @@ use crate::error::diagnostics::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    Body, CallArg, ClassDefinition, ConstValue as SemaConstValue, ContextFieldId, Element, Expr,
-    ExprId, ExprMapId, FctDefinition, FctParent, FieldDefinition, FieldIndex, GlobalDefinition,
-    IdentType, LambdaExpr, LazyContextClassCreationData, LazyContextData, LazyLambdaCreationData,
-    ModuleDefinitionId, NestedScopeId, NestedVarId, OuterContextIdx, PackageDefinitionId, Param,
-    PatternId, ScopeId, Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess,
-    VarId, VarLocation, Visibility, check_type_ref, convert_trait_type_ref, convert_type_ref,
-    new_identity_type_params, parse_type_ref,
+    Body, CallArg, ClassDefinition, ConstValue as SemaConstValue, ContextData, ContextFieldId,
+    ContextId, Element, Expr, ExprId, ExprMapId, FctDefinition, FctParent, FieldDefinition,
+    FieldIndex, GlobalDefinition, IdentType, LambdaExpr, LazyLambdaCreationData,
+    ModuleDefinitionId, NestedScopeId, NestedVarId, PackageDefinitionId, Param, PatternId, ScopeId,
+    Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation,
+    Visibility, check_type_ref, convert_trait_type_ref, convert_type_ref, new_identity_type_params,
+    parse_type_ref,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
@@ -47,17 +47,12 @@ mod type_params;
 pub use lookup::find_method_call_candidates;
 
 pub fn check(sa: &mut Sema) {
-    let mut lazy_context_class_creation = Vec::new();
+    let mut contexts = Vec::new();
     let mut lazy_lambda_creation = Vec::new();
 
     for (_id, fct) in sa.fcts.iter() {
         if fct.has_body(sa) {
-            check_function(
-                sa,
-                fct,
-                &mut lazy_context_class_creation,
-                &mut lazy_lambda_creation,
-            );
+            check_function(sa, fct, &mut contexts, &mut lazy_lambda_creation);
         }
     }
 
@@ -80,28 +75,24 @@ pub fn check(sa: &mut Sema) {
     }
 
     for (_id, global) in sa.globals.iter() {
-        check_global(
-            sa,
-            global,
-            &mut lazy_context_class_creation,
-            &mut lazy_lambda_creation,
-        );
+        check_global(sa, global, &mut contexts, &mut lazy_lambda_creation);
     }
 
-    create_context_classes(sa, lazy_context_class_creation);
+    create_context_classes(sa, &mut contexts);
+    sa.contexts = contexts;
     create_lambda_functions(sa, lazy_lambda_creation);
 }
 
 fn check_function(
     sa: &Sema,
     fct: &FctDefinition,
-    lazy_context_class_creation: &mut Vec<LazyContextClassCreationData>,
+    contexts: &mut Vec<ContextData>,
     lazy_lambda_creation: &mut Vec<LazyLambdaCreationData>,
 ) {
     let analysis = fct.body();
     let mut symtable = ModuleSymTable::new(sa, fct.module_id);
     let mut vars = VarManager::new();
-    let mut context_classes = Vec::new();
+    let mut active_contexts = Vec::new();
 
     let self_ty = match fct.parent {
         FctParent::None => None,
@@ -130,10 +121,10 @@ fn check_function(
         self_ty,
         is_lambda: false,
         vars: &mut vars,
-        lazy_context_class_creation,
         lazy_lambda_creation,
-        context_classes: &mut context_classes,
-        start_context_id: 0,
+        contexts,
+        active_contexts: &mut active_contexts,
+        start_context_idx: 0,
         needs_context_slot_in_lambda_object: false,
         element: fct,
     };
@@ -144,7 +135,7 @@ fn check_function(
 fn check_global(
     sa: &Sema,
     global: &GlobalDefinition,
-    lazy_context_class_creation: &mut Vec<LazyContextClassCreationData>,
+    contexts: &mut Vec<ContextData>,
     lazy_lambda_creation: &mut Vec<LazyLambdaCreationData>,
 ) {
     {
@@ -155,7 +146,7 @@ fn check_global(
         let analysis = global.body();
         let mut symtable = ModuleSymTable::new(sa, global.module_id);
         let mut vars = VarManager::new();
-        let mut outer_context_classes = Vec::new();
+        let mut active_contexts = Vec::new();
 
         let mut typeck = TypeCheck {
             sa,
@@ -176,10 +167,10 @@ fn check_global(
             is_mutating: false,
             self_ty: None,
             vars: &mut vars,
-            lazy_context_class_creation,
             lazy_lambda_creation,
-            context_classes: &mut outer_context_classes,
-            start_context_id: 0,
+            contexts,
+            active_contexts: &mut active_contexts,
+            start_context_idx: 0,
             needs_context_slot_in_lambda_object: false,
             element: global,
         };
@@ -208,14 +199,12 @@ pub struct TypeCheck<'a> {
     pub self_ty: Option<SourceType>,
     pub vars: &'a mut VarManager,
     pub element: &'a dyn Element,
-    // All nested contexts. There will be entries for all nested function/lambda
-    // and block scopes even when we eventually learn that we don't need
-    // a context class for some of them.
-    pub context_classes: &'a mut Vec<LazyContextData>,
-    pub start_context_id: usize,
+    // All potential contexts and the stack of contexts active at this point.
+    pub contexts: &'a mut Vec<ContextData>,
+    pub active_contexts: &'a mut Vec<ContextId>,
+    pub start_context_idx: usize,
     pub needs_context_slot_in_lambda_object: bool,
-    // Lazily create contexts and lambdas discovered while checking functions.
-    pub lazy_context_class_creation: &'a mut Vec<LazyContextClassCreationData>,
+    // Lazily create lambdas discovered while checking functions.
     pub lazy_lambda_creation: &'a mut Vec<LazyLambdaCreationData>,
 }
 
@@ -292,6 +281,7 @@ impl<'a> TypeCheck<'a> {
         F: FnOnce(&mut TypeCheck<'a>),
     {
         let start_level = self.symtable.levels();
+        let start_context_count = self.active_contexts.len();
         self.enter_function_scope();
         self.symtable.push_level();
 
@@ -301,6 +291,7 @@ impl<'a> TypeCheck<'a> {
         assert_eq!(self.symtable.levels(), start_level);
 
         self.leave_function_scope();
+        assert_eq!(self.active_contexts.len(), start_context_count);
     }
 
     fn check_body(&mut self, block_expr_id: ExprId) {
@@ -341,54 +332,54 @@ impl<'a> TypeCheck<'a> {
     }
 
     pub(super) fn maybe_allocate_in_context(&mut self, var_id: NestedVarId) -> IdentType {
-        let ident_type = self.vars.maybe_allocate_in_context(var_id);
-
-        match ident_type {
-            IdentType::Context(context_id, _field_id) => {
-                // We need parent slots from the context of the variable up to (not including)
-                // the first context of this function.
-                // There is no need for parent slots for contexts within this function because
-                // we can always load that context out of the lambda object which is passed as
-                // the first argument.
-                let indices = context_id.0 + 1..self.start_context_id;
-                let range = &self.context_classes[indices];
-                for context_class in range {
-                    context_class.require_parent_slot();
-                }
-                // This lambda needs the caller context.
-                assert!(self.is_lambda);
-                self.needs_context_slot_in_lambda_object = true;
-                ident_type
-            }
-
-            IdentType::Var(..) => ident_type,
-
-            _ => unreachable!(),
+        if !self.vars.is_context_var(var_id) {
+            return IdentType::Var(self.vars.local_var_id(var_id));
         }
+
+        let field_id = self.vars.ensure_context_allocated(var_id);
+        let NestedScopeId(context_idx) = self.vars.get_var(var_id).scope_id;
+        let context_id = self.active_contexts[context_idx];
+
+        // We need parent slots from the context of the variable up to (not including)
+        // the first context of this function. There is no need for parent slots for
+        // contexts within this function because those are available in local registers.
+        for context_idx in context_idx + 1..self.start_context_idx {
+            let context_id = self.active_contexts[context_idx];
+            self.contexts[context_id.0].require_parent_slot();
+        }
+
+        assert!(self.is_lambda);
+        self.needs_context_slot_in_lambda_object = true;
+        IdentType::Context(context_id, field_id)
     }
 
     fn enter_function_scope(&mut self) {
-        self.start_context_id = self.context_classes.len();
-        let parent = self.context_classes.last().cloned();
-        self.context_classes.push(LazyContextData::new(parent));
+        self.start_context_idx = self.active_contexts.len();
+        self.enter_context();
         self.vars.enter_function_scope();
     }
 
     pub fn enter_block_scope(&mut self) {
-        let parent = self.context_classes.last().cloned();
-        self.context_classes.push(LazyContextData::new(parent));
+        self.enter_context();
         self.vars.enter_block_scope();
     }
 
+    fn enter_context(&mut self) {
+        let context_id = ContextId(self.contexts.len());
+        let parent = self.active_contexts.last().copied();
+        self.contexts.push(ContextData::new(parent));
+        self.active_contexts.push(context_id);
+    }
+
     fn leave_function_scope(&mut self) {
-        let lazy_context_data = self.context_classes.pop().expect("missing context class");
+        let context_id = self.active_contexts.pop().expect("missing context");
 
         if self.vars.has_context_vars() {
-            self.setup_context_class(lazy_context_data.clone());
+            self.setup_context_class(context_id);
         }
 
-        let needs_context_slot_in_lambda_object =
-            self.needs_context_slot_in_lambda_object || lazy_context_data.has_parent_slot();
+        let needs_context_slot_in_lambda_object = self.needs_context_slot_in_lambda_object
+            || self.contexts[context_id.0].has_parent_slot();
 
         if needs_context_slot_in_lambda_object {
             assert!(self.is_lambda);
@@ -396,7 +387,7 @@ impl<'a> TypeCheck<'a> {
 
         self.body
             .set_needs_context_slot_in_lambda_object(needs_context_slot_in_lambda_object);
-        self.body.set_function_context_data(lazy_context_data);
+        self.body.set_function_context_id(context_id);
 
         // Store var definitions for all local and context vars defined in this function.
         let vars = self.vars.leave_function_scope();
@@ -428,25 +419,24 @@ impl<'a> TypeCheck<'a> {
         self.body.set_vars(VarAccess::new(vars));
     }
 
-    pub fn leave_block_scope<T: ExprMapId>(&mut self, id: T) -> LazyContextData {
-        let lazy_context_data = self.context_classes.pop().expect("missing context class");
+    pub fn leave_block_scope<T: ExprMapId>(&mut self, id: T) -> ContextId {
+        let context_id = self.active_contexts.pop().expect("missing context");
 
         if self.vars.has_context_vars() {
-            self.setup_context_class(lazy_context_data.clone());
+            self.setup_context_class(context_id);
         }
 
-        self.body
-            .insert_block_context(id, lazy_context_data.clone());
+        self.body.insert_block_context_id(id, context_id);
 
         self.vars.leave_block_scope();
 
-        lazy_context_data
+        context_id
     }
 
-    fn setup_context_class(&mut self, lazy_context_data: LazyContextData) {
+    fn setup_context_class(&mut self, context_id: ContextId) {
         let scope = self.vars.current_scope();
         let number_fields = scope.next_field_id;
-        let field_offset = usize::from(lazy_context_data.has_parent_slot());
+        let field_offset = usize::from(self.contexts[context_id.0].has_parent_slot());
         let mut fields = Vec::with_capacity(number_fields + field_offset);
         let map: Vec<OnceCell<NestedVarId>> = vec![OnceCell::new(); number_fields];
 
@@ -494,12 +484,7 @@ impl<'a> TypeCheck<'a> {
             self.type_param_definition.clone(),
         );
 
-        self.lazy_context_class_creation
-            .push(LazyContextClassCreationData {
-                context: lazy_context_data.clone(),
-                class_definition: class,
-                fields,
-            });
+        self.contexts[context_id.0].set_class_data(class, fields);
     }
 
     fn add_type_params(&mut self) {
@@ -1058,16 +1043,6 @@ impl VarManager {
         var_id.0 < self.current_function().start_var_id
     }
 
-    pub(super) fn maybe_allocate_in_context(&mut self, var_id: NestedVarId) -> IdentType {
-        if self.is_context_var(var_id) {
-            let field_id = self.ensure_context_allocated(var_id);
-            let NestedScopeId(level) = self.scope_for_var(var_id).id;
-            IdentType::Context(OuterContextIdx(level), field_id)
-        } else {
-            IdentType::Var(self.local_var_id(var_id))
-        }
-    }
-
     fn ensure_context_allocated(&mut self, var_id: NestedVarId) -> ContextFieldId {
         match self.get_var(var_id).location {
             VarLocation::Context(_scope_id, field_id) => return field_id,
@@ -1170,27 +1145,34 @@ pub struct VarDefinition {
     pub used: bool,
 }
 
-fn create_context_classes(sa: &mut Sema, lazy_classes: Vec<LazyContextClassCreationData>) {
-    let lazy_classes = lazy_classes
-        .into_iter()
-        .map(|lazy_class| {
-            let class_id = sa.classes.alloc(lazy_class.class_definition);
-            sa.classes[class_id].id = Some(class_id);
-            lazy_class.context.set_class_id(class_id);
+fn create_context_classes(sa: &mut Sema, contexts: &mut [ContextData]) {
+    for context in contexts.iter_mut() {
+        let Some(class_definition) = context.class_definition() else {
+            continue;
+        };
 
-            (lazy_class.context, lazy_class.fields)
-        })
-        .collect::<Vec<_>>();
+        let class_id = sa.classes.alloc(class_definition);
+        sa.classes[class_id].id = Some(class_id);
+        context.set_class_id(class_id);
+    }
 
-    for (context, mut fields) in lazy_classes {
-        if context.has_parent_slot() {
-            let parent = enclosing_context_class(&context);
-            let parent_class_id = parent.class_id();
+    for context_idx in 0..contexts.len() {
+        if !contexts[context_idx].has_class_id() {
+            continue;
+        }
+
+        let context_id = ContextId(context_idx);
+        let mut fields = contexts[context_idx].fields();
+
+        if contexts[context_idx].has_parent_slot() {
+            let parent_id = enclosing_context_class(contexts, context_id);
+            let parent_class_id = contexts[parent_id.0].class_id();
             let parent_type_param_count = sa
                 .class(parent_class_id)
                 .type_param_definition()
                 .type_param_count();
-            let context_class = sa.class(context.class_id());
+            let context_class_id = contexts[context_idx].class_id();
+            let context_class = sa.class(context_class_id);
             let context_type_param_count = context_class.type_param_definition().type_param_count();
             assert_eq!(parent_type_param_count, context_type_param_count);
 
@@ -1221,7 +1203,7 @@ fn create_context_classes(sa: &mut Sema, lazy_classes: Vec<LazyContextClassCreat
             })
             .collect::<Vec<_>>();
         assert!(
-            sa.class(context.class_id())
+            sa.class(contexts[context_idx].class_id())
                 .field_ids
                 .set(field_ids)
                 .is_ok()
@@ -1229,14 +1211,18 @@ fn create_context_classes(sa: &mut Sema, lazy_classes: Vec<LazyContextClassCreat
     }
 }
 
-fn enclosing_context_class(context: &LazyContextData) -> LazyContextData {
-    let mut parent = context.parent().expect("missing parent context");
+fn enclosing_context_class(contexts: &[ContextData], context_id: ContextId) -> ContextId {
+    let mut parent_id = contexts[context_id.0]
+        .parent()
+        .expect("missing parent context");
 
-    while !parent.has_class_id() {
-        parent = parent.parent().expect("missing parent context class");
+    while !contexts[parent_id.0].has_class_id() {
+        parent_id = contexts[parent_id.0]
+            .parent()
+            .expect("missing parent context class");
     }
 
-    parent
+    parent_id
 }
 
 fn create_lambda_functions(sa: &mut Sema, lazy_lambdas: Vec<LazyLambdaCreationData>) {

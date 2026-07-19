@@ -2,9 +2,10 @@ use dora_bytecode::Register;
 
 use super::ensure_register;
 use crate::generator::{
-    AstBytecodeGen, DataDest, last_context_register, load_outer_context_object,
+    AstBytecodeGen, DataDest, enclosing_context_class, last_context_register,
+    load_outer_context_object,
 };
-use crate::sema::{ExprId, LambdaExpr, OuterContextIdx};
+use crate::sema::{ExprId, LambdaExpr};
 
 pub(super) fn gen_expr_lambda(
     g: &mut AstBytecodeGen,
@@ -36,15 +37,11 @@ pub(super) fn gen_expr_lambda(
             // pass down the parent context (the context in the lambda object).
             assert!(g.is_lambda);
             assert!(g.analysis.needs_context_slot_in_lambda_object());
-            let outer_contexts = g.analysis.outer_contexts();
-            let context_id = outer_contexts
-                .iter()
-                .rposition(|context| context.has_class_id())
-                .expect("missing outer context");
-            drop(outer_contexts);
+            let function_context_id = g.analysis.function_context_id();
+            let context_id = enclosing_context_class(g.sa, function_context_id);
             outer_context_reg = Some(load_outer_context_object(
                 g,
-                OuterContextIdx(context_id),
+                context_id,
                 g.loc_for_expr(expr_id),
             ));
             arguments.push(outer_context_reg.expect("missing reg"));

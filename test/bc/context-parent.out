@@ -1,9 +1,9 @@
+class $Context2:
+  x: Int64
+
 class $Context1:
   parent_context: $Context2
   y: Int64
-
-class $Context2:
-  x: Int64
 
 fn f:
   0: NewObjectUninitialized r0, @0 # $Context2

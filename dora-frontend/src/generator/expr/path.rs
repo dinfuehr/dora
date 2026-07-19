@@ -5,8 +5,8 @@ use crate::generator::{
     AstBytecodeGen, DataDest, field_id_from_context_idx, load_outer_context_object, var_reg,
 };
 use crate::sema::{
-    ConstDefinitionId, ContextFieldId, EnumDefinitionId, ExprId, GlobalDefinitionId, IdentType,
-    OuterContextIdx, ScopeId, VarId, VarLocation,
+    ConstDefinitionId, ContextFieldId, ContextId, EnumDefinitionId, ExprId, GlobalDefinitionId,
+    IdentType, ScopeId, VarId, VarLocation,
 };
 use crate::ty::SourceTypeArray;
 
@@ -37,18 +37,19 @@ pub(super) fn gen_expr_path(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataD
 
 pub(super) fn gen_expr_path_context(
     g: &mut AstBytecodeGen,
-    context_id: OuterContextIdx,
+    context_id: ContextId,
     field_id: ContextFieldId,
     dest: DataDest,
     location: Location,
 ) -> Register {
     assert!(g.is_lambda);
     let outer_context_reg = load_outer_context_object(g, context_id, location);
-    let outer_context_info = g.analysis.outer_contexts()[context_id.0].clone();
-    let outer_cls_id = outer_context_info.class_id();
+    let outer_context = g.sa.context(context_id);
+    let outer_cls_id = outer_context.class_id();
+    let has_parent_slot = outer_context.has_parent_slot();
 
     let outer_cls = g.sa.class(outer_cls_id);
-    let field_index = field_id_from_context_idx(field_id, outer_context_info.has_parent_slot());
+    let field_index = field_id_from_context_idx(field_id, has_parent_slot);
     let field_id = outer_cls.field_id(field_index);
     let field = g.sa.field(field_id);
 
@@ -172,9 +173,9 @@ pub(super) fn load_from_context(
 ) {
     let entered_context = &g.entered_contexts[scope_id.0];
     let context_register = entered_context.register.expect("missing register");
-    let context_data = entered_context.context_data.clone();
-    let cls_id = context_data.class_id();
-    let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
+    let context = g.sa.context(entered_context.context_id);
+    let cls_id = context.class_id();
+    let field_id = field_id_from_context_idx(field_id, context.has_parent_slot());
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
     let bc_type_params = g.convert_tya(&g.identity_type_params());
     let field_idx = g

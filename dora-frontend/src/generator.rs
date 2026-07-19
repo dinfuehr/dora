@@ -5,9 +5,8 @@ use self::bytecode::BytecodeBuilder;
 use self::expr::{gen_stmt_expr, gen_stmt_let};
 use crate::program_emitter::Emitter;
 use crate::sema::{
-    AnalysisData, ContextFieldId, ExprMapId, FctDefinitionId, FieldIndex, Intrinsic,
-    LazyContextData, OuterContextIdx, ScopeId, Sema, SourceFileId, Stmt, StmtId, VarId,
-    new_identity_type_params,
+    AnalysisData, ContextFieldId, ContextId, ExprMapId, FctDefinitionId, FieldIndex, Intrinsic,
+    ScopeId, Sema, SourceFileId, Stmt, StmtId, VarId, new_identity_type_params,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
@@ -36,7 +35,7 @@ impl LoopLabels {
 const SELF_VAR_ID: VarId = VarId(0);
 
 struct EnteredContext {
-    context_data: LazyContextData,
+    context_id: ContextId,
     register: Option<Register>,
 }
 
@@ -88,58 +87,61 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn enter_function_context(&mut self) {
-        let context_data = self.analysis.function_context_data();
-        self.enter_context(context_data);
+        let context_id = self.analysis.function_context_id();
+        self.enter_context(context_id);
     }
 
     fn enter_block_context(&mut self, id: crate::sema::ExprId) {
-        let context_data = self
+        let context_id = self
             .analysis
-            .get_block_context(id)
+            .get_block_context_id(id)
             .expect("missing context");
-        self.enter_context(context_data);
+        self.enter_context(context_id);
     }
 
-    fn enter_context(&mut self, context_data: LazyContextData) {
-        let register = if context_data.has_class_id() {
-            Some(self.create_context(context_data.clone()))
+    fn enter_context(&mut self, context_id: ContextId) {
+        let register = if self.sa.context(context_id).has_class_id() {
+            Some(self.create_context(context_id))
         } else {
             None
         };
 
         self.entered_contexts.push(EnteredContext {
-            context_data,
+            context_id,
             register,
         });
     }
 
     fn leave_function_context(&mut self) {
-        let context_data = self.analysis.function_context_data();
-        self.leave_context(context_data);
+        let context_id = self.analysis.function_context_id();
+        self.leave_context(context_id);
     }
 
     fn leave_block_context(&mut self, id: crate::sema::ExprId) {
-        let context_data = self
+        let context_id = self
             .analysis
-            .get_block_context(id)
+            .get_block_context_id(id)
             .expect("missing context");
-        self.leave_context(context_data);
+        self.leave_context(context_id);
     }
 
-    fn leave_context(&mut self, context_data: LazyContextData) {
+    fn leave_context(&mut self, context_id: ContextId) {
         let entered_context = self.entered_contexts.pop().expect("missing context");
+        assert_eq!(entered_context.context_id, context_id);
 
-        if context_data.has_class_id() {
+        if self.sa.context(context_id).has_class_id() {
             assert!(entered_context.register.is_some());
         } else {
             assert!(entered_context.register.is_none());
         }
     }
 
-    fn create_context(&mut self, context_data: LazyContextData) -> Register {
-        let class_id = context_data.class_id();
+    fn create_context(&mut self, context_id: ContextId) -> Register {
+        let context = self.sa.context(context_id);
+        let class_id = context.class_id();
+        let has_parent_slot = context.has_parent_slot();
 
-        let context_type = self.context_type(&context_data);
+        let context_type = self.context_type(context_id);
         let (bc_class_id, bc_type_params) = match &context_type {
             BytecodeType::Class(class_id, type_params) => (*class_id, type_params.clone()),
             _ => unreachable!(),
@@ -151,23 +153,17 @@ impl<'a> AstBytecodeGen<'a> {
         self.builder
             .emit_new_object_uninitialized(context_register, idx, self.loc(self.span));
 
-        if context_data.has_parent_slot() {
+        if has_parent_slot {
             let parent_context_reg = if let Some(parent_context_reg) = last_context_register(self) {
                 parent_context_reg
             } else {
                 assert!(self.is_lambda);
-                let outer_contexts = self.analysis.outer_contexts();
-                let parent_context_id = outer_contexts
-                    .iter()
-                    .rposition(LazyContextData::has_class_id)
-                    .expect("missing parent context");
-                drop(outer_contexts);
+                let parent_context_id = enclosing_context_class(self.sa, context_id);
                 let location = self.loc(self.span);
-                load_outer_context_object(self, OuterContextIdx(parent_context_id), location)
+                load_outer_context_object(self, parent_context_id, location)
             };
 
             // Store value in parent field of context object.
-            assert!(context_data.has_parent_slot());
             let bc_class_id = self.emitter.convert_class_id(self.sa, class_id);
             let bc_type_params = self
                 .emitter
@@ -238,10 +234,9 @@ impl<'a> AstBytecodeGen<'a> {
         self.emitter.convert_tya(self.sa, &ty)
     }
 
-    fn context_type(&mut self, context_data: &LazyContextData) -> BytecodeType {
-        let class_id = self
-            .emitter
-            .convert_class_id(self.sa, context_data.class_id());
+    fn context_type(&mut self, context_id: ContextId) -> BytecodeType {
+        let context = self.sa.context(context_id);
+        let class_id = self.emitter.convert_class_id(self.sa, context.class_id());
         let identity_type_params = self.identity_type_params();
         let type_params = self.convert_tya(&identity_type_params);
         BytecodeType::Class(class_id, type_params)
@@ -353,23 +348,33 @@ fn last_context_register(g: &AstBytecodeGen) -> Option<Register> {
 
 fn load_outer_context_object(
     g: &mut AstBytecodeGen,
-    context_id: OuterContextIdx,
+    context_id: ContextId,
     location: Location,
 ) -> Register {
     assert!(g.is_lambda);
+    assert!(g.sa.context(context_id).has_class_id());
 
-    let outer_contexts = g.analysis.outer_contexts();
-    assert!(context_id.0 < outer_contexts.len());
-    assert!(outer_contexts[context_id.0].has_class_id());
-    let context_chain = outer_contexts
-        .iter()
-        .skip(context_id.0)
-        .filter(|context| context.has_class_id())
-        .cloned()
-        .collect::<Vec<_>>();
-    drop(outer_contexts);
+    let function_context_id = g.analysis.function_context_id();
+    let mut current_context_id =
+        g.sa.context(function_context_id)
+            .parent()
+            .expect("missing outer context");
+    let mut context_chain = Vec::new();
 
-    let innermost_context = context_chain.last().expect("missing outer context");
+    loop {
+        let context = g.sa.context(current_context_id);
+        if context.has_class_id() {
+            context_chain.push(current_context_id);
+
+            if current_context_id == context_id {
+                break;
+            }
+        }
+
+        current_context_id = context.parent().expect("context is not an ancestor");
+    }
+
+    let innermost_context = context_chain[0];
     let innermost_type = g.context_type(innermost_context);
     let mut context_register = g.alloc_temp(innermost_type);
 
@@ -386,18 +391,18 @@ fn load_outer_context_object(
         location,
     );
 
-    for context_idx in (1..context_chain.len()).rev() {
-        let context = &context_chain[context_idx];
-        assert!(context.has_parent_slot());
+    for context_idx in 0..context_chain.len() - 1 {
+        let context_id = context_chain[context_idx];
+        assert!(g.sa.context(context_id).has_parent_slot());
 
-        let context_type = g.context_type(context);
+        let context_type = g.context_type(context_id);
         let (class_id, type_params) = match context_type {
             BytecodeType::Class(class_id, type_params) => (class_id, type_params),
             _ => unreachable!(),
         };
         let field_idx = g.builder.add_const_field_types(class_id, type_params, 0);
 
-        let parent_type = g.context_type(&context_chain[context_idx - 1]);
+        let parent_type = g.context_type(context_chain[context_idx + 1]);
         let parent_register = g.alloc_temp(parent_type);
         g.builder
             .emit_load_field(parent_register, context_register, field_idx, location);
@@ -406,6 +411,22 @@ fn load_outer_context_object(
     }
 
     context_register
+}
+
+fn enclosing_context_class(sa: &Sema, context_id: ContextId) -> ContextId {
+    let mut parent_id = sa
+        .context(context_id)
+        .parent()
+        .expect("missing parent context");
+
+    while !sa.context(parent_id).has_class_id() {
+        parent_id = sa
+            .context(parent_id)
+            .parent()
+            .expect("missing parent context class");
+    }
+
+    parent_id
 }
 
 fn emit_mov(g: &mut AstBytecodeGen, dest: Register, src: Register) {
@@ -423,9 +444,9 @@ fn store_in_context(
 ) {
     let entered_context = &g.entered_contexts[scope_id.0];
     let context_register = entered_context.register.expect("missing register");
-    let context_data = entered_context.context_data.clone();
-    let cls_id = context_data.class_id();
-    let field_id = field_id_from_context_idx(field_id, context_data.has_parent_slot());
+    let context = g.sa.context(entered_context.context_id);
+    let cls_id = context.class_id();
+    let field_id = field_id_from_context_idx(field_id, context.has_parent_slot());
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
     let bc_type_params = g.convert_tya(&g.identity_type_params());
     let field_idx = g

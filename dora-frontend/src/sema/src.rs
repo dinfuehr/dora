@@ -1,4 +1,4 @@
-use std::cell::{Cell, OnceCell};
+use std::cell::OnceCell;
 use std::collections::hash_map::{HashMap, Iter};
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
@@ -27,63 +27,77 @@ impl LazyLambdaId {
     }
 }
 
-pub struct LazyContextClassCreationData {
-    pub context: LazyContextData,
-    pub class_definition: ClassDefinition,
-    pub fields: Vec<FieldDefinition>,
-}
-
 pub struct LazyLambdaCreationData {
     pub id: LazyLambdaId,
     pub fct_definition: FctDefinition,
 }
 
-#[derive(Clone, Debug)]
-pub struct LazyContextData(Rc<ContextData>);
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct ContextId(pub usize);
 
-impl LazyContextData {
-    pub fn new(parent: Option<LazyContextData>) -> LazyContextData {
-        LazyContextData(Rc::new(ContextData {
-            has_parent_slot: Cell::new(false),
-            class_id: OnceCell::new(),
+#[derive(Debug)]
+pub struct ContextData {
+    parent: Option<ContextId>,
+    has_parent_slot: bool,
+    class_id: Option<ClassDefinitionId>,
+    class_definition: Option<ClassDefinition>,
+    fields: Vec<FieldDefinition>,
+}
+
+impl ContextData {
+    pub fn new(parent: Option<ContextId>) -> ContextData {
+        ContextData {
             parent,
-        }))
-    }
-
-    pub fn require_parent_slot(&self) {
-        assert!(!self.has_class_id());
-
-        if !self.has_parent_slot() {
-            self.0.has_parent_slot.set(true);
+            has_parent_slot: false,
+            class_id: None,
+            class_definition: None,
+            fields: Vec::new(),
         }
     }
 
-    pub fn has_parent_slot(&self) -> bool {
-        self.0.has_parent_slot.get()
+    pub fn require_parent_slot(&mut self) {
+        assert!(!self.has_class_id());
+        self.has_parent_slot = true;
     }
 
-    pub fn set_class_id(&self, id: ClassDefinitionId) {
-        assert!(self.0.class_id.set(id).is_ok());
+    pub fn has_parent_slot(&self) -> bool {
+        self.has_parent_slot
+    }
+
+    pub fn parent(&self) -> Option<ContextId> {
+        self.parent
+    }
+
+    pub fn set_class_data(
+        &mut self,
+        class_definition: ClassDefinition,
+        fields: Vec<FieldDefinition>,
+    ) {
+        assert!(self.class_definition.is_none());
+        assert!(self.fields.is_empty());
+        self.class_definition = Some(class_definition);
+        self.fields = fields;
+    }
+
+    pub fn class_definition(&mut self) -> Option<ClassDefinition> {
+        self.class_definition.take()
+    }
+
+    pub fn fields(&mut self) -> Vec<FieldDefinition> {
+        std::mem::take(&mut self.fields)
+    }
+
+    pub fn set_class_id(&mut self, id: ClassDefinitionId) {
+        assert!(self.class_id.replace(id).is_none());
     }
 
     pub fn has_class_id(&self) -> bool {
-        self.0.class_id.get().is_some()
+        self.class_id.is_some()
     }
 
     pub fn class_id(&self) -> ClassDefinitionId {
-        self.0.class_id.get().cloned().expect("missing class id")
+        self.class_id.expect("missing class id")
     }
-
-    pub fn parent(&self) -> Option<LazyContextData> {
-        self.0.parent.clone()
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ContextData {
-    pub has_parent_slot: Cell<bool>,
-    pub class_id: OnceCell<ClassDefinitionId>,
-    pub parent: Option<LazyContextData>,
 }
 
 #[derive(Debug)]
@@ -129,9 +143,6 @@ impl<V> NodeMap<V> {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub struct OuterContextIdx(pub usize);
-
 #[derive(Debug, Clone)]
 pub struct ArrayAssignment {
     pub index_get: Option<Rc<CallType>>,
@@ -155,7 +166,7 @@ pub enum IdentType {
     Var(VarId),
 
     // Context variable.
-    Context(OuterContextIdx, ContextFieldId),
+    Context(ContextId, ContextFieldId),
 
     // Name of a global variable.
     Global(GlobalDefinitionId),

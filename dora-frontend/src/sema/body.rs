@@ -7,8 +7,8 @@ use id_arena::Arena;
 use dora_parser::ast::SyntaxNodePtr;
 
 use crate::sema::{
-    ArrayAssignment, CallType, ConstValue, FctDefinitionId, ForTypeInfo, IdentType,
-    LazyContextData, LazyLambdaId, NodeMap, TypeRefArena, TypeRefId, VarAccess, VarId,
+    ArrayAssignment, CallType, ConstValue, ContextId, FctDefinitionId, ForTypeInfo, IdentType,
+    LazyLambdaId, NodeMap, TypeRefArena, TypeRefId, VarAccess, VarId,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -259,14 +259,13 @@ pub struct Body {
     map_consts: RefCell<NodeMap<ConstValue>>,
     map_fors: RefCell<NodeMap<ForTypeInfo>>,
     map_lambdas: RefCell<NodeMap<LazyLambdaId>>,
-    map_block_contexts: RefCell<NodeMap<LazyContextData>>,
+    map_block_contexts: RefCell<NodeMap<ContextId>>,
     map_argument: RefCell<NodeMap<usize>>,
     map_field_ids: RefCell<NodeMap<usize>>,
     map_array_assignments: RefCell<NodeMap<ArrayAssignment>>,
     vars: RefCell<VarAccess>,
-    function_context_data: OnceCell<LazyContextData>,
+    function_context_id: OnceCell<ContextId>,
     needs_context_slot_in_lambda_object: OnceCell<bool>,
-    outer_contexts: RefCell<Vec<LazyContextData>>,
 }
 
 impl std::fmt::Debug for Body {
@@ -326,9 +325,8 @@ impl Body {
             map_field_ids: RefCell::new(NodeMap::new()),
             map_array_assignments: RefCell::new(NodeMap::new()),
             vars: RefCell::new(VarAccess::new(Vec::new())),
-            function_context_data: OnceCell::new(),
+            function_context_id: OnceCell::new(),
             needs_context_slot_in_lambda_object: OnceCell::new(),
-            outer_contexts: RefCell::new(Vec::new()),
         }
     }
 
@@ -458,14 +456,14 @@ impl Body {
         self.map_lambdas.borrow_mut().insert(id, lambda);
     }
 
-    pub fn get_block_context<T: ExprMapId>(&self, id: T) -> Option<LazyContextData> {
+    pub fn get_block_context_id<T: ExprMapId>(&self, id: T) -> Option<ContextId> {
         let id = id.to_universal_id();
         self.map_block_contexts.borrow().get(id).cloned()
     }
 
-    pub fn insert_block_context<T: ExprMapId>(&self, id: T, context: LazyContextData) {
+    pub fn insert_block_context_id<T: ExprMapId>(&self, id: T, context_id: ContextId) {
         let id = id.to_universal_id();
-        self.map_block_contexts.borrow_mut().insert(id, context);
+        self.map_block_contexts.borrow_mut().insert(id, context_id);
     }
 
     pub fn get_argument<T: ExprMapId>(&self, id: T) -> Option<usize> {
@@ -563,15 +561,15 @@ impl Body {
         self.vars.borrow()
     }
 
-    pub fn function_context_data(&self) -> LazyContextData {
-        self.function_context_data
+    pub fn function_context_id(&self) -> ContextId {
+        self.function_context_id
             .get()
-            .cloned()
+            .copied()
             .expect("missing context")
     }
 
-    pub fn set_function_context_data(&self, data: LazyContextData) {
-        assert!(self.function_context_data.set(data).is_ok());
+    pub fn set_function_context_id(&self, context_id: ContextId) {
+        assert!(self.function_context_id.set(context_id).is_ok());
     }
 
     pub fn needs_context_slot_in_lambda_object(&self) -> bool {
@@ -583,13 +581,5 @@ impl Body {
 
     pub fn set_needs_context_slot_in_lambda_object(&self, value: bool) {
         assert!(self.needs_context_slot_in_lambda_object.set(value).is_ok());
-    }
-
-    pub fn outer_contexts(&self) -> std::cell::Ref<'_, Vec<LazyContextData>> {
-        self.outer_contexts.borrow()
-    }
-
-    pub fn set_outer_contexts(&self, contexts: Vec<LazyContextData>) {
-        *self.outer_contexts.borrow_mut() = contexts;
     }
 }

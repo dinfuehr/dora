@@ -12,8 +12,8 @@ use crate::generator::{
     store_in_context, var_reg,
 };
 use crate::sema::{
-    AssignExpr, CallExpr, ContextFieldId, Expr, ExprId, FieldExpr, GlobalDefinitionId, IdentType,
-    Intrinsic, MethodCallExpr, OuterContextIdx, VarId, VarLocation,
+    AssignExpr, CallExpr, ContextFieldId, ContextId, Expr, ExprId, FieldExpr, GlobalDefinitionId,
+    IdentType, Intrinsic, MethodCallExpr, VarId, VarLocation,
 };
 use crate::specialize::specialize_type;
 use crate::ty::SourceType;
@@ -591,7 +591,7 @@ fn gen_expr_assign_context(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
     e: &AssignExpr,
-    outer_context_id: OuterContextIdx,
+    outer_context_id: ContextId,
     context_field_id: ContextFieldId,
     value: Register,
 ) {
@@ -751,15 +751,15 @@ fn gen_method_bin(
 
 pub(super) fn store_in_outer_context(
     g: &mut AstBytecodeGen,
-    level: OuterContextIdx,
+    context_id: ContextId,
     context_idx: ContextFieldId,
     value: Register,
     location: Location,
 ) {
-    let outer_context_reg = load_outer_context_object(g, level, location);
-    let outer_context_info = g.analysis.outer_contexts()[level.0].clone();
-    let outer_cls_id = outer_context_info.class_id();
-    let field_index = field_id_from_context_idx(context_idx, outer_context_info.has_parent_slot());
+    let outer_context_reg = load_outer_context_object(g, context_id, location);
+    let outer_context = g.sa.context(context_id);
+    let outer_cls_id = outer_context.class_id();
+    let field_index = field_id_from_context_idx(context_idx, outer_context.has_parent_slot());
     let bc_class_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
     let bc_type_params = g.convert_tya(&g.identity_type_params());
     let idx = g
@@ -773,17 +773,18 @@ pub(super) fn store_in_outer_context(
 
 pub(super) fn load_from_outer_context(
     g: &mut AstBytecodeGen,
-    context_id: OuterContextIdx,
+    context_id: ContextId,
     field_id: ContextFieldId,
     location: Location,
 ) -> Register {
     assert!(g.is_lambda);
     let outer_context_reg = load_outer_context_object(g, context_id, location);
-    let outer_context_info = g.analysis.outer_contexts()[context_id.0].clone();
-    let outer_cls_id = outer_context_info.class_id();
+    let outer_context = g.sa.context(context_id);
+    let outer_cls_id = outer_context.class_id();
+    let has_parent_slot = outer_context.has_parent_slot();
 
     let outer_cls = g.sa.class(outer_cls_id);
-    let field_index = field_id_from_context_idx(field_id, outer_context_info.has_parent_slot());
+    let field_index = field_id_from_context_idx(field_id, has_parent_slot);
     let field_id = outer_cls.field_id(field_index);
     let field = g.sa.field(field_id);
 
