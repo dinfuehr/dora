@@ -10,6 +10,12 @@ use crate::{
 pub type TypeParamDefinitionId = Id<TypeParamDefinition>;
 pub type TypeParamId = Id<TypeParam>;
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum TypeParamKind {
+    Container(TypeParamIdx),
+    Own(TypeParamIdx),
+}
+
 #[derive(Clone, Debug)]
 pub struct TypeParamDefinition {
     parent: Option<TypeParamDefinitionId>,
@@ -108,16 +114,22 @@ impl TypeParamDefinition {
     }
 
     pub fn type_param_idx(&self, sa: &Sema, id: TypeParamId) -> Option<TypeParamIdx> {
+        self.classify_type_param(sa, id).map(|kind| match kind {
+            TypeParamKind::Container(idx) | TypeParamKind::Own(idx) => idx,
+        })
+    }
+
+    pub fn classify_type_param(&self, sa: &Sema, id: TypeParamId) -> Option<TypeParamKind> {
         if let Some(parent) = self.parent {
             if let Some(idx) = sa.type_param_definition(parent).type_param_idx(sa, id) {
-                return Some(idx);
+                return Some(TypeParamKind::Container(idx));
             }
         }
 
         self.type_params
             .iter()
             .position(|&type_param_id| type_param_id == id)
-            .map(|idx| TypeParamIdx(self.container_type_params + idx))
+            .map(|idx| TypeParamKind::Own(TypeParamIdx(self.container_type_params + idx)))
     }
 
     fn type_param<'a>(&'a self, sa: &'a Sema, id: TypeParamIdx) -> &'a TypeParam {
@@ -149,11 +161,10 @@ impl TypeParamDefinition {
         self.type_param_count() > self.container_type_params()
     }
 
-    pub fn add_type_param(&mut self, sa: &mut Sema, name: Name) -> TypeParamIdx {
-        let idx = self.container_type_params + self.type_params.len();
+    pub fn add_type_param(&mut self, sa: &mut Sema, name: Name) -> TypeParamId {
         let id = sa.type_params.alloc(TypeParam { name });
         self.type_params.push(id);
-        TypeParamIdx(idx)
+        id
     }
 
     pub fn add_type_param_bound(
@@ -161,7 +172,7 @@ impl TypeParamDefinition {
         sa: &mut Sema,
         type_ref_arena: &mut TypeRefArenaBuilder,
         file_id: SourceFileId,
-        id: TypeParamIdx,
+        id: TypeParamId,
         ast_trait_ty: ast::AstType,
     ) {
         let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast_trait_ty);
@@ -194,7 +205,7 @@ impl TypeParamDefinition {
         self.bounds.push(bound);
     }
 
-    pub fn implements_trait(&self, sa: &Sema, id: TypeParamIdx, trait_ty: TraitType) -> bool {
+    pub fn implements_trait(&self, sa: &Sema, id: TypeParamId, trait_ty: TraitType) -> bool {
         for bound_trait_ty in self.bounds_for_type_param(sa, id) {
             if bound_trait_ty.implements_trait(sa, &trait_ty) {
                 return true;
@@ -225,7 +236,7 @@ impl TypeParamDefinition {
     pub fn bounds_for_type_param<'a>(
         &'a self,
         sa: &'a Sema,
-        id: TypeParamIdx,
+        id: TypeParamId,
     ) -> impl Iterator<Item = TraitType> + 'a {
         self.bounds(sa)
             .filter(move |b| b.ty() == SourceType::TypeParam(id) && b.trait_ty().is_some())
@@ -260,6 +271,27 @@ impl TypeParamDefinition {
             total: self.type_param_count(),
         }
     }
+
+    pub fn identity_type_params(&self, sa: &Sema) -> SourceTypeArray {
+        self.container_identity_type_params(sa)
+            .connect(&self.own_identity_type_params())
+    }
+
+    pub fn container_identity_type_params(&self, sa: &Sema) -> SourceTypeArray {
+        self.parent
+            .map(|parent| sa.type_param_definition(parent).identity_type_params(sa))
+            .unwrap_or_else(SourceTypeArray::empty)
+    }
+
+    pub fn own_identity_type_params(&self) -> SourceTypeArray {
+        source_types_for_type_params(self.type_params.iter().copied())
+    }
+}
+
+fn source_types_for_type_params(
+    type_param_ids: impl Iterator<Item = TypeParamId>,
+) -> SourceTypeArray {
+    SourceTypeArray::with(type_param_ids.map(SourceType::TypeParam).collect())
 }
 
 #[derive(Clone, Debug)]
@@ -355,14 +387,6 @@ impl TypeParamIdx {
     }
 }
 
-pub fn new_identity_type_params(start: usize, number_type_params: usize) -> SourceTypeArray {
-    let type_params = (start..start + number_type_params)
-        .into_iter()
-        .map(|id| SourceType::TypeParam(TypeParamIdx(id)))
-        .collect::<Vec<_>>();
-    SourceTypeArray::with(type_params)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -404,6 +428,14 @@ mod tests {
         assert_eq!(
             method_params.type_param_idx(&sa, method_id),
             Some(TypeParamIdx(1))
+        );
+        assert_eq!(
+            method_params.classify_type_param(&sa, container_id),
+            Some(TypeParamKind::Container(TypeParamIdx(0)))
+        );
+        assert_eq!(
+            method_params.classify_type_param(&sa, method_id),
+            Some(TypeParamKind::Own(TypeParamIdx(1)))
         );
     }
 }

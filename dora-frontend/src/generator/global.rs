@@ -18,6 +18,7 @@ pub fn generate_global_initializer(
         emitter,
         frontend_type_params_len: 0,
         type_params_len: 0,
+        type_param_definition_id: global.type_param_definition_id,
         is_lambda: false,
         return_type: global.ty(),
         file_id: global.file_id,

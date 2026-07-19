@@ -31,6 +31,7 @@ pub fn generate_fct(
         emitter,
         frontend_type_params_len,
         type_params_len: frontend_type_params_len + usize::from(fct.needs_self_type_param(sa)),
+        type_param_definition_id: fct.type_param_definition_id,
         is_lambda: fct.is_lambda(),
         return_type: fct.return_type(),
         file_id: fct.file_id,

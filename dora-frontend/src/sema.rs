@@ -90,7 +90,7 @@ pub use self::traits::{TraitDefinition, TraitDefinitionId, is_trait_object_safe}
 pub use self::tuples::create_tuple;
 pub use self::type_params::{
     Bound, TypeParam, TypeParamDefinition, TypeParamDefinitionId, TypeParamId, TypeParamIdx,
-    new_identity_type_params,
+    TypeParamKind,
 };
 pub use self::type_refs::{TypeRef, TypeRefArena, TypeRefArenaBuilder, TypeRefId, TypeSymbol};
 pub(crate) use self::type_refs::{
@@ -575,15 +575,20 @@ pub fn lambda_outer_context_type(
 
     SourceType::Class(
         context_class_id,
-        generated_identity_type_params(type_params_len, context_class.needs_self_type_param),
+        generated_identity_type_params(
+            sa,
+            context_class.type_param_definition(sa),
+            context_class.needs_self_type_param,
+        ),
     )
 }
 
 pub fn generated_identity_type_params(
-    type_params_len: usize,
+    sa: &Sema,
+    definition: &TypeParamDefinition,
     needs_self_type_param: bool,
 ) -> SourceTypeArray {
-    let type_params = new_identity_type_params(0, type_params_len);
+    let type_params = definition.identity_type_params(sa);
     if needs_self_type_param {
         type_params.connect_single(SourceType::This)
     } else {

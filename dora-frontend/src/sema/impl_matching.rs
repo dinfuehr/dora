@@ -1,6 +1,6 @@
 use crate::sema::{
     Element, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition, block_matches_ty,
-    match_arrays, new_identity_type_params,
+    match_arrays,
 };
 use crate::{SourceType, SourceTypeArray, TraitType, TypeArgs, specialize_type};
 
@@ -81,8 +81,8 @@ pub fn implements_trait(
             let trait_ = sa.trait_(trait_id);
 
             // Create identity type params so that super traits can be properly specialized
-            let type_param_count = trait_.type_param_definition(sa).type_param_count();
-            let type_params = new_identity_type_params(0, type_param_count);
+            let definition = trait_.type_param_definition(sa);
+            let type_params = definition.identity_type_params(sa);
             let self_trait_ty = TraitType {
                 trait_id,
                 type_params,
@@ -200,7 +200,7 @@ fn trait_ty_match(
             .map(|t| t.expect("missing binding"))
             .collect(),
     );
-    let type_args = TypeArgs::from_own(&bindings);
+    let type_args = TypeArgs::from_own(sa, impl_.type_param_definition(sa), &bindings);
 
     let trait_alias_map = impl_.trait_alias_map();
 

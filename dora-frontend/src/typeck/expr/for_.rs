@@ -1,7 +1,7 @@
 use super::while_::check_loop_body;
 use crate::args;
 use crate::error::diagnostics::TYPE_NOT_USABLE_IN_FOR_IN;
-use crate::sema::{ExprId, FctDefinitionId, ForExpr, ForTypeInfo, find_impl};
+use crate::sema::{Element, ExprId, FctDefinitionId, ForExpr, ForTypeInfo, find_impl};
 use crate::ty::{self, TraitType};
 use crate::typeck::{TypeCheck, check_expr, check_pattern};
 use crate::{SourceType, SourceTypeArray, TypeArgs, specialize_type};
@@ -34,7 +34,11 @@ pub(crate) fn check_expr_for(
                 // store fct ids for code generation
                 for_type_info.iter = Some((
                     iter_impl_fct_id,
-                    TypeArgs::from_container(&into_iterator_data.bindings),
+                    TypeArgs::from_container(
+                        ck.sa,
+                        ck.sa.fct(iter_impl_fct_id).type_param_definition(ck.sa),
+                        &into_iterator_data.bindings,
+                    ),
                 ));
                 ck.body.insert_for_type_info(expr_id, for_type_info);
             }
@@ -107,7 +111,11 @@ fn type_supports_into_iterator_trait(
 
     if let Some(impl_match) = impl_match {
         let impl_ = ck.sa.impl_(impl_match.id);
-        let type_args = TypeArgs::from_own(&impl_match.bindings);
+        let type_args = TypeArgs::from_own(
+            ck.sa,
+            impl_.type_param_definition(ck.sa),
+            &impl_match.bindings,
+        );
 
         let iter_impl_fct_id = impl_.trait_method_map().get(&iter_trait_fct_id).cloned();
 
@@ -165,12 +173,20 @@ fn type_supports_iterator_trait(
 
     if let Some(impl_match) = impl_match {
         let impl_ = ck.sa.impl_(impl_match.id);
-        let impl_type_args = TypeArgs::from_own(&impl_match.bindings);
-        let method_type_args = TypeArgs::from_container(&impl_match.bindings);
+        let impl_type_args = TypeArgs::from_own(
+            ck.sa,
+            impl_.type_param_definition(ck.sa),
+            &impl_match.bindings,
+        );
         let next_impl_fct_id = impl_.trait_method_map().get(&next_trait_fct_id).cloned();
 
         let next_type = if let Some(next_impl_fct_id) = next_impl_fct_id {
             let next_impl_fct = ck.sa.fct(next_impl_fct_id);
+            let method_type_args = TypeArgs::from_container(
+                ck.sa,
+                next_impl_fct.type_param_definition(ck.sa),
+                &impl_match.bindings,
+            );
             specialize_type(ck.sa, next_impl_fct.return_type(), &method_type_args)
         } else {
             SourceType::Error

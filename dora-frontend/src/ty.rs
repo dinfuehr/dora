@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::sema::{
     AliasDefinitionId, ClassDefinition, ClassDefinitionId, Element, EnumDefinition,
     EnumDefinitionId, FctDefinition, Sema, StructDefinition, StructDefinitionId, TraitDefinitionId,
-    TypeParamDefinition, TypeParamIdx,
+    TypeParamDefinition, TypeParamId, TypeParamIdx,
 };
 use crate::specialize::specialize_trait_type_for_implements;
 
@@ -77,7 +77,7 @@ pub fn trait_(id: TraitDefinitionId, type_params: SourceTypeArray) -> SourceType
     SourceType::TraitObject(id, type_params, ().into())
 }
 
-pub fn type_param(id: TypeParamIdx) -> SourceType {
+pub fn type_param(id: TypeParamId) -> SourceType {
     SourceType::TypeParam(id)
 }
 
@@ -147,7 +147,7 @@ pub enum SourceType {
     TraitObject(TraitDefinitionId, SourceTypeArray, SourceTypeArray),
 
     // Some type variable.
-    TypeParam(TypeParamIdx),
+    TypeParam(TypeParamId),
 
     // Type alias.
     Alias(AliasDefinitionId, SourceTypeArray),
@@ -402,7 +402,7 @@ impl SourceType {
         }
     }
 
-    pub fn type_param_idx(&self) -> Option<TypeParamIdx> {
+    pub fn type_param_id(&self) -> Option<TypeParamId> {
         match self {
             SourceType::TypeParam(id) => Some(*id),
             _ => None,
@@ -774,7 +774,7 @@ pub fn empty_sta() -> SourceTypeArray {
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TypeArgs {
-    // TypeParamIdx indexes container and own in order. self_ty substitutes SourceType::This.
+    type_param_ids: Arc<Vec<TypeParamId>>,
     container: SourceTypeArray,
     own: SourceTypeArray,
     self_ty: Option<SourceType>,
@@ -782,11 +782,14 @@ pub struct TypeArgs {
 
 impl TypeArgs {
     pub(crate) fn from_parts(
+        sa: &Sema,
+        definition: &TypeParamDefinition,
         container: &SourceTypeArray,
         own: &SourceTypeArray,
         self_ty: Option<SourceType>,
     ) -> TypeArgs {
         TypeArgs {
+            type_param_ids: Arc::new(definition.names(sa).map(|(id, _)| id).collect()),
             container: container.clone(),
             own: own.clone(),
             self_ty,
@@ -805,19 +808,32 @@ impl TypeArgs {
         assert_eq!(container.len(), definition.container_type_params());
         assert_eq!(own.len(), definition.own_type_params_len());
 
-        TypeArgs::from_parts(container, own, self_ty)
+        TypeArgs::from_parts(sa, definition, container, own, self_ty)
     }
 
-    pub fn from_own(own: &SourceTypeArray) -> TypeArgs {
-        TypeArgs::from_parts(&SourceTypeArray::empty(), own, None)
+    pub fn from_own(
+        sa: &Sema,
+        definition: &TypeParamDefinition,
+        own: &SourceTypeArray,
+    ) -> TypeArgs {
+        TypeArgs::from_parts(sa, definition, &SourceTypeArray::empty(), own, None)
     }
 
-    pub fn from_container(container: &SourceTypeArray) -> TypeArgs {
-        TypeArgs::from_parts(container, &SourceTypeArray::empty(), None)
+    pub fn from_container(
+        sa: &Sema,
+        definition: &TypeParamDefinition,
+        container: &SourceTypeArray,
+    ) -> TypeArgs {
+        TypeArgs::from_parts(sa, definition, container, &SourceTypeArray::empty(), None)
     }
 
     pub fn empty() -> TypeArgs {
-        TypeArgs::from_own(&SourceTypeArray::empty())
+        TypeArgs {
+            type_param_ids: Arc::new(Vec::new()),
+            container: SourceTypeArray::empty(),
+            own: SourceTypeArray::empty(),
+            self_ty: None,
+        }
     }
 
     pub fn with_self(mut self, self_ty: SourceType) -> TypeArgs {
@@ -838,7 +854,16 @@ impl TypeArgs {
         &self.own
     }
 
-    pub fn get(&self, id: TypeParamIdx) -> Option<&SourceType> {
+    pub fn get(&self, id: TypeParamId) -> Option<&SourceType> {
+        let index = self
+            .type_param_ids
+            .iter()
+            .position(|&type_param_id| type_param_id == id)?;
+
+        self.get_idx(TypeParamIdx(index))
+    }
+
+    pub fn get_idx(&self, id: TypeParamIdx) -> Option<&SourceType> {
         let index = id.index();
 
         if index < self.container.len() {
@@ -879,7 +904,16 @@ impl Index<TypeParamIdx> for TypeArgs {
     type Output = SourceType;
 
     fn index(&self, id: TypeParamIdx) -> &SourceType {
-        self.get(id).expect("type argument index out-of-bounds")
+        self.get_idx(id).expect("type argument index out-of-bounds")
+    }
+}
+
+impl Index<TypeParamId> for TypeArgs {
+    type Output = SourceType;
+
+    fn index(&self, id: TypeParamId) -> &SourceType {
+        self.get(id)
+            .expect("type parameter missing from type arguments")
     }
 }
 
@@ -1151,16 +1185,11 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
 
-            SourceType::TypeParam(idx) => {
-                if let Some(type_params) = self.type_params {
-                    self.sa
-                        .interner
-                        .str(type_params.name(self.sa, idx))
-                        .to_string()
-                } else {
-                    format!("TypeParam({})", idx.index())
-                }
-            }
+            SourceType::TypeParam(id) => self
+                .sa
+                .interner
+                .str(self.sa.type_param(id).name())
+                .to_string(),
 
             SourceType::Lambda(params, return_type, is_variadic) => {
                 let mut params = params
@@ -1296,7 +1325,8 @@ impl TraitType {
 
         for super_trait_ty in trait_.type_param_definition(sa).bounds_for_self(sa) {
             // Specialize the super trait's type params with this trait's type params
-            let type_args = TypeArgs::from_own(&self.type_params);
+            let type_args =
+                TypeArgs::from_own(sa, trait_.type_param_definition(sa), &self.type_params);
             let specialized_super_trait_ty =
                 specialize_trait_type_for_implements(super_trait_ty, &type_args);
             if specialized_super_trait_ty.implements_trait(sa, check_trait_ty) {
@@ -1355,15 +1385,19 @@ mod tests {
 
     #[test]
     fn type_args_are_indexed_by_type_param_idx() {
-        let type_args = TypeArgs::from_parts(
-            &SourceTypeArray::single(SourceType::Int32),
-            &SourceTypeArray::single(SourceType::Float64),
-            Some(SourceType::Bool),
-        );
+        let type_args = TypeArgs {
+            type_param_ids: Arc::new(Vec::new()),
+            container: SourceTypeArray::single(SourceType::Int32),
+            own: SourceTypeArray::single(SourceType::Float64),
+            self_ty: Some(SourceType::Bool),
+        };
 
         assert_eq!(type_args[TypeParamIdx(0)], SourceType::Int32);
-        assert_eq!(type_args.get(TypeParamIdx(1)), Some(&SourceType::Float64));
-        assert_eq!(type_args.get(TypeParamIdx(2)), None);
+        assert_eq!(
+            type_args.get_idx(TypeParamIdx(1)),
+            Some(&SourceType::Float64)
+        );
+        assert_eq!(type_args.get_idx(TypeParamIdx(2)), None);
         assert_eq!(type_args.self_ty(), Some(&SourceType::Bool));
         assert_eq!(type_args.len(), 2);
         assert_eq!(

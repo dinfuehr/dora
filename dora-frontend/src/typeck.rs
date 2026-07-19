@@ -1189,7 +1189,8 @@ fn create_context_classes(sa: &mut Sema, contexts: &mut [ContextData]) {
             );
 
             let parent_type_params = generated_identity_type_params(
-                parent_type_param_count,
+                sa,
+                sa.class(parent_class_id).type_param_definition(sa),
                 sa.class(parent_class_id).needs_self_type_param,
             );
 

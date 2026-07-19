@@ -2,7 +2,9 @@ use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{ILLEGAL_TUPLE_INDEX, NOT_ACCESSIBLE, UNKNOWN_FIELD};
 use crate::interner::Name;
-use crate::sema::{ConstValue, ExprId, FieldExpr, FieldIndex, IdentType, find_field_in_class};
+use crate::sema::{
+    ConstValue, Element, ExprId, FieldExpr, FieldIndex, IdentType, find_field_in_class,
+};
 use crate::ty::error as ty_error;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
@@ -87,7 +89,8 @@ pub(super) fn check_expr_field_named(
                 let cls = ck.sa.class(cls_id);
                 let field_id = cls.field_id(field_index);
                 let field = ck.sa.field(field_id);
-                let type_params = TypeArgs::from_own(&class_type_params);
+                let type_params =
+                    TypeArgs::from_own(ck.sa, cls.type_param_definition(ck.sa), &class_type_params);
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &type_params);
 
                 if !class_field_accessible_from(ck.sa, cls_id, field_index, ck.module_id) {
@@ -106,7 +109,11 @@ pub(super) fn check_expr_field_named(
 
                 let field_id = struct_.field_id(field_index);
                 let field = &ck.sa.field(field_id);
-                let type_params = TypeArgs::from_own(&struct_type_params);
+                let type_params = TypeArgs::from_own(
+                    ck.sa,
+                    struct_.type_param_definition(ck.sa),
+                    &struct_type_params,
+                );
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &type_params);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
@@ -202,7 +209,8 @@ fn check_expr_field_unnamed(
                 let ident_type = IdentType::ClassField(object_type.clone(), field.index);
                 ck.body.insert_or_replace_ident(expr_id, ident_type);
 
-                let type_params = TypeArgs::from_own(&class_type_params);
+                let type_params =
+                    TypeArgs::from_own(ck.sa, cls.type_param_definition(ck.sa), &class_type_params);
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &type_params);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {
@@ -231,7 +239,11 @@ fn check_expr_field_unnamed(
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
                 ck.body.insert_or_replace_ident(expr_id, ident_type);
 
-                let type_params = TypeArgs::from_own(&struct_type_params);
+                let type_params = TypeArgs::from_own(
+                    ck.sa,
+                    struct_.type_param_definition(ck.sa),
+                    &struct_type_params,
+                );
                 let fty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &type_params);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {

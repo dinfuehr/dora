@@ -6,8 +6,8 @@ use self::expr::{gen_stmt_expr, gen_stmt_let};
 use crate::program_emitter::Emitter;
 use crate::sema::{
     AnalysisData, ContextFieldId, ContextId, ExprMapId, FctDefinitionId, FieldIndex, Intrinsic,
-    ScopeId, Sema, SourceFileId, Stmt, StmtId, VarId, generated_identity_type_params,
-    lambda_object_type,
+    ScopeId, Sema, SourceFileId, Stmt, StmtId, TypeParamDefinitionId, VarId,
+    generated_identity_type_params, lambda_object_type,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
@@ -46,6 +46,7 @@ struct AstBytecodeGen<'a> {
     emitter: &'a mut Emitter,
     frontend_type_params_len: usize,
     type_params_len: usize,
+    type_param_definition_id: TypeParamDefinitionId,
     is_lambda: bool,
     return_type: SourceType,
     file_id: SourceFileId,
@@ -224,8 +225,11 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn type_params_for_generated(&self, needs_self_type_param: bool) -> SourceTypeArray {
-        let type_params =
-            generated_identity_type_params(self.frontend_type_params_len, needs_self_type_param);
+        let type_params = generated_identity_type_params(
+            self.sa,
+            self.sa.type_param_definition(self.type_param_definition_id),
+            needs_self_type_param,
+        );
         assert!(
             type_params.len() == self.type_params_len
                 || type_params.len() == self.type_params_len + 1

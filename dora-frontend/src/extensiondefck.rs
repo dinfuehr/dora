@@ -205,7 +205,7 @@ pub fn check_for_unconstrained_type_params(
 ) {
     let mut bitset = FixedBitSet::with_capacity(type_params_defs.type_param_count());
 
-    discover_type_params(sa, ty, &mut bitset);
+    discover_type_params(sa, type_params_defs, ty, &mut bitset);
 
     bitset.toggle_range(..);
 
@@ -216,7 +216,12 @@ pub fn check_for_unconstrained_type_params(
     }
 }
 
-fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedBitSet) {
+fn discover_type_params(
+    sa: &Sema,
+    type_param_definition: &TypeParamDefinition,
+    ty: SourceType,
+    used_type_params: &mut FixedBitSet,
+) {
     match ty {
         SourceType::Error
         | SourceType::Unit
@@ -232,34 +237,37 @@ fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedB
         | SourceType::Ptr => {}
         SourceType::TraitObject(_id, type_params, bindings) => {
             for param in type_params.iter() {
-                discover_type_params(sa, param, used_type_params);
+                discover_type_params(sa, type_param_definition, param, used_type_params);
             }
 
             for param in bindings.iter() {
-                discover_type_params(sa, param, used_type_params);
+                discover_type_params(sa, type_param_definition, param, used_type_params);
             }
         }
         SourceType::Class(_, params)
         | SourceType::Enum(_, params)
         | SourceType::Struct(_, params) => {
             for param in params.iter() {
-                discover_type_params(sa, param, used_type_params);
+                discover_type_params(sa, type_param_definition, param, used_type_params);
             }
         }
         SourceType::Tuple(subtypes) => {
             for subtype in subtypes.iter() {
-                discover_type_params(sa, subtype.clone(), used_type_params);
+                discover_type_params(sa, type_param_definition, subtype.clone(), used_type_params);
             }
         }
         SourceType::Lambda(params, return_type, _) => {
             for param in params.iter() {
-                discover_type_params(sa, param, used_type_params);
+                discover_type_params(sa, type_param_definition, param, used_type_params);
             }
 
-            discover_type_params(sa, *return_type, used_type_params);
+            discover_type_params(sa, type_param_definition, *return_type, used_type_params);
         }
         SourceType::TypeParam(tp_id) => {
-            used_type_params.insert(tp_id.index());
+            let tp_idx = type_param_definition
+                .type_param_idx(sa, tp_id)
+                .expect("type parameter missing from definition");
+            used_type_params.insert(tp_idx.index());
         }
         SourceType::Alias(..)
         | SourceType::Assoc { .. }

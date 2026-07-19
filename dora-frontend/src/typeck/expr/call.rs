@@ -23,8 +23,8 @@ use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, Element, ElementWithFields,
     EnumDefinitionId, Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema,
-    StructDefinitionId, TraitDefinition, TypeParamId, find_impl, implements_trait,
-    new_identity_type_params,
+    StructDefinitionId, TraitDefinition, TypeParamDefinition, TypeParamId, find_impl,
+    implements_trait,
 };
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
@@ -267,15 +267,7 @@ fn check_expr_call_generic_static_method(
 ) -> SourceType {
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
-    let tp_idx = ck
-        .type_param_definition
-        .type_param_idx(ck.sa, tp_id)
-        .expect("type parameter missing from definition");
-
-    for trait_ty in ck
-        .type_param_definition
-        .bounds_for_type_param(ck.sa, tp_idx)
-    {
+    for trait_ty in ck.type_param_definition.bounds_for_type_param(ck.sa, tp_id) {
         let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
@@ -309,8 +301,10 @@ fn check_expr_call_generic_static_method(
     let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
     let trait_method = ck.sa.fct(trait_method_id);
 
-    let tp = SourceType::TypeParam(tp_idx);
+    let tp = SourceType::TypeParam(tp_id);
     let type_params = TypeArgs::from_parts(
+        ck.sa,
+        trait_method.type_param_definition(ck.sa),
         &trait_ty.type_params,
         &pure_fct_type_params,
         Some(tp.clone()),
@@ -324,12 +318,12 @@ fn check_expr_call_generic_static_method(
         &type_params,
         ck.file_id,
         || ck.expr_span(expr_id),
-        |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, tp_idx, &trait_ty, &type_params),
+        |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, tp_id, &trait_ty, &type_params),
     ) {
         let expected = build_expected_call_args(
             trait_method.params.regular_params(),
             trait_method.params.variadic_param(),
-            |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, tp_idx, &trait_ty, &type_params),
+            |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, tp_id, &trait_ty, &type_params),
         );
         check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
@@ -344,7 +338,7 @@ fn check_expr_call_generic_static_method(
             ck.sa,
             trait_method.return_type(),
             ck.element,
-            tp_idx,
+            tp_id,
             &trait_ty,
             &type_params,
         );
@@ -367,7 +361,7 @@ fn find_static_method_in_super_traits(
 ) {
     for super_trait_ty in trait_.type_param_definition(sa).bounds_for_self(sa) {
         // Substitute the super trait's type params with the current trait's type params
-        let type_args = TypeArgs::from_own(trait_type_params);
+        let type_args = TypeArgs::from_own(sa, trait_.type_param_definition(sa), trait_type_params);
         let specialized_super_trait_ty = specialize_trait_type(sa, super_trait_ty, &type_args);
         let super_trait_ = sa.trait_(specialized_super_trait_ty.trait_id);
 
@@ -400,8 +394,8 @@ fn check_expr_call_self_static_method(
         let trait_ = ck.sa.trait_(trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
-            let type_param_count = trait_.type_param_definition(ck.sa).type_param_count();
-            let type_params = new_identity_type_params(0, type_param_count);
+            let definition = trait_.type_param_definition(ck.sa);
+            let type_params = definition.identity_type_params(ck.sa);
             let trait_ty = TraitType {
                 trait_id,
                 type_params,
@@ -447,6 +441,8 @@ fn check_expr_call_self_static_method(
     let trait_method = ck.sa.fct(trait_method_id);
 
     let type_params = TypeArgs::from_parts(
+        ck.sa,
+        trait_method.type_param_definition(ck.sa),
         &trait_ty.type_params,
         &pure_fct_type_params,
         Some(SourceType::This),
@@ -529,14 +525,11 @@ fn check_expr_call_self_assoc_type_static_method(
     // The parent trait's TraitType (for Self::T, this is the current trait)
     let parent_trait_id = alias.parent.to_trait_id().expect("expected trait parent");
     let current_trait_id = ck.parent.trait_id().expect("expected trait context");
-    let trait_param_count = ck
-        .sa
-        .trait_(current_trait_id)
-        .type_param_definition(ck.sa)
-        .type_param_count();
+    let current_trait = ck.sa.trait_(current_trait_id);
+    let definition = current_trait.type_param_definition(ck.sa);
     let current_trait_ty = TraitType {
         trait_id: current_trait_id,
-        type_params: new_identity_type_params(0, trait_param_count),
+        type_params: definition.identity_type_params(ck.sa),
         bindings: Vec::new(),
     };
     let parent_trait_ty = find_super_trait_ty(ck.sa, &current_trait_ty, parent_trait_id)
@@ -546,6 +539,8 @@ fn check_expr_call_self_assoc_type_static_method(
         assoc_id: alias_id,
     };
     let type_params = TypeArgs::from_parts(
+        ck.sa,
+        trait_method.type_param_definition(ck.sa),
         &trait_ty.type_params,
         &pure_fct_type_params,
         Some(assoc_type.clone()),
@@ -600,11 +595,6 @@ fn check_expr_call_generic_assoc_static_method(
     let mut matched_methods = Vec::new();
     let interned_method_name = ck.sa.interner.intern(&method_name);
     let alias = ck.sa.alias(assoc_id);
-    let tp_idx = ck
-        .type_param_definition
-        .type_param_idx(ck.sa, tp_id)
-        .expect("type parameter missing from definition");
-
     // Look for static methods in the bounds of the associated type
     for bound in alias.bounds() {
         if let Some(trait_ty) = bound.ty() {
@@ -634,11 +624,13 @@ fn check_expr_call_generic_assoc_static_method(
 
     // The GenericAssoc type: T::Item
     let assoc_type = SourceType::GenericAssoc {
-        ty: Box::new(SourceType::TypeParam(tp_idx)),
+        ty: Box::new(SourceType::TypeParam(tp_id)),
         trait_ty: container_trait_ty.clone(),
         assoc_id,
     };
     let type_params = TypeArgs::from_parts(
+        ck.sa,
+        trait_method.type_param_definition(ck.sa),
         &trait_ty.type_params,
         &pure_fct_type_params,
         Some(assoc_type.clone()),
@@ -824,6 +816,8 @@ fn check_expr_call_qualified_path(
         assoc_id,
     };
     let type_params = TypeArgs::from_parts(
+        ck.sa,
+        trait_method.type_param_definition(ck.sa),
         &method_trait_ty.type_params,
         &pure_fct_type_params,
         Some(assoc_type.clone()),
@@ -908,6 +902,8 @@ pub(crate) fn check_expr_call_expr(
         let method = ck.sa.fct(method_id);
         // The impl method can be malformed; don't assert its type-parameter count during recovery.
         let type_params = TypeArgs::from_parts(
+            ck.sa,
+            method.type_param_definition(ck.sa),
             &impl_match.bindings,
             &SourceTypeArray::empty(),
             Some(expr_type.clone()),
@@ -980,7 +976,7 @@ fn check_expr_call_fct(
     call_expr_id: ExprId,
 ) -> SourceType {
     let fct = ck.sa.fct(fct_id);
-    let type_params = TypeArgs::from_own(&type_params);
+    let type_params = TypeArgs::from_own(ck.sa, fct.type_param_definition(ck.sa), &type_params);
 
     if !fct_accessible_from(ck.sa, fct_id, ck.module_id) {
         ck.report(ck.expr_span(expr_id), &NOT_ACCESSIBLE, args!());
@@ -1064,6 +1060,8 @@ fn check_expr_call_static_method(
         let fct = ck.sa.fct(fct_id);
 
         let type_params = TypeArgs::from_parts(
+            ck.sa,
+            fct.type_param_definition(ck.sa),
             &candidate.container_type_params,
             &fct_type_params,
             Some(candidate.object_type.clone()),
@@ -1134,7 +1132,7 @@ fn check_expr_call_struct(
     }
 
     let ty = SourceType::Struct(struct_id, type_params.clone());
-    let type_args = TypeArgs::from_own(&type_params);
+    let type_args = TypeArgs::from_own(ck.sa, struct_.type_param_definition(ck.sa), &type_params);
     let type_params_ok = check_type_params(
         ck.sa,
         ck.element,
@@ -1152,9 +1150,21 @@ fn check_expr_call_struct(
     }
 
     if struct_.field_name_style.is_named() {
-        check_expr_call_ctor_with_named_fields(ck, struct_, type_params.clone(), call_expr_id);
+        check_expr_call_ctor_with_named_fields(
+            ck,
+            struct_,
+            struct_.type_param_definition(ck.sa),
+            type_params.clone(),
+            call_expr_id,
+        );
     } else {
-        check_expr_call_ctor_with_unnamed_fields(ck, struct_, type_params.clone(), call_expr_id);
+        check_expr_call_ctor_with_unnamed_fields(
+            ck,
+            struct_,
+            struct_.type_param_definition(ck.sa),
+            type_params.clone(),
+            call_expr_id,
+        );
     }
 
     ck.body.insert_call_type(
@@ -1169,6 +1179,7 @@ fn check_expr_call_struct(
 fn check_expr_call_ctor_with_named_fields(
     ck: &mut TypeCheck,
     element_with_fields: &dyn ElementWithFields,
+    type_param_definition: &TypeParamDefinition,
     type_params: SourceTypeArray,
     call_expr_id: ExprId,
 ) {
@@ -1229,7 +1240,7 @@ fn check_expr_call_ctor_with_named_fields(
         }
     }
 
-    let type_params = TypeArgs::from_own(&type_params);
+    let type_params = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
 
     for &field_id in element_with_fields.field_ids() {
         let field = ck.sa.field(field_id);
@@ -1301,10 +1312,11 @@ fn compute_single_named_element(sa: &Sema, el: &dyn ElementWithFields) -> Option
 fn check_expr_call_ctor_with_unnamed_fields(
     ck: &mut TypeCheck,
     element_with_fields: &dyn ElementWithFields,
+    type_param_definition: &TypeParamDefinition,
     type_params: SourceTypeArray,
     call_expr_id: ExprId,
 ) -> bool {
-    let type_params = TypeArgs::from_own(&type_params);
+    let type_params = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
 
     let fields = element_with_fields.field_ids().len();
     let call_args = ck
@@ -1385,7 +1397,7 @@ fn check_expr_call_class(
     };
 
     let cls = ck.sa.class(cls_id);
-    let type_args = TypeArgs::from_own(&type_params);
+    let type_args = TypeArgs::from_own(ck.sa, cls.type_param_definition(ck.sa), &type_params);
 
     if !check_type_params(
         ck.sa,
@@ -1414,9 +1426,21 @@ fn check_expr_call_class(
     }
 
     if cls.field_name_style.is_named() {
-        check_expr_call_ctor_with_named_fields(ck, cls, type_params.clone(), call_expr_id);
+        check_expr_call_ctor_with_named_fields(
+            ck,
+            cls,
+            cls.type_param_definition(ck.sa),
+            type_params.clone(),
+            call_expr_id,
+        );
     } else {
-        check_expr_call_ctor_with_unnamed_fields(ck, cls, type_params.clone(), call_expr_id);
+        check_expr_call_ctor_with_unnamed_fields(
+            ck,
+            cls,
+            cls.type_param_definition(ck.sa),
+            type_params.clone(),
+            call_expr_id,
+        );
     }
 
     ck.body
@@ -1447,7 +1471,7 @@ fn check_expr_call_enum_variant(
     } else {
         type_params
     };
-    let type_args = TypeArgs::from_own(&type_params);
+    let type_args = TypeArgs::from_own(ck.sa, enum_.type_param_definition(ck.sa), &type_params);
 
     let type_params_ok = check_type_params(
         ck.sa,
@@ -1475,11 +1499,18 @@ fn check_expr_call_enum_variant(
         );
     } else {
         if variant.field_name_style.is_named() {
-            check_expr_call_ctor_with_named_fields(ck, variant, type_params.clone(), call_expr_id);
+            check_expr_call_ctor_with_named_fields(
+                ck,
+                variant,
+                enum_.type_param_definition(ck.sa),
+                type_params.clone(),
+                call_expr_id,
+            );
         } else {
             check_expr_call_ctor_with_unnamed_fields(
                 ck,
                 variant,
+                enum_.type_param_definition(ck.sa),
                 type_params.clone(),
                 call_expr_id,
             );
@@ -1637,7 +1668,11 @@ fn check_expr_call_path(
     match sym {
         SymbolKind::Class(cls_id) => {
             let cls = ck.sa.class(cls_id);
-            let type_args = TypeArgs::from_own(&container_type_params);
+            let type_args = TypeArgs::from_own(
+                ck.sa,
+                cls.type_param_definition(ck.sa),
+                &container_type_params,
+            );
             if check_type_params(
                 ck.sa,
                 ck.element,
@@ -1663,7 +1698,11 @@ fn check_expr_call_path(
 
         SymbolKind::Struct(struct_id) => {
             let struct_ = ck.sa.struct_(struct_id);
-            let type_args = TypeArgs::from_own(&container_type_params);
+            let type_args = TypeArgs::from_own(
+                ck.sa,
+                struct_.type_param_definition(ck.sa),
+                &container_type_params,
+            );
 
             if check_type_params(
                 ck.sa,
@@ -1724,7 +1763,11 @@ fn check_expr_call_path(
                     call_expr_id,
                 )
             } else {
-                let type_args = TypeArgs::from_own(&container_type_params);
+                let type_args = TypeArgs::from_own(
+                    ck.sa,
+                    enum_.type_param_definition(ck.sa),
+                    &container_type_params,
+                );
                 if check_type_params(
                     ck.sa,
                     ck.element,

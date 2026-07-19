@@ -1,7 +1,4 @@
-use crate::sema::{
-    AliasParent, Element, FctDefinition, FctParent, Sema, TypeParamDefinition,
-    new_identity_type_params,
-};
+use crate::sema::{AliasParent, Element, FctDefinition, FctParent, Sema, TypeParamDefinition};
 use crate::{ModuleSymTable, SourceType, SymbolKind, parsety};
 
 pub fn parse_types(sa: &Sema) {
@@ -107,11 +104,10 @@ fn parse_class_types(sa: &Sema) {
 
         parse_type_param_definition(sa, cls.type_param_definition(sa), &mut symtable, cls, false);
 
-        let number_type_params = cls.type_param_definition(sa).type_param_count();
         cls.ty
             .set(SourceType::Class(
                 cls_id,
-                new_identity_type_params(0, number_type_params),
+                cls.type_param_definition(sa).identity_type_params(sa),
             ))
             .expect("already initialized");
 

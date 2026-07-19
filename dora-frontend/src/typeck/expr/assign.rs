@@ -13,8 +13,8 @@ use crate::error::diagnostics::{
 };
 use crate::replace_type;
 use crate::sema::{
-    ArrayAssignment, AssignExpr, CallType, Expr, ExprId, FieldIndex, IdentType, TraitDefinitionId,
-    find_field_in_class, find_impl, implements_trait,
+    ArrayAssignment, AssignExpr, CallType, Element, Expr, ExprId, FieldIndex, IdentType,
+    TraitDefinitionId, find_field_in_class, find_impl, implements_trait,
 };
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
@@ -304,6 +304,8 @@ fn check_expr_assign_trait(
             let method = ck.sa.fct(method_id);
             // The impl method can be malformed; don't assert its type-parameter count during recovery.
             let type_params = TypeArgs::from_parts(
+                ck.sa,
+                method.type_param_definition(ck.sa),
                 &type_params,
                 &SourceTypeArray::empty(),
                 Some(lhs_type.clone()),
@@ -348,7 +350,7 @@ fn check_expr_assign_trait(
         let method = ck.sa.fct(method_id);
         let params = method.params_without_self();
 
-        let tp_id = lhs_type.type_param_idx().expect("type param expected");
+        let tp_id = lhs_type.type_param_id().expect("type param expected");
         let trait_ty = TraitType::from_trait_id(trait_id);
         let type_params = TypeArgs::from_definition(
             ck.sa,
@@ -710,6 +712,8 @@ fn check_index_trait_on_ty(
 
         // The impl method can be malformed; don't assert its type-parameter count during recovery.
         let type_params = TypeArgs::from_parts(
+            ck.sa,
+            ck.sa.fct(method_id).type_param_definition(ck.sa),
             &impl_match.bindings,
             &SourceTypeArray::empty(),
             Some(expr_type.clone()),
@@ -774,7 +778,8 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
             let field_id = cls.field_id(field_index);
             let field = ck.sa.field(field_id);
 
-            let type_args = TypeArgs::from_own(&class_type_params);
+            let type_args =
+                TypeArgs::from_own(ck.sa, cls.type_param_definition(ck.sa), &class_type_params);
             let fty = replace_type(ck.sa, field.ty(), &type_args);
 
             if !field.mutable {
@@ -797,7 +802,11 @@ fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assi
             let field_id = struct_.field_id(field_index);
             let field = ck.sa.field(field_id);
 
-            let type_args = TypeArgs::from_own(&struct_type_params);
+            let type_args = TypeArgs::from_own(
+                ck.sa,
+                struct_.type_param_definition(ck.sa),
+                &struct_type_params,
+            );
             let fty = replace_type(ck.sa, field.ty(), &type_args);
 
             if !field.mutable {
@@ -903,7 +912,11 @@ fn check_expr_assign_unnamed_field(
                 let ident_type = IdentType::StructField(object_type.clone(), field.index);
                 ck.body.insert_or_replace_ident(field_expr_id, ident_type);
 
-                let type_args = TypeArgs::from_own(&struct_type_params);
+                let type_args = TypeArgs::from_own(
+                    ck.sa,
+                    struct_.type_param_definition(ck.sa),
+                    &struct_type_params,
+                );
                 let fty = replace_type(ck.sa, field.ty(), &type_args);
 
                 if !struct_field_accessible_from(ck.sa, struct_id, field.index, ck.module_id) {
@@ -984,7 +997,8 @@ fn check_expr_assign_unnamed_field(
                 let ident_type = IdentType::ClassField(object_type.clone(), field.index);
                 ck.body.insert_or_replace_ident(field_expr_id, ident_type);
 
-                let type_args = TypeArgs::from_own(&class_type_params);
+                let type_args =
+                    TypeArgs::from_own(ck.sa, cls.type_param_definition(ck.sa), &class_type_params);
                 let fty = replace_type(ck.sa, field.ty(), &type_args);
 
                 if !class_field_accessible_from(ck.sa, class_id, field.index, ck.module_id) {

@@ -19,7 +19,7 @@ use crate::sema::{
     EnumDefinition, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, FctParent,
     GlobalDefinition, GlobalDefinitionId, ImplDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, PackageName, StructDefinition, StructDefinitionId, TraitDefinitionId,
-    TypeParamDefinition,
+    TypeParamDefinition, TypeParamDefinitionId,
 };
 use crate::{SourceType, SourceTypeArray, TraitType};
 
@@ -71,6 +71,9 @@ pub fn emit_program(sa: Sema) -> Program {
 }
 
 pub struct Emitter {
+    // Semantic types carry arena IDs. Bytecode types still use indices local to
+    // the element's type-parameter definition.
+    type_param_definition: Option<TypeParamDefinitionId>,
     // Generated closures and context classes in trait bodies carry `Self` as a
     // final bytecode-only type parameter. Frontend type parameters stay unchanged.
     hidden_self_type_param: Option<u32>,
@@ -106,6 +109,7 @@ pub struct Emitter {
 impl Emitter {
     pub fn new() -> Emitter {
         Emitter {
+            type_param_definition: None,
             hidden_self_type_param: None,
             global_initializer: HashMap::new(),
             map_packages: HashMap::new(),
@@ -492,6 +496,7 @@ impl Emitter {
 
     fn create_classes(&mut self, sa: &Sema) {
         for (_class_id, class) in sa.classes.iter() {
+            self.enter_type_param_definition(class.type_param_definition_id());
             assert!(self.hidden_self_type_param.is_none());
             if class.needs_self_type_param {
                 self.hidden_self_type_param = Some(
@@ -519,7 +524,16 @@ impl Emitter {
                 fields,
             });
             self.hidden_self_type_param = None;
+            self.leave_type_param_definition();
         }
+    }
+
+    fn enter_type_param_definition(&mut self, id: TypeParamDefinitionId) {
+        assert!(self.type_param_definition.replace(id).is_none());
+    }
+
+    fn leave_type_param_definition(&mut self) {
+        assert!(self.type_param_definition.take().is_some());
     }
 
     fn create_type_params(
@@ -574,6 +588,7 @@ impl Emitter {
 
     fn create_structs(&mut self, sa: &Sema) {
         for (_struct_id, struct_) in sa.structs.iter() {
+            self.enter_type_param_definition(struct_.type_param_definition_id());
             let name = sa.interner.str(struct_.name).to_string();
             let fields = self.create_struct_fields(sa, struct_);
             let package_id = self.convert_package_id(sa, struct_.package_id);
@@ -588,7 +603,8 @@ impl Emitter {
                 is_public: struct_.visibility.is_public(),
                 is_internal: struct_.is_internal,
                 fields,
-            })
+            });
+            self.leave_type_param_definition();
         }
     }
 
@@ -610,6 +626,7 @@ impl Emitter {
 
     fn create_enums(&mut self, sa: &Sema) {
         for (_id, enum_) in sa.enums.iter() {
+            self.enter_type_param_definition(enum_.type_param_definition_id());
             let name = sa.interner.str(enum_.name).to_string();
             let variants = self.create_enum_variants(sa, &*enum_);
             let module_id = self.convert_module_id(sa, enum_.module_id);
@@ -621,7 +638,8 @@ impl Emitter {
                 type_params,
                 is_public: enum_.visibility.is_public(),
                 variants,
-            })
+            });
+            self.leave_type_param_definition();
         }
     }
 
@@ -653,6 +671,7 @@ impl Emitter {
     fn create_functions(&mut self, sa: &Sema) {
         // First pass: Create all function entries without bytecode.
         for (_id, fct) in sa.fcts.iter() {
+            self.enter_type_param_definition(fct.type_param_definition_id());
             assert!(self.hidden_self_type_param.is_none());
             if fct.needs_self_type_param(sa) {
                 self.hidden_self_type_param = Some(
@@ -718,11 +737,13 @@ impl Emitter {
                 trait_method_impl,
             });
             self.hidden_self_type_param = None;
+            self.leave_type_param_definition();
         }
 
         // Second pass: Generate bytecode for all functions.
         for (id, fct) in sa.fcts.iter() {
             if fct.has_body(sa) {
+                self.enter_type_param_definition(fct.type_param_definition_id());
                 assert!(self.hidden_self_type_param.is_none());
                 if fct.needs_self_type_param(sa) {
                     self.hidden_self_type_param = Some(
@@ -738,6 +759,7 @@ impl Emitter {
                 let function_id = self.convert_function_id(sa, id);
                 self.functions[function_id.index()].bytecode = Some(bc_fct);
                 self.hidden_self_type_param = None;
+                self.leave_type_param_definition();
             }
         }
 
@@ -745,6 +767,8 @@ impl Emitter {
             if !global.has_initial_value() {
                 continue;
             }
+
+            self.enter_type_param_definition(global.type_param_definition_id());
 
             let fct_id = self.functions.len().into();
             let name = sa.interner.str(global.name).to_string();
@@ -784,11 +808,13 @@ impl Emitter {
             });
 
             self.global_initializer.insert(global.id(), fct_id);
+            self.leave_type_param_definition();
         }
     }
 
     fn create_globals(&mut self, sa: &Sema) {
         for (_id, global) in sa.globals.iter() {
+            self.enter_type_param_definition(global.type_param_definition_id());
             let name = sa.interner.str(global.name).to_string();
             let module_id = self.convert_module_id(sa, global.module_id);
             let ty = self.convert_ty(sa, global.ty());
@@ -801,12 +827,14 @@ impl Emitter {
                 is_public: global.visibility.is_public(),
                 name,
                 initial_value,
-            })
+            });
+            self.leave_type_param_definition();
         }
     }
 
     fn create_consts(&mut self, sa: &Sema) {
         for (_id, const_) in sa.consts.iter() {
+            self.enter_type_param_definition(const_.type_param_definition_id());
             let name = sa.interner.str(const_.name).to_string();
             let module_id = self.convert_module_id(sa, const_.module_id);
             let ty = self.convert_ty(sa, const_.ty());
@@ -817,7 +845,8 @@ impl Emitter {
                 name,
                 is_public: const_.visibility.is_public(),
                 value: const_.value().clone(),
-            })
+            });
+            self.leave_type_param_definition();
         }
     }
 
@@ -832,6 +861,7 @@ impl Emitter {
 
     fn create_traits(&mut self, sa: &Sema) {
         for (_id, trait_) in sa.traits.iter() {
+            self.enter_type_param_definition(trait_.type_param_definition_id());
             let name = sa.interner.str(trait_.name).to_string();
 
             let methods = trait_
@@ -867,7 +897,8 @@ impl Emitter {
                 aliases,
                 methods,
                 virtual_methods,
-            })
+            });
+            self.leave_type_param_definition();
         }
     }
 
@@ -881,6 +912,7 @@ impl Emitter {
 
     fn create_extensions(&mut self, sa: &Sema) {
         for (_id, extension) in sa.extensions.iter() {
+            self.enter_type_param_definition(extension.type_param_definition_id());
             let mut methods = Vec::new();
 
             // The methods array for impl should have the exact same order as for the trait.
@@ -898,11 +930,13 @@ impl Emitter {
                 extended_ty,
                 methods,
             });
+            self.leave_type_param_definition();
         }
     }
 
     fn create_impls(&mut self, sa: &Sema) {
         for (_id, impl_) in sa.impls.iter() {
+            self.enter_type_param_definition(impl_.type_param_definition_id());
             let mut methods = Vec::new();
 
             let trait_ty = impl_.trait_ty().expect("trait expected");
@@ -958,11 +992,13 @@ impl Emitter {
                 trait_method_map,
                 trait_alias_map,
             });
+            self.leave_type_param_definition();
         }
     }
 
     fn create_aliases(&mut self, sa: &Sema) {
         for (_id, alias) in sa.aliases.iter() {
+            self.enter_type_param_definition(alias.type_param_definition_id());
             let ty = alias.parsed_ty().map(|pty| self.convert_ty(sa, pty.ty()));
             let module_id = self.convert_module_id(sa, alias.module_id);
             let type_params = self.create_type_params(sa, alias.type_param_definition(sa));
@@ -973,7 +1009,8 @@ impl Emitter {
                 is_public: alias.visibility.is_public(),
                 ty,
                 idx_in_trait: alias.idx_in_trait,
-            })
+            });
+            self.leave_type_param_definition();
         }
     }
 
@@ -1007,7 +1044,7 @@ impl Emitter {
         }
     }
 
-    pub fn convert_ty(&mut self, _sa: &Sema, ty: SourceType) -> BytecodeType {
+    pub fn convert_ty(&mut self, sa: &Sema, ty: SourceType) -> BytecodeType {
         match ty {
             SourceType::Unit => BytecodeType::Unit,
             SourceType::Bool => BytecodeType::Bool,
@@ -1018,27 +1055,43 @@ impl Emitter {
             SourceType::Float32 => BytecodeType::Float32,
             SourceType::Float64 => BytecodeType::Float64,
             SourceType::Class(class_id, type_params) => BytecodeType::Class(
-                self.convert_class_id(_sa, class_id),
-                self.convert_tya(_sa, &type_params),
+                self.convert_class_id(sa, class_id),
+                self.convert_tya(sa, &type_params),
             ),
             SourceType::TraitObject(trait_id, type_params, bindings) => BytecodeType::TraitObject(
-                self.convert_trait_id(_sa, trait_id),
-                self.convert_tya(_sa, &type_params),
-                self.convert_tya(_sa, &bindings),
+                self.convert_trait_id(sa, trait_id),
+                self.convert_tya(sa, &type_params),
+                self.convert_tya(sa, &bindings),
             ),
             SourceType::Enum(enum_id, type_params) => BytecodeType::Enum(
-                self.convert_enum_id(_sa, enum_id),
-                self.convert_tya(_sa, &type_params),
+                self.convert_enum_id(sa, enum_id),
+                self.convert_tya(sa, &type_params),
             ),
             SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(
-                self.convert_struct_id(_sa, struct_id),
-                self.convert_tya(_sa, &type_params),
+                self.convert_struct_id(sa, struct_id),
+                self.convert_tya(sa, &type_params),
             ),
-            SourceType::Tuple(subtypes) => BytecodeType::Tuple(self.convert_tya(_sa, &subtypes)),
-            SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.index() as u32),
+            SourceType::Tuple(subtypes) => BytecodeType::Tuple(self.convert_tya(sa, &subtypes)),
+            SourceType::TypeParam(id) => {
+                let definition_id = self
+                    .type_param_definition
+                    .expect("type parameter definition missing during bytecode emission");
+                let idx = sa
+                    .type_param_definition(definition_id)
+                    .type_param_idx(sa, id)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "type parameter {:?} ({}) missing from definition {:?} during bytecode emission",
+                            id,
+                            sa.interner.str(sa.type_param(id).name()),
+                            definition_id,
+                        )
+                    });
+                BytecodeType::TypeParam(idx.index() as u32)
+            }
             SourceType::Lambda(params, return_type, is_variadic) => BytecodeType::Lambda(
-                self.convert_tya(_sa, &params),
-                Box::new(self.convert_ty(_sa, *return_type)),
+                self.convert_tya(sa, &params),
+                Box::new(self.convert_ty(sa, *return_type)),
                 is_variadic,
             ),
             SourceType::Ptr => BytecodeType::Ptr,
@@ -1047,25 +1100,25 @@ impl Emitter {
                 .map(BytecodeType::TypeParam)
                 .unwrap_or(BytecodeType::This),
             SourceType::Ref(inner) => {
-                BytecodeType::Ref(Box::new(self.convert_ty(_sa, inner.as_ref().clone())))
+                BytecodeType::Ref(Box::new(self.convert_ty(sa, inner.as_ref().clone())))
             }
             SourceType::Alias(id, type_params) => {
                 assert!(type_params.is_empty());
-                BytecodeType::TypeAlias(self.convert_alias_id(_sa, id))
+                BytecodeType::TypeAlias(self.convert_alias_id(sa, id))
             }
             SourceType::Assoc { trait_ty, assoc_id } => BytecodeType::Assoc {
-                ty: Box::new(self.convert_ty(_sa, SourceType::This)),
-                trait_ty: self.convert_trait_ty(_sa, &trait_ty),
-                assoc_id: self.convert_alias_id(_sa, assoc_id),
+                ty: Box::new(self.convert_ty(sa, SourceType::This)),
+                trait_ty: self.convert_trait_ty(sa, &trait_ty),
+                assoc_id: self.convert_alias_id(sa, assoc_id),
             },
             SourceType::GenericAssoc {
                 ty,
                 trait_ty,
                 assoc_id,
             } => BytecodeType::Assoc {
-                ty: Box::new(self.convert_ty(_sa, ty.as_ref().clone())),
-                trait_ty: self.convert_trait_ty(_sa, &trait_ty),
-                assoc_id: self.convert_alias_id(_sa, assoc_id),
+                ty: Box::new(self.convert_ty(sa, ty.as_ref().clone())),
+                trait_ty: self.convert_trait_ty(sa, &trait_ty),
+                assoc_id: self.convert_alias_id(sa, assoc_id),
             },
             _ => panic!("SourceType {:?} cannot be converted to BytecodeType", ty),
         }

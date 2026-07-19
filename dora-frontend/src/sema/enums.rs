@@ -15,8 +15,6 @@ use crate::sema::{
 };
 use crate::{SourceType, SourceTypeArray};
 
-use super::new_identity_type_params;
-
 pub type EnumDefinitionId = Id<EnumDefinition>;
 
 #[derive(Debug)]
@@ -148,8 +146,8 @@ impl Element for EnumDefinition {
     }
 
     fn self_ty(&self, sa: &Sema) -> Option<SourceType> {
-        let type_params = self.type_param_definition(sa).type_param_count();
-        let type_params = new_identity_type_params(0, type_params);
+        let definition = self.type_param_definition(sa);
+        let type_params = definition.identity_type_params(sa);
         Some(SourceType::Enum(self.id(), type_params))
     }
 

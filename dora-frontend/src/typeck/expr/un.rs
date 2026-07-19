@@ -6,7 +6,9 @@ use super::lit::check_expr_lit_int;
 use crate::args;
 use crate::error::diagnostics::UN_OP_TYPE;
 use crate::replace_type;
-use crate::sema::{CallType, Expr, ExprId, TraitDefinitionId, UnExpr, find_impl, implements_trait};
+use crate::sema::{
+    CallType, Element, Expr, ExprId, TraitDefinitionId, UnExpr, find_impl, implements_trait,
+};
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
@@ -81,6 +83,8 @@ fn check_expr_un_trait(
         let method = ck.sa.fct(method_id);
         // The impl method can be malformed; don't assert its type-parameter count during recovery.
         let type_params = TypeArgs::from_parts(
+            ck.sa,
+            method.type_param_definition(ck.sa),
             &impl_match.bindings,
             &SourceTypeArray::empty(),
             Some(ty.clone()),
@@ -103,7 +107,7 @@ fn check_expr_un_trait(
 
         let method = ck.sa.fct(method_id);
 
-        let tp_id = ty.type_param_idx().expect("type param expected");
+        let tp_id = ty.type_param_id().expect("type param expected");
         let trait_ty = TraitType::from_trait_id(trait_id);
         let type_params = TypeArgs::from_definition(
             ck.sa,

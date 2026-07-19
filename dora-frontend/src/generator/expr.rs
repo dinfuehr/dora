@@ -213,7 +213,9 @@ pub(super) fn specialize_type_for_call(
                 }
                 _ => unreachable!(),
             };
-            let type_args = TypeArgs::from_container(type_params);
+            let trait_ = g.sa.trait_(trait_id);
+            let type_args =
+                TypeArgs::from_own(g.sa, trait_.type_param_definition(g.sa), type_params);
             specialize_ty_for_trait_object(g.sa, ty, trait_id, &type_args, assoc_types)
         }
 

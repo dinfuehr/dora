@@ -9,7 +9,8 @@ use crate::error::diagnostics::{
 };
 use crate::replace_type;
 use crate::sema::{
-    BinExpr, CallType, Expr, ExprId, Intrinsic, TraitDefinitionId, find_impl, implements_trait,
+    BinExpr, CallType, Element, Expr, ExprId, Intrinsic, TraitDefinitionId, find_impl,
+    implements_trait,
 };
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
@@ -239,6 +240,8 @@ fn check_expr_bin_trait(
             let method = ck.sa.fct(method_id);
             // The impl method can be malformed; don't assert its type-parameter count during recovery.
             let type_params = TypeArgs::from_parts(
+                ck.sa,
+                method.type_param_definition(ck.sa),
                 &type_params,
                 &SourceTypeArray::empty(),
                 Some(lhs_type.clone()),
@@ -287,7 +290,7 @@ fn check_expr_bin_trait(
         let method = ck.sa.fct(method_id);
         let params = method.params_without_self();
 
-        let tp_id = lhs_type.type_param_idx().expect("type param expected");
+        let tp_id = lhs_type.type_param_id().expect("type param expected");
         let trait_ty = TraitType::from_trait_id(trait_id);
         let type_params = TypeArgs::from_definition(
             ck.sa,

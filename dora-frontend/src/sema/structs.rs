@@ -11,7 +11,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FieldDefinitionId,
     FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinitionId,
-    TypeRefArena, Visibility, module_path, new_identity_type_params,
+    TypeRefArena, Visibility, module_path,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -112,10 +112,8 @@ impl StructDefinition {
         if let Some(ref primitive_ty) = self.primitive_ty {
             primitive_ty.clone()
         } else {
-            SourceType::Struct(
-                self.id(),
-                new_identity_type_params(0, self.type_param_definition(sa).type_param_count()),
-            )
+            let definition = self.type_param_definition(sa);
+            SourceType::Struct(self.id(), definition.identity_type_params(sa))
         }
     }
 

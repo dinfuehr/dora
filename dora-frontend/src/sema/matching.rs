@@ -1,5 +1,5 @@
 use crate::sema::{
-    Element, ExtensionDefinitionId, Sema, TypeParamDefinition, TypeParamIdx, implements_trait,
+    Element, ExtensionDefinitionId, Sema, TypeParamDefinition, TypeParamId, implements_trait,
     maybe_alias_ty,
 };
 use crate::specialize::specialize_type;
@@ -60,7 +60,7 @@ pub fn block_matches_ty(
             .map(|t| t.expect("missing binding"))
             .collect();
         let bindings_array = SourceTypeArray::with(bindings.clone());
-        let type_args = TypeArgs::from_own(&bindings_array);
+        let type_args = TypeArgs::from_own(sa, ext_type_param_defs, &bindings_array);
 
         for bound in ext_type_param_defs.bounds(sa) {
             let bound_ty = specialize_type(sa, bound.ty(), &type_args);
@@ -121,7 +121,10 @@ fn match_types(
     let ext_ty = maybe_alias_ty(sa, ext_ty);
 
     if let SourceType::TypeParam(ext_tp_id) = ext_ty {
-        let binding = bindings[ext_tp_id.index()].clone();
+        let ext_tp_idx = ext_type_param_defs
+            .type_param_idx(sa, ext_tp_id)
+            .expect("type parameter missing from definition");
+        let binding = bindings[ext_tp_idx.index()].clone();
 
         if let Some(binding) = binding {
             match_concrete_types(
@@ -152,7 +155,7 @@ fn match_types(
                 )
             };
 
-            bindings[ext_tp_id.index()] = Some(check_ty);
+            bindings[ext_tp_idx.index()] = Some(check_ty);
 
             result
         }
@@ -180,8 +183,8 @@ fn match_type_params(
     ext_ty: SourceType,
     ext_type_param_defs: &TypeParamDefinition,
 ) -> bool {
-    let ext_tp_id = ext_ty.type_param_idx().expect("expected type param");
-    let check_tp_id = check_ty.type_param_idx().expect("expected type param");
+    let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
+    let check_tp_id = check_ty.type_param_id().expect("expected type param");
 
     for trait_ty in ext_type_param_defs.bounds_for_type_param(sa, ext_tp_id) {
         if !check_type_param_defs.implements_trait(sa, check_tp_id, trait_ty) {
@@ -196,7 +199,7 @@ fn match_concrete_against_bounds(
     sa: &Sema,
     check_ty: SourceType,
     check_element: &dyn Element,
-    ext_tp_id: TypeParamIdx,
+    ext_tp_id: TypeParamId,
     ext_type_param_defs: &TypeParamDefinition,
 ) -> bool {
     for trait_ty in ext_type_param_defs.bounds_for_type_param(sa, ext_tp_id) {

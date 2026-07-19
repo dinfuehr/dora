@@ -13,7 +13,8 @@ use crate::error::diagnostics::{
 use crate::interner::Name;
 use crate::sema::NestedVarId;
 use crate::sema::{
-    AliasDefinitionId, ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind, TypeParamId,
+    AliasDefinitionId, Element, ExprId, IdentType, PathExpr, PathSegment, PathSegmentKind,
+    TypeParamId,
 };
 use crate::specialize_type;
 use crate::typeck::{TypeCheck, check_type_params};
@@ -436,7 +437,7 @@ pub(super) fn check_enum_variant_without_args(
     } else {
         type_params
     };
-    let type_args = TypeArgs::from_own(&type_params);
+    let type_args = TypeArgs::from_own(ck.sa, enum_.type_param_definition(ck.sa), &type_params);
 
     let type_params_ok = check_type_params(
         ck.sa,
@@ -482,15 +483,8 @@ fn lookup_alias_on_type_param(
     name: Name,
 ) -> Vec<(TraitType, AliasDefinitionId)> {
     let mut results = Vec::with_capacity(2);
-    let tp_idx = ck
-        .type_param_definition
-        .type_param_idx(ck.sa, tp_id)
-        .expect("type parameter missing from definition");
 
-    for bound in ck
-        .type_param_definition
-        .bounds_for_type_param(ck.sa, tp_idx)
-    {
+    for bound in ck.type_param_definition.bounds_for_type_param(ck.sa, tp_id) {
         let trait_id = bound.trait_id;
         let trait_ = ck.sa.trait_(trait_id);
 

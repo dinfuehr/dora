@@ -274,12 +274,9 @@ fn lookup_alias_on_type_param<'a>(
     name: Name,
 ) -> Option<Vec<(TraitType, AliasDefinitionId)>> {
     let type_param_definition = element.type_param_definition(sa);
-    let idx = type_param_definition
-        .type_param_idx(sa, id)
-        .expect("type parameter missing from definition");
     let mut results = Vec::with_capacity(2);
 
-    for bound in type_param_definition.bounds_for_type_param(sa, idx) {
+    for bound in type_param_definition.bounds_for_type_param(sa, id) {
         let trait_id = bound.trait_id;
         let trait_ = sa.trait_(trait_id);
 

@@ -8,9 +8,7 @@ use crate::error::diagnostics::{
     WRONG_NUMBER_TYPE_PARAMS,
 };
 use crate::parsety::ty_for_sym;
-use crate::sema::{
-    AliasParent, Element, FctParent, Sema, TraitDefinitionId, new_identity_type_params,
-};
+use crate::sema::{AliasParent, Element, FctParent, Sema, TraitDefinitionId};
 use crate::specialize::find_super_trait_ty;
 use crate::sym::SymbolKind;
 use crate::{SourceType, SourceTypeArray, TraitType};
@@ -29,10 +27,10 @@ pub(crate) fn convert_type_ref(
 fn current_trait_ty(sa: &Sema, ctxt_element: &dyn Element) -> Option<TraitType> {
     if let Some(trait_) = ctxt_element.to_trait() {
         let trait_id = trait_.id();
-        let trait_param_count = trait_.type_param_definition(sa).type_param_count();
+        let definition = trait_.type_param_definition(sa);
         return Some(TraitType {
             trait_id,
-            type_params: new_identity_type_params(0, trait_param_count),
+            type_params: definition.identity_type_params(sa),
             bindings: Vec::new(),
         });
     }
@@ -41,10 +39,10 @@ fn current_trait_ty(sa: &Sema, ctxt_element: &dyn Element) -> Option<TraitType> 
         match fct.parent {
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.trait_(trait_id);
-                let trait_param_count = trait_.type_param_definition(sa).type_param_count();
+                let definition = trait_.type_param_definition(sa);
                 return Some(TraitType {
                     trait_id,
-                    type_params: new_identity_type_params(0, trait_param_count),
+                    type_params: definition.identity_type_params(sa),
                     bindings: Vec::new(),
                 });
             }
@@ -68,10 +66,10 @@ fn current_trait_ty(sa: &Sema, ctxt_element: &dyn Element) -> Option<TraitType> 
             }
             AliasParent::Trait(trait_id) => {
                 let trait_ = sa.trait_(trait_id);
-                let trait_param_count = trait_.type_param_definition(sa).type_param_count();
+                let definition = trait_.type_param_definition(sa);
                 return Some(TraitType {
                     trait_id,
-                    type_params: new_identity_type_params(0, trait_param_count),
+                    type_params: definition.identity_type_params(sa),
                     bindings: Vec::new(),
                 });
             }
@@ -157,17 +155,11 @@ fn convert_type_ref_inner(
                     alias_id,
                     tp_id,
                     trait_ty,
-                } => {
-                    let tp_idx = ctxt_element
-                        .type_param_definition(sa)
-                        .type_param_idx(sa, tp_id)
-                        .expect("type parameter missing from definition");
-                    SourceType::GenericAssoc {
-                        ty: Box::new(SourceType::TypeParam(tp_idx)),
-                        trait_ty,
-                        assoc_id: alias_id,
-                    }
-                }
+                } => SourceType::GenericAssoc {
+                    ty: Box::new(SourceType::TypeParam(tp_id)),
+                    trait_ty,
+                    assoc_id: alias_id,
+                },
             }
         }
         TypeRef::Assoc { .. } => match type_ref_arena.symbol(type_ref_id) {
@@ -336,11 +328,7 @@ fn convert_type_ref_symbol(
                 return SourceType::Error;
             }
 
-            let idx = ctxt_element
-                .type_param_definition(sa)
-                .type_param_idx(sa, id)
-                .expect("type parameter missing from definition");
-            SourceType::TypeParam(idx)
+            SourceType::TypeParam(id)
         }
         SymbolKind::Trait(trait_id) => convert_type_ref_trait_object(
             sa,
@@ -639,20 +627,14 @@ mod tests {
     use crate::tests::ok;
 
     #[test]
-    #[should_panic(expected = "type parameter missing from definition")]
-    fn converting_type_param_from_unrelated_definition_fails() {
-        let sa = ok("class A[X]\nclass B[Y](Y)");
-        let (_, a) = sa
-            .classes
-            .iter()
-            .find(|(_, class)| sa.interner.str(class.name).as_str() == "A")
-            .expect("class A not found");
+    fn converting_type_param_preserves_id() {
+        let sa = ok("class B[Y](Y)");
         let (_, b) = sa
             .classes
             .iter()
             .find(|(_, class)| sa.interner.str(class.name).as_str() == "B")
             .expect("class B not found");
-        let foreign_id = a
+        let type_param_id = b
             .type_param_definition(&sa)
             .type_param_id(&sa, TypeParamIdx(0));
         let type_ref_arena = b.type_ref_arena();
@@ -663,13 +645,15 @@ mod tests {
             .map(|(id, _)| id)
             .expect("type reference not found");
 
-        convert_type_ref_symbol(
+        let ty = convert_type_ref_symbol(
             &sa,
             type_ref_arena,
             b,
             type_ref_id,
-            SymbolKind::TypeParam(foreign_id),
+            SymbolKind::TypeParam(type_param_id),
             &[],
         );
+
+        assert_eq!(ty, SourceType::TypeParam(type_param_id));
     }
 }

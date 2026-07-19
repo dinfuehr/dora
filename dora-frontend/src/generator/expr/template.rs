@@ -1,4 +1,4 @@
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, ConstPoolEntry, Register};
+use dora_bytecode::{BytecodeTypeArray, ConstPoolEntry, Register};
 
 use super::{ensure_register, gen_expr};
 use crate::generator::{AstBytecodeGen, DataDest};
@@ -46,7 +46,7 @@ pub(super) fn gen_expr_template(
             if ty.cls_id() == Some(g.sa.known.classes.string()) {
                 gen_expr(g, part_id, DataDest::Reg(part_register));
             } else if ty.is_type_param() {
-                let type_list_id = match ty {
+                let type_param_id = match ty {
                     SourceType::TypeParam(id) => id,
                     _ => unreachable!(),
                 };
@@ -67,7 +67,9 @@ pub(super) fn gen_expr_template(
                     bindings: Vec::new(),
                 };
                 let fct_idx = g.builder.add_const(ConstPoolEntry::Generic {
-                    object_type: BytecodeType::TypeParam(type_list_id.index() as u32),
+                    object_type: g
+                        .emitter
+                        .convert_ty(g.sa, SourceType::TypeParam(type_param_id)),
                     trait_ty: g.emitter.convert_trait_ty(g.sa, &trait_ty),
                     fct_id: g.emitter.convert_function_id(g.sa, to_string_id),
                     fct_type_params: BytecodeTypeArray::empty(),

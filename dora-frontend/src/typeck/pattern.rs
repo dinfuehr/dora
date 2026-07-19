@@ -19,8 +19,8 @@ use crate::error::diagnostics::{
 };
 use crate::sema::{
     AltPattern, ClassDefinitionId, ConstDefinitionId, ConstValue, CtorPattern, CtorPatternField,
-    ElementWithFields, EnumDefinitionId, IdentPattern, IdentType, Pattern, PatternId,
-    StructDefinitionId, TuplePattern, VarId,
+    Element, ElementWithFields, EnumDefinitionId, IdentPattern, IdentType, Pattern, PatternId,
+    StructDefinitionId, TuplePattern, TypeParamDefinition, VarId,
 };
 use crate::ty::SourceType;
 use crate::typeck::{
@@ -356,7 +356,11 @@ fn check_pattern_enum(
 
     if Some(enum_id) == ty.enum_id() {
         let value_type_params = ty.type_params();
-        let type_args = TypeArgs::from_own(&value_type_params);
+        let type_args = TypeArgs::from_own(
+            ck.sa,
+            enum_.type_param_definition(ck.sa),
+            &value_type_params,
+        );
 
         ck.body.insert_ident(
             pattern_id,
@@ -370,7 +374,14 @@ fn check_pattern_enum(
         let variant = ck.sa.variant(variant_id);
 
         if variant.field_name_style.is_named() {
-            check_subpatterns_named(ck, ctxt, pattern_id, variant, &value_type_params);
+            check_subpatterns_named(
+                ck,
+                ctxt,
+                pattern_id,
+                variant,
+                enum_.type_param_definition(ck.sa),
+                &value_type_params,
+            );
         } else {
             let expected_types = variant
                 .field_ids()
@@ -520,7 +531,8 @@ fn check_pattern_class(
 
     if Some(cls_id) == ty.cls_id() {
         let value_type_params = ty.type_params();
-        let type_args = TypeArgs::from_own(&value_type_params);
+        let type_args =
+            TypeArgs::from_own(ck.sa, cls.type_param_definition(ck.sa), &value_type_params);
 
         ck.body.insert_ident(
             pattern_id,
@@ -528,7 +540,14 @@ fn check_pattern_class(
         );
 
         if cls.field_name_style.is_named() {
-            check_subpatterns_named(ck, ctxt, pattern_id, cls, &value_type_params);
+            check_subpatterns_named(
+                ck,
+                ctxt,
+                pattern_id,
+                cls,
+                cls.type_param_definition(ck.sa),
+                &value_type_params,
+            );
         } else {
             let expected_types = cls
                 .field_ids()
@@ -577,7 +596,11 @@ fn check_pattern_struct(
 
     if Some(struct_id) == ty.struct_id() {
         let value_type_params = ty.type_params();
-        let type_args = TypeArgs::from_own(&value_type_params);
+        let type_args = TypeArgs::from_own(
+            ck.sa,
+            struct_.type_param_definition(ck.sa),
+            &value_type_params,
+        );
 
         ck.body.insert_ident(
             pattern_id,
@@ -585,7 +608,14 @@ fn check_pattern_struct(
         );
 
         if struct_.field_name_style.is_named() {
-            check_subpatterns_named(ck, ctxt, pattern_id, struct_, &value_type_params);
+            check_subpatterns_named(
+                ck,
+                ctxt,
+                pattern_id,
+                struct_,
+                struct_.type_param_definition(ck.sa),
+                &value_type_params,
+            );
         } else {
             let expected_types = struct_
                 .field_ids()
@@ -617,9 +647,10 @@ fn check_subpatterns_named<'a>(
     ctxt: &mut Context,
     pattern_id: PatternId,
     element: &dyn ElementWithFields,
+    type_param_definition: &TypeParamDefinition,
     element_type_params: &SourceTypeArray,
 ) {
-    let type_args = TypeArgs::from_own(element_type_params);
+    let type_args = TypeArgs::from_own(ck.sa, type_param_definition, element_type_params);
     let pattern = ck.body.pattern(pattern_id);
     let sema_fields = match get_ctor_fields(pattern) {
         Some(fields) => fields,

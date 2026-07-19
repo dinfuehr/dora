@@ -14,7 +14,7 @@ use crate::error::diagnostics::{
 use crate::interner::Name;
 use crate::sema::{
     CallType, Element, ExprId, FctDefinitionId, IdentType, MethodCallExpr, Param, Sema,
-    TraitDefinition, TypeParamIdx, find_field_in_class, new_identity_type_params,
+    TraitDefinition, TypeParamId, find_field_in_class,
 };
 use crate::specialize::replace_type;
 use crate::typeck::{TypeCheck, check_expr, check_type_params, find_method_call_candidates};
@@ -199,6 +199,8 @@ fn check_expr_call_method(
         let fct = ck.sa.fct(fct_id);
 
         let type_params = TypeArgs::from_parts(
+            ck.sa,
+            fct.type_param_definition(ck.sa),
             &candidate.container_type_params,
             &fct_type_params,
             Some(candidate.object_type.clone()),
@@ -285,7 +287,11 @@ fn check_method_call_is_array_field_access(
 
             let field_id = struct_.field_id(field_index);
             let field = ck.sa.field(field_id);
-            let type_args = TypeArgs::from_own(&struct_type_params);
+            let type_args = TypeArgs::from_own(
+                ck.sa,
+                struct_.type_param_definition(ck.sa),
+                &struct_type_params,
+            );
             let field_type = replace_type(ck.sa, field.ty(), &type_args);
 
             if !struct_field_accessible_from(ck.sa, struct_id, field_index, ck.module_id) {
@@ -320,7 +326,7 @@ fn find_in_super_traits_self(
 ) {
     for super_trait_ty in trait_.type_param_definition(sa).bounds_for_self(sa) {
         // Substitute the super trait's type params with the current trait's type params
-        let type_args = TypeArgs::from_own(trait_type_params);
+        let type_args = TypeArgs::from_own(sa, trait_.type_param_definition(sa), trait_type_params);
         let specialized_super_trait_ty = specialize_trait_type(sa, super_trait_ty, &type_args);
         let super_trait_ = sa.trait_(specialized_super_trait_ty.trait_id);
 
@@ -352,8 +358,8 @@ fn check_method_call_on_self(
         let trait_ = ck.sa.trait_(trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
-            let type_param_count = trait_.type_param_definition(ck.sa).type_param_count();
-            let type_params = new_identity_type_params(0, type_param_count);
+            let definition = trait_.type_param_definition(ck.sa);
+            let type_params = definition.identity_type_params(ck.sa);
             let trait_ty = TraitType {
                 trait_id,
                 type_params,
@@ -383,6 +389,8 @@ fn check_method_call_on_self(
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
         let trait_method = ck.sa.fct(trait_method_id);
         let type_params = TypeArgs::from_parts(
+            ck.sa,
+            trait_method.type_param_definition(ck.sa),
             &trait_ty.type_params,
             &SourceTypeArray::empty(),
             Some(SourceType::This),
@@ -487,6 +495,8 @@ fn check_method_call_on_assoc(
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
         let trait_method = ck.sa.fct(trait_method_id);
         let type_params = TypeArgs::from_parts(
+            ck.sa,
+            trait_method.type_param_definition(ck.sa),
             &trait_ty.type_params,
             &SourceTypeArray::empty(),
             Some(object_type.clone()),
@@ -529,7 +539,7 @@ fn check_method_call_on_assoc(
 
         return_type
     } else {
-        let object_type = object_type.name(ck.sa);
+        let object_type = ck.ty_name(&object_type);
         if matched_methods.is_empty() {
             ck.report(
                 ck.expr_span(expr_id),
@@ -579,6 +589,8 @@ fn check_method_call_on_generic_assoc(
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
         let trait_method = ck.sa.fct(trait_method_id);
         let type_params = TypeArgs::from_parts(
+            ck.sa,
+            trait_method.type_param_definition(ck.sa),
             &trait_ty.type_params,
             &SourceTypeArray::empty(),
             Some(object_type.clone()),
@@ -621,7 +633,7 @@ fn check_method_call_on_generic_assoc(
 
         return_type
     } else {
-        let object_type = object_type.name(ck.sa);
+        let object_type = ck.ty_name(&object_type);
         if matched_methods.is_empty() {
             ck.report(
                 ck.expr_span(expr_id),
@@ -662,7 +674,7 @@ fn check_method_call_on_type_param(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     object_type: SourceType,
-    id: TypeParamIdx,
+    id: TypeParamId,
     name: String,
     pure_fct_type_params: SourceTypeArray,
     call_expr_id: ExprId,
@@ -686,6 +698,8 @@ fn check_method_call_on_type_param(
 
         let trait_method = ck.sa.fct(trait_method_id);
         let type_params = TypeArgs::from_parts(
+            ck.sa,
+            trait_method.type_param_definition(ck.sa),
             &trait_ty.type_params,
             &pure_fct_type_params,
             Some(object_type.clone()),
