@@ -75,22 +75,12 @@ impl AotBackend for BootsAotBackend {
     fn compile_trait_object_thunk<'a>(
         &self,
         compilation_data: TraitObjectThunkCompilationData<'a>,
-        ctx: &AotCodegenContext<'_>,
     ) -> CodeDescriptor {
-        if ctx
-            .intrinsic_for_function(compilation_data.callee_fct_id)
-            .is_some()
-        {
-            let bytecode_fct = compilation_data.generate_bytecode(ctx.array_class_id());
-            let compilation_data = compilation_data.into_bytecode_compilation_data(&bytecode_fct);
-            self.compile(compilation_data, ctx)
-        } else {
-            compile_trait_object_thunk(
-                self.compile_trait_object_thunk_address,
-                self.dora_entry_trampoline_address,
-                compilation_data,
-            )
-        }
+        compile_trait_object_thunk(
+            self.compile_trait_object_thunk_address,
+            self.dora_entry_trampoline_address,
+            compilation_data,
+        )
     }
 }
 

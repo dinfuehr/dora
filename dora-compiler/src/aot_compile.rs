@@ -426,7 +426,7 @@ fn compile_trait_object_thunk(
 
     let code = ctx
         .compiler_invocation
-        .compile_trait_object_thunk(compilation_data, ctx);
+        .compile_trait_object_thunk(compilation_data);
 
     (code, CompiledCodeKind::OptimizedFct)
 }
@@ -483,9 +483,6 @@ fn fct_pattern_match(program: &Program, fct_id: FunctionId, pattern: &str) -> (b
     (false, false)
 }
 
-pub type AotCompileFn =
-    for<'a> fn(CompilationData<'a>, &HashMap<FunctionId, Intrinsic>) -> CodeDescriptor;
-
 pub trait AotContextGuard {}
 
 struct NoopAotContextGuard;
@@ -509,26 +506,7 @@ pub trait AotBackend {
     fn compile_trait_object_thunk<'a>(
         &self,
         compilation_data: TraitObjectThunkCompilationData<'a>,
-        ctx: &AotCodegenContext<'_>,
-    ) -> CodeDescriptor {
-        let bytecode_fct = compilation_data.generate_bytecode(ctx.array_class_id());
-        let compilation_data = compilation_data.into_bytecode_compilation_data(&bytecode_fct);
-        self.compile(compilation_data, ctx)
-    }
-}
-
-struct ExternalAotBackend {
-    compile: AotCompileFn,
-}
-
-impl AotBackend for ExternalAotBackend {
-    fn compile<'a>(
-        &self,
-        compilation_data: CompilationData<'a>,
-        ctx: &AotCodegenContext<'_>,
-    ) -> CodeDescriptor {
-        (self.compile)(compilation_data, ctx.intrinsics())
-    }
+    ) -> CodeDescriptor;
 }
 
 pub struct CompilerInvocation {
@@ -540,10 +518,6 @@ impl CompilerInvocation {
         CompilerInvocation {
             backend: Box::new(backend),
         }
-    }
-
-    pub fn external(compile: AotCompileFn) -> CompilerInvocation {
-        CompilerInvocation::new(ExternalAotBackend { compile })
     }
 
     fn enter_context<'ctx>(
@@ -564,10 +538,8 @@ impl CompilerInvocation {
     fn compile_trait_object_thunk<'a>(
         &self,
         compilation_data: TraitObjectThunkCompilationData<'a>,
-        ctx: &AotCodegenContext<'_>,
     ) -> CodeDescriptor {
-        self.backend
-            .compile_trait_object_thunk(compilation_data, ctx)
+        self.backend.compile_trait_object_thunk(compilation_data)
     }
 }
 

@@ -20,7 +20,6 @@ mod native_lookup;
 mod reg;
 mod runtime_entry_trampoline;
 mod specialize;
-mod trait_object_thunk;
 mod ty;
 pub mod wire;
 
@@ -47,7 +46,7 @@ pub use aot::{
     ShapeKind, ShapeVisitor, TargetArch, encode_shape_kind, parse_collector, parse_target_arch,
 };
 pub use aot_compile::{
-    AotBackend, AotCodegenContext, AotCompileArgs, AotCompileFn, AotCompileInputs, AotContextGuard,
+    AotBackend, AotCodegenContext, AotCompileArgs, AotCompileInputs, AotContextGuard,
     CompilerInvocation, compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
 };
 pub use assembly::{AotAssemblyKind, write_assembly};
@@ -71,7 +70,6 @@ pub use specialize::{
     specialize_bty_for_trait_object_array, specialize_trait_ty_in_program,
     specialize_ty_array_in_program, specialize_ty_in_program,
 };
-pub use trait_object_thunk::generate_bytecode_for_thunk as generate_bytecode_for_trait_object_thunk;
 pub use ty::BytecodeTypeExt;
 
 pub struct SpecializeSelf {
@@ -135,42 +133,6 @@ pub struct TraitObjectThunkCompilationData<'a> {
     pub signature: FunctionSignature,
     pub loc: Location,
     pub options: CompilationOptions,
-}
-
-impl<'a> TraitObjectThunkCompilationData<'a> {
-    pub fn generate_bytecode(&self, array_class_id: ClassId) -> BytecodeFunction {
-        let trait_object_type_param_id = self.signature.type_params.len() - 1;
-        assert_eq!(
-            &self.signature.type_params[trait_object_type_param_id],
-            &self.actual_object_ty
-        );
-
-        generate_bytecode_for_trait_object_thunk(
-            self.program,
-            self.trait_fct_id,
-            self.trait_object_ty.clone(),
-            trait_object_type_param_id,
-            self.actual_object_ty.clone(),
-            array_class_id,
-        )
-    }
-
-    pub fn into_bytecode_compilation_data<'b>(
-        self,
-        bytecode_fct: &'b BytecodeFunction,
-    ) -> CompilationData<'b>
-    where
-        'a: 'b,
-    {
-        CompilationData {
-            program: self.program,
-            bytecode_fct,
-            fct_id: self.trait_fct_id,
-            signature: self.signature,
-            loc: self.loc,
-            options: self.options,
-        }
-    }
 }
 
 pub fn register_ty(ty: BytecodeType) -> BytecodeType {
