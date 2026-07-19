@@ -1,0 +1,105 @@
+trait Value {
+    static fn from_int(value: Int64): Self;
+    fn to_int(): Int64;
+}
+
+class RefValue(Int64)
+
+impl Value for RefValue {
+    static fn from_int(value: Int64): RefValue { RefValue(value) }
+    fn to_int(): Int64 { self.0 }
+}
+
+struct ValueStruct {
+    value: Int64,
+}
+
+impl Value for ValueStruct {
+    static fn from_int(value: Int64): ValueStruct { ValueStruct(value) }
+    fn to_int(): Int64 { self.value }
+}
+
+class Holder[T](T)
+
+trait DefaultBody[Tag] {
+    type Item: Value;
+
+    fn item(): Self::Item;
+    fn generic_identity[U](value: U): U;
+
+    fn all_type_coordinates[U](tag: Tag, extra: U): (Self, Self::Item, Tag, U) {
+        let item: Self::Item = self.item();
+        let lambda = |lambda_item: Self::Item, lambda_tag: Tag, lambda_extra: U|:
+                (Self, Self::Item, Tag, U) {
+                (self, lambda_item, lambda_tag, lambda_extra)
+            };
+
+        lambda(item, tag, extra)
+    }
+
+    fn self_generic_call[U](value: U): U {
+        let lambda = ||: U { self.generic_identity[U](value) };
+        lambda()
+    }
+
+    static fn static_type_coordinates[U](
+        item: Self::Item,
+        tag: Tag,
+        extra: U,
+    ): (Self::Item, Tag, U) {
+        let lambda = |lambda_item: Self::Item, lambda_tag: Tag, lambda_extra: U|:
+            (Self::Item, Tag, U) {
+            (lambda_item, lambda_tag, lambda_extra)
+        };
+
+        lambda(item, tag, extra)
+    }
+}
+
+impl[T: Value] DefaultBody[String] for Holder[T] {
+    type Item = T;
+
+    fn item(): T { self.0 }
+    fn generic_identity[U](value: U): U { value }
+}
+
+struct StructHolder(ValueStruct)
+
+impl DefaultBody[Bool] for StructHolder {
+    type Item = ValueStruct;
+
+    fn item(): ValueStruct { self.0 }
+    fn generic_identity[U](value: U): U { value }
+}
+
+fn main() {
+    let result = Holder[RefValue](RefValue(11)).all_type_coordinates[Int32]("ref", 12i32);
+    assert((result.0).0.to_int() == 11);
+    assert(result.1.to_int() == 11);
+    assert(result.2 == "ref");
+    assert(result.3 == 12i32);
+    assert(Holder[RefValue](RefValue(11)).self_generic_call[String]("generic") == "generic");
+
+    let result = Holder[ValueStruct](ValueStruct(21)).all_type_coordinates[Float64]("value", 22.5);
+    assert((result.0).0.to_int() == 21);
+    assert(result.1.to_int() == 21);
+    assert(result.2 == "value");
+    assert(result.3 == 22.5);
+
+    let result = StructHolder(ValueStruct(31)).all_type_coordinates[String](true, "method");
+    assert((result.0).0.to_int() == 31);
+    assert(result.1.to_int() == 31);
+    assert(result.2);
+    assert(result.3 == "method");
+    assert(StructHolder(ValueStruct(31)).self_generic_call[Int64](32) == 32);
+
+    let result = Holder[RefValue]::static_type_coordinates[Bool](RefValue(41), "static", false);
+    assert(result.0.to_int() == 41);
+    assert(result.1 == "static");
+    assert(!result.2);
+
+    let result = StructHolder::static_type_coordinates[Int64](ValueStruct(51), false, 52);
+    assert(result.0.to_int() == 51);
+    assert(!result.1);
+    assert(result.2 == 52);
+}

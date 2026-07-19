@@ -580,7 +580,7 @@ impl SourceType {
 
     pub fn is_defined_type(&self, sa: &Sema) -> bool {
         match self {
-            SourceType::Error | SourceType::This | SourceType::Any | SourceType::Ptr => false,
+            SourceType::Error | SourceType::Any | SourceType::Ptr => false,
             SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
@@ -591,7 +591,8 @@ impl SourceType {
             | SourceType::Float64
             | SourceType::TraitObject(..)
             | SourceType::Lambda(..)
-            | SourceType::TypeParam(_) => true,
+            | SourceType::TypeParam(_)
+            | SourceType::This => true,
             SourceType::Assoc { trait_ty, .. } | SourceType::GenericAssoc { trait_ty, .. } => {
                 for ty in trait_ty.type_params.iter() {
                     if !ty.is_defined_type(sa) {
