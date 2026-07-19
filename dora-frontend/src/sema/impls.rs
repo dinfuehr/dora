@@ -6,7 +6,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     AliasDefinitionId, Element, ElementId, FctDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinitionId,
+    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinitionId, TypeParamId,
     TypeRefArena, TypeRefArenaBuilder, lower_type,
 };
 use crate::ty::SourceType;
@@ -14,6 +14,19 @@ use crate::{ParsedTraitType, ParsedType, TraitType};
 use id_arena::Id;
 
 pub type ImplDefinitionId = Id<ImplDefinition>;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SuperTraitWitness {
+    Impl {
+        impl_id: ImplDefinitionId,
+        // Maps the selected impl's exact type parameter IDs to types in this impl's environment.
+        type_param_bindings: HashMap<TypeParamId, SourceType>,
+    },
+    TypeParamBound {
+        type_param_id: TypeParamId,
+    },
+    Intrinsic,
+}
 
 #[derive(Debug)]
 pub struct ImplDefinition {
@@ -33,6 +46,7 @@ pub struct ImplDefinition {
     pub children: OnceCell<Vec<ElementId>>,
     pub trait_method_map: OnceCell<HashMap<FctDefinitionId, FctDefinitionId>>,
     pub trait_alias_map: OnceCell<HashMap<AliasDefinitionId, AliasDefinitionId>>,
+    super_trait_witnesses: OnceCell<HashMap<TraitType, SuperTraitWitness>>,
 }
 
 impl ImplDefinition {
@@ -72,6 +86,7 @@ impl ImplDefinition {
             children: OnceCell::new(),
             trait_method_map: OnceCell::new(),
             trait_alias_map: OnceCell::new(),
+            super_trait_witnesses: OnceCell::new(),
         }
     }
 
@@ -116,6 +131,20 @@ impl ImplDefinition {
 
     pub fn trait_alias_map(&self) -> &HashMap<AliasDefinitionId, AliasDefinitionId> {
         self.trait_alias_map.get().expect("missing trait_alias_map")
+    }
+
+    pub(crate) fn set_super_trait_witnesses(
+        &self,
+        witnesses: HashMap<TraitType, SuperTraitWitness>,
+    ) {
+        assert!(self.super_trait_witnesses.set(witnesses).is_ok());
+    }
+
+    pub fn super_trait_witness(&self, trait_ty: &TraitType) -> Option<&SuperTraitWitness> {
+        self.super_trait_witnesses
+            .get()
+            .expect("missing super trait witnesses")
+            .get(trait_ty)
     }
 
     pub fn get_method_for_trait_method_id(

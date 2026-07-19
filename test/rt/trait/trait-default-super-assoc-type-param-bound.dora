@@ -1,0 +1,22 @@
+trait Base {
+    type Item;
+}
+
+trait Derived: Base {
+    fn identity(value: Self::Item): Self::Item {
+        value
+    }
+}
+
+class Foo
+
+impl Base for Foo {
+    type Item = Int64;
+}
+
+impl[T] Derived for T where T: Base {}
+
+fn main() {
+    let foo = Foo();
+    assert(foo.identity(42i64) == 42i64);
+}

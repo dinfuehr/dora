@@ -88,9 +88,9 @@ pub fn check_program(sa: &mut Sema) -> bool {
 
     // Checks class/struct/trait/enum/impl definitions.
     impldefck::check_definition(sa);
+    impldefck::check_super_traits(sa);
     impldefck::check_definition_against_trait(sa);
     impldefck::check_type_aliases_bounds(sa);
-    impldefck::check_super_traits(sa);
     enumck::check(sa);
     globaldefck::check(sa);
     extensiondefck::check(sa);

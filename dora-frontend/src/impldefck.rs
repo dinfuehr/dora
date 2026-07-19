@@ -13,7 +13,8 @@ use crate::error::diagnostics::{
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
     AliasDefinitionId, Element, FctDefinition, FctDefinitionId, ImplDefinition, ImplDefinitionId,
-    Sema, TraitDefinition, implements_trait, type_ref_span,
+    Sema, SuperTraitWitness, TraitDefinition, find_impl, implements_trait, maybe_alias_ty,
+    type_ref_span,
 };
 use crate::specialize::DefaultTraitMethodSpecialization;
 use crate::{
@@ -946,23 +947,40 @@ fn check_type_aliases_bounds_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &T
 
 pub fn check_super_traits(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
+        let mut witnesses = HashMap::new();
+
         if let Some(trait_ty) = impl_.trait_ty() {
-            check_super_traits_for_bound(sa, impl_, trait_ty);
+            if !check_super_traits_for_bound(sa, impl_, trait_ty, &mut witnesses) {
+                witnesses.clear();
+            }
         }
+
+        impl_.set_super_trait_witnesses(witnesses);
     }
 }
 
-fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: TraitType) {
+fn check_super_traits_for_bound(
+    sa: &Sema,
+    impl_: &ImplDefinition,
+    trait_ty: TraitType,
+    witnesses: &mut HashMap<TraitType, SuperTraitWitness>,
+) -> bool {
     let trait_ = sa.trait_(trait_ty.trait_id);
     let type_param_definition = trait_.type_param_definition(sa);
+    let mut valid = true;
 
     for bound in type_param_definition.bounds_for_self(sa) {
         let type_args = TypeArgs::from_own(sa, type_param_definition, &trait_ty.type_params);
         let bound = specialize_trait_type(sa, bound.clone(), &type_args);
 
-        if implements_trait(sa, impl_.extended_ty(), impl_, bound.clone()) {
-            check_super_traits_for_bound(sa, impl_, bound);
+        if let Some(witness) = find_super_trait_witness(sa, impl_, bound.clone()) {
+            if let Some(previous) = witnesses.insert(bound.clone(), witness.clone()) {
+                assert_eq!(previous, witness);
+            }
+
+            valid &= check_super_traits_for_bound(sa, impl_, bound, witnesses);
         } else {
+            valid = false;
             let name = impl_
                 .extended_ty()
                 .name_with_type_params(sa, impl_.type_param_definition(sa));
@@ -986,6 +1004,71 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
 
             impl_.parsed_trait_ty().set_ty(None);
         }
+    }
+
+    valid
+}
+
+fn find_super_trait_witness(
+    sa: &Sema,
+    impl_: &ImplDefinition,
+    trait_ty: TraitType,
+) -> Option<SuperTraitWitness> {
+    let check_ty = maybe_alias_ty(sa, impl_.extended_ty());
+    let type_param_definition = impl_.type_param_definition(sa);
+
+    if check_ty.is_primitive() && sa.known.traits.zero() == trait_ty.trait_id {
+        assert!(trait_ty.type_params.is_empty());
+        return Some(SuperTraitWitness::Intrinsic);
+    }
+
+    match check_ty {
+        SourceType::Bool
+        | SourceType::UInt8
+        | SourceType::Char
+        | SourceType::Int32
+        | SourceType::Int64
+        | SourceType::Float32
+        | SourceType::Float64
+        | SourceType::Struct(..)
+        | SourceType::Enum(..)
+        | SourceType::Class(..)
+        | SourceType::Tuple(..)
+        | SourceType::Unit
+        | SourceType::TraitObject(..)
+        | SourceType::Lambda(..) => {
+            let impl_match = find_impl(sa, impl_, check_ty, type_param_definition, trait_ty)?;
+            let found_impl = sa.impl_(impl_match.id);
+            let found_definition = found_impl.type_param_definition(sa);
+            assert_eq!(
+                found_definition.type_param_count(),
+                impl_match.bindings.len()
+            );
+            let type_param_bindings = found_definition
+                .names(sa)
+                .zip(impl_match.bindings.iter())
+                .map(|((type_param_id, _), ty)| (type_param_id, ty))
+                .collect();
+
+            Some(SuperTraitWitness::Impl {
+                impl_id: impl_match.id,
+                type_param_bindings,
+            })
+        }
+
+        SourceType::TypeParam(type_param_id) => type_param_definition
+            .implements_trait(sa, type_param_id, trait_ty)
+            .then_some(SuperTraitWitness::TypeParamBound { type_param_id }),
+
+        SourceType::Error => None,
+
+        SourceType::Alias(..)
+        | SourceType::This
+        | SourceType::Assoc { .. }
+        | SourceType::GenericAssoc { .. }
+        | SourceType::Ref(..)
+        | SourceType::Ptr
+        | SourceType::Any => unreachable!(),
     }
 }
 

@@ -66,7 +66,7 @@ pub use self::functions::{
 };
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impl_matching::{find_impl, impl_matches, implements_trait, maybe_alias_ty};
-pub use self::impls::{ImplDefinition, ImplDefinitionId};
+pub use self::impls::{ImplDefinition, ImplDefinitionId, SuperTraitWitness};
 pub use self::known::KnownElements;
 pub use self::matching::{block_matches_ty, extension_matches, match_arrays};
 pub use self::modules::{ModuleDefinition, ModuleDefinitionId, module_package, module_path};
