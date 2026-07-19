@@ -1,6 +1,6 @@
 use std::{Equals, Hash, HashMap, HashSet};
 
-use package::bytecode::{ClassId, GlobalId};
+use package::bytecode::GlobalId;
 use package::compilation::CompilationInfo;
 use package::dominator::compute_post_order;
 use package::graph::{Block, ClassInfo, Graph, Inst, Op, create_phi_inst};

@@ -6,7 +6,6 @@ use package::bytecode::{
     BytecodeTraitType,
     BytecodeType,
     ClassFieldId,
-    ClassId,
     ConstValue,
     EnumId,
     FunctionId,
@@ -17,9 +16,7 @@ use package::bytecode::{
     ConstPoolEntry,
     ConstPoolId,
     GlobalId,
-    StructFieldId,
     StructId,
-    TraitId,
 };
 use package::bytecode::instruction::BytecodeInstruction;
 use package::bytecode::reader::BytecodeIterator;

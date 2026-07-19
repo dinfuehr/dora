@@ -29,7 +29,6 @@ use package::assembler::x64::{
     XMM15,
 };
 use package::bytecode::{BytecodeType, FunctionId};
-use package::bytecode::data::ConstPoolId;
 use package::codegen::{
     CODE_SIZE_ALIGNMENT,
     CodeGen,
@@ -46,17 +45,12 @@ use package::graph::{
     InputOutputOverlap,
     Inst,
     InstSet,
-    Location,
-    LocationData,
     Op,
-    RegisterSnapshot,
     RegisterTrackers,
     Type,
 };
 use package::interface::{
     AotShapeKey,
-    Architecture,
-    InlinedFunction,
     InlinedFunctionId,
     InlinedLocation,
     JumpTable,
@@ -67,7 +61,6 @@ use package::interface::{
     RuntimeFunction,
     config,
     get_class_size,
-    get_function_vtable_index,
     get_global_initializer_function_id,
 };
 use package::interface::{GLOBAL_STATE_INITIALIZED, LAMBDA_SIZE, PTR_SIZE};
@@ -98,7 +91,6 @@ use package::location::{
     use_output_register_fixed,
     use_output_same_as_first_input,
 };
-use package::regalloc::is_reference;
 
 let REG_PARAMS: Array[Register] = if config.is_windows {
     Array[Register]::new(RCX, RDX, R8, R9)

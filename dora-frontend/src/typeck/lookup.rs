@@ -85,6 +85,10 @@ pub fn find_method_call_candidates(
             ) {
                 if let Some(trait_method_id) = trait_.get_method(name, is_static) {
                     if let Some(fct_id) = impl_.get_method_for_trait_method_id(trait_method_id) {
+                        if is_impl_foreign {
+                            table.mark_trait_used(trait_.id());
+                        }
+
                         candidates.push(Candidate {
                             object_type: object_type.clone(),
                             container_type_params: bindings.clone(),

@@ -6,18 +6,7 @@ use package::assembler::arm64::register_name as register_name_on_arm64;
 use package::assembler::x64::float_register_name as float_register_name_on_x64;
 use package::assembler::x64::register_name as register_name_on_x64;
 use package::compilation::CompilationInfo;
-use package::graph::{
-    Block,
-    Edge,
-    Graph,
-    Input,
-    Inst,
-    Location,
-    LocationData,
-    Op,
-    Operand,
-    Policy,
-};
+use package::graph::{Block, Edge, Graph, Inst, Location, Op, Operand, Policy};
 use package::interface::{Architecture, get_function_display_name_with_type_params};
 
 pub fn dump_graph(

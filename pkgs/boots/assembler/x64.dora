@@ -2996,9 +2996,9 @@ mod tests {
     use super::{Address, AssemblerX64, Condition, Immediate, MachineCode, ScaleFactor};
     use super::{RAX, RBP, RBX, RCX, RDI, RDX, RSI, RSP};
     use super::{R8, R9, R10, R11, R12, R13, R14, R15};
-    use super::{XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6};
-    use super::{XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13};
-    use super::{XMM14, XMM15};
+    use super::{XMM0, XMM1, XMM2, XMM3, XMM4};
+    use super::{XMM7, XMM8, XMM9, XMM10};
+    use super::XMM15;
 
     @Test
     fn registers() {

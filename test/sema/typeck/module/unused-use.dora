@@ -1,0 +1,17 @@
+use self::items::unused;
+use self::items::{used, grouped_unused};
+use self::items::original as renamed_unused;
+use self::items as module_unused;
+use std::traits::Add;
+
+fn use_one_use() {
+    used();
+    "text".size();
+}
+
+mod items {
+    pub fn unused() {}
+    pub fn used() {}
+    pub fn grouped_unused() {}
+    pub fn original() {}
+}

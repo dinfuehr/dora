@@ -19,12 +19,9 @@ use package::bytecode::{
     EnumId,
     GlobalId,
     ImplId,
-    StructFieldId,
     StructId,
     TraitId,
 };
-use package::codegen::arm64::CodeGenArm64;
-use package::codegen::x64::CodeGenX64;
 use package::compilation::{CompilationInfo, SpecializeSelf};
 use package::compile_function;
 use package::deserializer::{
@@ -35,7 +32,6 @@ use package::deserializer::{
 };
 use package::deserializer;
 use package::deserializer::ByteReader;
-use package::deserializer::decode_bytecode_function;
 use package::deserializer::decode_config;
 use package::graph::TraitObjectInfo;
 use package::serializer::{

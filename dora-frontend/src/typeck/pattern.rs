@@ -65,22 +65,26 @@ fn check_pattern_inner(
 
     match pattern {
         Pattern::Ident(ident_pattern) => {
-            let sym = ck.symtable.get(ident_pattern.name);
+            let sym = ck.symtable.get_unmarked(ident_pattern.name);
 
             match sym {
                 Some(SymbolKind::EnumVariant(enum_id, variant_id)) => {
+                    ck.symtable.mark_used(ident_pattern.name);
                     check_pattern_enum(ck, ctxt, pattern_id, ty, enum_id, variant_id);
                 }
 
                 Some(SymbolKind::Class(cls_id)) => {
+                    ck.symtable.mark_used(ident_pattern.name);
                     check_pattern_class(ck, ctxt, pattern_id, ty, cls_id);
                 }
 
                 Some(SymbolKind::Struct(struct_id)) => {
+                    ck.symtable.mark_used(ident_pattern.name);
                     check_pattern_struct(ck, ctxt, pattern_id, ty, struct_id);
                 }
 
                 Some(SymbolKind::Const(const_id)) => {
+                    ck.symtable.mark_used(ident_pattern.name);
                     check_pattern_const(ck, pattern_id, ty, const_id);
                 }
 
@@ -846,5 +850,81 @@ fn get_ctor_fields_and_parens(pattern: &Pattern) -> (Option<&[CtorPatternField]>
         Pattern::Ctor(ctor) => (Some(&ctor.fields), ctor.has_parens),
         Pattern::Ident(..) => (None, false),
         _ => (None, false),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tests::ok;
+
+    fn ok_without_warnings(code: &'static str) {
+        let sa = ok(code);
+        assert!(sa.diag.borrow().warnings().is_empty());
+    }
+
+    #[test]
+    fn imported_enum_variant_pattern_marks_use() {
+        ok_without_warnings(
+            "use self::items::Choice::A;
+
+            fn f(value: items::Choice): Bool {
+                match value {
+                    A => true,
+                    _ => false,
+                }
+            }
+
+            mod items {
+                pub enum Choice { A, B }
+            }",
+        );
+    }
+
+    #[test]
+    fn imported_class_pattern_marks_use() {
+        ok_without_warnings(
+            "use self::items::Foo;
+
+            fn f(value: items::Foo) {
+                let Foo = value;
+            }
+
+            mod items {
+                pub class Foo
+            }",
+        );
+    }
+
+    #[test]
+    fn imported_struct_pattern_marks_use() {
+        ok_without_warnings(
+            "use self::items::Foo;
+
+            fn f(value: items::Foo) {
+                let Foo = value;
+            }
+
+            mod items {
+                pub struct Foo
+            }",
+        );
+    }
+
+    #[test]
+    fn imported_const_pattern_marks_use() {
+        ok_without_warnings(
+            "use self::items::ZERO;
+
+            fn f(value: Int32): Bool {
+                match value {
+                    ZERO => true,
+                    _ => false,
+                }
+            }
+
+            mod items {
+                pub const ZERO: Int32 = 0i32;
+            }",
+        );
     }
 }

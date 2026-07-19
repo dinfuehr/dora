@@ -1,0 +1,37 @@
+warning: unused use `unused`.
+--> unused-use.dora:1:18
+ | use self::items::unused;
+                    ~~~~~~
+ | use self::items::{used, grouped_unused};
+ | use self::items::original as renamed_unused;
+warning: unused use `grouped_unused`.
+--> unused-use.dora:2:25
+ | use self::items::unused;
+ | use self::items::{used, grouped_unused};
+                           ~~~~~~~~~~~~~~
+ | use self::items::original as renamed_unused;
+ | use self::items as module_unused;
+warning: unused use `renamed_unused`.
+--> unused-use.dora:3:30
+ | use self::items::unused;
+ | use self::items::{used, grouped_unused};
+ | use self::items::original as renamed_unused;
+                                ~~~~~~~~~~~~~~
+ | use self::items as module_unused;
+ | use std::traits::Add;
+warning: unused use `module_unused`.
+--> unused-use.dora:4:20
+ | use self::items::{used, grouped_unused};
+ | use self::items::original as renamed_unused;
+ | use self::items as module_unused;
+                      ~~~~~~~~~~~~~
+ | use std::traits::Add;
+ | 
+warning: unused use `Add`.
+--> unused-use.dora:5:18
+ | use self::items::original as renamed_unused;
+ | use self::items as module_unused;
+ | use std::traits::Add;
+                    ~~~
+ | 
+ | fn use_one_use() {

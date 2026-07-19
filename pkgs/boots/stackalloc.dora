@@ -12,7 +12,6 @@ use package::graph::{
     Policy,
     Type,
 };
-use package::location::ensure_location_data;
 
 pub fn perform_stack_slot_allocation(
     graph: Graph,

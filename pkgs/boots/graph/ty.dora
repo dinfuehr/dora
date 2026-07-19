@@ -1,7 +1,5 @@
 use std::{Hash, Stringable};
 
-use package::bytecode::data::BytecodeType;
-
 pub enum Type {
     Unit,
     Bool,

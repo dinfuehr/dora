@@ -1,16 +1,19 @@
 use parking_lot::RwLock;
 
+use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
+
+use dora_parser::Span;
 
 use self::SymbolKind::*;
 
 use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
-    FieldIndex, GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema, StructDefinitionId,
-    TraitDefinitionId, TypeParamId, Visibility,
+    FieldIndex, GlobalDefinitionId, ModuleDefinitionId, NestedVarId, Sema, SourceFileId,
+    StructDefinitionId, TraitDefinitionId, TypeParamId, Visibility,
 };
 
 pub struct ModuleSymTable {
@@ -81,6 +84,46 @@ impl ModuleSymTable {
         None
     }
 
+    pub fn get_unmarked(&self, name: Name) -> Option<SymbolKind> {
+        for level in self.levels.iter().rev() {
+            if let Some(val) = level.get_unmarked(name) {
+                return Some(val);
+            }
+        }
+
+        if let Some(sym) = self.outer.get_unmarked(name) {
+            return Some(sym);
+        }
+
+        if let Some(sym) = self.dependencies.read().get_unmarked(name) {
+            return Some(sym);
+        }
+
+        if let Some(sym) = self.prelude.get_unmarked(name) {
+            return Some(sym);
+        }
+
+        None
+    }
+
+    pub fn mark_used(&self, name: Name) {
+        for level in self.levels.iter().rev() {
+            if level.mark_used(name) {
+                return;
+            }
+        }
+
+        if self.outer.mark_used(name) {
+            return;
+        }
+
+        if self.dependencies.read().mark_used(name) {
+            return;
+        }
+
+        self.prelude.mark_used(name);
+    }
+
     pub fn contains_trait(&self, trait_id: TraitDefinitionId) -> bool {
         for level in self.levels.iter().rev() {
             if level.contains_trait(trait_id) {
@@ -97,6 +140,20 @@ impl ModuleSymTable {
         }
 
         false
+    }
+
+    pub fn mark_trait_used(&self, trait_id: TraitDefinitionId) {
+        for level in self.levels.iter().rev() {
+            if level.mark_trait_used(trait_id) {
+                return;
+            }
+        }
+
+        if self.outer.mark_trait_used(trait_id) {
+            return;
+        }
+
+        self.prelude.mark_trait_used(trait_id);
     }
 
     pub fn insert(&mut self, name: Name, sym: SymbolKind) -> Option<Symbol> {
@@ -120,23 +177,71 @@ impl SymTable {
     }
 
     pub fn get(&self, name: Name) -> Option<SymbolKind> {
-        self.table.get(&name).map(|sym| sym.kind.clone())
+        self.table.get(&name).map(|sym| {
+            sym.mark_used();
+            sym.kind
+        })
+    }
+
+    pub fn get_unmarked(&self, name: Name) -> Option<SymbolKind> {
+        self.table.get(&name).map(|sym| sym.kind)
+    }
+
+    fn mark_used(&self, name: Name) -> bool {
+        let Some(symbol) = self.table.get(&name) else {
+            return false;
+        };
+
+        symbol.mark_used();
+        true
     }
 
     pub fn get_sym(&self, name: Name) -> Option<&Symbol> {
-        self.table.get(&name)
+        let sym = self.table.get(&name)?;
+        sym.mark_used();
+        Some(sym)
     }
 
     pub fn contains_trait(&self, trait_id: TraitDefinitionId) -> bool {
         self.traits.contains(&trait_id)
     }
 
+    fn mark_trait_used(&self, trait_id: TraitDefinitionId) -> bool {
+        if !self.contains_trait(trait_id) {
+            return false;
+        }
+
+        // A trait can be imported under multiple names. Mark only the first import as used so
+        // redundant aliases still produce unused-use warnings.
+        let mut first_symbol: Option<&Symbol> = None;
+
+        for symbol in self.table.values() {
+            if symbol.kind != SymbolKind::Trait(trait_id) {
+                continue;
+            }
+
+            match first_symbol {
+                Some(first) if first.use_order() <= symbol.use_order() => {}
+                _ => first_symbol = Some(symbol),
+            }
+        }
+
+        let Some(symbol) = first_symbol else {
+            return false;
+        };
+
+        symbol.mark_used();
+
+        true
+    }
+
     pub fn insert(&mut self, name: Name, kind: SymbolKind) -> Option<Symbol> {
         let symbol = Symbol {
             visibility: None,
             kind,
+            use_info: None,
         };
-        self.table.insert(name, symbol)
+        self.insert_symbol(name, symbol)
     }
 
     pub fn insert_use(
@@ -148,11 +253,57 @@ impl SymTable {
         let symbol = Symbol {
             visibility: Some(visibility),
             kind,
+            use_info: None,
         };
-        if let SymbolKind::Trait(trait_id) = kind {
-            self.traits.insert(trait_id);
+        self.insert_symbol(name, symbol)
+    }
+
+    pub fn insert_source_use(
+        &mut self,
+        name: Name,
+        visibility: Visibility,
+        kind: SymbolKind,
+        file_id: SourceFileId,
+        span: Span,
+    ) -> Option<Symbol> {
+        let symbol = Symbol {
+            visibility: Some(visibility),
+            kind,
+            use_info: Some(Rc::new(UseInfo {
+                file_id,
+                span,
+                used: Cell::new(false),
+            })),
+        };
+        self.insert_symbol(name, symbol)
+    }
+
+    fn insert_symbol(&mut self, name: Name, symbol: Symbol) -> Option<Symbol> {
+        let new_trait_id = if symbol.visibility.is_some() {
+            symbol.kind.to_trait()
+        } else {
+            None
+        };
+        let old_symbol = self.table.insert(name, symbol);
+
+        if let Some(old_trait_id) = old_symbol
+            .as_ref()
+            .and_then(|symbol| symbol.kind.to_trait())
+        {
+            let still_imported = self.table.values().any(|symbol| {
+                symbol.visibility.is_some() && symbol.kind == SymbolKind::Trait(old_trait_id)
+            });
+
+            if !still_imported {
+                self.traits.remove(&old_trait_id);
+            }
         }
-        self.table.insert(name, symbol)
+
+        if let Some(new_trait_id) = new_trait_id {
+            self.traits.insert(new_trait_id);
+        }
+
+        old_symbol
     }
 
     pub fn dump(&self, sa: &Sema) {
@@ -166,6 +317,7 @@ impl SymTable {
 pub struct Symbol {
     visibility: Option<Visibility>,
     kind: SymbolKind,
+    use_info: Option<Rc<UseInfo>>,
 }
 
 impl Symbol {
@@ -176,6 +328,40 @@ impl Symbol {
     pub fn kind(&self) -> &SymbolKind {
         &self.kind
     }
+
+    fn mark_used(&self) {
+        if let Some(use_info) = &self.use_info {
+            use_info.used.set(true);
+        }
+    }
+
+    fn use_order(&self) -> Option<(usize, u32)> {
+        self.use_info
+            .as_ref()
+            .map(|use_info| (use_info.file_id.index(), use_info.span.start()))
+    }
+
+    pub fn unused_use(&self) -> Option<(SourceFileId, Span)> {
+        let use_info = self.use_info.as_ref()?;
+
+        if self
+            .visibility
+            .expect("missing import visibility")
+            .is_public()
+            || use_info.used.get()
+        {
+            None
+        } else {
+            Some((use_info.file_id, use_info.span))
+        }
+    }
+}
+
+#[derive(Debug)]
+struct UseInfo {
+    file_id: SourceFileId,
+    span: Span,
+    used: Cell<bool>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

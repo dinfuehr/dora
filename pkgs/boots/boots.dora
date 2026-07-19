@@ -1,6 +1,5 @@
 use package::cfg_simplification::perform_cfg_simplification;
 use package::codegen::{create_code_gen, generate_code};
-use package::codegen::CodeGen;
 use package::compilation::{
     CompilationInfo,
     FunctionCompilationInfo,
@@ -9,7 +8,7 @@ use package::compilation::{
 };
 use package::dead_code_elimination::perform_dead_code_elimination;
 use package::dominator::build_dominator_tree;
-use package::graph::{Block, Edge, Graph, Inst, Op, Type, create_goto_inst};
+use package::graph::{Block, Edge, Graph, Op, create_goto_inst};
 use package::graph::dump::dump_graph;
 use package::graph::verifier::verify_graph;
 use package::graph_builder::{
@@ -19,7 +18,6 @@ use package::graph_builder::{
 };
 use package::inlining::perform_inlining;
 use package::interface::{
-    Architecture,
     CodeDescriptor,
     CommentTable,
     GcPoint,

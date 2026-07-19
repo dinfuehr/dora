@@ -1,7 +1,6 @@
 use package::codegen::CodeGen;
 use package::compilation::CompilationInfo;
-use package::graph::{Graph, Inst, Op, Type};
-use package::interface::config;
+use package::graph::{Graph, Inst, Op};
 
 pub fn prepare_register_allocation(
     _ci: CompilationInfo,

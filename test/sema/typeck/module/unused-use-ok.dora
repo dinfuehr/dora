@@ -1,0 +1,36 @@
+//= ok
+use self::items::used_function as renamed;
+use self::items::{grouped, grouped_alias as alias};
+use self::items::Thing;
+use self::items::Choice;
+use self::items::Choice::A;
+use self::items as imported_items;
+use self::items::chained as first;
+use self::first as second;
+use self::items::discarded as _;
+pub use self::items::public_item;
+
+fn use_uses(_value: Thing, choice: Choice): Bool {
+    renamed();
+    grouped();
+    alias();
+    imported_items::module_function();
+    second();
+
+    match choice {
+        A => true,
+        _ => false,
+    }
+}
+
+mod items {
+    pub fn used_function() {}
+    pub fn grouped() {}
+    pub fn grouped_alias() {}
+    pub fn module_function() {}
+    pub fn chained() {}
+    pub fn discarded() {}
+    pub fn public_item() {}
+    pub struct Thing
+    pub enum Choice { A, B }
+}

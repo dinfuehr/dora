@@ -1,31 +1,25 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
 use package::bytecode::{BytecodeType, EnumId, StructId};
 use package::codegen::CodeGen;
-use package::codegen::STACK_FRAME_ALIGNMENT;
 use package::compilation::{CompilationInfo, FunctionSignature, SpecializeSelf};
 use package::graph::{
     Block,
-    Edge,
     Graph,
     Inst,
     InstSet,
     Location,
-    LocationData,
     Op,
     Operand,
     Policy,
-    RegisterSnapshot,
     RegisterTrackers,
-    Type,
     create_load_reg_inst,
     create_move_inst,
     create_rematerialize_inst,
-    op_name,
 };
-use package::interface::{EnumData, GcPoint};
 use package::interface as iface;
+use package::interface::EnumData;
 use package::location::ensure_location_data;
 use package::resolver::resolve_moves;
 use package::specialize::specialize_ty;

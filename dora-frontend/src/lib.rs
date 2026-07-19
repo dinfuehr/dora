@@ -108,6 +108,8 @@ pub fn check_program(sa: &mut Sema) -> bool {
     // Check function body.
     typeck::check(sa);
 
+    useck::warn_unused_uses(sa);
+
     if !sa.diag.borrow().has_errors() {
         exhaustiveness::check(sa);
     }

@@ -30,11 +30,11 @@ use package::assembler::arm64::{
     register_name,
 };
 use package::assembler::arm64::{R0, R1, R2, R3, R4, R5, R6, R7};
-use package::assembler::arm64::{R8, R9, R10, R11, R12, R13, R14};
-use package::assembler::arm64::{R15, R16, R19, R20, R21, R22, R23};
+use package::assembler::arm64::{R8, R9, R10, R11};
+use package::assembler::arm64::{R16, R19, R20, R21, R22, R23};
 use package::assembler::arm64::{R24, R25, R26, R27, R28};
 use package::assembler::arm64::{REG_FP, REG_LR, REG_SP, REG_ZERO};
-use package::bytecode::{BytecodeType, ConstPoolId, FunctionId};
+use package::bytecode::{BytecodeType, FunctionId};
 use package::codegen::{
     CODE_SIZE_ALIGNMENT,
     CodeGen,
@@ -50,14 +50,11 @@ use package::graph::{
     InputOutputOverlap,
     Inst,
     InstSet,
-    Location,
-    LocationData,
     Op,
-    RegisterSnapshot,
     RegisterTrackers,
     Type,
 };
-use package::interface::{AotShapeKey, Architecture, InlinedFunction, JumpTable, config};
+use package::interface::{AotShapeKey, JumpTable, config};
 use package::interface::{
     ARRAY_HEADER_LENGTH,
     LAMBDA_SIZE,
@@ -99,7 +96,6 @@ use package::location::{
     use_output_float_register,
     use_output_register,
 };
-use package::regalloc::is_reference;
 
 let REG_PARAMS: Array[Register] = Array[Register]::new(R0, R1, R2, R3, R4, R5, R6, R7);
 let FLOAT_REG_PARAMS: Array[FloatRegister] = Array[FloatRegister]::new(

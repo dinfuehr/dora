@@ -272,6 +272,11 @@ pub static UNUSED_VARIABLE: DiagnosticDescriptor = DiagnosticDescriptor {
     level: ErrorLevel::Warn,
 };
 
+pub static UNUSED_USE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "unused use `{0}`.",
+    level: ErrorLevel::Warn,
+};
+
 pub static PARAM_TYPES_INCOMPATIBLE: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "function `{0}({1})` cannot be called as `{0}({2})`",
     level: ErrorLevel::Error,

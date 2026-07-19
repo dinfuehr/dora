@@ -1,22 +1,9 @@
 use package::CodeDescriptor;
 use package::assembler::{FloatRegister, Label, RegSet, Register};
-use package::bytecode::{BytecodeType, FunctionId};
 use package::codegen::arm64::CodeGenArm64;
 use package::codegen::x64::CodeGenX64;
 use package::compilation::CompilationInfo;
-use package::graph::{
-    Block,
-    Graph,
-    Inst,
-    InstSet,
-    Location,
-    LocationData,
-    Op,
-    Operand,
-    Policy,
-    RegisterTrackers,
-    Type,
-};
+use package::graph::{Graph, Inst, InstSet, Op, RegisterTrackers};
 use package::interface::{Architecture, config};
 use package::location::ArgumentLocations;
 

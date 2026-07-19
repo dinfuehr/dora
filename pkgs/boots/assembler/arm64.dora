@@ -3997,26 +3997,7 @@ mod tests {
     use package::assembler::MachineCode;
     use super::{AssemblerArm64, Cond, Extend, Shift};
     use super::{REG_SP, REG_ZERO};
-    use super::{
-        R0,
-        R1,
-        R2,
-        R3,
-        R4,
-        R5,
-        R6,
-        R7,
-        R8,
-        R9,
-        R10,
-        R11,
-        R16,
-        R17,
-        R27,
-        R28,
-        R29,
-        R30,
-    };
+    use super::{R0, R1, R2, R3, R4, R5, R6, R7, R10, R11, R16, R17, R27, R28, R29, R30};
     use super::{F0, F1, F2, F3, F4, F5, F31};
     use super::{fits_movn, fits_movz};
     use super::imm_encoding;

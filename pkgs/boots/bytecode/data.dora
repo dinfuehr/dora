@@ -14,7 +14,6 @@ use package::bytecode::{
     TraitId,
 };
 use package::bytecode::opcode as opc;
-use package::graph::Block;
 
 pub class BytecodeFunction {
     pub code: Array[UInt8],

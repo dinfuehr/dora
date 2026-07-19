@@ -1,8 +1,7 @@
-use std::collections::{BitSet, BitVec};
-use std::collections::HashSet;
+use std::collections::BitSet;
 
 use package::compilation::CompilationInfo;
-use package::graph::{Block, Graph, Input, InstSet};
+use package::graph::{Block, Graph, InstSet};
 
 pub fn compute_liveness(_ci: CompilationInfo, graph: Graph) {
     compute_linear_order_index(graph);

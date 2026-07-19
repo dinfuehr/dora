@@ -1,3 +1,4 @@
 //= ok
 use self::foo::Bar;
+fn f[T: Bar]() {}
 mod foo { pub trait Bar{} }

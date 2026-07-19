@@ -75,7 +75,7 @@ fn parse_impl_types(sa: &Sema) {
         symtable.push_level();
 
         for (id, name) in impl_.type_param_definition().names() {
-            if symtable.get(name).is_none() {
+            if symtable.get_unmarked(name).is_none() {
                 let old = symtable.insert(name, SymbolKind::TypeParam(id));
                 assert!(old.is_none());
             }
@@ -214,7 +214,7 @@ fn parse_type_param_definition(
     allow_self: bool,
 ) {
     for (id, name) in type_param_definition.names() {
-        if symtable.get(name).is_none() {
+        if symtable.get_unmarked(name).is_none() {
             let old = symtable.insert(name, SymbolKind::TypeParam(id));
             assert!(old.is_none());
         }

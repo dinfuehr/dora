@@ -1,6 +1,6 @@
 use package::bytecode::{BytecodeType, FunctionId};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, FunctionSignature};
-use package::graph::{Block, Graph, Inst, Op, create_goto_inst, create_undef_inst};
+use package::graph::{Block, Graph, Inst, create_goto_inst, create_undef_inst};
 use package::graph_builder;
 use package::interface as iface;
 use package::interface::FunctionInliningInfo;

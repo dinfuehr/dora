@@ -5,7 +5,7 @@ use crate::access::{sym_accessible_from, use_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
     EXPECTED_PATH, NO_SUPER_MODULE, NOT_ACCESSIBLE_IN_MODULE, UNKNOWN_ENUM_VARIANT,
-    UNKNOWN_IDENTIFIER_IN_MODULE, UNKNOWN_PACKAGE, USE_NOT_ACCESSIBLE,
+    UNKNOWN_IDENTIFIER_IN_MODULE, UNKNOWN_PACKAGE, UNUSED_USE, USE_NOT_ACCESSIBLE,
 };
 use crate::report_sym_shadow_span;
 use crate::sema::{ModuleDefinitionId, Sema, UseDefinition, Visibility, module_package};
@@ -57,6 +57,17 @@ pub fn check<'a>(sa: &Sema, mut module_symtables: HashMap<ModuleDefinitionId, Sy
 
     for (module_id, table) in module_symtables {
         assert!(sa.module(module_id).table.set(Rc::new(table)).is_ok());
+    }
+}
+
+pub fn warn_unused_uses(sa: &Sema) {
+    for (_module_id, module) in &sa.modules {
+        for (&name, symbol) in &module.table().table {
+            if let Some((file_id, span)) = symbol.unused_use() {
+                let name = sa.interner.str(name).to_string();
+                sa.warn(file_id, span, &UNUSED_USE, args!(name));
+            }
+        }
     }
 }
 
@@ -335,7 +346,13 @@ impl<'a> UseChecker<'a> {
             .expect("missing tabble");
         let name = self.sa.interner.intern(ident.text());
 
-        if let Some(old_sym) = module_symtable.insert_use(name, self.visibility, sym) {
+        if let Some(old_sym) = module_symtable.insert_source_use(
+            name,
+            self.visibility,
+            sym,
+            self.file_id,
+            ident.span(),
+        ) {
             report_sym_shadow_span(self.sa, name, self.file_id, use_span, old_sym);
             Err(())
         } else {
@@ -349,6 +366,7 @@ mod tests {
     use crate::args;
     use crate::error::diagnostics::{
         EXPECTED_PATH, NOT_ACCESSIBLE_IN_MODULE, UNKNOWN_IDENTIFIER, UNKNOWN_IDENTIFIER_IN_MODULE,
+        UNUSED_USE,
     };
     use crate::tests::*;
 
@@ -656,6 +674,93 @@ mod tests {
                     args!("foo", "b"),
                 ),
             ],
+        );
+    }
+
+    #[test]
+    fn unused_use_shadowed_by_pattern_binding() {
+        err(
+            "use self::items::shadowed;
+
+            fn f() {
+                let shadowed = 1;
+                assert(shadowed == 1);
+            }
+
+            mod items {
+                pub fn shadowed() {}
+            }",
+            (1, 18),
+            8,
+            crate::ErrorLevel::Warn,
+            &UNUSED_USE,
+            args!("shadowed"),
+        );
+    }
+
+    #[test]
+    fn imported_main_is_unused() {
+        // TODO: Reconsider this once the frontend distinguishes executable programs from libraries.
+        err(
+            "use self::app::main;
+
+            mod app {
+                pub fn main() {}
+            }",
+            (1, 16),
+            4,
+            crate::ErrorLevel::Warn,
+            &UNUSED_USE,
+            args!("main"),
+        );
+    }
+
+    #[test]
+    fn imported_non_entry_point_is_unused() {
+        err(
+            "use self::app::other;
+
+            mod app {
+                pub fn other() {}
+            }",
+            (1, 16),
+            5,
+            crate::ErrorLevel::Warn,
+            &UNUSED_USE,
+            args!("other"),
+        );
+    }
+
+    #[test]
+    fn unused_duplicate_trait_alias() {
+        pkg_test(
+            "extern package dep1;
+            use dep1::MyClass;
+            use dep1::MyTrait as First;
+            use dep1::MyTrait as Second;
+
+            fn f(x: MyClass) {
+                x.f();
+            }",
+            &[(
+                "dep1",
+                "pub trait MyTrait {
+                    fn f();
+                }
+
+                pub class MyClass
+
+                impl MyTrait for MyClass {
+                    fn f() {}
+                }",
+            )],
+            &[(
+                (4, 34),
+                Some(6),
+                crate::ErrorLevel::Warn,
+                &UNUSED_USE,
+                args!("Second"),
+            )],
         );
     }
 }

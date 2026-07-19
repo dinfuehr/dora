@@ -1,2 +1,3 @@
 //= ok
 use std::HashMap;
+fn f(_map: HashMap[Int64, Int64]) {}

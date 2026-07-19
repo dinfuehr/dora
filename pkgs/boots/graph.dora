@@ -5,22 +5,19 @@ use std::Hash;
 use std::collections::{BitVecIter, HashMap};
 use std::traits::{IndexGet, IntoIterator, Iterator};
 
-use package::assembler::{FloatRegister, Label, RegMap, RegSet, Register};
+use package::assembler::{FloatRegister, Label, RegSet, Register};
 use package::bytecode::{
     BytecodeType,
-    ClassFieldId,
     ClassId,
     ConstPoolId,
     FunctionId,
     GlobalId,
     StructId,
-    TraitId,
 };
 use package::dominator::build_dominator_tree;
 use package::interface::{
     AotShapeKey,
     FunctionInliningInfo,
-    GcPoint,
     InlinedLocation,
     RuntimeFunction,
 };
