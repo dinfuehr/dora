@@ -1,0 +1,132 @@
+use std::BitSet;
+
+use package::bytecode::{BytecodeFunction, BytecodeType};
+use package::bytecode_graph_builder::{BytecodeAnalysis, BytecodeGraphBuilder};
+use package::calling_convention as cc;
+use package::calling_convention::ArgumentPassingMode;
+use package::compilation::{CompilationInfo, TraitObjectThunk};
+use package::graph;
+use package::graph::{Block, CallKind, Graph, Inst, InstExtraData};
+use package::graph::ty::Type;
+use package::interface as iface;
+use package::interface::InlinedFunctionId;
+
+impl BytecodeGraphBuilder {
+    pub static fn new_for_trait_object_thunk(
+        ci: CompilationInfo,
+        graph: Graph,
+        thunk: TraitObjectThunk,
+    ): BytecodeGraphBuilder {
+        BytecodeGraphBuilder(
+            ci,
+            graph,
+            fct_id = thunk.fct_id,
+            inlined_function_id = None[InlinedFunctionId],
+            bc = None[BytecodeFunction],
+            type_params = thunk.signature.type_params,
+            return_type = thunk.signature.return_type,
+            specialize_self = thunk.signature.specialize_self,
+            signature = thunk.signature,
+            analysis = BytecodeAnalysis(BitSet::new(0i64)),
+            current_block = None[Block],
+            offset = 0i32,
+            blocks = Array[Option[Block]]::fill(0i64, None[Block]),
+            aggregate_registers = Array[Option[Inst]]::fill(0i64, None[Inst]),
+            entry_block = None[Block],
+            exit_block = None[Block],
+            return_value_arg_inst = None[Inst],
+            inline_return_type = None[Type],
+            trait_object_thunk = Some[TraitObjectThunk](thunk),
+        )
+    }
+
+    pub fn generate_trait_object_thunk() {
+        let thunk = self.trait_object_thunk.get_or_panic();
+        assert(!self.signature.params.is_empty());
+        match self.signature.params(0) {
+            BytecodeType::TraitObject(..) => {}
+            _ => unreachable[()](),
+        }
+
+        let entry = self.create_entry_block();
+        let arguments = self.append_entry_arguments(entry);
+        let return_mode = self.return_passing_mode();
+        let return_address = self.return_value_arg_inst;
+        self.emit_safepoint(entry);
+
+        let args = Vec[Inst]::new();
+        let receiver = arguments(0).get_or_panic();
+        if self.unwrap_trait_object_receiver(thunk, receiver) is Some(receiver) {
+            args.push(receiver);
+        }
+
+        for param_idx in std::range(1, self.signature.params.size()) {
+            if arguments(param_idx) is Some(arg) {
+                args.push(arg);
+            }
+        }
+
+        let return_ty = self.return_graph_ty(return_mode);
+        let intrinsic = iface::get_intrinsic_for_function(thunk.callee_fct_id);
+        assert(!self.is_intrinsic(intrinsic));
+        let invoke = self.emit_call(
+            CallKind::Direct,
+            thunk.callee_fct_id,
+            thunk.callee_type_params,
+            args,
+            return_address,
+            return_ty,
+        );
+        match return_mode {
+            ArgumentPassingMode::Register(_) => {
+                let return_inst = graph::create_return_inst(invoke, return_ty);
+                self.current().append_inst(return_inst);
+            }
+            ArgumentPassingMode::None | ArgumentPassingMode::Stack => {
+                self.current().append_inst(graph::create_return_void_inst());
+            }
+        }
+
+        self.current_block = None[Block];
+    }
+
+    fn unwrap_trait_object_receiver(
+        thunk: TraitObjectThunk,
+        receiver: Inst,
+    ): Option[Inst] {
+        if thunk.receiver_by_reference {
+            Some[Inst](self.trait_object_payload_address(receiver))
+        } else {
+            match cc::argument_passing_mode(self.ci, thunk.actual_object_ty) {
+                ArgumentPassingMode::None => None[Inst],
+                ArgumentPassingMode::Register(register_ty) => {
+                    let value = graph::create_load_inst(
+                        receiver,
+                        iface::OBJECT_HEADER_LENGTH,
+                        InstExtraData::None,
+                        self.graph_ty(register_ty),
+                        false,
+                    );
+                    self.current().append_inst(value);
+                    Some[Inst](value)
+                }
+                ArgumentPassingMode::Stack => {
+                    Some[Inst](self.trait_object_payload_address(receiver))
+                }
+            }
+        }
+    }
+
+    fn trait_object_payload_address(receiver: Inst): Inst {
+        let offset = graph::create_int64_const(iface::OBJECT_HEADER_LENGTH.to_int64());
+        self.current().append_inst(offset);
+        let address = graph::create_binary_inst(
+            graph::Op::Add,
+            Type::Address,
+            receiver,
+            offset,
+        );
+        self.current().append_inst(address);
+        address
+    }
+}

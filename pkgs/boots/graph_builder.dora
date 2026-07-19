@@ -1,5 +1,5 @@
 use package::bytecode_graph_builder::{BytecodeGraphBuilder, compute_inline_return_type};
-use package::compilation::{CompilationInfo, FunctionCompilationInfo};
+use package::compilation::{CompilationInfo, FunctionCompilationInfo, TraitObjectThunk};
 use package::graph::{Block, Graph, Inst};
 use package::graph::ty::Type;
 use package::interface::InlinedFunctionId;
@@ -17,6 +17,16 @@ pub fn create_graph(
     BytecodeGraphBuilder::new(ci, graph, fct, analysis).run();
     SsaConstruction::new(ci, graph, fct, None[Type], None[Block]).run();
 
+    graph
+}
+
+pub fn create_trait_object_thunk_graph(
+    ci: CompilationInfo,
+    thunk: TraitObjectThunk,
+): Graph {
+    let graph = Graph::new();
+    let builder = BytecodeGraphBuilder::new_for_trait_object_thunk(ci, graph, thunk);
+    builder.generate_trait_object_thunk();
     graph
 }
 

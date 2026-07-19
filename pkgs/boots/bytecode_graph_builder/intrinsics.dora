@@ -1,0 +1,1344 @@
+use package::bytecode::{BytecodeRegister, BytecodeType};
+use package::bytecode::opcode as opc;
+use package::bytecode_graph_builder::BytecodeGraphBuilder;
+use package::graph;
+use package::graph::{CallKind, Inst, InstExtraData, Op};
+use package::graph::ty::Type;
+use package::interface as iface;
+use package::interface::RuntimeFunction;
+use package::regalloc::{EnumLayout, RecordLayout};
+
+struct OverflowingResult {
+    value: Inst,
+    overflowing: Inst,
+}
+
+impl BytecodeGraphBuilder {
+    pub fn is_intrinsic(intrinsic: Int32): Bool {
+        intrinsic >= 0i32 && intrinsic != opc::INTRINSIC_OPTION_GET_OR_PANIC
+    }
+
+    pub fn emit_intrinsic(
+        intrinsic: Int32,
+        dest: BytecodeRegister,
+        argument_registers: Array[BytecodeRegister],
+        type_params: Array[BytecodeType],
+    ): Bool {
+        let args = Vec[Inst]::new();
+        let argument_types = Array[BytecodeType]::fill(
+            argument_registers.size(),
+            BytecodeType::Unit,
+        );
+        for idx in std::range(0, argument_registers.size()) {
+            let arg = argument_registers(idx);
+            args.push(self.emit_local_get(arg));
+            argument_types(idx) = self.reg(arg);
+        }
+
+        assert(args.size() == argument_types.size());
+        match intrinsic {
+            opc::INTRINSIC_UNREACHABLE => {
+                assert(args.size() == 0);
+                self.emit_intrinsic_unreachable();
+                return true;
+            }
+            opc::INTRINSIC_FATAL_ERROR => {
+                assert(args.size() == 1);
+                self.emit_intrinsic_fatal_error(args(0));
+                return true;
+            }
+            opc::INTRINSIC_ASSERT => {
+                assert(args.size() == 1);
+                self.emit_intrinsic_assert(args(0));
+                return false;
+            }
+            opc::INTRINSIC_DEBUG => {
+                assert(args.size() == 0);
+                self.emit_intrinsic_debug();
+                return false;
+            }
+            opc::INTRINSIC_ATOMIC_INT32_SET => {
+                assert(args.size() == 2);
+                self.emit_intrinsic_atomic_store(args(0), args(1), Type::Int32);
+                return false;
+            }
+            opc::INTRINSIC_ATOMIC_INT64_SET => {
+                assert(args.size() == 2);
+                self.emit_intrinsic_atomic_store(args(0), args(1), Type::Int64);
+                return false;
+            }
+            opc::INTRINSIC_UNSAFE_KILL_REFS => {
+                assert(args.size() == 2);
+                assert(type_params.size() == 1);
+                self.emit_intrinsic_unsafe_kill_refs(args(0), args(1), type_params);
+                return false;
+            }
+            opc::INTRINSIC_INT32_OVERFLOWING_ADD
+            | opc::INTRINSIC_INT64_OVERFLOWING_ADD => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_overflowing_add(args(0), args(1));
+                self.store_overflowing_result(dest, result);
+                return false;
+            }
+            opc::INTRINSIC_INT32_OVERFLOWING_SUB
+            | opc::INTRINSIC_INT64_OVERFLOWING_SUB => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_overflowing_sub(args(0), args(1));
+                self.store_overflowing_result(dest, result);
+                return false;
+            }
+            opc::INTRINSIC_INT32_OVERFLOWING_MUL
+            | opc::INTRINSIC_INT64_OVERFLOWING_MUL => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_overflowing_mul(args(0), args(1));
+                self.store_overflowing_result(dest, result);
+                return false;
+            }
+            opc::INTRINSIC_INT32_OVERFLOWING_DIV
+            | opc::INTRINSIC_INT64_OVERFLOWING_DIV => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_overflowing_div(args(0), args(1));
+                self.store_overflowing_result(dest, result);
+                return false;
+            }
+            opc::INTRINSIC_INT32_OVERFLOWING_MOD
+            | opc::INTRINSIC_INT64_OVERFLOWING_MOD => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_overflowing_mod(args(0), args(1));
+                self.store_overflowing_result(dest, result);
+                return false;
+            }
+            opc::INTRINSIC_INT32_OVERFLOWING_NEG
+            | opc::INTRINSIC_INT64_OVERFLOWING_NEG => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_overflowing_neg(args(0));
+                self.store_overflowing_result(dest, result);
+                return false;
+            }
+            opc::INTRINSIC_INT64_WRAPPING_ADD | opc::INTRINSIC_INT32_WRAPPING_ADD => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Add);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_WRAPPING_SUB | opc::INTRINSIC_INT32_WRAPPING_SUB => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Sub);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_WRAPPING_MUL | opc::INTRINSIC_INT32_WRAPPING_MUL => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Mul);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_WRAPPING_NEG | opc::INTRINSIC_INT64_WRAPPING_NEG => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_un(args(0), Op::Neg);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_THREAD_CURRENT => {
+                assert(args.size() == 0);
+                let result = self.emit_intrinsic_thread_current();
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_OPTION_IS_SOME => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_option_is_some(
+                    args(0),
+                    argument_types(0),
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_OPTION_IS_NONE => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_option_is_none(
+                    args(0),
+                    argument_types(0),
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_TO_INT32 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Int32,
+                    Type::Float64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_TO_INT64 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Int64,
+                    Type::Float64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT32_TO_INT32 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Int32,
+                    Type::Float32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT32_TO_INT64 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Int64,
+                    Type::Float32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_TO_FLOAT32 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Float32,
+                    Type::Int32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_TO_FLOAT64 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Float64,
+                    Type::Int32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_TO_INT64 | opc::INTRINSIC_CHAR_TO_INT64 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Int64,
+                    Type::Int32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_TO_FLOAT32 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Float32,
+                    Type::Int64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_TO_FLOAT64 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Float64,
+                    Type::Int64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_TO_INT32 | opc::INTRINSIC_INT64_TO_CHAR_UNCHECKED => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Int32,
+                    Type::Int64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_TO_UINT8 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::UInt8,
+                    Type::Int64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_PROMOTE_FLOAT32_TO_FLOAT64 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Float64,
+                    Type::Float32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_DEMOTE_FLOAT64_TO_FLOAT32 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Float32,
+                    Type::Float64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_ADD | opc::INTRINSIC_FLOAT32_ADD => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Add);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_SUB | opc::INTRINSIC_FLOAT32_SUB => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Sub);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_MUL | opc::INTRINSIC_FLOAT32_MUL => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Mul);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_DIV | opc::INTRINSIC_FLOAT32_DIV => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Div);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_NEG | opc::INTRINSIC_FLOAT32_NEG => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_un(args(0), Op::Neg);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_EQ | opc::INTRINSIC_FLOAT32_EQ => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Equal);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_ABS => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_abs(args(0), Type::Float64);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT32_ABS => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_abs(args(0), Type::Float32);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_CHECKED_ADD | opc::INTRINSIC_INT32_CHECKED_ADD => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::CheckedAdd);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_CHECKED_SUB | opc::INTRINSIC_INT32_CHECKED_SUB => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::CheckedSub);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_CHECKED_MUL | opc::INTRINSIC_INT32_CHECKED_MUL => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::CheckedMul);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_CHECKED_DIV | opc::INTRINSIC_INT32_CHECKED_DIV => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::CheckedDiv);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_CHECKED_MOD | opc::INTRINSIC_INT32_CHECKED_MOD => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::CheckedMod);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_AND | opc::INTRINSIC_INT32_AND => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::And);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_OR | opc::INTRINSIC_INT32_OR => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Or);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_XOR | opc::INTRINSIC_INT32_XOR => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Xor);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_SAR | opc::INTRINSIC_INT32_SAR => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_shift(args(0), args(1), Op::Sar);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_SHL | opc::INTRINSIC_INT32_SHL => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_shift(args(0), args(1), Op::Shl);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_SHR | opc::INTRINSIC_INT32_SHR => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_shift(args(0), args(1), Op::Shr);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_CHECKED_NEG | opc::INTRINSIC_INT32_CHECKED_NEG => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_un(args(0), Op::CheckedNeg);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_EQ | opc::INTRINSIC_INT32_EQ => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Equal);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_BOOL_NOT
+            | opc::INTRINSIC_INT64_NOT
+            | opc::INTRINSIC_INT32_NOT => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_un(args(0), Op::Not);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_BOOL_EQ | opc::INTRINSIC_U_INT8_EQ => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_bin(args(0), args(1), Op::Equal);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_CMP => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_compare_ordering(
+                    args(0),
+                    args(1),
+                    Type::Int64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_CMP | opc::INTRINSIC_CHAR_CMP => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_compare_ordering(
+                    args(0),
+                    args(1),
+                    Type::Int32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_U_INT8_CMP => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_compare_ordering(
+                    args(0),
+                    args(1),
+                    Type::UInt8,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT32_CMP => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_compare_ordering(
+                    args(0),
+                    args(1),
+                    Type::Float32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_CMP => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_compare_ordering(
+                    args(0),
+                    args(1),
+                    Type::Float64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_REINTERPRET_FLOAT64_AS_INT64 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_bitcast(
+                    args(0),
+                    Type::Int64,
+                    Type::Float64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_REINTERPRET_INT64_AS_FLOAT64 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_bitcast(
+                    args(0),
+                    Type::Float64,
+                    Type::Int64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_REINTERPRET_FLOAT32_AS_INT32 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_bitcast(
+                    args(0),
+                    Type::Int32,
+                    Type::Float32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_REINTERPRET_INT32_AS_FLOAT32 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_bitcast(
+                    args(0),
+                    Type::Float32,
+                    Type::Int32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_ROUND_DOWN => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_rounding(
+                    args(0),
+                    Op::RoundDown,
+                    Type::Float64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_ROUND_UP => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_rounding(
+                    args(0),
+                    Op::RoundUp,
+                    Type::Float64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_ROUND_TO_ZERO => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_rounding(
+                    args(0),
+                    Op::RoundToZero,
+                    Type::Float64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_ROUND_HALF_EVEN => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_rounding(
+                    args(0),
+                    Op::RoundHalfEven,
+                    Type::Float64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT32_ROUND_DOWN => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_rounding(
+                    args(0),
+                    Op::RoundDown,
+                    Type::Float32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT32_ROUND_UP => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_rounding(
+                    args(0),
+                    Op::RoundUp,
+                    Type::Float32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT32_ROUND_TO_ZERO => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_rounding(
+                    args(0),
+                    Op::RoundToZero,
+                    Type::Float32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT32_ROUND_HALF_EVEN => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_rounding(
+                    args(0),
+                    Op::RoundHalfEven,
+                    Type::Float32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT64_SQRT => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_rounding(
+                    args(0),
+                    Op::Sqrt,
+                    Type::Float64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_FLOAT32_SQRT => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_rounding(
+                    args(0),
+                    Op::Sqrt,
+                    Type::Float32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_TO_CHAR_UNCHECKED | opc::INTRINSIC_CHAR_TO_INT32 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_cast_between_int32_and_char(args(0));
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_TO_UINT8 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::UInt8,
+                    Type::Int32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_U_INT8_TO_INT32 | opc::INTRINSIC_U_INT8_TO_CHAR => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Int32,
+                    Type::UInt8,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_BOOL_TO_INT32 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Int32,
+                    Type::Bool,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_BOOL_TO_INT64 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Int64,
+                    Type::Bool,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_U_INT8_TO_INT64 => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_convert(
+                    args(0),
+                    Type::Int64,
+                    Type::UInt8,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_ROTATE_LEFT => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_rotate(
+                    args(0),
+                    args(1),
+                    Type::Int32,
+                    true,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_ROTATE_RIGHT => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_rotate(
+                    args(0),
+                    args(1),
+                    Type::Int32,
+                    false,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_ROTATE_LEFT => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_rotate(
+                    args(0),
+                    args(1),
+                    Type::Int64,
+                    true,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_ROTATE_RIGHT => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_rotate(
+                    args(0),
+                    args(1),
+                    Type::Int64,
+                    false,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_ATOMIC_INT32_GET => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_atomic_load(args(0), Type::Int32);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_ATOMIC_INT64_GET => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_atomic_load(args(0), Type::Int64);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_ATOMIC_INT32_EXCHANGE => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_atomic_exchange(
+                    args(0),
+                    args(1),
+                    Type::Int32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_ATOMIC_INT64_EXCHANGE => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_atomic_exchange(
+                    args(0),
+                    args(1),
+                    Type::Int64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_ATOMIC_INT32_COMPARE_EXCHANGE => {
+                assert(args.size() == 3);
+                let result = self.emit_intrinsic_atomic_compare_exchange(
+                    args(0),
+                    args(1),
+                    args(2),
+                    Type::Int32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_ATOMIC_INT64_COMPARE_EXCHANGE => {
+                assert(args.size() == 3);
+                let result = self.emit_intrinsic_atomic_compare_exchange(
+                    args(0),
+                    args(1),
+                    args(2),
+                    Type::Int64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_ATOMIC_INT32_FETCH_ADD => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_atomic_fetch_add(
+                    args(0),
+                    args(1),
+                    Type::Int32,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_ATOMIC_INT64_FETCH_ADD => {
+                assert(args.size() == 2);
+                let result = self.emit_intrinsic_atomic_fetch_add(
+                    args(0),
+                    args(1),
+                    Type::Int64,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_COUNT_ZERO_BITS => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_bits(args(0), Type::Int32, false);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_COUNT_ONE_BITS => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_bits(args(0), Type::Int32, true);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_COUNT_ZERO_BITS => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_bits(args(0), Type::Int64, false);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_COUNT_ONE_BITS => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_bits(args(0), Type::Int64, true);
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_COUNT_ZERO_BITS_LEADING => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_leading(
+                    args(0),
+                    Type::Int64,
+                    false,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_COUNT_ZERO_BITS_LEADING => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_leading(
+                    args(0),
+                    Type::Int32,
+                    false,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_COUNT_ONE_BITS_LEADING => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_leading(
+                    args(0),
+                    Type::Int64,
+                    true,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_COUNT_ONE_BITS_LEADING => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_leading(
+                    args(0),
+                    Type::Int32,
+                    true,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_COUNT_ONE_BITS_TRAILING => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_trailing(
+                    args(0),
+                    Type::Int64,
+                    true,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_COUNT_ONE_BITS_TRAILING => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_trailing(
+                    args(0),
+                    Type::Int32,
+                    true,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT64_COUNT_ZERO_BITS_TRAILING => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_trailing(
+                    args(0),
+                    Type::Int64,
+                    false,
+                );
+                self.emit_local_set(dest, result);
+            }
+            opc::INTRINSIC_INT32_COUNT_ZERO_BITS_TRAILING => {
+                assert(args.size() == 1);
+                let result = self.emit_intrinsic_count_trailing(
+                    args(0),
+                    Type::Int32,
+                    false,
+                );
+                self.emit_local_set(dest, result);
+            }
+            _ => {
+                let name = opc::intrinsic_name(intrinsic);
+                let result = std::fatal_error[Inst]("unknown intrinsic ${name}");
+                self.emit_local_set(dest, result);
+            }
+        }
+
+        false
+    }
+
+    fn store_overflowing_result(dest: BytecodeRegister, result: OverflowingResult) {
+        let ty = self.reg(dest);
+        let dest = self.aggregate_register(dest);
+        let BytecodeType::Tuple(subtypes) = ty;
+        let layout = self.compute_tuple_layout(subtypes);
+        assert(layout.fields.size() == 2);
+        let value_field = layout.fields(0);
+        self.store_field(
+            value_field.ty,
+            dest,
+            InstExtraData::None,
+            value_field.offset,
+            result.value,
+            false,
+        );
+
+        let overflowing_field = layout.fields(1);
+        self.store_field(
+            overflowing_field.ty,
+            dest,
+            InstExtraData::None,
+            overflowing_field.offset,
+            result.overflowing,
+            false,
+        );
+    }
+
+    fn emit_intrinsic_unsafe_kill_refs(
+        array: Inst,
+        index: Inst,
+        type_params: Array[BytecodeType],
+    ) {
+        let ty = self.specialize_ty(type_params(0));
+
+        match ty {
+            BytecodeType::Unit
+            | BytecodeType::Bool
+            | BytecodeType::UInt8
+            | BytecodeType::Float32
+            | BytecodeType::Int32
+            | BytecodeType::Char
+            | BytecodeType::Int64
+            | BytecodeType::Float64
+            | BytecodeType::Address => {
+                // No need to clear any reference.
+            }
+            BytecodeType::Class(..)
+            | BytecodeType::Ptr
+            | BytecodeType::Lambda(..)
+            | BytecodeType::TraitObject(..) => {
+                self.clear_array_element_pointer(array, index);
+            }
+            BytecodeType::Enum(enum_id, type_params) => {
+                let layout = self.compute_enum_layout(enum_id, type_params);
+
+                match layout {
+                    EnumLayout::Int32 => {
+                        // No need to clear any reference.
+                    }
+
+                    EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => {
+                        self.clear_array_element_pointer(array, index);
+                    }
+                }
+            }
+            BytecodeType::Struct(struct_id, type_params) => {
+                let layout = self.compute_struct_layout(struct_id, type_params);
+                self.clear_array_element_layout(array, index, layout);
+            }
+            BytecodeType::Tuple(subtypes) => {
+                let layout = self.compute_tuple_layout(subtypes);
+                self.clear_array_element_layout(array, index, layout);
+            }
+            BytecodeType::This
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::TypeAlias(_)
+            | BytecodeType::Assoc(..) => unreachable[()](),
+        }
+    }
+
+    fn clear_array_element_pointer(arr: Inst, index: Inst) {
+        let null = graph::create_null_const();
+        self.current().append_inst(null);
+
+        let inst = graph::create_store_array_inst(arr, index, null, Type::Ptr);
+        self.current().append_inst(inst);
+    }
+
+    fn clear_array_element_layout(arr: Inst, index: Inst, layout: RecordLayout) {
+        if layout.refs.size() > 0 {
+            let null = graph::create_null_const();
+            self.current().append_inst(null);
+
+            let array_element = graph::create_get_element_ptr_inst(
+                arr,
+                index,
+                layout.size.to_int64(),
+            );
+            self.current().append_inst(array_element);
+
+            for ref_ in layout.refs {
+                let inst = graph::create_store_inst(
+                    array_element,
+                    InstExtraData::None,
+                    ref_,
+                    null,
+                    Type::Ptr,
+                );
+                self.current().append_inst(inst);
+            }
+        }
+    }
+
+    fn emit_intrinsic_abs(value: Inst, ty: Type): Inst {
+        assert(value.get_value_type() == ty);
+        let inst = graph::create_abs_inst(ty, value);
+        self.current().append_inst(inst);
+        inst
+    }
+
+    fn emit_intrinsic_count_bits(value: Inst, ty: Type, count_set_bits: Bool): Inst {
+        assert(value.get_value_type() == ty);
+        let value = if count_set_bits {
+            value
+        } else {
+            let inst = graph::create_unary_inst(Op::Not, ty, value);
+            self.current().append_inst(inst);
+            inst
+        };
+        let inst = graph::create_count_bits_inst(ty, value);
+        self.current().append_inst(inst);
+        inst
+    }
+
+    fn emit_intrinsic_count_leading(value: Inst, ty: Type, count_set_bits: Bool): Inst {
+        assert(value.get_value_type() == ty);
+        let value = if count_set_bits {
+            let inst = graph::create_unary_inst(Op::Not, ty, value);
+            self.current().append_inst(inst);
+            inst
+        } else {
+            value
+        };
+        let inst = graph::create_count_leading_zeros_inst(ty, value);
+        self.current().append_inst(inst);
+        inst
+    }
+
+    fn emit_intrinsic_count_trailing(value: Inst, ty: Type, count_set_bits: Bool): Inst {
+        assert(value.get_value_type() == ty);
+        let value = if count_set_bits {
+            let inst = graph::create_unary_inst(Op::Not, ty, value);
+            self.current().append_inst(inst);
+            inst
+        } else {
+            value
+        };
+        let inst = graph::create_count_trailing_zeros_inst(ty, value);
+        self.current().append_inst(inst);
+        inst
+    }
+
+    fn emit_intrinsic_atomic_load(obj: Inst, ty: Type): Inst {
+        assert(obj.get_value_type() == Type::Ptr);
+        let inst = graph::create_atomic_load_inst(ty, obj);
+        self.current().append_inst(inst);
+        inst
+    }
+
+    fn emit_intrinsic_atomic_store(obj: Inst, value: Inst, ty: Type) {
+        assert(obj.get_value_type() == Type::Ptr);
+        assert(value.get_value_type() == ty);
+        let inst = graph::create_atomic_store_inst(ty, obj, value);
+        self.current().append_inst(inst);
+    }
+
+    fn emit_intrinsic_atomic_exchange(obj: Inst, new_value: Inst, ty: Type): Inst {
+        assert(obj.get_value_type() == Type::Ptr);
+        assert(new_value.get_value_type() == ty);
+        let inst = graph::create_atomic_exchange_inst(ty, obj, new_value);
+        self.current().append_inst(inst);
+        inst
+    }
+
+    fn emit_intrinsic_atomic_compare_exchange(
+        obj: Inst,
+        expected: Inst,
+        new_value: Inst,
+        ty: Type,
+    ): Inst {
+        assert(obj.get_value_type() == Type::Ptr);
+        assert(expected.get_value_type() == ty);
+        assert(new_value.get_value_type() == ty);
+        let inst = graph::create_atomic_compare_exchange_inst(
+            ty,
+            obj,
+            expected,
+            new_value,
+        );
+        self.current().append_inst(inst);
+        inst
+    }
+
+    fn emit_intrinsic_atomic_fetch_add(obj: Inst, increment: Inst, ty: Type): Inst {
+        assert(obj.get_value_type() == Type::Ptr);
+        assert(increment.get_value_type() == ty);
+        let inst = graph::create_atomic_fetch_add_inst(ty, obj, increment);
+        self.current().append_inst(inst);
+        inst
+    }
+
+    fn emit_intrinsic_debug() {
+        let inst = graph::create_debug_inst();
+        self.current().append_inst(inst);
+    }
+
+    fn emit_intrinsic_rotate(src: Inst, by: Inst, ty: Type, is_left: Bool): Inst {
+        assert(src.get_value_type() == ty);
+        assert(by.get_value_type() == Type::Int32);
+        let inst = if is_left {
+            graph::create_rotate_left_inst(ty, src, by)
+        } else {
+            graph::create_rotate_right_inst(ty, src, by)
+        };
+        self.current().append_inst(inst);
+        inst
+    }
+
+    fn emit_intrinsic_cast_between_int32_and_char(src: Inst): Inst {
+        assert(src.get_value_type() == Type::Int32);
+        src
+    }
+
+    fn emit_intrinsic_rounding(value: Inst, op: Op, ty: Type): Inst {
+        assert(ty == value.get_value_type());
+        let result = graph::create_unary_inst(op, ty, value);
+        self.current().append_inst(result);
+        result
+    }
+
+    fn emit_intrinsic_compare_ordering(lhs: Inst, rhs: Inst, ty: Type): Inst {
+        assert(ty == lhs.get_value_type());
+        assert(ty == rhs.get_value_type());
+        let result = graph::create_compare_ordering_inst(ty, lhs, rhs);
+        self.current().append_inst(result);
+        result
+    }
+
+    fn emit_intrinsic_un(value: Inst, op: Op): Inst {
+        let ty = value.get_value_type();
+        let result = graph::create_unary_inst(op, ty, value);
+        if op == Op::CheckedNeg {
+            self.set_current_inlined_location(result);
+        }
+        self.current().append_inst(result);
+        result
+    }
+
+    fn emit_intrinsic_bin(mut lhs: Inst, mut rhs: Inst, op: Op): Inst {
+        if op.is_commutative() && lhs.is_const() {
+            let tmp = lhs;
+            lhs = rhs;
+            rhs = tmp;
+        }
+
+        let result = graph::create_binary_inst(op, lhs.get_value_type(), lhs, rhs);
+        if (
+            op == Op::CheckedDiv ||
+            op == Op::CheckedMod ||
+            op == Op::CheckedAdd ||
+            op == Op::CheckedSub ||
+            op == Op::CheckedMul
+        ) {
+            self.set_current_inlined_location(result);
+        }
+        self.current().append_inst(result);
+        result
+    }
+
+    fn emit_intrinsic_shift(lhs: Inst, rhs: Inst, op: Op): Inst {
+        let ty = lhs.get_value_type();
+
+        let check = graph::create_check_shift_amount_inst(ty, rhs);
+        self.set_current_inlined_location(check);
+        self.current().append_inst(check);
+
+        let result = graph::create_binary_inst(op, ty, lhs, rhs);
+        self.current().append_inst(result);
+        result
+    }
+
+    fn emit_intrinsic_overflowing_add(lhs: Inst, rhs: Inst): OverflowingResult {
+        let value_ty = lhs.get_value_type();
+
+        let value_inst = graph::create_binary_inst(Op::Add, value_ty, lhs, rhs);
+        self.current().append_inst(value_inst);
+
+        let overflow_inst = graph::create_binary_inst(
+            Op::IsAddOverflowing,
+            value_ty,
+            lhs,
+            rhs,
+        );
+        self.current().append_inst(overflow_inst);
+
+        OverflowingResult(value = value_inst, overflowing = overflow_inst)
+    }
+
+    fn emit_intrinsic_overflowing_sub(lhs: Inst, rhs: Inst): OverflowingResult {
+        let value_ty = lhs.get_value_type();
+
+        let value_inst = graph::create_binary_inst(Op::Sub, value_ty, lhs, rhs);
+        self.current().append_inst(value_inst);
+
+        let overflow_inst = graph::create_binary_inst(
+            Op::IsSubOverflowing,
+            value_ty,
+            lhs,
+            rhs,
+        );
+        self.current().append_inst(overflow_inst);
+
+        OverflowingResult(value = value_inst, overflowing = overflow_inst)
+    }
+
+    fn emit_intrinsic_overflowing_mul(lhs: Inst, rhs: Inst): OverflowingResult {
+        let value_ty = lhs.get_value_type();
+
+        let value_inst = graph::create_binary_inst(Op::Mul, value_ty, lhs, rhs);
+        self.current().append_inst(value_inst);
+
+        let overflow_inst = graph::create_binary_inst(
+            Op::IsMulOverflowing,
+            value_ty,
+            lhs,
+            rhs,
+        );
+        self.current().append_inst(overflow_inst);
+
+        OverflowingResult(value = value_inst, overflowing = overflow_inst)
+    }
+
+    fn emit_intrinsic_overflowing_div(lhs: Inst, rhs: Inst): OverflowingResult {
+        let value_ty = lhs.get_value_type();
+
+        let check_inst = graph::create_check_div_zero_inst(rhs);
+        self.set_current_inlined_location(check_inst);
+        self.current().append_inst(check_inst);
+
+        let value_inst = graph::create_binary_inst(Op::Div, value_ty, lhs, rhs);
+        self.current().append_inst(value_inst);
+
+        let overflow_inst = graph::create_binary_inst(
+            Op::IsDivOverflowing,
+            value_ty,
+            lhs,
+            rhs,
+        );
+        self.current().append_inst(overflow_inst);
+
+        OverflowingResult(value = value_inst, overflowing = overflow_inst)
+    }
+
+    fn emit_intrinsic_overflowing_mod(lhs: Inst, rhs: Inst): OverflowingResult {
+        let value_ty = lhs.get_value_type();
+
+        let check_inst = graph::create_check_div_zero_inst(rhs);
+        self.set_current_inlined_location(check_inst);
+        self.current().append_inst(check_inst);
+
+        let value_inst = graph::create_binary_inst(Op::Mod, value_ty, lhs, rhs);
+        self.current().append_inst(value_inst);
+
+        let overflow_inst = graph::create_binary_inst(
+            Op::IsModOverflowing,
+            value_ty,
+            lhs,
+            rhs,
+        );
+        self.current().append_inst(overflow_inst);
+
+        OverflowingResult(value = value_inst, overflowing = overflow_inst)
+    }
+
+    fn emit_intrinsic_overflowing_neg(value: Inst): OverflowingResult {
+        let value_ty = value.get_value_type();
+
+        let value_inst = graph::create_unary_inst(Op::Neg, value_ty, value);
+        self.current().append_inst(value_inst);
+
+        let overflow_inst = graph::create_unary_inst(
+            Op::IsNegOverflowing,
+            value_ty,
+            value,
+        );
+        self.current().append_inst(overflow_inst);
+
+        OverflowingResult(value = value_inst, overflowing = overflow_inst)
+    }
+
+    fn emit_intrinsic_convert(value: Inst, dest_ty: Type, src_ty: Type): Inst {
+        assert(src_ty == value.get_value_type());
+        let result = graph::create_convert_inst(dest_ty, value);
+        self.current().append_inst(result);
+        result
+    }
+
+    fn emit_intrinsic_bitcast(value: Inst, dest_ty: Type, src_ty: Type): Inst {
+        assert(src_ty == value.get_value_type());
+        let result = graph::create_bitcast_inst(dest_ty, value);
+        self.current().append_inst(result);
+        result
+    }
+
+    fn emit_intrinsic_option_is_some(obj: Inst, ty: BytecodeType): Inst {
+        self.emit_intrinsic_option_is_some_or_none(obj, ty, true)
+    }
+
+    fn emit_intrinsic_option_is_none(obj: Inst, ty: BytecodeType): Inst {
+        self.emit_intrinsic_option_is_some_or_none(obj, ty, false)
+    }
+
+    fn emit_intrinsic_option_is_some_or_none(
+        obj: Inst,
+        ty: BytecodeType,
+        is_some: Bool,
+    ): Inst {
+        let BytecodeType::Enum(enum_id, type_params) = ty;
+        let layout = self.compute_enum_layout(enum_id, type_params);
+
+        let enum_data = iface::get_enum_data(enum_id);
+        let some_variant_id = if enum_data.variants(0).fields.is_empty() {
+            1i32
+        } else {
+            0i32
+        };
+
+        match layout {
+            EnumLayout::Int32 => unreachable[Inst](),
+            EnumLayout::PtrOrNull(_) => {
+                let null = graph::create_null_const();
+                self.current().append_inst(null);
+
+                let op = if is_some {
+                    Op::NotEqual
+                } else {
+                    Op::Equal
+                };
+
+                let result = graph::create_binary_inst(op, Type::Ptr, obj, null);
+                self.current().append_inst(result);
+                result
+            }
+            EnumLayout::Tagged => {
+                let variant_field = graph::create_load_inst(
+                    obj,
+                    iface::OBJECT_HEADER_LENGTH,
+                    InstExtraData::None,
+                    Type::Int32,
+                    true,
+                );
+                self.set_current_inlined_location(variant_field);
+                self.current().append_inst(variant_field);
+
+                let op = if is_some {
+                    Op::Equal
+                } else {
+                    Op::NotEqual
+                };
+
+                let some_const = self.graph.ensure_const_int32_inst(some_variant_id);
+
+                let result = graph::create_binary_inst(
+                    op,
+                    Type::Int32,
+                    variant_field,
+                    some_const,
+                );
+                self.current().append_inst(result);
+                result
+            }
+        }
+    }
+
+    fn emit_intrinsic_unreachable() {
+        let info = InstExtraData::RuntimeFunction(RuntimeFunction::UnreachableTrampoline);
+        let inst = graph::create_invoke_inst(
+            info,
+            CallKind::Static,
+            Vec[Inst]::new(),
+            Type::Unit,
+        );
+        self.set_current_inlined_location(inst);
+        self.current().append_inst(inst);
+
+        let inst = graph::create_unreachable_inst();
+        self.current().append_inst(inst);
+    }
+
+    fn emit_intrinsic_fatal_error(arg: Inst) {
+        let args = Vec[Inst]::new(arg);
+
+        let info = InstExtraData::RuntimeFunction(RuntimeFunction::FatalErrorTrampoline);
+        let inst = graph::create_invoke_inst(info, CallKind::Static, args, Type::Unit);
+        self.set_current_inlined_location(inst);
+        self.current().append_inst(inst);
+
+        let inst = graph::create_unreachable_inst();
+        self.current().append_inst(inst);
+    }
+
+    fn emit_intrinsic_assert(condition: Inst) {
+        let inst = graph::create_assert_inst(condition);
+        self.current().append_inst(inst);
+        self.set_current_inlined_location(inst);
+    }
+
+    fn emit_intrinsic_thread_current(): Inst {
+        let inst = graph::create_thread_current_inst();
+        self.current().append_inst(inst);
+        inst
+    }
+}

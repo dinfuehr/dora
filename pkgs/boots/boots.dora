@@ -1,7 +1,3 @@
-use package::bytecode::BytecodeType;
-use package::bytecode_graph_builder::{add_to_inlinable_calls, bytecode_graph_ty};
-use package::calling_convention as cc;
-use package::calling_convention::ArgumentPassingMode;
 use package::cfg_simplification::perform_cfg_simplification;
 use package::codegen::{create_code_gen, generate_code};
 use package::codegen::CodeGen;
@@ -13,31 +9,21 @@ use package::compilation::{
 };
 use package::dead_code_elimination::perform_dead_code_elimination;
 use package::dominator::build_dominator_tree;
-use package::graph::{
-    Block,
-    CallKind,
-    Edge,
-    FunctionInfo,
-    Graph,
-    Inst,
-    InstExtraData,
-    Op,
-    Type,
-    create_goto_inst,
-};
+use package::graph::{Block, Edge, Graph, Inst, Op, Type, create_goto_inst};
 use package::graph::dump::dump_graph;
 use package::graph::verifier::verify_graph;
-use package::graph_builder::{analyze_bytecode, create_graph};
+use package::graph_builder::{
+    analyze_bytecode,
+    create_graph,
+    create_trait_object_thunk_graph,
+};
 use package::inlining::perform_inlining;
-use package::interface as iface;
 use package::interface::{
     Architecture,
     CodeDescriptor,
     CommentTable,
     GcPoint,
     GcPointTable,
-    InlinedFunctionId,
-    InlinedLocation,
     LocationTable,
 };
 use package::interface::config;
@@ -102,154 +88,6 @@ pub fn compile_trait_object_thunk(
     ci.init_html_writer();
     let graph = create_trait_object_thunk_graph(ci, thunk);
     compile_graph(ci, graph, thunk.signature)
-}
-
-fn create_trait_object_thunk_graph(ci: CompilationInfo, thunk: TraitObjectThunk): Graph {
-    let signature = thunk.signature;
-    assert(!signature.params.is_empty());
-    match signature.params(0) {
-        BytecodeType::TraitObject(..) => {}
-        _ => unreachable[()](),
-    }
-
-    let result = Graph::new();
-    let entry = Block::new();
-    result.add_block(entry);
-    result.set_entry_block(entry);
-
-    let call_args = Vec[Inst]::new();
-    let return_mode = cc::argument_passing_mode(ci, signature.return_type);
-    let mut arg_idx = 0i32;
-
-    if return_mode is ArgumentPassingMode::Stack {
-        let return_address = graph::create_arg_inst(arg_idx, Type::Address);
-        entry.append_inst(return_address);
-        call_args.push(return_address);
-        arg_idx += 1i32;
-    }
-
-    let receiver = graph::create_arg_inst(arg_idx, Type::Ptr);
-    entry.append_inst(receiver);
-    arg_idx += 1i32;
-
-    let forwarded_args = Vec[Inst]::new();
-    for param_idx in std::range(1, signature.params.size()) {
-        let param_ty = signature.params(param_idx);
-        match cc::argument_passing_mode(ci, param_ty) {
-            ArgumentPassingMode::None => {}
-            ArgumentPassingMode::Register(register_ty) => {
-                let ty = bytecode_graph_ty(
-                    ci,
-                    signature.specialize_self,
-                    signature.type_params,
-                    register_ty,
-                );
-                let arg = graph::create_arg_inst(arg_idx, ty);
-                entry.append_inst(arg);
-                forwarded_args.push(arg);
-                arg_idx += 1i32;
-            }
-            ArgumentPassingMode::Stack => {
-                let arg = graph::create_arg_inst(arg_idx, Type::Address);
-                entry.append_inst(arg);
-                forwarded_args.push(arg);
-                arg_idx += 1i32;
-            }
-        }
-    }
-
-    let safepoint = graph::create_safepoint_inst();
-    entry.append_inst(safepoint);
-
-    if thunk.receiver_by_reference {
-        let offset = graph::create_int64_const(iface::OBJECT_HEADER_LENGTH.to_int64());
-        entry.append_inst(offset);
-        let address = graph::create_binary_inst(
-            graph::Op::Add,
-            Type::Address,
-            receiver,
-            offset,
-        );
-        entry.append_inst(address);
-        call_args.push(address);
-    } else {
-        match cc::argument_passing_mode(ci, thunk.actual_object_ty) {
-            ArgumentPassingMode::None => {}
-            ArgumentPassingMode::Register(register_ty) => {
-                let ty = bytecode_graph_ty(
-                    ci,
-                    signature.specialize_self,
-                    signature.type_params,
-                    register_ty,
-                );
-                let value = graph::create_load_inst(
-                    receiver,
-                    iface::OBJECT_HEADER_LENGTH,
-                    InstExtraData::None,
-                    ty,
-                    false,
-                );
-                entry.append_inst(value);
-                call_args.push(value);
-            }
-            ArgumentPassingMode::Stack => {
-                let offset = graph::create_int64_const(
-                    iface::OBJECT_HEADER_LENGTH.to_int64()
-                );
-                entry.append_inst(offset);
-                let address = graph::create_binary_inst(
-                    graph::Op::Add,
-                    Type::Address,
-                    receiver,
-                    offset,
-                );
-                entry.append_inst(address);
-                call_args.push(address);
-            }
-        }
-    }
-
-    for arg in forwarded_args {
-        call_args.push(arg);
-    }
-
-    let return_ty = match return_mode {
-        ArgumentPassingMode::None | ArgumentPassingMode::Stack => Type::Unit,
-        ArgumentPassingMode::Register(register_ty) => {
-            bytecode_graph_ty(
-                ci,
-                signature.specialize_self,
-                signature.type_params,
-                register_ty,
-            )
-        }
-    };
-    let fct_info = FunctionInfo(
-        fct_id = thunk.callee_fct_id,
-        type_params = thunk.callee_type_params,
-    );
-    let invoke = graph::create_invoke_inst(
-        InstExtraData::FunctionInfo(fct_info),
-        CallKind::Direct,
-        call_args,
-        return_ty,
-    );
-    invoke.set_inlined_location(
-        InlinedLocation(inlined_function_id = None[InlinedFunctionId], location = ci.loc)
-    );
-    entry.append_inst(invoke);
-    add_to_inlinable_calls(ci, result, thunk.callee_fct_id, invoke);
-
-    match return_mode {
-        ArgumentPassingMode::Register(_) => {
-            entry.append_inst(graph::create_return_inst(invoke, return_ty));
-        }
-        ArgumentPassingMode::None | ArgumentPassingMode::Stack => {
-            entry.append_inst(graph::create_return_void_inst());
-        }
-    }
-
-    result
 }
 
 fn compile_graph(

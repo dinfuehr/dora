@@ -29,7 +29,6 @@ use package::regalloc::{RecordLayout, RegisterTracker};
 
 pub use package::graph::ty::Type;
 
-pub mod builder;
 pub mod dump;
 pub mod html;
 pub mod reader;
