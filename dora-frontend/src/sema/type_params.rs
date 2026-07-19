@@ -362,3 +362,48 @@ pub fn new_identity_type_params(start: usize, number_type_params: usize) -> Sour
         .collect::<Vec<_>>();
     SourceTypeArray::with(type_params)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::sema::FctParent;
+    use crate::tests::ok;
+
+    #[test]
+    fn nested_method_reuses_container_type_param_ids() {
+        let sa = ok("class A[X]\nimpl[T] A[T] { fn test[U]() {} }");
+        let (_, method) = sa
+            .fcts
+            .iter()
+            .find(|(_, fct)| sa.interner.str(fct.name).as_str() == "test")
+            .expect("method not found");
+        let FctParent::Extension(extension_id) = method.parent else {
+            panic!("extension method expected");
+        };
+        let extension = sa.extension(extension_id);
+        let impl_params = sa.type_param_definition(extension.type_param_definition_id);
+        let method_params = sa.type_param_definition(method.type_param_definition_id);
+        let container_id = impl_params.type_param_id(&sa, TypeParamIdx(0));
+        let method_id = method_params.type_param_id(&sa, TypeParamIdx(1));
+
+        assert_eq!(
+            method_params
+                .names(&sa)
+                .map(|(id, _)| id)
+                .collect::<Vec<_>>(),
+            vec![container_id, method_id]
+        );
+        assert_eq!(
+            method_params.type_param_id(&sa, TypeParamIdx(0)),
+            container_id
+        );
+        assert_eq!(
+            method_params.type_param_idx(&sa, container_id),
+            Some(TypeParamIdx(0))
+        );
+        assert_eq!(
+            method_params.type_param_idx(&sa, method_id),
+            Some(TypeParamIdx(1))
+        );
+    }
+}

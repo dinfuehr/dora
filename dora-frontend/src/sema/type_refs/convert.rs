@@ -631,3 +631,45 @@ fn get_type_argument_span(
 
     panic!("missing type argument span");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::sema::TypeParamIdx;
+    use crate::tests::ok;
+
+    #[test]
+    #[should_panic(expected = "type parameter missing from definition")]
+    fn converting_type_param_from_unrelated_definition_fails() {
+        let sa = ok("class A[X]\nclass B[Y](Y)");
+        let (_, a) = sa
+            .classes
+            .iter()
+            .find(|(_, class)| sa.interner.str(class.name).as_str() == "A")
+            .expect("class A not found");
+        let (_, b) = sa
+            .classes
+            .iter()
+            .find(|(_, class)| sa.interner.str(class.name).as_str() == "B")
+            .expect("class B not found");
+        let foreign_id = a
+            .type_param_definition(&sa)
+            .type_param_id(&sa, TypeParamIdx(0));
+        let type_ref_arena = b.type_ref_arena();
+        let type_ref_id = type_ref_arena
+            .arena
+            .iter()
+            .next()
+            .map(|(id, _)| id)
+            .expect("type reference not found");
+
+        convert_type_ref_symbol(
+            &sa,
+            type_ref_arena,
+            b,
+            type_ref_id,
+            SymbolKind::TypeParam(foreign_id),
+            &[],
+        );
+    }
+}
