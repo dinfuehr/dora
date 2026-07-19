@@ -3,7 +3,7 @@ use package::bytecode::BytecodeType;
 use package::calling_convention as cc;
 use package::calling_convention::ArgumentPassingMode;
 use package::codegen::CodeGen;
-use package::compilation::{CompilationInfo, FunctionSignature, SpecializeSelf};
+use package::compilation::{CompilationInfo, FunctionSignature};
 use package::graph::{
     Graph,
     InputOutputOverlap,
@@ -540,12 +540,7 @@ fn compute_argument_locations(
     let gp_argument_registers = codegen.argument_registers();
     let fp_argument_registers = codegen.argument_float_registers();
 
-    let ret_ty = specialize_ty(
-        ci,
-        None[SpecializeSelf],
-        signature.return_type,
-        signature.type_params,
-    );
+    let ret_ty = specialize_ty(ci, signature.return_type, signature.type_params);
 
     if cc::argument_passing_mode(ci, ret_ty) is ArgumentPassingMode::Stack {
         locations.push(gp_argument_registers(gp_idx).to_location());
@@ -554,7 +549,7 @@ fn compute_argument_locations(
 
     for idx in std::range(0, arguments) {
         let ty = signature.params(idx);
-        let ty = specialize_ty(ci, signature.specialize_self, ty, signature.type_params);
+        let ty = specialize_ty(ci, ty, signature.type_params);
 
         let passing_mode = cc::argument_passing_mode(ci, ty);
         if passing_mode is ArgumentPassingMode::None {

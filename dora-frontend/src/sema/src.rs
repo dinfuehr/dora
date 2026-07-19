@@ -18,16 +18,18 @@ pub struct ContextId(pub usize);
 pub struct ContextData {
     parent: Option<ContextId>,
     has_parent_slot: bool,
+    needs_self_type_param: bool,
     class_id: Option<ClassDefinitionId>,
     class_definition: Option<ClassDefinition>,
     fields: Vec<FieldDefinition>,
 }
 
 impl ContextData {
-    pub fn new(parent: Option<ContextId>) -> ContextData {
+    pub fn new(parent: Option<ContextId>, needs_self_type_param: bool) -> ContextData {
         ContextData {
             parent,
             has_parent_slot: false,
+            needs_self_type_param,
             class_id: None,
             class_definition: None,
             fields: Vec::new(),
@@ -45,6 +47,10 @@ impl ContextData {
 
     pub fn parent(&self) -> Option<ContextId> {
         self.parent
+    }
+
+    pub fn needs_self_type_param(&self) -> bool {
+        self.needs_self_type_param
     }
 
     pub fn set_class_data(

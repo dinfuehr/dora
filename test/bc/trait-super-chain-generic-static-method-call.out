@@ -4,7 +4,7 @@ fn A::a_static[T, U]:
 fn A::a_other[T, U]:
   <no bytecode>
 
-fn B::b_static[X, Y]:
+fn B::b_static[X, Y, $Self]:
   0: InvokeGenericStatic r0, @0 # A::a_other[T, U]
   4: Ret r0
 
@@ -12,25 +12,25 @@ fn B::b_static[X, Y]:
    0 => X
 
   Constants:
-   0 => Generic A::a_other[T, U] on Self as A[Y, X]
+   0 => Generic A::a_other[T, U] on $Self as A[Y, X]
 
   Locations:
    0 => 9:9
 
-fn C::c_static[Z]:
-  0: InvokeGenericStatic r0, @0 # B::b_static[X, Y]
+fn C::c_static[Z, $Self]:
+  0: InvokeGenericStatic r0, @0 # B::b_static[X, Y, $Self]
   4: Ret r0
 
   Registers:
    0 => Z
 
   Constants:
-   0 => Generic B::b_static[X, Y] on Self as B[Z, Int64]
+   0 => Generic B::b_static[X, Y, $Self] on $Self as B[Z, Int64]
 
   Locations:
    0 => 16:9
 
-fn C::c_int[Z]:
+fn C::c_int[Z, $Self]:
   0: InvokeGenericStatic r0, @0 # A::a_static[T, U]
   4: Ret r0
 
@@ -38,12 +38,12 @@ fn C::c_int[Z]:
    0 => Int64
 
   Constants:
-   0 => Generic A::a_static[T, U] on Self as A[Int64, Z]
+   0 => Generic A::a_static[T, U] on $Self as A[Int64, Z]
 
   Locations:
    0 => 19:9
 
-fn D::d_static[P, Q]:
+fn D::d_static[P, Q, $Self]:
   0: InvokeGenericStatic r0, @0 # A::a_other[T, U]
   4: Ret r0
 
@@ -51,7 +51,7 @@ fn D::d_static[P, Q]:
    0 => P
 
   Constants:
-   0 => Generic A::a_other[T, U] on Self as A[Q, P]
+   0 => Generic A::a_other[T, U] on $Self as A[Q, P]
 
   Locations:
    0 => 26:9

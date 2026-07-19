@@ -1,16 +1,16 @@
 fn Foo::foo:
   <no bytecode>
 
-fn Foo::bar:
+fn Foo::bar[$Self]:
   0: InvokeGenericDirect r1, @0, r0 # Foo::foo
   5: Ret r1
 
   Registers:
-   0 => Self
+   0 => $Self
    1 => ()
 
   Constants:
-   0 => Generic Foo::foo on Self as Foo
+   0 => Generic Foo::foo on $Self as Foo
 
   Locations:
    0 => 4:9

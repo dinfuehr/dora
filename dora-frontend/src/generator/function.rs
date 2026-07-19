@@ -25,10 +25,12 @@ pub fn generate_fct(
     fct: &FctDefinition,
     src: &AnalysisData,
 ) -> BytecodeBody {
+    let frontend_type_params_len = fct.type_param_definition.type_param_count();
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
         emitter,
-        type_params_len: fct.type_param_definition.type_param_count(),
+        frontend_type_params_len,
+        type_params_len: frontend_type_params_len + usize::from(fct.needs_self_type_param(sa)),
         is_lambda: fct.is_lambda(),
         return_type: fct.return_type(),
         file_id: fct.file_id,

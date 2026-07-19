@@ -132,6 +132,12 @@ pub struct FunctionData {
     pub trait_method_impl: Option<FunctionId>,
 }
 
+impl FunctionData {
+    pub fn has_bytecode_self_type_param(&self) -> bool {
+        matches!(self.kind, FunctionKind::Trait(_)) && self.bytecode.is_some()
+    }
+}
+
 #[derive(Debug, Decode, Encode)]
 pub enum FunctionKind {
     Impl(ImplId),

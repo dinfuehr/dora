@@ -120,6 +120,7 @@ pub(super) fn check_expr_lambda(
             is_variadic,
             return_type: Some(lambda_return_type.clone()),
             parent: ck.parent.clone(),
+            is_in_trait: ck.is_in_trait,
             has_hidden_self_argument: true,
             is_self_available: ck.is_self_available,
             is_mutating: ck.is_mutating,
@@ -154,6 +155,7 @@ pub(super) fn check_expr_lambda(
         Params::new(lambda_params, true, is_variadic),
         lambda_return_type.clone(),
         FctParent::Function,
+        ck.is_in_trait,
     );
     lambda
         .parsed_return_type()

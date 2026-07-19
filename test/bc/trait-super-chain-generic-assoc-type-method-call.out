@@ -7,60 +7,60 @@ fn A::get_t[T, U]:
 fn A::get_u[T, U]:
   <no bytecode>
 
-fn B::b_method[X, Y]:
+fn B::b_method[X, Y, $Self]:
   0: InvokeGenericDirect r2, @0, r1 # Callable::call
   5: Ret r2
 
   Registers:
-   0 => Self
-   1 => [Self as A[Y, X]]::Item
+   0 => $Self
+   1 => [$Self as A[Y, X]]::Item
    2 => Int64
 
   Constants:
-   0 => Generic Callable::call on [Self as A[Y, X]]::Item as Callable
+   0 => Generic Callable::call on [$Self as A[Y, X]]::Item as Callable
 
   Locations:
    0 => 14:9
 
-fn B::b_get[X, Y]:
+fn B::b_get[X, Y, $Self]:
   0: InvokeGenericDirect r1, @0, r0 # A::get_u[T, U]
   5: Ret r1
 
   Registers:
-   0 => Self
+   0 => $Self
    1 => X
 
   Constants:
-   0 => Generic A::get_u[T, U] on Self as A[Y, X]
+   0 => Generic A::get_u[T, U] on $Self as A[Y, X]
 
   Locations:
    0 => 17:9
 
-fn C::c_method[Z]:
+fn C::c_method[Z, $Self]:
   0: InvokeGenericDirect r2, @0, r1 # Callable::call
   5: Ret r2
 
   Registers:
-   0 => Self
-   1 => [Self as A[Int64, Z]]::Item
+   0 => $Self
+   1 => [$Self as A[Int64, Z]]::Item
    2 => Int64
 
   Constants:
-   0 => Generic Callable::call on [Self as A[Int64, Z]]::Item as Callable
+   0 => Generic Callable::call on [$Self as A[Int64, Z]]::Item as Callable
 
   Locations:
    0 => 24:9
 
-fn C::c_get[Z]:
-  0: InvokeGenericDirect r1, @0, r0 # B::b_get[X, Y]
+fn C::c_get[Z, $Self]:
+  0: InvokeGenericDirect r1, @0, r0 # B::b_get[X, Y, $Self]
   5: Ret r1
 
   Registers:
-   0 => Self
+   0 => $Self
    1 => Z
 
   Constants:
-   0 => Generic B::b_get[X, Y] on Self as B[Z, Int64]
+   0 => Generic B::b_get[X, Y, $Self] on $Self as B[Z, Int64]
 
   Locations:
    0 => 27:9

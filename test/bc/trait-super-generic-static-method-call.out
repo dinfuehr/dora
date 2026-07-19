@@ -1,7 +1,7 @@
 fn Base::base_method[T]:
   <no bytecode>
 
-fn Derived::derived_method:
+fn Derived::derived_method[$Self]:
   0: InvokeGenericStatic r1, @0 # Base::base_method[T]
   4: ConstInt64 r2, @1 # 1
   7: CheckedAdd r0, r1, r2
@@ -13,7 +13,7 @@ fn Derived::derived_method:
    2 => Int64
 
   Constants:
-   0 => Generic Base::base_method[T] on Self as Base[Int64]
+   0 => Generic Base::base_method[T] on $Self as Base[Int64]
    1 => Int64 1
 
   Locations:

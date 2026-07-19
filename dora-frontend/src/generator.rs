@@ -6,7 +6,8 @@ use self::expr::{gen_stmt_expr, gen_stmt_let};
 use crate::program_emitter::Emitter;
 use crate::sema::{
     AnalysisData, ContextFieldId, ContextId, ExprMapId, FctDefinitionId, FieldIndex, Intrinsic,
-    ScopeId, Sema, SourceFileId, Stmt, StmtId, VarId, lambda_object_type, new_identity_type_params,
+    ScopeId, Sema, SourceFileId, Stmt, StmtId, VarId, generated_identity_type_params,
+    lambda_object_type,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
@@ -43,6 +44,7 @@ struct AstBytecodeGen<'a> {
     sa: &'a Sema,
     #[allow(unused)]
     emitter: &'a mut Emitter,
+    frontend_type_params_len: usize,
     type_params_len: usize,
     is_lambda: bool,
     return_type: SourceType,
@@ -138,7 +140,6 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn create_context(&mut self, context_id: ContextId) -> Register {
         let context = self.sa.context(context_id);
-        let class_id = context.class_id();
         let has_parent_slot = context.has_parent_slot();
 
         let context_type = self.context_type(context_id);
@@ -149,7 +150,7 @@ impl<'a> AstBytecodeGen<'a> {
         let context_register = self.builder.alloc_global(context_type);
         let idx = self
             .builder
-            .add_const_cls_types(bc_class_id, bc_type_params);
+            .add_const_cls_types(bc_class_id, bc_type_params.clone());
         self.builder
             .emit_new_object_uninitialized(context_register, idx, self.loc(self.span));
 
@@ -164,10 +165,6 @@ impl<'a> AstBytecodeGen<'a> {
             };
 
             // Store value in parent field of context object.
-            let bc_class_id = self.emitter.convert_class_id(self.sa, class_id);
-            let bc_type_params = self
-                .emitter
-                .convert_tya(self.sa, &self.identity_type_params());
             let idx = self
                 .builder
                 .add_const_field_types(bc_class_id, bc_type_params, 0);
@@ -226,8 +223,14 @@ impl<'a> AstBytecodeGen<'a> {
         None
     }
 
-    fn identity_type_params(&self) -> SourceTypeArray {
-        new_identity_type_params(0, self.type_params_len)
+    fn type_params_for_generated(&self, needs_self_type_param: bool) -> SourceTypeArray {
+        let type_params =
+            generated_identity_type_params(self.frontend_type_params_len, needs_self_type_param);
+        assert!(
+            type_params.len() == self.type_params_len
+                || type_params.len() == self.type_params_len + 1
+        );
+        type_params
     }
 
     fn convert_tya(&mut self, ty: &SourceTypeArray) -> BytecodeTypeArray {
@@ -236,14 +239,15 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn context_type(&mut self, context_id: ContextId) -> BytecodeType {
         let context = self.sa.context(context_id);
-        let class_id = self.emitter.convert_class_id(self.sa, context.class_id());
-        let identity_type_params = self.identity_type_params();
-        let type_params = self.convert_tya(&identity_type_params);
+        let class = self.sa.class(context.class_id());
+        let class_id = self.emitter.convert_class_id(self.sa, class.id());
+        let type_params = self.type_params_for_generated(class.needs_self_type_param);
+        let type_params = self.convert_tya(&type_params);
         BytecodeType::Class(class_id, type_params)
     }
 
     fn lambda_object_type(&mut self) -> BytecodeType {
-        let ty = lambda_object_type(self.sa, self.analysis, self.type_params_len);
+        let ty = lambda_object_type(self.sa, self.analysis, self.frontend_type_params_len);
         self.emitter.convert_ty(self.sa, ty)
     }
 
@@ -445,9 +449,11 @@ fn store_in_context(
     let context_register = entered_context.register.expect("missing register");
     let context = g.sa.context(entered_context.context_id);
     let cls_id = context.class_id();
+    let cls = g.sa.class(cls_id);
     let field_id = field_id_from_context_idx(field_id, context.has_parent_slot());
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
-    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let type_params = g.type_params_for_generated(cls.needs_self_type_param);
+    let bc_type_params = g.convert_tya(&type_params);
     let field_idx = g
         .builder
         .add_const_field_types(bc_cls_id, bc_type_params, field_id.0 as u32);

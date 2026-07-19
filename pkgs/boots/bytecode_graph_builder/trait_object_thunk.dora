@@ -25,7 +25,6 @@ impl BytecodeGraphBuilder {
             bc = None[BytecodeBody],
             type_params = thunk.signature.type_params,
             return_type = thunk.signature.return_type,
-            specialize_self = thunk.signature.specialize_self,
             signature = thunk.signature,
             analysis = BytecodeAnalysis(BitSet::new(0i64)),
             current_block = None[Block],

@@ -1,37 +1,37 @@
 fn Callable::call:
   <no bytecode>
 
-fn B::b_method:
+fn B::b_method[$Self]:
   0: InvokeGenericDirect r2, @0, r1 # Callable::call
   5: Ret r2
 
   Registers:
-   0 => Self
-   1 => [Self as A]::Item
+   0 => $Self
+   1 => [$Self as A]::Item
    2 => Int64
 
   Constants:
-   0 => Generic Callable::call on [Self as A]::Item as Callable
+   0 => Generic Callable::call on [$Self as A]::Item as Callable
 
   Locations:
    0 => 11:9
 
-fn C::c_method:
+fn C::c_method[$Self]:
   0: InvokeGenericDirect r3, @0, r1 # Callable::call
-  5: InvokeGenericDirect r4, @1, r0, r1 # B::b_method
+  5: InvokeGenericDirect r4, @1, r0, r1 # B::b_method[$Self]
  11: CheckedAdd r2, r3, r4
  15: Ret r2
 
   Registers:
-   0 => Self
-   1 => [Self as A]::Item
+   0 => $Self
+   1 => [$Self as A]::Item
    2 => Int64
    3 => Int64
    4 => Int64
 
   Constants:
-   0 => Generic Callable::call on [Self as A]::Item as Callable
-   1 => Generic B::b_method on Self as B
+   0 => Generic Callable::call on [$Self as A]::Item as Callable
+   1 => Generic B::b_method[$Self] on $Self as B
 
   Locations:
    0 => 17:9

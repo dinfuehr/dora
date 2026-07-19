@@ -28,6 +28,7 @@ pub struct ClassDefinition {
     pub ty: OnceCell<SourceType>,
     pub is_internal: bool,
     pub internal_resolved: bool,
+    pub needs_self_type_param: bool,
     pub visibility: Visibility,
     pub field_name_style: ast::FieldNameStyle,
 
@@ -67,6 +68,7 @@ impl ClassDefinition {
             ty: OnceCell::new(),
             is_internal: modifiers.is_internal,
             internal_resolved: false,
+            needs_self_type_param: false,
             visibility: modifiers.visibility(),
             field_name_style: ast.field_name_style(),
             field_ids: OnceCell::new(),
@@ -99,6 +101,7 @@ impl ClassDefinition {
             ty: OnceCell::new(),
             is_internal: false,
             internal_resolved: false,
+            needs_self_type_param: false,
             visibility,
             field_name_style: ast::FieldNameStyle::Positional,
             field_ids: OnceCell::new(),

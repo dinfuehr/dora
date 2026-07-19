@@ -7,7 +7,7 @@ use dora_bytecode::{
 };
 
 use crate::{
-    AotShapeKey, SpecializeSelf, find_trait_impl_in_program, find_trait_ty_impl_in_program,
+    AotShapeKey, bytecode_type_params, find_trait_impl_in_program, find_trait_ty_impl_in_program,
     get_bytecode, specialize_trait_ty_in_program, specialize_ty_array_in_program,
     specialize_ty_in_program,
 };
@@ -95,19 +95,14 @@ impl<'a> TransitiveClosureComputation<'a> {
     fn trace(&mut self, fct_id: FunctionId, type_params: BytecodeTypeArray) {
         let fct = &self.program.fct(fct_id);
 
-        if let Some((bytecode_body, specialize_self)) = get_bytecode(self.program, fct) {
-            self.iterate_bytecode(bytecode_body, type_params, specialize_self);
+        if let Some((bytecode_body, _)) = get_bytecode(self.program, fct) {
+            let type_params = bytecode_type_params(self.program, fct, &type_params);
+            self.iterate_bytecode(bytecode_body, type_params);
         }
     }
 
-    fn iterate_bytecode(
-        &mut self,
-        bytecode_body: &BytecodeBody,
-        type_params: BytecodeTypeArray,
-        specialize_self: Option<SpecializeSelf>,
-    ) {
+    fn iterate_bytecode(&mut self, bytecode_body: &BytecodeBody, type_params: BytecodeTypeArray) {
         let reader = BytecodeReader::new(bytecode_body.code());
-        let specialize_self = specialize_self.as_ref();
 
         for (_start, _opcode, inst) in reader {
             match inst {
@@ -120,7 +115,6 @@ impl<'a> TransitiveClosureComputation<'a> {
 
                     let callee_type_params = specialize_ty_array_in_program(
                         self.program,
-                        specialize_self,
                         &callee_type_params,
                         &type_params,
                     );
@@ -139,18 +133,10 @@ impl<'a> TransitiveClosureComputation<'a> {
                         unreachable!()
                     };
 
-                    let generic_ty = specialize_ty_in_program(
-                        self.program,
-                        specialize_self,
-                        object_type.clone(),
-                        &type_params,
-                    );
-                    let trait_ty = specialize_trait_ty_in_program(
-                        self.program,
-                        specialize_self,
-                        trait_ty,
-                        &type_params,
-                    );
+                    let generic_ty =
+                        specialize_ty_in_program(self.program, object_type.clone(), &type_params);
+                    let trait_ty =
+                        specialize_trait_ty_in_program(self.program, trait_ty, &type_params);
 
                     let (callee_id, callee_container_bindings) = find_trait_impl_in_program(
                         self.program,
@@ -161,7 +147,6 @@ impl<'a> TransitiveClosureComputation<'a> {
 
                     let callee_fct_type_params = specialize_ty_array_in_program(
                         self.program,
-                        specialize_self,
                         callee_fct_type_params,
                         &type_params,
                     );
@@ -178,7 +163,6 @@ impl<'a> TransitiveClosureComputation<'a> {
 
                     let callee_type_params = specialize_ty_array_in_program(
                         self.program,
-                        specialize_self,
                         &callee_type_params,
                         &type_params,
                     );
@@ -196,18 +180,9 @@ impl<'a> TransitiveClosureComputation<'a> {
                         _ => unreachable!(),
                     };
 
-                    let trait_ty = specialize_ty_in_program(
-                        self.program,
-                        specialize_self,
-                        trait_ty,
-                        &type_params,
-                    );
-                    let actual_object_ty = specialize_ty_in_program(
-                        self.program,
-                        specialize_self,
-                        actual_object_ty,
-                        &type_params,
-                    );
+                    let trait_ty = specialize_ty_in_program(self.program, trait_ty, &type_params);
+                    let actual_object_ty =
+                        specialize_ty_in_program(self.program, actual_object_ty, &type_params);
 
                     self.push_trait_object_targets(trait_ty.clone(), actual_object_ty.clone());
                     self.shape_keys.push(AotShapeKey::TraitObject {

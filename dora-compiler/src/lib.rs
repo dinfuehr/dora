@@ -1,6 +1,6 @@
 use dora_bytecode::{
-    BytecodeBody, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx,
-    EnumId, FunctionData, FunctionId, FunctionKind, GlobalId, ImplId, Location, Program,
+    BytecodeBody, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolIdx, EnumId, FunctionData,
+    FunctionId, FunctionKind, GlobalId, Location, Program,
 };
 use std::collections::HashSet;
 
@@ -72,18 +72,10 @@ pub use specialize::{
 };
 pub use ty::BytecodeTypeExt;
 
-pub struct SpecializeSelf {
-    pub impl_id: ImplId,
-    pub container_type_params: usize,
-    pub trait_ty: BytecodeTraitType,
-    pub extended_ty: BytecodeType,
-}
-
 pub struct FunctionSignature {
     pub params: BytecodeTypeArray,
     pub return_type: BytecodeType,
     pub type_params: BytecodeTypeArray,
-    pub specialize_self: Option<SpecializeSelf>,
 }
 
 impl FunctionSignature {
@@ -91,7 +83,6 @@ impl FunctionSignature {
         bytecode_body: &BytecodeBody,
         function: &FunctionData,
         type_params: BytecodeTypeArray,
-        specialize_self: Option<SpecializeSelf>,
     ) -> FunctionSignature {
         let argument_count = function.params.len();
         let params = BytecodeTypeArray::new(bytecode_body.registers()[..argument_count].to_vec());
@@ -100,7 +91,6 @@ impl FunctionSignature {
             params,
             return_type: function.return_type.clone(),
             type_params,
-            specialize_self,
         }
     }
 }
@@ -145,32 +135,62 @@ pub fn register_ty(ty: BytecodeType) -> BytecodeType {
 pub fn get_bytecode<'a>(
     program: &'a Program,
     program_fct: &'a FunctionData,
-) -> Option<(&'a BytecodeBody, Option<SpecializeSelf>)> {
+) -> Option<(&'a BytecodeBody, &'a FunctionData)> {
     match program_fct.bytecode.as_ref() {
-        Some(bytecode_body) => Some((bytecode_body, None)),
+        Some(bytecode_body) => Some((bytecode_body, program_fct)),
         None => {
             let trait_method_id = program_fct.trait_method_impl?;
             let trait_method = program.fct(trait_method_id);
-
-            let program_fct_impl_id = match program_fct.kind {
-                FunctionKind::Impl(impl_id) => impl_id,
-                _ => unreachable!(),
-            };
-
             let bytecode_body = trait_method.bytecode.as_ref()?;
-
-            let program_fct_impl = program.impl_(program_fct_impl_id);
-
-            let specialize_self = SpecializeSelf {
-                impl_id: program_fct_impl_id,
-                container_type_params: program_fct_impl.type_params.type_param_count(),
-                trait_ty: program_fct_impl.trait_ty.clone(),
-                extended_ty: program_fct_impl.extended_ty.clone(),
-            };
-
-            Some((bytecode_body, Some(specialize_self)))
+            Some((bytecode_body, trait_method))
         }
     }
+}
+
+pub fn bytecode_type_params(
+    program: &Program,
+    program_fct: &FunctionData,
+    type_params: &BytecodeTypeArray,
+) -> BytecodeTypeArray {
+    if program_fct.bytecode.is_some() {
+        return type_params.clone();
+    }
+
+    let trait_method_id = program_fct
+        .trait_method_impl
+        .expect("function without bytecode is not a default trait method");
+    let trait_method = program.fct(trait_method_id);
+    let impl_id = match program_fct.kind {
+        FunctionKind::Impl(impl_id) => impl_id,
+        _ => unreachable!(),
+    };
+    let impl_ = program.impl_(impl_id);
+    let impl_container_count = impl_.type_params.type_param_count();
+    let trait_container_count = impl_.trait_ty.type_params.len();
+    let trait_method_type_param_count = trait_method.type_params.type_param_count();
+    assert!(trait_method_type_param_count > trait_container_count);
+    assert!(trait_method.has_bytecode_self_type_param());
+    let method_type_param_count = trait_method_type_param_count - trait_container_count - 1;
+    assert_eq!(
+        program_fct.type_params.type_param_count(),
+        impl_container_count + method_type_param_count
+    );
+    assert_eq!(
+        type_params.len(),
+        impl_container_count + method_type_param_count
+    );
+
+    // A default method body is emitted in trait coordinates, while its synthetic impl method is
+    // instantiated in impl coordinates. Translate once into the body's ordinary indexed layout:
+    // trait arguments, method arguments, and the final bytecode-only Self argument.
+    let trait_type_params =
+        specialize_ty_array_in_program(program, &impl_.trait_ty.type_params, type_params);
+    let (_, method_type_params) = type_params.split(impl_container_count);
+    let self_type = specialize_ty_in_program(program, impl_.extended_ty.clone(), type_params);
+
+    trait_type_params
+        .connect(&method_type_params)
+        .append(self_type)
 }
 
 #[derive(Clone)]

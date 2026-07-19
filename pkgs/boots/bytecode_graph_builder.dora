@@ -26,7 +26,6 @@ use package::compilation::{
     CompilationInfo,
     FunctionCompilationInfo,
     FunctionSignature,
-    SpecializeSelf,
     TraitObjectThunk,
 };
 use package::graph;
@@ -56,7 +55,6 @@ pub fn compute_inline_return_type(
 ): Option[Type] {
     let return_type = specialize_ty(
         ci,
-        fct.signature.specialize_self,
         fct.signature.return_type,
         fct.signature.type_params,
     );
@@ -64,14 +62,7 @@ pub fn compute_inline_return_type(
     match cc::argument_passing_mode(ci, return_type) {
         ArgumentPassingMode::None | ArgumentPassingMode::Stack => None[Type],
         ArgumentPassingMode::Register(register_ty) => {
-            Some[Type](
-                bytecode_graph_ty(
-                    ci,
-                    fct.signature.specialize_self,
-                    fct.signature.type_params,
-                    register_ty,
-                )
-            )
+            Some[Type](bytecode_graph_ty(ci, fct.signature.type_params, register_ty))
         }
     }
 }
@@ -84,7 +75,6 @@ pub class BytecodeGraphBuilder {
     bc: Option[BytecodeBody],
     type_params: Array[BytecodeType],
     return_type: BytecodeType,
-    specialize_self: Option[SpecializeSelf],
     signature: FunctionSignature,
     analysis: BytecodeAnalysis,
     current_block: Option[Block],
@@ -116,7 +106,6 @@ impl BytecodeGraphBuilder {
             bc = Some[BytecodeBody](fct.bc),
             type_params = fct.signature.type_params,
             return_type = fct.signature.return_type,
-            specialize_self = fct.signature.specialize_self,
             signature = fct.signature,
             analysis,
             current_block = None[Block],
@@ -152,7 +141,6 @@ impl BytecodeGraphBuilder {
             bc = Some[BytecodeBody](fct.bc),
             type_params = fct.signature.type_params,
             return_type = fct.signature.return_type,
-            specialize_self = fct.signature.specialize_self,
             signature = fct.signature,
             analysis,
             current_block = None[Block],
@@ -303,12 +291,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn return_passing_mode(): ArgumentPassingMode {
-        let return_ty = specialize_ty(
-            self.ci,
-            None[SpecializeSelf],
-            self.return_type,
-            self.type_params,
-        );
+        let return_ty = specialize_ty(self.ci, self.return_type, self.type_params);
         cc::argument_passing_mode(self.ci, return_ty)
     }
 
@@ -1929,17 +1912,6 @@ impl BytecodeGraphBuilder {
                         (ty, fct_id, trait_ty.type_params, fct_type_params)
                     }
 
-                    BytecodeType::This => {
-                        let extended_ty = self.specialize_self.get_or_panic().extended_ty;
-                        let extended_ty = specialize_ty(
-                            self.ci,
-                            None[SpecializeSelf],
-                            extended_ty,
-                            self.type_params,
-                        );
-                        (extended_ty, fct_id, trait_ty.type_params, fct_type_params)
-                    }
-
                     BytecodeType::Assoc(ty, trait_ty = assoc_trait_ty, assoc_id) => {
                         let object_ty = self.specialize_ty(ty);
                         let assoc_trait_ty = self.specialize_trait_ty(assoc_trait_ty);
@@ -1953,18 +1925,8 @@ impl BytecodeGraphBuilder {
                             impl_id,
                             assoc_id,
                         );
-                        let assoc_ty = specialize_ty(
-                            self.ci,
-                            None[SpecializeSelf],
-                            assoc_ty,
-                            bindings,
-                        );
-                        let assoc_ty = specialize_ty(
-                            self.ci,
-                            None[SpecializeSelf],
-                            assoc_ty,
-                            self.type_params,
-                        );
+                        let assoc_ty = specialize_ty(self.ci, assoc_ty, bindings);
+                        let assoc_ty = specialize_ty(self.ci, assoc_ty, self.type_params);
 
                         (assoc_ty, fct_id, trait_ty.type_params, fct_type_params)
                     }
@@ -2499,9 +2461,7 @@ impl BytecodeGraphBuilder {
             self.current().append_inst(dest);
 
             self.store_array_nested(ty, arr, dest, 0i32, value, 0i32);
-        } else if (
-            config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty)
-        ) {
+        } else if (config.needs_write_barrier && is_reference(self.ci, ty)) {
             let inst = graph::create_store_array_wb_inst(arr, index, value, Type::Ptr);
             self.current().append_inst(inst);
         } else {
@@ -2546,9 +2506,7 @@ impl BytecodeGraphBuilder {
                     src_offset + field.offset,
                 );
             }
-        } else if (
-            config.needs_write_barrier && is_reference(self.ci, self.specialize_self, ty)
-        ) {
+        } else if (config.needs_write_barrier && is_reference(self.ci, ty)) {
             let ty = Type::Ptr;
             let value = graph::create_load_inst(
                 src,
@@ -2622,11 +2580,7 @@ impl BytecodeGraphBuilder {
                 0i32,
                 heap,
             );
-        } else if (
-            heap &&
-            config.needs_write_barrier &&
-            is_reference(self.ci, self.specialize_self, ty)
-        ) {
+        } else if (heap && config.needs_write_barrier && is_reference(self.ci, ty)) {
             let inst = graph::create_store_wb_inst(
                 dest,
                 dest_info,
@@ -2675,11 +2629,7 @@ impl BytecodeGraphBuilder {
                 src_offset,
                 heap,
             );
-        } else if (
-            heap &&
-            config.needs_write_barrier &&
-            is_reference(self.ci, self.specialize_self, ty)
-        ) {
+        } else if (heap && config.needs_write_barrier && is_reference(self.ci, ty)) {
             let ty = Type::Ptr;
             let value = graph::create_load_inst(src, src_offset, src_info, ty, false);
             self.current().append_inst(value);
@@ -2778,30 +2728,19 @@ impl BytecodeGraphBuilder {
         type_params: Array[BytecodeType],
     ): RecordLayout {
         let type_params = self.specialize_array(type_params);
-        regalloc::compute_struct_layout(
-            self.ci,
-            None[SpecializeSelf],
-            struct_id,
-            type_params,
-        )
+        regalloc::compute_struct_layout(self.ci, struct_id, type_params)
     }
 
     fn compute_tuple_layout(subtypes: Array[BytecodeType]): RecordLayout {
         let subtypes = self.specialize_array(subtypes);
-        regalloc::compute_tuple_layout(self.ci, None[SpecializeSelf], subtypes)
+        regalloc::compute_tuple_layout(self.ci, subtypes)
     }
 
     fn compute_enum_layout(
         enum_id: EnumId,
         type_params: Array[BytecodeType],
     ): EnumLayout {
-        compute_bytecode_enum_layout(
-            self.ci,
-            self.specialize_self,
-            self.type_params,
-            enum_id,
-            type_params,
-        )
+        compute_bytecode_enum_layout(self.ci, self.type_params, enum_id, type_params)
     }
 
     fn set_current_inlined_location(inst: Inst) {
@@ -2840,11 +2779,11 @@ impl BytecodeGraphBuilder {
     }
 
     fn specialize_ty(ty: BytecodeType): BytecodeType {
-        specialize_ty(self.ci, self.specialize_self, ty, self.type_params)
+        specialize_ty(self.ci, ty, self.type_params)
     }
 
     fn specialize_array(array: Array[BytecodeType]): Array[BytecodeType] {
-        specialize_array(self.ci, self.specialize_self, array, self.type_params)
+        specialize_array(self.ci, array, self.type_params)
     }
 
     fn specialize_trait_ty(trait_ty: BytecodeTraitType): BytecodeTraitType {
@@ -2875,7 +2814,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn graph_ty(ty: BytecodeType): Type {
-        bytecode_graph_ty(self.ci, self.specialize_self, self.type_params, ty)
+        bytecode_graph_ty(self.ci, self.type_params, ty)
     }
 
     fn reg(id: BytecodeRegister): BytecodeType {
@@ -2954,7 +2893,6 @@ fn find_block_starts(bc: BytecodeBody): BitSet {
 
 pub fn bytecode_graph_ty(
     ci: CompilationInfo,
-    specialize_self: Option[SpecializeSelf],
     fct_type_params: Array[BytecodeType],
     ty: BytecodeType,
 ): Type {
@@ -2975,7 +2913,6 @@ pub fn bytecode_graph_ty(
         BytecodeType::Enum(enum_id, enum_type_params) => {
             let layout = compute_bytecode_enum_layout(
                 ci,
-                specialize_self,
                 fct_type_params,
                 enum_id,
                 enum_type_params,
@@ -2993,18 +2930,12 @@ pub fn bytecode_graph_ty(
 
 fn compute_bytecode_enum_layout(
     ci: CompilationInfo,
-    specialize_self: Option[SpecializeSelf],
     fct_type_params: Array[BytecodeType],
     enum_id: EnumId,
     enum_type_params: Array[BytecodeType],
 ): EnumLayout {
-    let enum_type_params = specialize_array(
-        ci,
-        specialize_self,
-        enum_type_params,
-        fct_type_params,
-    );
-    regalloc::compute_enum_layout(ci, None[SpecializeSelf], enum_id, enum_type_params)
+    let enum_type_params = specialize_array(ci, enum_type_params, fct_type_params);
+    regalloc::compute_enum_layout(ci, enum_id, enum_type_params)
 }
 
 pub fn add_to_inlinable_calls(

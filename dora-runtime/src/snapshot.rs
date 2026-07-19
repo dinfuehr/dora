@@ -353,8 +353,7 @@ impl<'a> SnapshotGenerator<'a> {
         assert_eq!(class.fields.len(), fields.len);
 
         for (field_idx, field) in class.fields.iter().enumerate() {
-            let ty =
-                specialize_ty_in_program(&self.rt.program, None, field.ty.clone(), type_params);
+            let ty = specialize_ty_in_program(&self.rt.program, field.ty.clone(), type_params);
             let field_offset = self.field_instances[fields.start + field_idx].offset;
             let field_addr = address.offset(field_offset as usize);
 
@@ -768,7 +767,7 @@ pub(crate) fn display_shape_name(rt: &Runtime, kind: &ShapeKind) -> String {
                 .iter()
                 .skip(1)
                 .map(|ty| {
-                    let ty = specialize_ty_in_program(&rt.program, None, ty.clone(), &type_params);
+                    let ty = specialize_ty_in_program(&rt.program, ty.clone(), &type_params);
                     display_ty(&rt.program, &ty)
                 })
                 .collect::<Vec<_>>()

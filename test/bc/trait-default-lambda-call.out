@@ -1,45 +1,45 @@
-class $Context1:
-  self: Self
+class $Context1[$Self]:
+  self: $Self
 
-fn Foo::foo:
-  0: NewObjectUninitialized r1, @0 # $Context1
-  3: StoreField r0, r1, @1 # $Context1.self
+fn Foo::foo[$Self]:
+  0: NewObjectUninitialized r1, @0 # $Context1[$Self]
+  3: StoreField r0, r1, @1 # $Context1[$Self].self
   7: NewLambda r3, @2, r1 # $Lambda1
  12: Mov r2, r3
  15: InvokeLambda r4, @3, r2 # lambda
  20: Ret r4
 
   Registers:
-   0 => Self
-   1 => class $Context1
-   2 => (): Self
-   3 => (): Self
-   4 => Self
+   0 => $Self
+   1 => class $Context1[$Self]
+   2 => (): $Self
+   3 => (): $Self
+   4 => $Self
 
   Constants:
-   0 => Class $Context1
-   1 => Field $Context1.self
-   2 => Fct lamba::$Lambda1
-   3 => Lambda (): Self
+   0 => Class $Context1[$Self]
+   1 => Field $Context1[$Self].self
+   2 => Fct lamba::$Lambda1[T#0]
+   3 => Lambda (): $Self
 
   Locations:
    0 => 2:5
    7 => 3:22
    15 => 4:9
 
-fn lamba::$Lambda1:
-  0: LoadField r1, r0, @0 # $Lambda[$Context1].context
-  4: LoadField r2, r1, @1 # $Context1.self
+fn lamba::$Lambda1[$Self]:
+  0: LoadField r1, r0, @0 # $Lambda[$Context1[$Self]].context
+  4: LoadField r2, r1, @1 # $Context1[$Self].self
   8: Ret r2
 
   Registers:
-   0 => class $Lambda[$Context1]
-   1 => class $Context1
-   2 => Self
+   0 => class $Lambda[$Context1[$Self]]
+   1 => class $Context1[$Self]
+   2 => $Self
 
   Constants:
-   0 => Field std::$Lambda[$Context1].context
-   1 => Field $Context1.self
+   0 => Field std::$Lambda[$Context1[$Self]].context
+   1 => Field $Context1[$Self].self
 
   Locations:
 

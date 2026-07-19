@@ -57,7 +57,8 @@ pub(super) fn gen_expr_path_context(
     let value_reg = ensure_register(g, dest, ty);
 
     let bc_cls_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
-    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let type_params = g.type_params_for_generated(outer_cls.needs_self_type_param);
+    let bc_type_params = g.convert_tya(&type_params);
     let idx = g
         .builder
         .add_const_field_types(bc_cls_id, bc_type_params, field_index.0 as u32);
@@ -175,9 +176,11 @@ pub(super) fn load_from_context(
     let context_register = entered_context.register.expect("missing register");
     let context = g.sa.context(entered_context.context_id);
     let cls_id = context.class_id();
+    let cls = g.sa.class(cls_id);
     let field_id = field_id_from_context_idx(field_id, context.has_parent_slot());
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
-    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let type_params = g.type_params_for_generated(cls.needs_self_type_param);
+    let bc_type_params = g.convert_tya(&type_params);
     let field_idx = g
         .builder
         .add_const_field_types(bc_cls_id, bc_type_params, field_id.0 as u32);

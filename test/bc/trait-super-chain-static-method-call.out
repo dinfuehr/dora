@@ -4,7 +4,7 @@ fn A::a_static:
 fn B::b_static:
   <no bytecode>
 
-fn C::c_static:
+fn C::c_static[$Self]:
   0: InvokeGenericStatic r1, @0 # A::a_static
   4: InvokeGenericStatic r2, @1 # B::b_static
   8: CheckedAdd r0, r1, r2
@@ -16,19 +16,19 @@ fn C::c_static:
    2 => Int64
 
   Constants:
-   0 => Generic A::a_static on Self as A
-   1 => Generic B::b_static on Self as B
+   0 => Generic A::a_static on $Self as A
+   1 => Generic B::b_static on $Self as B
 
   Locations:
    0 => 11:9
    4 => 11:28
    8 => 11:9
 
-fn D::d_static:
+fn D::d_static[$Self]:
   0: InvokeGenericStatic r2, @0 # A::a_static
   4: InvokeGenericStatic r3, @1 # B::b_static
   8: CheckedAdd r1, r2, r3
- 12: InvokeGenericStatic r3, @2 # C::c_static
+ 12: InvokeGenericStatic r3, @2 # C::c_static[$Self]
  16: CheckedAdd r0, r1, r3
  20: Ret r0
 
@@ -39,9 +39,9 @@ fn D::d_static:
    3 => Int64
 
   Constants:
-   0 => Generic A::a_static on Self as A
-   1 => Generic B::b_static on Self as B
-   2 => Generic C::c_static on Self as C
+   0 => Generic A::a_static on $Self as A
+   1 => Generic B::b_static on $Self as B
+   2 => Generic C::c_static[$Self] on $Self as C
 
   Locations:
    0 => 17:9

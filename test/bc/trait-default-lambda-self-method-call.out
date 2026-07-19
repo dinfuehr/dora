@@ -1,28 +1,28 @@
-class $Context1:
-  self: Self
+class $Context1[$Self]:
+  self: $Self
 
 fn Foo::value:
   <no bytecode>
 
-fn Foo::foo:
-  0: NewObjectUninitialized r1, @0 # $Context1
-  3: StoreField r0, r1, @1 # $Context1.self
+fn Foo::foo[$Self]:
+  0: NewObjectUninitialized r1, @0 # $Context1[$Self]
+  3: StoreField r0, r1, @1 # $Context1[$Self].self
   7: NewLambda r3, @2, r1 # $Lambda1
  12: Mov r2, r3
  15: InvokeLambda r4, @3, r2 # lambda
  20: Ret r4
 
   Registers:
-   0 => Self
-   1 => class $Context1
+   0 => $Self
+   1 => class $Context1[$Self]
    2 => (): Int64
    3 => (): Int64
    4 => Int64
 
   Constants:
-   0 => Class $Context1
-   1 => Field $Context1.self
-   2 => Fct lamba::$Lambda1
+   0 => Class $Context1[$Self]
+   1 => Field $Context1[$Self].self
+   2 => Fct lamba::$Lambda1[T#0]
    3 => Lambda (): Int64
 
   Locations:
@@ -30,22 +30,22 @@ fn Foo::foo:
    7 => 5:22
    15 => 6:9
 
-fn lamba::$Lambda1:
-  0: LoadField r2, r0, @1 # $Lambda[$Context1].context
-  4: LoadField r3, r2, @2 # $Context1.self
+fn lamba::$Lambda1[$Self]:
+  0: LoadField r2, r0, @1 # $Lambda[$Context1[$Self]].context
+  4: LoadField r3, r2, @2 # $Context1[$Self].self
   8: InvokeGenericDirect r1, @0, r3 # Foo::value
  13: Ret r1
 
   Registers:
-   0 => class $Lambda[$Context1]
+   0 => class $Lambda[$Context1[$Self]]
    1 => Int64
-   2 => class $Context1
-   3 => Self
+   2 => class $Context1[$Self]
+   3 => $Self
 
   Constants:
-   0 => Generic Foo::value on Self as Foo
-   1 => Field std::$Lambda[$Context1].context
-   2 => Field $Context1.self
+   0 => Generic Foo::value on $Self as Foo
+   1 => Field std::$Lambda[$Context1[$Self]].context
+   2 => Field $Context1[$Self].self
 
   Locations:
    8 => 5:32

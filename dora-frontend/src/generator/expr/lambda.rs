@@ -53,7 +53,8 @@ pub(super) fn gen_expr_lambda(
     assert_eq!(arguments.len(), 1);
 
     let bc_fct_id = g.emitter.convert_function_id(g.sa, lambda_fct_id);
-    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let type_params = g.type_params_for_generated(lambda_fct.needs_self_type_param(g.sa));
+    let bc_type_params = g.convert_tya(&type_params);
     let idx = g.builder.add_const_fct_types(bc_fct_id, bc_type_params);
     g.builder
         .emit_new_lambda(dest, idx, &arguments, g.loc_for_expr(expr_id));

@@ -764,7 +764,9 @@ pub(super) fn store_in_outer_context(
     let outer_cls_id = outer_context.class_id();
     let field_index = field_id_from_context_idx(context_idx, outer_context.has_parent_slot());
     let bc_class_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
-    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let outer_cls = g.sa.class(outer_cls_id);
+    let type_params = g.type_params_for_generated(outer_cls.needs_self_type_param);
+    let bc_type_params = g.convert_tya(&type_params);
     let idx = g
         .builder
         .add_const_field_types(bc_class_id, bc_type_params, field_index.0 as u32);
@@ -795,7 +797,8 @@ pub(super) fn load_from_outer_context(
     let dest = g.alloc_temp(ty);
 
     let bc_class_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
-    let bc_type_params = g.convert_tya(&g.identity_type_params());
+    let type_params = g.type_params_for_generated(outer_cls.needs_self_type_param);
+    let bc_type_params = g.convert_tya(&type_params);
     let idx = g
         .builder
         .add_const_field_types(bc_class_id, bc_type_params, field_index.0 as u32);

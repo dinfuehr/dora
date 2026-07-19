@@ -1,6 +1,5 @@
 use package::bytecode::{BytecodeTraitType, BytecodeType};
 use package::bytecode::opcode as opc;
-use package::compilation::SpecializeSelf;
 use package::interface::{
     AotShapeKey,
     Arm64LoadWidth,
@@ -417,21 +416,6 @@ pub fn encode_bytecode_trait_type(writer: ByteWriter, trait_ty: BytecodeTraitTyp
     for (alias_id, ty) in trait_ty.bindings {
         writer.emit_int32(alias_id.0);
         encode_bytecode_type(writer, ty);
-    }
-}
-
-pub fn encode_optional_specialize_self(
-    writer: ByteWriter,
-    specialize_self: Option[SpecializeSelf],
-) {
-    if specialize_self is Some(specialize_self) {
-        writer.emit_bool(true);
-        writer.emit_int32(specialize_self.impl_id.0);
-        writer.emit_int32(specialize_self.container_type_params.to_int32());
-        encode_bytecode_trait_type(writer, specialize_self.trait_ty);
-        encode_bytecode_type(writer, specialize_self.extended_ty);
-    } else {
-        writer.emit_bool(false);
     }
 }
 

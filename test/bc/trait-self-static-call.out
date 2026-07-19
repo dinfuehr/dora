@@ -1,4 +1,4 @@
-fn Foo::foo:
+fn Foo::foo[$Self]:
   0: Ret r0
 
   Registers:
@@ -8,15 +8,15 @@ fn Foo::foo:
 
   Locations:
 
-fn Foo::bar:
-  0: InvokeGenericStatic r0, @0 # Foo::foo
+fn Foo::bar[$Self]:
+  0: InvokeGenericStatic r0, @0 # Foo::foo[$Self]
   4: Ret r0
 
   Registers:
    0 => ()
 
   Constants:
-   0 => Generic Foo::foo on Self as Foo
+   0 => Generic Foo::foo[$Self] on $Self as Foo
 
   Locations:
    0 => 4:9

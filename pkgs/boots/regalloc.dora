@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use package::assembler::{FloatRegister, RegMap, RegSet, Register, RegisterType};
 use package::bytecode::{BytecodeType, EnumId, StructId};
 use package::codegen::CodeGen;
-use package::compilation::{CompilationInfo, FunctionSignature, SpecializeSelf};
+use package::compilation::{CompilationInfo, FunctionSignature};
 use package::graph::{
     Block,
     Graph,
@@ -1059,41 +1059,24 @@ pub struct EnumPtrOrNullLayout {
 
 pub fn compute_tuple_layout(
     ci: CompilationInfo,
-    specialize_self: Option[SpecializeSelf],
     subtypes: Array[BytecodeType],
 ): RecordLayout {
     assert(!subtypes.is_generic());
-    compute_record_layout(
-        ci,
-        specialize_self,
-        subtypes,
-        0i32,
-        1i32,
-        Array[BytecodeType]::new(),
-    )
+    compute_record_layout(ci, subtypes, 0i32, 1i32, Array[BytecodeType]::new())
 }
 
 pub fn compute_struct_layout(
     ci: CompilationInfo,
-    specialize_self: Option[SpecializeSelf],
     struct_id: StructId,
     type_params: Array[BytecodeType],
 ): RecordLayout {
     assert(!type_params.is_generic());
     let struct_data = iface::get_struct_data(struct_id);
-    compute_record_layout(
-        ci,
-        specialize_self,
-        struct_data.fields,
-        0i32,
-        1i32,
-        type_params,
-    )
+    compute_record_layout(ci, struct_data.fields, 0i32, 1i32, type_params)
 }
 
 fn compute_record_layout(
     ci: CompilationInfo,
-    specialize_self: Option[SpecializeSelf],
     field_types: Array[BytecodeType],
     start_size: Int32,
     start_align: Int32,
@@ -1115,7 +1098,7 @@ fn compute_record_layout(
     };
 
     for field_ty in field_types {
-        let field_ty = specialize_ty(ci, specialize_self, field_ty, type_params);
+        let field_ty = specialize_ty(ci, field_ty, type_params);
         assert(!field_ty.is_generic());
 
         match field_ty {
@@ -1138,31 +1121,21 @@ fn compute_record_layout(
                 refs.push(offset);
             }
             BytecodeType::Struct(struct_id, type_params) => {
-                let layout = compute_struct_layout(
-                    ci,
-                    specialize_self,
-                    struct_id,
-                    type_params,
-                );
+                let layout = compute_struct_layout(ci, struct_id, type_params);
                 let offset = add_field(layout.size, layout.alignment, field_ty);
                 for ref_ in layout.refs {
                     refs.push(offset + ref_);
                 }
             }
             BytecodeType::Tuple(subtypes) => {
-                let layout = compute_tuple_layout(ci, specialize_self, subtypes);
+                let layout = compute_tuple_layout(ci, subtypes);
                 let offset = add_field(layout.size, layout.alignment, field_ty);
                 for ref_ in layout.refs {
                     refs.push(offset + ref_);
                 }
             }
             BytecodeType::Enum(enum_id, type_params) => {
-                let layout = compute_enum_layout(
-                    ci,
-                    specialize_self,
-                    enum_id,
-                    type_params,
-                );
+                let layout = compute_enum_layout(ci, enum_id, type_params);
 
                 match layout {
                     EnumLayout::Int32 => {
@@ -1193,7 +1166,6 @@ fn compute_record_layout(
 
 pub fn compute_enum_layout(
     ci: CompilationInfo,
-    specialize_self: Option[SpecializeSelf],
     enum_id: EnumId,
     type_params: Array[BytecodeType],
 ): EnumLayout {
@@ -1202,7 +1174,7 @@ pub fn compute_enum_layout(
 
     if is_simple_enumeration(enum_data) {
         EnumLayout::Int32
-    } else if is_pointer_or_null(ci, specialize_self, enum_data, type_params) {
+    } else if is_pointer_or_null(ci, enum_data, type_params) {
         let null_is_first = enum_data.variants(0).fields.is_empty();
         EnumLayout::PtrOrNull(EnumPtrOrNullLayout(null_is_first))
     } else {
@@ -1222,7 +1194,6 @@ fn is_simple_enumeration(enum_data: EnumData): Bool {
 
 fn is_pointer_or_null(
     ci: CompilationInfo,
-    specialize_self: Option[SpecializeSelf],
     enum_data: EnumData,
     type_params: Array[BytecodeType],
 ): Bool {
@@ -1251,15 +1222,11 @@ fn is_pointer_or_null(
         return false;
     }
 
-    let ty = specialize_ty(ci, specialize_self, ptr_variant.fields(0), type_params);
-    is_reference(ci, specialize_self, ty)
+    let ty = specialize_ty(ci, ptr_variant.fields(0), type_params);
+    is_reference(ci, ty)
 }
 
-pub fn is_reference(
-    ci: CompilationInfo,
-    specialize_self: Option[SpecializeSelf],
-    ty: BytecodeType,
-): Bool {
+pub fn is_reference(ci: CompilationInfo, ty: BytecodeType): Bool {
     match ty {
         BytecodeType::Unit
         | BytecodeType::Bool
@@ -1278,7 +1245,7 @@ pub fn is_reference(
         | BytecodeType::TraitObject(..) => true,
         BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Bool](),
         BytecodeType::Enum(enum_id, type_params) => {
-            let layout = compute_enum_layout(ci, specialize_self, enum_id, type_params);
+            let layout = compute_enum_layout(ci, enum_id, type_params);
             match layout {
                 EnumLayout::Int32 => false,
                 EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => true,

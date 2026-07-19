@@ -37,6 +37,7 @@ pub struct FctDefinition {
     pub is_force_inline: bool,
     pub is_never_inline: bool,
     pub is_trait_object_ignore: bool,
+    pub is_in_trait: bool,
     pub params: Params,
     pub return_type: ParsedType,
     pub type_refs: OnceCell<TypeRefArena>,
@@ -63,6 +64,8 @@ impl FctDefinition {
         return_type: ParsedType,
         parent: FctParent,
     ) -> FctDefinition {
+        let is_in_trait = matches!(parent, FctParent::Trait(_));
+
         FctDefinition {
             id: None,
             package_id,
@@ -84,6 +87,7 @@ impl FctDefinition {
             is_force_inline: modifiers.is_force_inline,
             is_never_inline: modifiers.is_never_inline,
             is_trait_object_ignore: modifiers.is_trait_object_ignore,
+            is_in_trait,
             body: OnceCell::new(),
             type_refs: OnceCell::new(),
             type_param_definition: type_params,
@@ -107,6 +111,7 @@ impl FctDefinition {
         params: Params,
         return_type: SourceType,
         parent: FctParent,
+        is_in_trait: bool,
     ) -> FctDefinition {
         FctDefinition {
             id: None,
@@ -129,6 +134,7 @@ impl FctDefinition {
             is_force_inline: modifiers.is_force_inline,
             is_never_inline: modifiers.is_never_inline,
             is_trait_object_ignore: modifiers.is_trait_object_ignore,
+            is_in_trait,
             body: OnceCell::new(),
             type_refs: OnceCell::new(),
             type_param_definition: type_params,
@@ -257,6 +263,10 @@ impl FctDefinition {
 
     pub fn is_lambda(&self) -> bool {
         self.parent.is_function()
+    }
+
+    pub fn needs_self_type_param(&self, sa: &Sema) -> bool {
+        self.is_in_trait && self.has_body(sa)
     }
 
     pub fn span(&self) -> Span {

@@ -1,5 +1,5 @@
 use package::bytecode::BytecodeType;
-use package::compilation::{CompilationInfo, SpecializeSelf};
+use package::compilation::CompilationInfo;
 use package::interface as iface;
 use package::specialize::specialize_ty;
 
@@ -36,9 +36,7 @@ pub fn argument_passing_mode(ci: CompilationInfo, ty: BytecodeType): ArgumentPas
                 struct_data.fields.size()
             );
             for field_ty in struct_data.fields {
-                field_types.push(
-                    specialize_ty(ci, None[SpecializeSelf], field_ty, type_params)
-                );
+                field_types.push(specialize_ty(ci, field_ty, type_params));
             }
             field_types.to_array()
         }

@@ -16,7 +16,7 @@ pub fn argument_passing_mode(program: &Program, ty: &BytecodeType) -> ArgumentPa
             struct_
                 .fields
                 .iter()
-                .map(|field| specialize_ty_in_program(program, None, field.ty.clone(), type_params))
+                .map(|field| specialize_ty_in_program(program, field.ty.clone(), type_params))
                 .collect::<Vec<_>>()
         }
         BytecodeType::Tuple(subtypes) => subtypes.to_vec(),

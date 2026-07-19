@@ -4,7 +4,7 @@ use dora_compiler::wire::{ByteReader, decode_bytecode_type, decode_bytecode_type
 use dora_compiler::{
     AotShapeKey, Arm64LoadWidth, CodeDescriptor, CommentTable, GcPoint, GcPointTable,
     InlinedFunction, InlinedFunctionId, InlinedLocation, JumpTable, LocationTable, RelocationForm,
-    RelocationKind, RelocationTable, RuntimeFunction, SpecializeSelf,
+    RelocationKind, RelocationTable, RuntimeFunction,
 };
 
 pub fn decode_code_descriptor(reader: &mut ByteReader) -> CodeDescriptor {
@@ -319,23 +319,6 @@ pub fn decode_bytecode_trait_ty(reader: &mut ByteReader) -> BytecodeTraitType {
         trait_id,
         type_params,
         bindings,
-    }
-}
-
-pub fn decode_specialize_self(reader: &mut ByteReader) -> Option<SpecializeSelf> {
-    if reader.read_bool() {
-        let impl_id = (reader.read_u32() as usize).into();
-        let container_type_params = reader.read_u32() as usize;
-        let trait_ty = decode_bytecode_trait_ty(reader);
-        let extended_ty = decode_bytecode_type(reader);
-        Some(SpecializeSelf {
-            impl_id,
-            container_type_params,
-            trait_ty,
-            extended_ty,
-        })
-    } else {
-        None
     }
 }
 

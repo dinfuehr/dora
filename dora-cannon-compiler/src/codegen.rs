@@ -14,9 +14,9 @@ use dora_compiler::cpu::{
 use dora_compiler::{
     AllocationSize, AnyReg, AotEnumLayout, AotLayout, AotShapeKey, ArgumentPassingMode,
     CodeDescriptor, CompilationData, GLOBAL_INITIALIZED, GcPoint, Header, Intrinsic, MachineMode,
-    Reg, RuntimeFunction, SpecializeSelf, Trap, align_i32, argument_passing_mode,
-    find_trait_impl_in_program, ptr_width, ptr_width_usize, register_ty,
-    specialize_ty_array_in_program, specialize_ty_in_program,
+    Reg, RuntimeFunction, Trap, align_i32, argument_passing_mode, find_trait_impl_in_program,
+    ptr_width, ptr_width_usize, register_ty, specialize_ty_array_in_program,
+    specialize_ty_in_program,
 };
 
 macro_rules! comment {
@@ -49,7 +49,6 @@ pub struct CannonCodeGen<'a, 'i> {
     emit_code_comments: bool,
 
     type_params: BytecodeTypeArray,
-    specialize_self: Option<SpecializeSelf>,
 
     offset_to_address: HashMap<BytecodeOffset, usize>,
     offset_to_label: HashMap<BytecodeOffset, Label>,
@@ -93,7 +92,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             bytecode: compilation_data.bytecode_body,
             emit_code_comments: options.emit_code_comments,
             type_params: signature.type_params,
-            specialize_self: signature.specialize_self,
             offset_to_address: HashMap::new(),
             offset_to_label: HashMap::new(),
             aot_intrinsics,
@@ -206,7 +204,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn has_result_address(&self) -> bool {
-        let return_type = self.specialize_function_ty(self.return_type.clone());
+        let return_type = self.specialize_ty(self.return_type.clone());
         self.argument_passing_mode(&return_type) == ArgumentPassingMode::Stack
     }
 
@@ -2266,16 +2264,24 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         let fct = self.program.fct(fct_id);
         assert!(matches!(fct.kind, FunctionKind::Lambda));
+        let type_params = self.specialize_ty_array(type_params);
+        let lambda_params = fct
+            .params
+            .iter()
+            .skip(1)
+            .map(|ty| specialize_ty_in_program(self.program, ty.clone(), &type_params))
+            .collect();
+        let lambda_return_type =
+            specialize_ty_in_program(self.program, fct.return_type.clone(), &type_params);
         assert_eq!(
-            self.bytecode.register_type(dest),
+            self.reg_ty(dest),
             BytecodeType::Lambda(
-                BytecodeTypeArray::new(fct.params.iter().skip(1).cloned().collect()),
-                Box::new(fct.return_type.clone()),
+                BytecodeTypeArray::new(lambda_params),
+                Box::new(lambda_return_type),
                 fct.is_variadic,
             )
         );
 
-        let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let lambda_layout = self.layout.lambda_layout(fct_id, &type_params);
@@ -4104,16 +4110,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn specialize_ty(&self, ty: BytecodeType) -> BytecodeType {
-        specialize_ty_in_program(
-            self.program,
-            self.specialize_self.as_ref(),
-            ty,
-            &self.type_params,
-        )
-    }
-
-    fn specialize_function_ty(&self, ty: BytecodeType) -> BytecodeType {
-        specialize_ty_in_program(self.program, None, ty, &self.type_params)
+        specialize_ty_in_program(self.program, ty, &self.type_params)
     }
 
     fn argument_passing_mode(&self, ty: &BytecodeType) -> ArgumentPassingMode {
@@ -4133,12 +4130,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn specialize_ty_array(&self, types: &BytecodeTypeArray) -> BytecodeTypeArray {
-        specialize_ty_array_in_program(
-            self.program,
-            self.specialize_self.as_ref(),
-            types,
-            &self.type_params,
-        )
+        specialize_ty_array_in_program(self.program, types, &self.type_params)
     }
 
     fn register_offset(&self, reg: Register) -> i32 {

@@ -1,0 +1,30 @@
+trait Foo[T] {
+    type Item;
+
+    fn value(): Self::Item;
+
+    fn nested[U](extra: U): (Self::Item, U) {
+        let outer = ||: (): (Self::Item, U) {
+            let inner = ||: (Self::Item, U) { (self.value(), extra) };
+            inner
+        };
+
+        outer()()
+    }
+}
+
+class MyClass(Int)
+
+impl Foo[String] for MyClass {
+    type Item = Int;
+
+    fn value(): Self::Item {
+        self.0
+    }
+}
+
+fn main() {
+    let result = MyClass(42).nested[Int](7);
+    assert(result.0 == 42);
+    assert(result.1 == 7);
+}

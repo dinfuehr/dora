@@ -1,17 +1,17 @@
 fn Callable::call:
   <no bytecode>
 
-fn Derived::invoke[T]:
+fn Derived::invoke[T, $Self]:
   0: InvokeGenericDirect r2, @0, r1 # Callable::call
   5: Ret r2
 
   Registers:
-   0 => Self
-   1 => [Self as Base[T]]::Item
+   0 => $Self
+   1 => [$Self as Base[T]]::Item
    2 => Int64
 
   Constants:
-   0 => Generic Callable::call on [Self as Base[T]]::Item as Callable
+   0 => Generic Callable::call on [$Self as Base[T]]::Item as Callable
 
   Locations:
    0 => 11:9

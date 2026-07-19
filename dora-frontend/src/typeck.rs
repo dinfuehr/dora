@@ -21,7 +21,7 @@ use crate::sema::{
     FieldIndex, GlobalDefinition, IdentType, LambdaExpr, ModuleDefinitionId, NestedScopeId,
     NestedVarId, PackageDefinitionId, Param, PatternId, ScopeId, Sema, SourceFileId, StmtId,
     TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation, Visibility, check_type_ref,
-    convert_trait_type_ref, convert_type_ref, lambda_object_type, new_identity_type_params,
+    convert_trait_type_ref, convert_type_ref, generated_identity_type_params, lambda_object_type,
     parse_type_ref,
 };
 use crate::sym::ModuleSymTable;
@@ -115,6 +115,7 @@ fn check_function(
         return_type: Some(fct.return_type()),
         in_loop: false,
         parent: fct.parent.clone(),
+        is_in_trait: fct.is_in_trait,
         has_hidden_self_argument: fct.has_hidden_self_argument(),
         is_self_available: fct.has_hidden_self_argument(),
         is_mutating: fct.is_mutating,
@@ -162,6 +163,7 @@ fn check_global(
             is_variadic: false,
             return_type: None,
             parent: FctParent::None,
+            is_in_trait: false,
             has_hidden_self_argument: false,
             is_self_available: false,
             is_mutating: false,
@@ -193,6 +195,7 @@ pub struct TypeCheck<'a> {
     pub in_loop: bool,
     pub is_lambda: bool,
     pub parent: FctParent,
+    pub is_in_trait: bool,
     pub has_hidden_self_argument: bool,
     pub is_self_available: bool,
     pub is_mutating: bool,
@@ -367,7 +370,8 @@ impl<'a> TypeCheck<'a> {
     fn enter_context(&mut self) {
         let context_id = ContextId(self.contexts.len());
         let parent = self.active_contexts.last().copied();
-        self.contexts.push(ContextData::new(parent));
+        self.contexts
+            .push(ContextData::new(parent, self.is_in_trait));
         self.active_contexts.push(context_id);
     }
 
@@ -474,7 +478,7 @@ impl<'a> TypeCheck<'a> {
         let name = self.sa.generate_context_name();
         let name = self.sa.interner.intern(&name);
 
-        let class = ClassDefinition::new_without_source(
+        let mut class = ClassDefinition::new_without_source(
             self.package_id,
             self.module_id,
             Some(self.file_id),
@@ -483,6 +487,7 @@ impl<'a> TypeCheck<'a> {
             Visibility::Public,
             self.type_param_definition.clone(),
         );
+        class.needs_self_type_param = self.contexts[context_id.0].needs_self_type_param();
 
         self.contexts[context_id.0].set_class_data(class, fields);
     }
@@ -1175,6 +1180,15 @@ fn create_context_classes(sa: &mut Sema, contexts: &mut [ContextData]) {
             let context_class = sa.class(context_class_id);
             let context_type_param_count = context_class.type_param_definition().type_param_count();
             assert_eq!(parent_type_param_count, context_type_param_count);
+            assert_eq!(
+                sa.class(parent_class_id).needs_self_type_param,
+                context_class.needs_self_type_param,
+            );
+
+            let parent_type_params = generated_identity_type_params(
+                parent_type_param_count,
+                sa.class(parent_class_id).needs_self_type_param,
+            );
 
             let parent_field = FieldDefinition {
                 id: None,
@@ -1183,7 +1197,7 @@ fn create_context_classes(sa: &mut Sema, contexts: &mut [ContextData]) {
                 index: FieldIndex(0),
                 parsed_ty: ParsedType::new_ty(SourceType::Class(
                     parent_class_id,
-                    new_identity_type_params(0, parent_type_param_count),
+                    parent_type_params,
                 )),
                 mutable: true,
                 visibility: Visibility::Module,

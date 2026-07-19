@@ -511,8 +511,15 @@ impl<'a> Verifier<'a> {
                 let function = self.program.fct(*function_id);
                 assert!(matches!(function.kind, FunctionKind::Lambda));
                 let lambda_ty = BytecodeType::Lambda(
-                    BytecodeTypeArray::new(function.params.iter().skip(1).cloned().collect()),
-                    Box::new(function.return_type.clone()),
+                    BytecodeTypeArray::new(
+                        function
+                            .params
+                            .iter()
+                            .skip(1)
+                            .map(|ty| specialize_type(ty, type_params))
+                            .collect(),
+                    ),
+                    Box::new(specialize_type(&function.return_type, type_params)),
                     function.is_variadic,
                 );
                 self.assert_type(dest, &lambda_ty);
@@ -624,8 +631,21 @@ impl<'a> Verifier<'a> {
         };
         let function = self.program.fct(*function_id);
         assert!(matches!(function.kind, FunctionKind::Trait(id) if id == *trait_id));
+        let type_params = if function.has_bytecode_self_type_param() {
+            type_params.append(trait_object_ty.clone())
+        } else {
+            type_params.clone()
+        };
         assert_eq!(function.type_params.type_param_count(), type_params.len());
-        self.assert_invoke_return_type(dest, &specialize_type(&function.return_type, type_params));
+        self.assert_invoke_return_type(
+            dest,
+            &specialize_type_for_trait_object(
+                self.program,
+                &function.return_type,
+                &type_params,
+                bindings,
+            ),
+        );
         assert!(!function.is_static);
         assert!(!function.params.is_empty());
         let (&receiver, arguments) = arguments
@@ -637,7 +657,7 @@ impl<'a> Verifier<'a> {
             .iter()
             .skip(1)
             .map(|param| {
-                specialize_type_for_trait_object(self.program, param, type_params, bindings)
+                specialize_type_for_trait_object(self.program, param, &type_params, bindings)
             })
             .collect::<Vec<_>>();
         self.assert_call_argument_types(arguments, &params, function.is_variadic);
@@ -656,6 +676,11 @@ impl<'a> Verifier<'a> {
         let function = self.program.fct(*fct_id);
         assert!(matches!(function.kind, FunctionKind::Trait(id) if id == trait_ty.trait_id));
         let type_params = trait_ty.type_params.connect(fct_type_params);
+        let type_params = if function.has_bytecode_self_type_param() {
+            type_params.append(object_type.clone())
+        } else {
+            type_params
+        };
         assert_eq!(function.type_params.type_param_count(), type_params.len());
         self.assert_invoke_return_type(
             dest,

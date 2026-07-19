@@ -14,8 +14,8 @@ use crate::{
     AotShapeKey, AotStringTable, AotTestFunction, BytecodeTypeExt, CodeDescriptor, CollectorName,
     CompilationData, CompilationOptions, FunctionSignature, GlobalLayout, GlobalLayoutEntry,
     InstanceSize, Intrinsic, RelocationKind, RuntimeFunction, STDLIB_INTRINSICS, ShapeKind,
-    ShapeVisitor, SpecializeSelf, TargetArch, TraitObjectThunk, TraitObjectThunkCompilationData,
-    TransitiveClosure, align_usize_up, compute_transitive_closure, find_trait_impl_in_program,
+    ShapeVisitor, TargetArch, TraitObjectThunk, TraitObjectThunkCompilationData, TransitiveClosure,
+    align_usize_up, bytecode_type_params, compute_transitive_closure, find_trait_impl_in_program,
     get_bytecode, native_function_symbol, specialize_bty_for_trait_object,
 };
 use dora_symbol::mangle_name;
@@ -291,16 +291,17 @@ fn compile_function(
         });
     } else if let Some(_) = get_bytecode(ctx.program, fct) {
         let program_fct = ctx.program.fct(fct_id);
-        let (bytecode_body, specialize_self) =
+        let (bytecode_body, bytecode_fct) =
             get_bytecode(ctx.program, program_fct).expect("missing bytecode");
+        let body_type_params = bytecode_type_params(ctx.program, program_fct, &type_params);
 
         let (code, code_kind) = compile_fct_to_descriptor(
             ctx,
             fct_id,
             program_fct,
+            bytecode_fct,
             bytecode_body,
-            &type_params,
-            specialize_self,
+            body_type_params,
         );
 
         ctc.functions.push(CompiledFunction {
@@ -318,9 +319,9 @@ fn compile_fct_to_descriptor(
     ctx: &AotCodegenContext<'_>,
     fct_id: FunctionId,
     program_fct: &FunctionData,
+    bytecode_fct: &FunctionData,
     bytecode_body: &BytecodeBody,
-    type_params: &BytecodeTypeArray,
-    specialize_self: Option<SpecializeSelf>,
+    type_params: BytecodeTypeArray,
 ) -> (CodeDescriptor, CompiledCodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
@@ -328,12 +329,7 @@ fn compile_fct_to_descriptor(
         program: ctx.program,
         bytecode_body,
         fct_id,
-        signature: FunctionSignature::from_bytecode(
-            bytecode_body,
-            program_fct,
-            type_params.clone(),
-            specialize_self,
-        ),
+        signature: FunctionSignature::from_bytecode(bytecode_body, bytecode_fct, type_params),
         loc: program_fct.loc,
         options: create_compilation_options(ctx, fct_id),
     };
@@ -362,14 +358,23 @@ fn compile_trait_object_thunk(
     };
 
     let mut params = Vec::with_capacity(trait_fct.params.len());
-    assert_eq!(trait_fct.params[0], BytecodeType::This);
+    let signature_type_params = if trait_fct.has_bytecode_self_type_param() {
+        assert_eq!(
+            trait_fct.params[0],
+            BytecodeType::TypeParam((all_type_params.len() - 1) as u32)
+        );
+        &all_type_params
+    } else {
+        assert_eq!(trait_fct.params[0], BytecodeType::This);
+        trait_type_params
+    };
     params.push(thunk.trait_object_ty.clone());
     for (param_idx, param_ty) in trait_fct.params.iter().enumerate().skip(1) {
         let param_ty = specialize_bty_for_trait_object(
             ctx.program,
             param_ty.clone(),
             trait_id,
-            trait_type_params,
+            signature_type_params,
             trait_assoc_types,
         );
         let param_ty = if trait_fct.is_variadic && param_idx + 1 == trait_fct.params.len() {
@@ -384,7 +389,7 @@ fn compile_trait_object_thunk(
         ctx.program,
         trait_fct.return_type.clone(),
         trait_id,
-        trait_type_params,
+        signature_type_params,
         trait_assoc_types,
     );
 
@@ -416,7 +421,6 @@ fn compile_trait_object_thunk(
             params: BytecodeTypeArray::new(params),
             return_type,
             type_params: all_type_params,
-            specialize_self: None,
         },
         loc: trait_fct.loc,
         options: create_compilation_options(ctx, trait_fct_id),

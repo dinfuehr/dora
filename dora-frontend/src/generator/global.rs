@@ -16,6 +16,7 @@ pub fn generate_global_initializer(
     let ast_bytecode_generator = AstBytecodeGen {
         sa,
         emitter,
+        frontend_type_params_len: 0,
         type_params_len: 0,
         is_lambda: false,
         return_type: global.ty(),

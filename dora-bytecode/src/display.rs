@@ -288,7 +288,7 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
                     write!(
                         f,
                         "{}",
-                        fmt_ty(self.prog, resolved_ty, self.type_params, false)
+                        fmt_ty(self.prog, resolved_ty, TypeParamMode::Unknown, false)
                     )
                 }
                 TypeParamMode::Unknown => write!(f, "T#{}", idx),

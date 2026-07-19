@@ -13,7 +13,7 @@ use dora_compiler::wire::{
 };
 use dora_compiler::{
     AotBackend, AotCodegenContext, AotContextGuard, CompilationData, FunctionSignature,
-    TraitObjectThunkCompilationData, get_bytecode,
+    TraitObjectThunkCompilationData, bytecode_type_params, get_bytecode,
 };
 use dora_runtime::runtime::{CodeDescriptor, get_runtime, impls, specialize_ty_in_program};
 use dora_runtime::{
@@ -25,9 +25,7 @@ mod serializer;
 mod wire_deserializer;
 mod wire_serializer;
 
-use crate::wire_deserializer::{
-    decode_bytecode_trait_ty, decode_code_descriptor, decode_specialize_self,
-};
+use crate::wire_deserializer::{decode_bytecode_trait_ty, decode_code_descriptor};
 use crate::wire_serializer::{encode_compilation_data, encode_trait_object_thunk_compilation_data};
 
 pub struct BootsAotBackend {
@@ -391,13 +389,12 @@ extern "C" fn specialize_assoc_ty_raw(data: Handle<UInt8Array>) -> Ref<UInt8Arra
     let program = aot_context.program();
 
     let mut reader = ByteReader::new(handle_to_vec(data));
-    let specialize_self = decode_specialize_self(&mut reader);
     let ty = decode_bytecode_type(&mut reader);
     assert!(ty.is_assoc());
     let type_params = decode_bytecode_type_array(&mut reader);
     assert!(!reader.has_more());
 
-    let ty = specialize_ty_in_program(program, specialize_self.as_ref(), ty, &type_params);
+    let ty = specialize_ty_in_program(program, ty, &type_params);
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_bytecode_type(&ty, &mut buffer);
@@ -463,9 +460,9 @@ extern "C" fn get_inlining_function_data_raw(data: Handle<UInt8Array>) -> Ref<UI
     assert!(!reader.has_more());
 
     let fct = program.fct(id);
-    let (bytecode_body, specialize_self) = get_bytecode(program, fct).expect("missing bytecode");
-    let signature =
-        FunctionSignature::from_bytecode(bytecode_body, fct, type_params, specialize_self);
+    let (bytecode_body, bytecode_fct) = get_bytecode(program, fct).expect("missing bytecode");
+    let type_params = bytecode_type_params(program, fct, &type_params);
+    let signature = FunctionSignature::from_bytecode(bytecode_body, bytecode_fct, type_params);
 
     let mut buffer = ByteBuffer::new();
     serializer::encode_bytecode_body(bytecode_body, &mut buffer);

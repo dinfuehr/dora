@@ -554,7 +554,7 @@ impl<'a> AotLayout<'a> {
 
         let fct = self.program.fct(fct_id);
         let lambda_object_ty =
-            specialize_ty_in_program(self.program, None, fct.params[0].clone(), type_params);
+            specialize_ty_in_program(self.program, fct.params[0].clone(), type_params);
         let BytecodeType::Class(_, lambda_type_params) = lambda_object_ty else {
             panic!("lambda receiver is not a class");
         };
@@ -599,7 +599,7 @@ impl<'a> AotLayout<'a> {
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         for field in &class.fields {
-            let ty = specialize_ty_in_program(self.program, None, field.ty.clone(), type_params);
+            let ty = specialize_ty_in_program(self.program, field.ty.clone(), type_params);
             debug_assert!(ty.is_concrete_type());
 
             let field_size = self.size(ty.clone());
@@ -691,7 +691,7 @@ impl<'a> AotLayout<'a> {
         let mut fields = Vec::new();
 
         for field in &struct_.fields {
-            let ty = specialize_ty_in_program(self.program, None, field.ty.clone(), type_params);
+            let ty = specialize_ty_in_program(self.program, field.ty.clone(), type_params);
             debug_assert!(ty.is_concrete_type());
 
             let field_size = self.size(ty.clone());

@@ -7,8 +7,7 @@ use dora_bytecode::{
 };
 use dora_compiler::wire::{ByteBuffer, encode_bytecode_type, encode_bytecode_type_array};
 use dora_compiler::{
-    CompilationData, CompilationOptions, FunctionSignature, SpecializeSelf,
-    TraitObjectThunkCompilationData,
+    CompilationData, CompilationOptions, FunctionSignature, TraitObjectThunkCompilationData,
 };
 
 pub fn encode_compilation_data(compilation_data: &CompilationData, buffer: &mut ByteBuffer) {
@@ -37,7 +36,6 @@ pub(crate) fn encode_function_signature(signature: &FunctionSignature, buffer: &
     encode_bytecode_type_array(&signature.params, buffer);
     encode_bytecode_type(&signature.return_type, buffer);
     encode_type_params(&signature.type_params, buffer);
-    encode_optional_specialize_self(&signature.specialize_self, buffer);
 }
 
 fn encode_compilation_options(options: &CompilationOptions, buffer: &mut ByteBuffer) {
@@ -46,25 +44,6 @@ fn encode_compilation_options(options: &CompilationOptions, buffer: &mut ByteBuf
     buffer.emit_bool(options.emit_graph_after_each_pass);
     buffer.emit_bool(options.emit_html);
     buffer.emit_bool(options.emit_code_comments);
-}
-
-pub fn encode_optional_specialize_self(
-    specialize_self: &Option<SpecializeSelf>,
-    buffer: &mut ByteBuffer,
-) {
-    if let Some(specialize_self) = specialize_self {
-        buffer.emit_bool(true);
-        encode_specialize_self(specialize_self, buffer);
-    } else {
-        buffer.emit_bool(false);
-    }
-}
-
-pub fn encode_specialize_self(specialize_self: &SpecializeSelf, buffer: &mut ByteBuffer) {
-    buffer.emit_id(specialize_self.impl_id.index());
-    buffer.emit_u32(specialize_self.container_type_params as u32);
-    encode_bytecode_trait_type(&specialize_self.trait_ty, buffer);
-    encode_bytecode_type(&specialize_self.extended_ty, buffer);
 }
 
 pub fn encode_struct_data(struct_: &StructData, buffer: &mut ByteBuffer) {

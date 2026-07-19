@@ -71,6 +71,9 @@ pub fn emit_program(sa: Sema) -> Program {
 }
 
 pub struct Emitter {
+    // Generated closures and context classes in trait bodies carry `Self` as a
+    // final bytecode-only type parameter. Frontend type parameters stay unchanged.
+    hidden_self_type_param: Option<u32>,
     global_initializer: HashMap<GlobalDefinitionId, FunctionId>,
     map_packages: HashMap<PackageDefinitionId, PackageId>,
     map_modules: HashMap<ModuleDefinitionId, ModuleId>,
@@ -103,6 +106,7 @@ pub struct Emitter {
 impl Emitter {
     pub fn new() -> Emitter {
         Emitter {
+            hidden_self_type_param: None,
             global_initializer: HashMap::new(),
             map_packages: HashMap::new(),
             map_modules: HashMap::new(),
@@ -488,6 +492,17 @@ impl Emitter {
 
     fn create_classes(&mut self, sa: &Sema) {
         for (_class_id, class) in sa.classes.iter() {
+            assert!(self.hidden_self_type_param.is_none());
+            if class.needs_self_type_param {
+                self.hidden_self_type_param = Some(
+                    class
+                        .type_param_definition()
+                        .type_param_count()
+                        .try_into()
+                        .expect("type parameter overflow"),
+                );
+            }
+
             let name = sa.interner.str(class.name).to_string();
             let fields = self.create_class_fields(sa, &*class);
 
@@ -502,7 +517,8 @@ impl Emitter {
                 is_public: class.visibility.is_public(),
                 is_internal: class.is_internal,
                 fields,
-            })
+            });
+            self.hidden_self_type_param = None;
         }
     }
 
@@ -511,10 +527,15 @@ impl Emitter {
         sa: &Sema,
         type_params: &TypeParamDefinition,
     ) -> TypeParamData {
-        let names = type_params
+        let mut names: Vec<_> = type_params
             .names()
             .map(|(_, name)| sa.interner.str(name).to_string())
             .collect();
+
+        if let Some(self_type_param) = self.hidden_self_type_param {
+            assert_eq!(self_type_param as usize, names.len());
+            names.push("$Self".into());
+        }
 
         let mut bounds = Vec::new();
         for b in type_params.bounds() {
@@ -632,6 +653,16 @@ impl Emitter {
     fn create_functions(&mut self, sa: &Sema) {
         // First pass: Create all function entries without bytecode.
         for (_id, fct) in sa.fcts.iter() {
+            assert!(self.hidden_self_type_param.is_none());
+            if fct.needs_self_type_param(sa) {
+                self.hidden_self_type_param = Some(
+                    fct.type_param_definition()
+                        .type_param_count()
+                        .try_into()
+                        .expect("type parameter overflow"),
+                );
+            }
+
             let name = sa.interner.str(fct.name).to_string();
 
             let kind = match fct.parent {
@@ -686,15 +717,27 @@ impl Emitter {
                 bytecode: None,
                 trait_method_impl,
             });
+            self.hidden_self_type_param = None;
         }
 
         // Second pass: Generate bytecode for all functions.
         for (id, fct) in sa.fcts.iter() {
             if fct.has_body(sa) {
+                assert!(self.hidden_self_type_param.is_none());
+                if fct.needs_self_type_param(sa) {
+                    self.hidden_self_type_param = Some(
+                        fct.type_param_definition()
+                            .type_param_count()
+                            .try_into()
+                            .expect("type parameter overflow"),
+                    );
+                }
+
                 let analysis = fct.analysis();
                 let bc_fct = generate_fct(sa, self, &*fct, analysis);
                 let function_id = self.convert_function_id(sa, id);
                 self.functions[function_id.index()].bytecode = Some(bc_fct);
+                self.hidden_self_type_param = None;
             }
         }
 
@@ -999,7 +1042,10 @@ impl Emitter {
                 is_variadic,
             ),
             SourceType::Ptr => BytecodeType::Ptr,
-            SourceType::This => BytecodeType::This,
+            SourceType::This => self
+                .hidden_self_type_param
+                .map(BytecodeType::TypeParam)
+                .unwrap_or(BytecodeType::This),
             SourceType::Ref(inner) => {
                 BytecodeType::Ref(Box::new(self.convert_ty(_sa, inner.as_ref().clone())))
             }
@@ -1008,7 +1054,7 @@ impl Emitter {
                 BytecodeType::TypeAlias(self.convert_alias_id(_sa, id))
             }
             SourceType::Assoc { trait_ty, assoc_id } => BytecodeType::Assoc {
-                ty: Box::new(BytecodeType::This),
+                ty: Box::new(self.convert_ty(_sa, SourceType::This)),
                 trait_ty: self.convert_trait_ty(_sa, &trait_ty),
                 assoc_id: self.convert_alias_id(_sa, assoc_id),
             },

@@ -1,11 +1,4 @@
-use package::bytecode::{
-    BytecodeBody,
-    BytecodeTraitType,
-    BytecodeType,
-    FunctionId,
-    ImplId,
-    Location,
-};
+use package::bytecode::{BytecodeBody, BytecodeType, FunctionId, Location};
 use package::graph::html::{HtmlWriter, create_html_writer};
 use package::interface as iface;
 use package::serializer::ByteWriter;
@@ -95,7 +88,6 @@ pub class FunctionSignature {
     pub params: Array[BytecodeType],
     pub return_type: BytecodeType,
     pub type_params: Array[BytecodeType],
-    pub specialize_self: Option[SpecializeSelf],
 }
 
 pub class FunctionCompilationInfo {
@@ -111,11 +103,4 @@ pub class TraitObjectThunk {
     pub receiver_by_reference: Bool,
     pub callee_fct_id: FunctionId,
     pub callee_type_params: Array[BytecodeType],
-}
-
-pub struct SpecializeSelf {
-    pub impl_id: ImplId,
-    pub container_type_params: Int,
-    pub trait_ty: BytecodeTraitType,
-    pub extended_ty: BytecodeType,
 }

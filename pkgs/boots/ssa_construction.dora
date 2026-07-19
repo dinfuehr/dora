@@ -1,7 +1,7 @@
 use std::{BitSet, HashMap};
 
 use package::bytecode::{BytecodeBody, BytecodeRegister, BytecodeType, EnumId};
-use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
+use package::compilation::{CompilationInfo, FunctionCompilationInfo};
 use package::graph;
 use package::graph::{Block, Graph, Inst, Op};
 use package::graph::ty::Type;
@@ -15,7 +15,6 @@ pub class SsaConstruction {
     bc: BytecodeBody,
     type_params: Array[BytecodeType],
     return_type: BytecodeType,
-    specialize_self: Option[SpecializeSelf],
     inline_return_type: Option[Type],
     exit_block: Option[Block],
     current_def: RegisterTable,
@@ -44,7 +43,6 @@ impl SsaConstruction {
             bc = fct.bc,
             type_params = fct.signature.type_params,
             return_type = fct.signature.return_type,
-            specialize_self = fct.signature.specialize_self,
             inline_return_type,
             exit_block,
             current_def = RegisterTable::new(fct.bc.registers.size()),
@@ -326,11 +324,11 @@ impl SsaConstruction {
     }
 
     fn specialize_ty(ty: BytecodeType): BytecodeType {
-        specialize_ty(self.ci, self.specialize_self, ty, self.type_params)
+        specialize_ty(self.ci, ty, self.type_params)
     }
 
     fn specialize_array(array: Array[BytecodeType]): Array[BytecodeType] {
-        specialize_array(self.ci, self.specialize_self, array, self.type_params)
+        specialize_array(self.ci, array, self.type_params)
     }
 
     fn compute_enum_layout(
@@ -338,7 +336,7 @@ impl SsaConstruction {
         type_params: Array[BytecodeType],
     ): EnumLayout {
         let type_params = self.specialize_array(type_params);
-        regalloc::compute_enum_layout(self.ci, None[SpecializeSelf], enum_id, type_params)
+        regalloc::compute_enum_layout(self.ci, enum_id, type_params)
     }
 
     fn graph_ty(ty: BytecodeType): Type {

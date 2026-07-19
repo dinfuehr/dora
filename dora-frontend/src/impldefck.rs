@@ -180,6 +180,7 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     params,
                     return_type,
                     FctParent::Impl(impl_.id()),
+                    false,
                 );
                 assert!(fct.trait_method_impl.set(*trait_method_id).is_ok());
                 new_fcts.push(fct);

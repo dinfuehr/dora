@@ -22,7 +22,7 @@ use package::bytecode::{
     StructId,
     TraitId,
 };
-use package::compilation::{CompilationInfo, FunctionSignature, SpecializeSelf};
+use package::compilation::{CompilationInfo, FunctionSignature};
 use package::compile_function;
 use package::deserializer::{
     decode_compilation_info,
@@ -40,7 +40,6 @@ use package::serializer::{
     encode_bytecode_type,
     encode_bytecode_type_array,
     encode_code_descriptor,
-    encode_optional_specialize_self,
 };
 
 pub const TRAP_DIV0: Int32 = 0i32;
@@ -297,12 +296,10 @@ pub fn get_assoc_type_in_impl(
 
 pub fn specialize_assoc_ty(
     ci: CompilationInfo,
-    specialize_self: Option[SpecializeSelf],
     ty: BytecodeType,
     type_params: Array[BytecodeType],
 ): BytecodeType {
     let writer = ci.get_byte_writer();
-    encode_optional_specialize_self(writer, specialize_self);
     encode_bytecode_type(writer, ty);
     encode_bytecode_type_array(writer, type_params);
     let encoded = specialize_assoc_ty_raw(writer.to_array());

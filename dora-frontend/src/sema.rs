@@ -560,8 +560,20 @@ pub fn lambda_outer_context_type(
 
     SourceType::Class(
         context_class_id,
-        new_identity_type_params(0, type_params_len),
+        generated_identity_type_params(type_params_len, context_class.needs_self_type_param),
     )
+}
+
+pub fn generated_identity_type_params(
+    type_params_len: usize,
+    needs_self_type_param: bool,
+) -> SourceTypeArray {
+    let type_params = new_identity_type_params(0, type_params_len);
+    if needs_self_type_param {
+        type_params.connect_single(SourceType::This)
+    } else {
+        type_params
+    }
 }
 
 pub fn lambda_object_type(
