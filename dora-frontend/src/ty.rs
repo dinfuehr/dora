@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::sema::{
     AliasDefinitionId, ClassDefinition, ClassDefinitionId, Element, EnumDefinition,
     EnumDefinitionId, FctDefinition, Sema, StructDefinition, StructDefinitionId, TraitDefinitionId,
-    TypeParamDefinition, TypeParamId, TypeParamIdx,
+    TypeParamDefinition, TypeParamId,
 };
 use crate::specialize::specialize_trait_type_for_implements;
 
@@ -860,18 +860,10 @@ impl TypeArgs {
             .iter()
             .position(|&type_param_id| type_param_id == id)?;
 
-        self.get_idx(TypeParamIdx(index))
-    }
-
-    pub fn get_idx(&self, id: TypeParamIdx) -> Option<&SourceType> {
-        let index = id.index();
-
         if index < self.container.len() {
             self.container.types().get(index)
-        } else if index < self.container.len() + self.own.len() {
-            self.own.types().get(index - self.container.len())
         } else {
-            None
+            self.own.types().get(index - self.container.len())
         }
     }
 
@@ -897,14 +889,6 @@ impl TypeArgs {
 
     pub fn to_array(&self) -> SourceTypeArray {
         self.container.connect(&self.own)
-    }
-}
-
-impl Index<TypeParamIdx> for TypeArgs {
-    type Output = SourceType;
-
-    fn index(&self, id: TypeParamIdx) -> &SourceType {
-        self.get_idx(id).expect("type argument index out-of-bounds")
     }
 }
 
@@ -1380,33 +1364,6 @@ mod tests {
         assert_eq!(
             e1.connect(&e2).types(),
             &[SourceType::Float32, SourceType::Int32]
-        );
-    }
-
-    #[test]
-    fn type_args_are_indexed_by_type_param_idx() {
-        let type_args = TypeArgs {
-            type_param_ids: Arc::new(Vec::new()),
-            container: SourceTypeArray::single(SourceType::Int32),
-            own: SourceTypeArray::single(SourceType::Float64),
-            self_ty: Some(SourceType::Bool),
-        };
-
-        assert_eq!(type_args[TypeParamIdx(0)], SourceType::Int32);
-        assert_eq!(
-            type_args.get_idx(TypeParamIdx(1)),
-            Some(&SourceType::Float64)
-        );
-        assert_eq!(type_args.get_idx(TypeParamIdx(2)), None);
-        assert_eq!(type_args.self_ty(), Some(&SourceType::Bool));
-        assert_eq!(type_args.len(), 2);
-        assert_eq!(
-            type_args.iter().collect::<Vec<_>>(),
-            vec![SourceType::Int32, SourceType::Float64]
-        );
-        assert_eq!(
-            type_args.to_array().types(),
-            &[SourceType::Int32, SourceType::Float64]
         );
     }
 
