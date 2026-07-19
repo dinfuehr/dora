@@ -21,7 +21,8 @@ use crate::sema::{
     FieldIndex, GlobalDefinition, IdentType, LambdaExpr, ModuleDefinitionId, NestedScopeId,
     NestedVarId, PackageDefinitionId, Param, PatternId, ScopeId, Sema, SourceFileId, StmtId,
     TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation, Visibility, check_type_ref,
-    convert_trait_type_ref, convert_type_ref, new_identity_type_params, parse_type_ref,
+    convert_trait_type_ref, convert_type_ref, lambda_object_type, new_identity_type_params,
+    parse_type_ref,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
@@ -1228,7 +1229,11 @@ fn create_lambda_functions(sa: &mut Sema, lambda_definitions: Vec<FctDefinition>
     assert!(sa.lambda_fct_ids.is_empty());
     sa.lambda_fct_ids.reserve(lambda_definitions.len());
 
-    for lambda_definition in lambda_definitions {
+    for mut lambda_definition in lambda_definitions {
+        let type_params_len = lambda_definition.type_param_definition.type_param_count();
+        let self_type = lambda_object_type(sa, lambda_definition.analysis(), type_params_len);
+        lambda_definition.params.params[0].parsed_ty = ParsedType::new_ty(self_type);
+
         let fct_id = sa.fcts.alloc(lambda_definition);
         sa.fcts[fct_id].id = Some(fct_id);
         sa.lambda_fct_ids.push(fct_id);

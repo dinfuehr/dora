@@ -6,7 +6,7 @@ use self::expr::{gen_stmt_expr, gen_stmt_let};
 use crate::program_emitter::Emitter;
 use crate::sema::{
     AnalysisData, ContextFieldId, ContextId, ExprMapId, FctDefinitionId, FieldIndex, Intrinsic,
-    ScopeId, Sema, SourceFileId, Stmt, StmtId, VarId, new_identity_type_params,
+    ScopeId, Sema, SourceFileId, Stmt, StmtId, VarId, lambda_object_type, new_identity_type_params,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
@@ -243,10 +243,8 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn lambda_object_type(&mut self) -> BytecodeType {
-        let class_id = self
-            .emitter
-            .convert_class_id(self.sa, self.sa.known.classes.lambda());
-        BytecodeType::Class(class_id, BytecodeTypeArray::empty())
+        let ty = lambda_object_type(self.sa, self.analysis, self.type_params_len);
+        self.emitter.convert_ty(self.sa, ty)
     }
 
     fn ensure_unit_register(&mut self) -> Register {
@@ -378,12 +376,13 @@ fn load_outer_context_object(
     let innermost_type = g.context_type(innermost_context);
     let mut context_register = g.alloc_temp(innermost_type);
 
-    let lambda_class_id = g
-        .emitter
-        .convert_class_id(g.sa, g.sa.known.classes.lambda());
+    let lambda_object_type = g.lambda_object_type();
+    let BytecodeType::Class(lambda_class_id, lambda_type_params) = lambda_object_type else {
+        unreachable!();
+    };
     let field_idx = g
         .builder
-        .add_const_field_types(lambda_class_id, BytecodeTypeArray::empty(), 0);
+        .add_const_field_types(lambda_class_id, lambda_type_params, 0);
     g.builder.emit_load_field(
         context_register,
         var_reg(g, SELF_VAR_ID),

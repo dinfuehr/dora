@@ -2079,11 +2079,12 @@ impl BytecodeGraphBuilder {
 
         self.emit_local_set(dest, obj_inst);
 
-        if !arguments.is_empty() {
-            assert(arguments.size() == 1);
-            let reg = arguments(0);
+        assert(arguments.size() == 1);
+        let reg = arguments(0);
+        let arg_ty = self.reg(reg);
+
+        if self.is_non_zero_type(arg_ty) {
             let arg = self.register_value(reg);
-            let arg_ty = self.reg(reg);
 
             let offset = iface::OBJECT_HEADER_LENGTH;
             self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);

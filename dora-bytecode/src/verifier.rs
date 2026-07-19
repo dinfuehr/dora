@@ -474,7 +474,7 @@ impl<'a> Verifier<'a> {
                 idx,
                 arguments,
             } => {
-                let ConstPoolEntry::Fct(function_id, _) = self.const_pool(idx) else {
+                let ConstPoolEntry::Fct(function_id, type_params) = self.const_pool(idx) else {
                     panic!("expected Fct constant pool entry");
                 };
                 let function = self.program.fct(*function_id);
@@ -485,10 +485,14 @@ impl<'a> Verifier<'a> {
                     function.is_variadic,
                 );
                 self.assert_type(dest, &lambda_ty);
-                assert!(arguments.len() <= 1);
-                for argument in arguments {
-                    assert!(self.ty(argument).is_reference_type());
-                }
+                assert_eq!(arguments.len(), 1);
+
+                let lambda_object_ty = specialize_type(&function.params[0], type_params);
+                let BytecodeType::Class(_, lambda_type_params) = lambda_object_ty else {
+                    panic!("lambda receiver is not a class");
+                };
+                assert_eq!(lambda_type_params.len(), 1);
+                self.assert_type(arguments[0], &lambda_type_params[0]);
             }
 
             BytecodeInstruction::ArrayLength { dest, arr } => {
@@ -753,9 +757,8 @@ impl<'a> Verifier<'a> {
 
     fn assert_field_type(&self, register: Register, expected: &BytecodeType) {
         let actual = self.ty(register);
-        // Lambda context and parent-context fields are explicitly erased to Ptr.
         assert!(
-            types_match(actual, expected) || (*expected == BytecodeType::Ptr && actual.is_class()),
+            types_match(actual, expected),
             "register type {:?} does not match expected field type {:?} in function {} at {:?}",
             actual,
             expected,

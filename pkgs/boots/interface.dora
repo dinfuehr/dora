@@ -76,6 +76,9 @@ pub fn get_field_offset_raw(data: Array[UInt8]): Int32;
 pub fn get_class_size_raw(data: Array[UInt8]): Int32;
 
 @native
+pub fn get_class_size_for_lambda_raw(data: Array[UInt8]): Int32;
+
+@native
 pub fn get_class_size_for_trait_object_raw(data: Array[UInt8]): Int32;
 
 @native
@@ -152,6 +155,17 @@ pub fn get_class_shape_key_for_lambda(
     type_params: Array[BytecodeType],
 ): AotShapeKey {
     AotShapeKey::Lambda(fct_id, type_params)
+}
+
+pub fn get_class_size_for_lambda(
+    ci: CompilationInfo,
+    fct_id: FunctionId,
+    type_params: Array[BytecodeType],
+): Int32 {
+    let writer = ci.get_byte_writer();
+    writer.emit_int32(fct_id.0);
+    encode_bytecode_type_array(writer, type_params);
+    get_class_size_for_lambda_raw(writer.to_array())
 }
 
 pub fn get_class_size_for_trait_object(
@@ -471,7 +485,6 @@ pub const OBJECT_SHAPE_OFFSET: Int32 = 0;
 pub const OBJECT_METADATA_OFFSET: Int32 = 4;
 pub const OBJECT_HEADER_LENGTH: Int32 = 8;
 pub const ARRAY_HEADER_LENGTH: Int32 = 16;
-pub const LAMBDA_SIZE: Int32 = 16;
 pub const MAX_TLAB_OBJECT_SIZE: Int64 = 8192;
 pub const LARGE_OBJECT_SIZE: Int32 = 32768;
 

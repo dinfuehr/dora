@@ -46,7 +46,11 @@ pub(super) fn gen_expr_lambda(
             ));
             arguments.push(outer_context_reg.expect("missing reg"));
         }
+    } else {
+        arguments.push(g.ensure_unit_register());
     }
+
+    assert_eq!(arguments.len(), 1);
 
     let bc_fct_id = g.emitter.convert_function_id(g.sa, lambda_fct_id);
     let bc_type_params = g.convert_tya(&g.identity_type_params());

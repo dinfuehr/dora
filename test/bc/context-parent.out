@@ -28,16 +28,16 @@ fn f:
    10 => 4:5
 
 fn lamba::$Lambda1:
-  0: LoadField r2, r0, @0 # $Lambda.context
+  0: LoadField r2, r0, @0 # $Lambda[$Context1].context
   4: LoadField r3, r2, @1 # $Context1.parent_context
   8: LoadField r4, r3, @2 # $Context2.x
- 12: LoadField r2, r0, @3 # $Lambda.context
+ 12: LoadField r2, r0, @3 # $Lambda[$Context1].context
  16: LoadField r5, r2, @4 # $Context1.y
  20: CheckedAdd r1, r4, r5
  24: Ret r1
 
   Registers:
-   0 => class $Lambda
+   0 => class $Lambda[$Context1]
    1 => Int64
    2 => class $Context1
    3 => class $Context2
@@ -45,10 +45,10 @@ fn lamba::$Lambda1:
    5 => Int64
 
   Constants:
-   0 => Field std::$Lambda.context
+   0 => Field std::$Lambda[$Context1].context
    1 => Field $Context1.parent_context
    2 => Field $Context2.x
-   3 => Field std::$Lambda.context
+   3 => Field std::$Lambda[$Context1].context
    4 => Field $Context1.y
 
   Locations:
@@ -56,7 +56,7 @@ fn lamba::$Lambda1:
 
 fn lamba::$Lambda2:
   0: NewObjectUninitialized r1, @0 # $Context1
-  3: LoadField r2, r0, @1 # $Lambda.context
+  3: LoadField r2, r0, @1 # $Lambda[$Context2].context
   7: StoreField r2, r1, @2 # $Context1.parent_context
  11: ConstInt64 r3, @3 # 20
  14: StoreField r3, r1, @4 # $Context1.y
@@ -64,7 +64,7 @@ fn lamba::$Lambda2:
  23: Ret r4
 
   Registers:
-   0 => class $Lambda
+   0 => class $Lambda[$Context2]
    1 => class $Context1
    2 => class $Context2
    3 => Int64
@@ -72,7 +72,7 @@ fn lamba::$Lambda2:
 
   Constants:
    0 => Class $Context1
-   1 => Field std::$Lambda.context
+   1 => Field std::$Lambda[$Context2].context
    2 => Field $Context1.parent_context
    3 => Int64 20
    4 => Field $Context1.y

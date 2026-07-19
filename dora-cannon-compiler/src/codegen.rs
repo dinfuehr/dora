@@ -2279,12 +2279,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
         let lambda_layout = self.layout.lambda_layout(fct_id, &type_params);
-        let context_offset = lambda_layout
-            .fields
-            .first()
-            .expect("lambda context field missing")
-            .offset;
         let alloc_size = lambda_layout.size as usize;
+        assert_eq!(arguments.len(), 1);
+        let environment_ty = self.reg_ty(arguments[0]);
 
         let gcpoint = self.create_gcpoint();
         let position = self.bytecode.offset_location(self.current_offset.to_u32());
@@ -2311,21 +2308,19 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             AotShapeKey::Lambda(fct_id, type_params),
         );
 
-        // Store context pointer.
-        if arguments.is_empty() {
-            self.asm.load_int_const(MachineMode::Ptr, REG_RESULT, 0);
-            self.asm.store_mem(
-                MachineMode::Ptr,
-                Mem::Base(object_reg, context_offset),
-                REG_RESULT.into(),
-            );
+        if environment_ty.is_unit() {
+            assert!(lambda_layout.fields.is_empty());
         } else {
-            assert_eq!(arguments.len(), 1);
+            let context_offset = lambda_layout
+                .fields
+                .first()
+                .expect("lambda context field missing")
+                .offset;
             self.asm.store_field(
                 object_reg,
                 context_offset,
                 self.reg(arguments[0]),
-                BytecodeType::Ptr,
+                environment_ty,
             );
         }
     }

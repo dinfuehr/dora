@@ -230,7 +230,10 @@ impl<'a> SnapshotGenerator<'a> {
 
             ShapeKind::Lambda(..) => {
                 let fields = self.shape_fields(shape, &shape_kind);
-                self.process_special_object(address, fields, self.context_name_id);
+                assert!(fields.len <= 1);
+                if fields.len == 1 {
+                    self.process_special_object(address, fields, self.context_name_id);
+                }
             }
 
             ShapeKind::TraitObject { .. } => {

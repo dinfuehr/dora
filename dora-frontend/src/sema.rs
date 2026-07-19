@@ -15,7 +15,7 @@ use dora_parser::{Span, compute_line_column};
 use crate::error::diag::Diagnostic;
 use crate::error::diagnostics::DiagnosticDescriptor;
 use crate::error::msg::ErrorDescriptor;
-use crate::{Name, SymTable, Vfs};
+use crate::{Name, SourceType, SourceTypeArray, SymTable, Vfs};
 
 pub trait ToArcString {
     fn into(self) -> Arc<String>;
@@ -528,6 +528,52 @@ impl Sema {
         let diag = self.diag.into_inner();
         (diag.errors, diag.warnings)
     }
+}
+
+pub fn lambda_outer_context_type(
+    sa: &Sema,
+    analysis: &AnalysisData,
+    type_params_len: usize,
+) -> SourceType {
+    if !analysis.needs_context_slot_in_lambda_object() {
+        return SourceType::Unit;
+    }
+
+    let mut context_id = sa
+        .context(analysis.function_context_id())
+        .parent()
+        .expect("missing outer lambda context");
+
+    while !sa.context(context_id).has_class_id() {
+        context_id = sa
+            .context(context_id)
+            .parent()
+            .expect("missing outer lambda context class");
+    }
+
+    let context_class_id = sa.context(context_id).class_id();
+    let context_class = sa.class(context_class_id);
+    assert_eq!(
+        context_class.type_param_definition().type_param_count(),
+        type_params_len,
+    );
+
+    SourceType::Class(
+        context_class_id,
+        new_identity_type_params(0, type_params_len),
+    )
+}
+
+pub fn lambda_object_type(
+    sa: &Sema,
+    analysis: &AnalysisData,
+    type_params_len: usize,
+) -> SourceType {
+    let outer_context_type = lambda_outer_context_type(sa, analysis, type_params_len);
+    SourceType::Class(
+        sa.known.classes.lambda(),
+        SourceTypeArray::single(outer_context_type),
+    )
 }
 
 fn find_pkgs_directory() -> Option<PathBuf> {

@@ -202,6 +202,21 @@ extern "C" fn get_class_size_for_trait_object_raw(data: Handle<UInt8Array>) -> i
     aot_context.layout().trait_object_size(actual_object_ty)
 }
 
+#[dora_native("interface::get_class_size_for_lambda_raw")]
+extern "C" fn get_class_size_for_lambda_raw(data: Handle<UInt8Array>) -> i32 {
+    let aot_context = active_aot_context();
+
+    let mut reader = ByteReader::new(handle_to_vec(data));
+    let fct_id = (reader.read_u32() as usize).into();
+    let type_params = decode_bytecode_type_array(&mut reader);
+    assert!(!reader.has_more());
+
+    aot_context
+        .layout()
+        .lambda_layout(fct_id, &type_params)
+        .size
+}
+
 #[dora_native("interface::get_global_initializer_function_id_raw")]
 extern "C" fn get_global_initializer_function_id(id: GlobalId) -> u32 {
     let aot_context = active_aot_context();

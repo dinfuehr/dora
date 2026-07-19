@@ -199,6 +199,9 @@ pub fn lookup_known_methods(sa: &mut Sema) {
 pub fn create_lambda_class(sa: &mut Sema) {
     let class_name = sa.interner.intern("$Lambda");
     let context_name = sa.interner.intern("context");
+    let context_type_name = sa.interner.intern("Context");
+    let mut type_params = TypeParamDefinition::new(None);
+    let context_type_id = type_params.add_type_param(context_type_name);
 
     let class = ClassDefinition::new_without_source(
         sa.stdlib_package_id(),
@@ -207,7 +210,7 @@ pub fn create_lambda_class(sa: &mut Sema) {
         None,
         class_name,
         Visibility::Public,
-        TypeParamDefinition::empty(),
+        Rc::new(type_params),
     );
 
     let class_id = sa.classes.alloc(class);
@@ -217,7 +220,7 @@ pub fn create_lambda_class(sa: &mut Sema) {
         id: None,
         name: Some(context_name),
         span: None,
-        parsed_ty: ParsedType::new_ty(SourceType::Ptr),
+        parsed_ty: ParsedType::new_ty(SourceType::TypeParam(context_type_id)),
         index: FieldIndex(0),
         mutable: false,
         visibility: Visibility::Public,

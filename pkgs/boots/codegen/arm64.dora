@@ -57,7 +57,6 @@ use package::graph::{
 use package::interface::{AotShapeKey, JumpTable, config};
 use package::interface::{
     ARRAY_HEADER_LENGTH,
-    LAMBDA_SIZE,
     METADATA_REMEMBERED_BIT,
     OBJECT_HEADER_LENGTH,
     OBJECT_METADATA_OFFSET,
@@ -2591,7 +2590,8 @@ impl CodeGen for CodeGenArm64 {
             shape_key = iface::get_class_shape_key(info.class_id, info.type_params);
         } else if inst.has_function_info() {
             let info = inst.get_function_info();
-            size = LAMBDA_SIZE;
+            size =
+            iface::get_class_size_for_lambda(self.ci, info.fct_id, info.type_params);
             shape_key =
             iface::get_class_shape_key_for_lambda(info.fct_id, info.type_params);
         } else if inst.has_trait_object_info() {

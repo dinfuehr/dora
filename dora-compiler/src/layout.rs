@@ -540,19 +540,42 @@ impl<'a> AotLayout<'a> {
             return layout.clone();
         }
 
-        let layout = self.compute_lambda_layout(type_params);
+        let layout = self.compute_lambda_layout(fct_id, type_params);
         let mut lambdas = self.lambdas.borrow_mut();
         lambdas.entry(key).or_insert_with(|| layout.clone()).clone()
     }
 
-    fn compute_lambda_layout(&self, type_params: &BytecodeTypeArray) -> AotRecordLayout {
+    fn compute_lambda_layout(
+        &self,
+        fct_id: FunctionId,
+        type_params: &BytecodeTypeArray,
+    ) -> AotRecordLayout {
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
+        let fct = self.program.fct(fct_id);
+        let lambda_object_ty =
+            specialize_ty_in_program(self.program, None, fct.params[0].clone(), type_params);
+        let BytecodeType::Class(_, lambda_type_params) = lambda_object_ty else {
+            panic!("lambda receiver is not a class");
+        };
+        assert_eq!(lambda_type_params.len(), 1);
+        let environment_ty = lambda_type_params[0].clone();
+
+        if environment_ty.is_unit() {
+            return AotRecordLayout {
+                size: object_header_size(),
+                align: ptr_width(),
+                refs: Vec::new(),
+                fields: Vec::new(),
+            };
+        }
+
+        assert!(environment_ty.is_reference_type());
         let context_offset = object_header_size();
         let size = align_i32(context_offset + ptr_width(), ptr_width());
         let fields = vec![FieldInstance {
             offset: context_offset,
-            ty: BytecodeType::Ptr,
+            ty: environment_ty,
         }];
 
         AotRecordLayout {

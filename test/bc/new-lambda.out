@@ -1,9 +1,10 @@
 fn f:
-  0: NewLambda r0, @0 # $Lambda1
-  4: Ret r0
+  0: NewLambda r0, @0, r1 # $Lambda1
+  5: Ret r0
 
   Registers:
    0 => (): Int32
+   1 => ()
 
   Constants:
    0 => Fct lamba::$Lambda1
@@ -16,7 +17,7 @@ fn lamba::$Lambda1:
   3: Ret r1
 
   Registers:
-   0 => class $Lambda
+   0 => class $Lambda[()]
    1 => Int32
 
   Constants:
