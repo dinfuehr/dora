@@ -1,0 +1,9 @@
+error: type Self::Item does not implement Stringable.
+--> default-method-template-assoc-type-missing-bound.dora:7:17
+ | 
+ |     fn message(): String {
+ |         "item=${self.item()}"
+                   ~~~~~~~~~~~
+ |     }
+ | }
+1 error found.

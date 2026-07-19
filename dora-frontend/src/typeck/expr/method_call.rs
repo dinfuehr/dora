@@ -14,7 +14,7 @@ use crate::error::diagnostics::{
 use crate::interner::Name;
 use crate::sema::{
     CallType, Element, ExprId, FctDefinitionId, IdentType, MethodCallExpr, Param, Sema,
-    TraitDefinition, TypeParamId, find_field_in_class,
+    TraitDefinition, TypeParamId, associated_type_bounds, find_field_in_class,
 };
 use crate::specialize::replace_type;
 use crate::typeck::{TypeCheck, check_expr, check_type_params, find_method_call_candidates};
@@ -464,30 +464,10 @@ fn check_method_call_on_assoc(
 
     assert!(object_type.is_assoc());
 
-    for bound in ck.type_param_definition.bounds(ck.sa) {
-        if object_type != bound.ty() {
-            continue;
-        }
-
-        if let Some(trait_ty) = bound.trait_ty() {
-            let trait_ = ck.sa.trait_(trait_ty.trait_id);
-
-            if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
-                matched_methods.push((trait_method_id, trait_ty));
-            }
-        }
-    }
-
-    // Also check bounds directly on the associated type definition.
-    if let SourceType::Assoc { assoc_id, .. } = &object_type {
-        let alias = ck.sa.alias(*assoc_id);
-        for bound in alias.bounds() {
-            if let Some(trait_ty) = bound.ty() {
-                let trait_ = ck.sa.trait_(trait_ty.trait_id);
-                if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
-                    matched_methods.push((trait_method_id, trait_ty));
-                }
-            }
+    for trait_ty in associated_type_bounds(ck.sa, &object_type, &ck.type_param_definition) {
+        let trait_ = ck.sa.trait_(trait_ty.trait_id);
+        if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
+            matched_methods.push((trait_method_id, trait_ty));
         }
     }
 
@@ -571,17 +551,10 @@ fn check_method_call_on_generic_assoc(
 
     assert!(object_type.is_generic_assoc());
 
-    // Check bounds declared on the associated type definition (e.g., `type Item: Doubler`).
-    let SourceType::GenericAssoc { assoc_id, .. } = &object_type else {
-        unreachable!()
-    };
-    let alias = ck.sa.alias(*assoc_id);
-    for bound in alias.bounds() {
-        if let Some(trait_ty) = bound.ty() {
-            let trait_ = ck.sa.trait_(trait_ty.trait_id);
-            if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
-                matched_methods.push((trait_method_id, trait_ty));
-            }
+    for trait_ty in associated_type_bounds(ck.sa, &object_type, &ck.type_param_definition) {
+        let trait_ = ck.sa.trait_(trait_ty.trait_id);
+        if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
+            matched_methods.push((trait_method_id, trait_ty));
         }
     }
 

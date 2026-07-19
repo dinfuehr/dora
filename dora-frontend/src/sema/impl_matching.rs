@@ -2,7 +2,9 @@ use crate::sema::{
     Element, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition, block_matches_ty,
     match_arrays,
 };
-use crate::{SourceType, SourceTypeArray, TraitType, TypeArgs, specialize_type};
+use crate::{
+    SourceType, SourceTypeArray, TraitType, TypeArgs, specialize_trait_type, specialize_type,
+};
 
 pub fn impl_matches(
     sa: &Sema,
@@ -58,10 +60,13 @@ pub fn implements_trait(
 
         SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(sa, tp_id, trait_ty),
 
-        SourceType::Alias(..)
-        | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. }
-        | SourceType::Ref(..) => {
+        check_ty @ SourceType::Assoc { .. } | check_ty @ SourceType::GenericAssoc { .. } => {
+            associated_type_bounds(sa, &check_ty, check_type_param_defs)
+                .into_iter()
+                .any(|bound| bound.implements_trait(sa, &trait_ty))
+        }
+
+        SourceType::Alias(..) | SourceType::Ref(..) => {
             unreachable!()
         }
 
@@ -94,6 +99,48 @@ pub fn implements_trait(
 
         SourceType::Ptr | SourceType::Any => unreachable!(),
     }
+}
+
+pub fn associated_type_bounds(
+    sa: &Sema,
+    check_ty: &SourceType,
+    type_param_definition: &TypeParamDefinition,
+) -> Vec<TraitType> {
+    let (assoc_trait_ty, assoc_id) = match check_ty {
+        SourceType::Assoc { trait_ty, assoc_id }
+        | SourceType::GenericAssoc {
+            trait_ty, assoc_id, ..
+        } => (trait_ty, *assoc_id),
+        _ => unreachable!(),
+    };
+
+    let mut bounds = type_param_definition
+        .bounds(sa)
+        .filter(|bound| bound.ty() == *check_ty)
+        .filter_map(|bound| bound.trait_ty())
+        .collect::<Vec<_>>();
+
+    let alias = sa.alias(assoc_id);
+    let owner_trait_id = alias
+        .parent
+        .to_trait_id()
+        .expect("associated type should belong to a trait");
+    let owner_trait = sa.trait_(owner_trait_id);
+    let type_args = TypeArgs::from_own(
+        sa,
+        owner_trait.type_param_definition(sa),
+        &assoc_trait_ty.type_params,
+    );
+
+    bounds.extend(
+        alias
+            .bounds()
+            .iter()
+            .filter_map(|bound| bound.ty())
+            .map(|bound| specialize_trait_type(sa, bound, &type_args)),
+    );
+
+    bounds
 }
 
 pub fn maybe_alias_ty(sa: &Sema, mut ty: SourceType) -> SourceType {

@@ -1,0 +1,33 @@
+use std::Stringable;
+
+trait Value: Stringable {}
+
+class Item(Int64)
+
+impl Value for Item {}
+
+impl Stringable for Item {
+    fn to_string(): String { self.0.to_string() }
+}
+
+trait DefaultTemplate {
+    type Item: Value;
+
+    fn item(): Self::Item;
+
+    fn template(): String {
+        "item=${self.item()}"
+    }
+}
+
+class Source(Item)
+
+impl DefaultTemplate for Source {
+    type Item = Item;
+
+    fn item(): Item { self.0 }
+}
+
+fn main() {
+    assert(Source(Item(42)).template() == "item=42");
+}

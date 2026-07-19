@@ -31,7 +31,7 @@ pub(super) fn check_expr_template(
                 ck.element,
                 stringable_trait_ty.clone(),
             ) {
-                if !part_ty.is_type_param() {
+                if !part_ty.is_type_param() && !part_ty.is_assoc() && !part_ty.is_generic_assoc() {
                     let impl_match = find_impl(
                         ck.sa,
                         ck.element,

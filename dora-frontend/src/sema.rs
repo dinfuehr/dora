@@ -65,7 +65,9 @@ pub use self::functions::{
     FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param, Params, emit_as_bytecode_operation,
 };
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
-pub use self::impl_matching::{find_impl, impl_matches, implements_trait, maybe_alias_ty};
+pub use self::impl_matching::{
+    associated_type_bounds, find_impl, impl_matches, implements_trait, maybe_alias_ty,
+};
 pub use self::impls::{ImplDefinition, ImplDefinitionId, SuperTraitWitness};
 pub use self::known::KnownElements;
 pub use self::matching::{block_matches_ty, extension_matches, match_arrays};

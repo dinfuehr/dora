@@ -1,0 +1,9 @@
+trait Source {
+    type Item;
+
+    fn item(): Self::Item;
+
+    fn message(): String {
+        "item=${self.item()}"
+    }
+}

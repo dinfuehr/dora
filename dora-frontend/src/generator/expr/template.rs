@@ -45,12 +45,7 @@ pub(super) fn gen_expr_template(
 
             if ty.cls_id() == Some(g.sa.known.classes.string()) {
                 gen_expr(g, part_id, DataDest::Reg(part_register));
-            } else if ty.is_type_param() {
-                let type_param_id = match ty {
-                    SourceType::TypeParam(id) => id,
-                    _ => unreachable!(),
-                };
-
+            } else if ty.is_type_param() || ty.is_assoc() || ty.is_generic_assoc() {
                 let expr_register = gen_expr(g, part_id, DataDest::Alloc);
 
                 // build to_string() call
@@ -67,9 +62,7 @@ pub(super) fn gen_expr_template(
                     bindings: Vec::new(),
                 };
                 let fct_idx = g.builder.add_const(ConstPoolEntry::Generic {
-                    object_type: g
-                        .emitter
-                        .convert_ty(g.sa, SourceType::TypeParam(type_param_id)),
+                    object_type: g.emitter.convert_ty(g.sa, ty),
                     trait_ty: g.emitter.convert_trait_ty(g.sa, &trait_ty),
                     fct_id: g.emitter.convert_function_id(g.sa, to_string_id),
                     fct_type_params: BytecodeTypeArray::empty(),

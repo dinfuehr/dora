@@ -23,8 +23,8 @@ use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, Element, ElementWithFields,
     EnumDefinitionId, Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema,
-    StructDefinitionId, TraitDefinition, TypeParamDefinition, TypeParamId, find_impl,
-    implements_trait,
+    StructDefinitionId, TraitDefinition, TypeParamDefinition, TypeParamId, associated_type_bounds,
+    find_impl, implements_trait,
 };
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
@@ -495,13 +495,26 @@ fn check_expr_call_self_assoc_type_static_method(
     let interned_method_name = ck.sa.interner.intern(&method_name);
     let alias = ck.sa.alias(alias_id);
 
-    // Look for static methods in the bounds of the associated type
-    for bound in alias.bounds() {
-        if let Some(trait_ty) = bound.ty() {
-            let bound_trait = ck.sa.trait_(trait_ty.trait_id);
-            if let Some(trait_method_id) = bound_trait.get_method(interned_method_name, true) {
-                matched_methods.push((trait_method_id, trait_ty));
-            }
+    let parent_trait_id = alias.parent.to_trait_id().expect("expected trait parent");
+    let current_trait_id = ck.parent.trait_id().expect("expected trait context");
+    let current_trait = ck.sa.trait_(current_trait_id);
+    let definition = current_trait.type_param_definition(ck.sa);
+    let current_trait_ty = TraitType {
+        trait_id: current_trait_id,
+        type_params: definition.identity_type_params(ck.sa),
+        bindings: Vec::new(),
+    };
+    let parent_trait_ty = find_super_trait_ty(ck.sa, &current_trait_ty, parent_trait_id)
+        .expect("super trait not found for associated type");
+    let assoc_type = SourceType::Assoc {
+        trait_ty: parent_trait_ty,
+        assoc_id: alias_id,
+    };
+
+    for trait_ty in associated_type_bounds(ck.sa, &assoc_type, &ck.type_param_definition) {
+        let bound_trait = ck.sa.trait_(trait_ty.trait_id);
+        if let Some(trait_method_id) = bound_trait.get_method(interned_method_name, true) {
+            matched_methods.push((trait_method_id, trait_ty));
         }
     }
 
@@ -522,22 +535,6 @@ fn check_expr_call_self_assoc_type_static_method(
     let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
     let trait_method = ck.sa.fct(trait_method_id);
 
-    // The parent trait's TraitType (for Self::T, this is the current trait)
-    let parent_trait_id = alias.parent.to_trait_id().expect("expected trait parent");
-    let current_trait_id = ck.parent.trait_id().expect("expected trait context");
-    let current_trait = ck.sa.trait_(current_trait_id);
-    let definition = current_trait.type_param_definition(ck.sa);
-    let current_trait_ty = TraitType {
-        trait_id: current_trait_id,
-        type_params: definition.identity_type_params(ck.sa),
-        bindings: Vec::new(),
-    };
-    let parent_trait_ty = find_super_trait_ty(ck.sa, &current_trait_ty, parent_trait_id)
-        .expect("super trait not found for associated type");
-    let assoc_type = SourceType::Assoc {
-        trait_ty: parent_trait_ty.clone(),
-        assoc_id: alias_id,
-    };
     let type_params = TypeArgs::from_parts(
         ck.sa,
         trait_method.type_param_definition(ck.sa),
@@ -594,14 +591,17 @@ fn check_expr_call_generic_assoc_static_method(
 ) -> SourceType {
     let mut matched_methods = Vec::new();
     let interned_method_name = ck.sa.interner.intern(&method_name);
-    let alias = ck.sa.alias(assoc_id);
-    // Look for static methods in the bounds of the associated type
-    for bound in alias.bounds() {
-        if let Some(trait_ty) = bound.ty() {
-            let bound_trait = ck.sa.trait_(trait_ty.trait_id);
-            if let Some(trait_method_id) = bound_trait.get_method(interned_method_name, true) {
-                matched_methods.push((trait_method_id, trait_ty));
-            }
+
+    let assoc_type = SourceType::GenericAssoc {
+        ty: Box::new(SourceType::TypeParam(tp_id)),
+        trait_ty: container_trait_ty,
+        assoc_id,
+    };
+
+    for trait_ty in associated_type_bounds(ck.sa, &assoc_type, &ck.type_param_definition) {
+        let bound_trait = ck.sa.trait_(trait_ty.trait_id);
+        if let Some(trait_method_id) = bound_trait.get_method(interned_method_name, true) {
+            matched_methods.push((trait_method_id, trait_ty));
         }
     }
 
@@ -622,12 +622,6 @@ fn check_expr_call_generic_assoc_static_method(
     let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
     let trait_method = ck.sa.fct(trait_method_id);
 
-    // The GenericAssoc type: T::Item
-    let assoc_type = SourceType::GenericAssoc {
-        ty: Box::new(SourceType::TypeParam(tp_id)),
-        trait_ty: container_trait_ty.clone(),
-        assoc_id,
-    };
     let type_params = TypeArgs::from_parts(
         ck.sa,
         trait_method.type_param_definition(ck.sa),
@@ -780,16 +774,17 @@ fn check_expr_call_qualified_path(
         return ty_error();
     }
 
-    let alias = ck.sa.alias(assoc_id);
+    let assoc_type = SourceType::GenericAssoc {
+        ty: Box::new(ty),
+        trait_ty: trait_ty.clone(),
+        assoc_id,
+    };
 
-    // Look for static methods in the bounds of the associated type
     let mut matched_methods = Vec::new();
-    for bound in alias.bounds() {
-        if let Some(bound_trait_ty) = bound.ty() {
-            let bound_trait = ck.sa.trait_(bound_trait_ty.trait_id);
-            if let Some(trait_method_id) = bound_trait.get_method(interned_method_name, true) {
-                matched_methods.push((trait_method_id, bound_trait_ty));
-            }
+    for bound_trait_ty in associated_type_bounds(ck.sa, &assoc_type, &ck.type_param_definition) {
+        let bound_trait = ck.sa.trait_(bound_trait_ty.trait_id);
+        if let Some(trait_method_id) = bound_trait.get_method(interned_method_name, true) {
+            matched_methods.push((trait_method_id, bound_trait_ty));
         }
     }
 
@@ -809,12 +804,6 @@ fn check_expr_call_qualified_path(
     let (trait_method_id, method_trait_ty) = matched_methods.pop().expect("missing method");
     let trait_method = ck.sa.fct(trait_method_id);
 
-    // The GenericAssoc type: [T as Trait]::Item
-    let assoc_type = SourceType::GenericAssoc {
-        ty: Box::new(ty),
-        trait_ty: trait_ty.clone(),
-        assoc_id,
-    };
     let type_params = TypeArgs::from_parts(
         ck.sa,
         trait_method.type_param_definition(ck.sa),
