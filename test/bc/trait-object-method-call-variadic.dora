@@ -1,0 +1,7 @@
+trait Sum {
+    fn sum(values: Int32...): Int32;
+}
+
+fn f(sum: Sum): Int32 {
+    sum.sum(1i32, 2i32, 3i32)
+}

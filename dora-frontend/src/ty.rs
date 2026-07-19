@@ -86,7 +86,7 @@ pub fn alias(id: AliasDefinitionId, type_params: SourceTypeArray) -> SourceType 
 }
 
 pub fn lambda(type_params: SourceTypeArray, return_type: SourceType) -> SourceType {
-    SourceType::Lambda(type_params, Box::new(return_type))
+    SourceType::Lambda(type_params, Box::new(return_type), false)
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -166,7 +166,7 @@ pub enum SourceType {
     },
 
     // Some lambda.
-    Lambda(SourceTypeArray, Box<SourceType>),
+    Lambda(SourceTypeArray, Box<SourceType>, bool),
 
     // Some enum.
     Enum(EnumDefinitionId, SourceTypeArray),
@@ -338,7 +338,7 @@ impl SourceType {
 
     pub fn is_lambda(&self) -> bool {
         match self {
-            &SourceType::Lambda(_, _) => true,
+            &SourceType::Lambda(..) => true,
             _ => false,
         }
     }
@@ -499,11 +499,13 @@ impl SourceType {
         }
     }
 
-    pub fn to_lambda(&self) -> Option<(SourceTypeArray, SourceType)> {
+    pub fn to_lambda(&self) -> Option<(SourceTypeArray, SourceType, bool)> {
         match self {
-            SourceType::Lambda(params, return_type) => {
-                Some((params.clone(), return_type.as_ref().to_owned()))
-            }
+            SourceType::Lambda(params, return_type, is_variadic) => Some((
+                params.clone(),
+                return_type.as_ref().to_owned(),
+                *is_variadic,
+            )),
             _ => None,
         }
     }
@@ -676,7 +678,7 @@ impl SourceType {
 
                 true
             }
-            SourceType::Lambda(params, return_type) => {
+            SourceType::Lambda(params, return_type, _) => {
                 for param in params.iter() {
                     if !param.is_concrete_type() {
                         return false;
@@ -750,7 +752,7 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
 
             false
         }
-        SourceType::Lambda(params, return_type) => {
+        SourceType::Lambda(params, return_type, _) => {
             for param in params.iter() {
                 if contains_self(sa, param) {
                     return true;
@@ -1042,12 +1044,18 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
 
-            SourceType::Lambda(params, return_type) => {
-                let params = params
+            SourceType::Lambda(params, return_type, is_variadic) => {
+                let mut params = params
                     .iter()
                     .map(|ty| self.name(ty.clone()))
-                    .collect::<Vec<_>>()
-                    .join(", ");
+                    .collect::<Vec<_>>();
+                if is_variadic {
+                    params
+                        .last_mut()
+                        .expect("missing variadic parameter")
+                        .push_str("...");
+                }
+                let params = params.join(", ");
                 let ret = self.name(*return_type);
 
                 format!("({}) -> {}", params, ret)

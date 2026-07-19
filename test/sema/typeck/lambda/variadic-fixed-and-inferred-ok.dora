@@ -1,0 +1,17 @@
+//= ok
+fn create(): (Int32, String...): Int64 {
+    |base, values...|: Int64 {
+        base;
+        values.size()
+    }
+}
+
+fn use_lambda(f: (Int32, String...): Int64) {
+    f(1i32);
+    f(1i32, "one");
+    f(1i32, "one", "two");
+}
+
+fn main() {
+    use_lambda(create());
+}

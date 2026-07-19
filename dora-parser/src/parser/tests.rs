@@ -839,6 +839,15 @@ fn parse_type_lambda_two_params() {
 }
 
 #[test]
+fn parse_type_lambda_variadic_param() {
+    let fct = parse_type("(A, B...): C").as_lambda_type();
+
+    assert_eq!(2, fct.param_list().items_len());
+    assert!(fct.variadic());
+    assert_eq!(Some(1), fct.variadic_param_idx());
+}
+
+#[test]
 fn parse_type_unit() {
     let ty = parse_type("()").as_tuple_type();
 
@@ -1746,6 +1755,14 @@ fn parse_qualified_type() {
 fn parse_ref_type() {
     parse_type("ref Foo");
     parse_type("ref Foo[Bar]");
+}
+
+#[test]
+fn reject_variadic_tuple_type() {
+    parse_with_error(
+        "fn f(value: (Int32...)) {}",
+        vec![(1, 19, 3, ParseError::VariadicParameterNotAllowedInTuple)],
+    );
 }
 
 fn tr_name(node: AstType) -> String {

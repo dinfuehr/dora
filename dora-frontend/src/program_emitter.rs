@@ -982,9 +982,10 @@ impl Emitter {
             ),
             SourceType::Tuple(subtypes) => BytecodeType::Tuple(self.convert_tya(_sa, &subtypes)),
             SourceType::TypeParam(idx) => BytecodeType::TypeParam(idx.index() as u32),
-            SourceType::Lambda(params, return_type) => BytecodeType::Lambda(
+            SourceType::Lambda(params, return_type, is_variadic) => BytecodeType::Lambda(
                 self.convert_tya(_sa, &params),
                 Box::new(self.convert_ty(_sa, *return_type)),
+                is_variadic,
             ),
             SourceType::Ptr => BytecodeType::Ptr,
             SourceType::This => BytecodeType::This,

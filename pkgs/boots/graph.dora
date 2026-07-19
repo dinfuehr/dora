@@ -3099,6 +3099,7 @@ pub class VirtualFunctionInfo {
 pub class LambdaFunctionInfo {
     pub params: Array[BytecodeType],
     pub return_type: BytecodeType,
+    pub is_variadic: Bool,
     pub receiver_is_first: Bool,
 }
 

@@ -1,0 +1,9 @@
+trait Foo {
+    fn f(values: Int32...);
+}
+
+struct Bar
+
+impl Foo for Bar {
+    fn f(values: Int32) {}
+}

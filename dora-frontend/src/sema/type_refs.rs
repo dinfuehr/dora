@@ -134,6 +134,7 @@ pub enum TypeRef {
     Lambda {
         params: Vec<TypeRefId>,
         return_ty: TypeRefId,
+        is_variadic: bool,
     },
 
     QualifiedPath {

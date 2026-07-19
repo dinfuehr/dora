@@ -1,0 +1,8 @@
+error: Argument expects value of type `T` but got `Bool`.
+--> variadic-generic-wrong-argument.dora:2:14
+ | fn invoke[T](f: (T...): T, value: T): T {
+ |     f(value, false)
+                ~~~~~
+ | }
+ | 
+1 error found.

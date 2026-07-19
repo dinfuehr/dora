@@ -266,7 +266,8 @@ pub fn decode_bytecode_type(reader: ByteReader): BytecodeType {
     } else if opcode == opc::BYTECODE_TYPE_LAMBDA {
         let params = decode_bytecode_type_array(reader);
         let return_type = decode_bytecode_type(reader);
-        BytecodeType::Lambda(params, return_type)
+        let is_variadic = reader.read_bool();
+        BytecodeType::Lambda(params, return_type, is_variadic)
     } else if opcode == opc::BYTECODE_TYPE_TYPE_ALIAS {
         let alias_id = AliasId(reader.read_id());
         BytecodeType::TypeAlias(alias_id)
@@ -395,7 +396,8 @@ fn decode_const_pool_entry(reader: ByteReader): ConstPoolEntry {
     } else if opcode == opc::CONST_POOL_OPCODE_LAMBDA {
         let params = decode_bytecode_type_array(reader);
         let return_ty = decode_bytecode_type(reader);
-        ConstPoolEntry::Lambda(params, return_ty)
+        let is_variadic = reader.read_bool();
+        ConstPoolEntry::Lambda(params, return_ty, is_variadic)
     } else if opcode == opc::CONST_POOL_OPCODE_JUMP_TABLE {
         let len = reader.read_int32().to_int64();
         let targets = Vec[Int32]::new_with_capacity(len);

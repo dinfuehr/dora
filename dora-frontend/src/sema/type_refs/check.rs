@@ -68,7 +68,12 @@ fn check_type_ref_inner(
             if has_error { SourceType::Error } else { ty }
         }
 
-        (TypeRef::Lambda { params, return_ty }, SourceType::Lambda(source_params, source_ret)) => {
+        (
+            TypeRef::Lambda {
+                params, return_ty, ..
+            },
+            SourceType::Lambda(source_params, source_ret, _),
+        ) => {
             let mut has_error = false;
             for (param_ref, param_ty) in params.iter().zip(source_params.iter()) {
                 let result = check_type_ref_inner(

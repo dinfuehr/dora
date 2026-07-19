@@ -301,7 +301,7 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
             | BytecodeType::TypeParam(_)
-            | BytecodeType::Lambda(_, _)
+            | BytecodeType::Lambda(..)
             | BytecodeType::This
             | BytecodeType::Ref(..) => {
                 unreachable!()
@@ -403,7 +403,7 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
             | BytecodeType::TypeParam(_)
-            | BytecodeType::Lambda(_, _)
+            | BytecodeType::Lambda(..)
             | BytecodeType::This
             | BytecodeType::Ref(..) => {
                 unreachable!()

@@ -1,0 +1,60 @@
+fn main() {
+    test_fixed_and_evaluation_order();
+    test_stack_arguments();
+}
+
+fn test_fixed_and_evaluation_order() {
+    let mut next_value = 0i32;
+    let next = ||: Int32 {
+        let result = next_value;
+        next_value = next_value + 1i32;
+        result
+    };
+    let consume = |first: Int32, values: Int32...| {
+        assert(first == 0i32);
+        assert(values.size() == 2);
+        assert(values(0i64) == 1i32);
+        assert(values(1i64) == 2i32);
+    };
+
+    consume(next(), next(), next());
+    assert(next_value == 3i32);
+
+    let count = |base: Int32, values: Int32...|: Int64 {
+        base;
+        values.size()
+    };
+    assert(count(10i32) == 0);
+    assert(count(10i32, 20i32, 30i32) == 2);
+}
+
+fn test_stack_arguments() {
+    let sum = |
+        a0: Int64,
+        a1: Int64,
+        a2: Int64,
+        a3: Int64,
+        a4: Int64,
+        a5: Int64,
+        a6: Int64,
+        a7: Int64,
+        a8: Int64,
+        a9: Int64,
+        values: Int64...,
+    |: Int64 {
+        assert(a0 == 0);
+        assert(a1 == 1);
+        assert(a2 == 2);
+        assert(a3 == 3);
+        assert(a4 == 4);
+        assert(a5 == 5);
+        assert(a6 == 6);
+        assert(a7 == 7);
+        assert(a8 == 8);
+        assert(a9 == 9);
+        assert(values.size() == 2);
+        a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + values(0) + values(1)
+    };
+
+    assert(sum(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11) == 66);
+}

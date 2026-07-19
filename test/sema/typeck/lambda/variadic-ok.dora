@@ -1,0 +1,10 @@
+//= ok
+fn call(sum: (Int32...): Int32): Int32 {
+    sum(1i32, 2i32, 3i32)
+}
+
+fn create(): (Int32...): Int32 {
+    |values: Int32...|: Int32 {
+        values(0i64)
+    }
+}

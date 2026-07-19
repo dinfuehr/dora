@@ -1039,15 +1039,24 @@ fn check_expr_call_expr_lambda(
     call_expr_id: ExprId,
 ) -> SourceType {
     let node_id = expr_id;
-    let (params, return_type) = expr_type.to_lambda().expect("lambda expected");
+    let (params, return_type, is_variadic) = expr_type.to_lambda().expect("lambda expected");
 
     let expected = ExpectedCallArgs {
-        regular_types: params.iter().collect(),
-        variadic_type: None,
+        regular_types: params
+            .iter()
+            .take(params.len() - is_variadic as usize)
+            .collect(),
+        variadic_type: is_variadic.then(|| {
+            params
+                .types()
+                .last()
+                .cloned()
+                .expect("missing variadic parameter")
+        }),
     };
     check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
-    let call_type = CallType::Lambda(params, return_type.clone());
+    let call_type = CallType::Lambda(params, return_type.clone(), is_variadic);
 
     ck.body
         .insert_or_replace_call_type(node_id, Rc::new(call_type));
@@ -1988,7 +1997,7 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
             _ => false,
         },
 
-        SourceType::Lambda(_, _) => def == arg,
+        SourceType::Lambda(..) => def == arg,
 
         SourceType::Alias(id, type_params) => {
             assert!(type_params.is_empty());

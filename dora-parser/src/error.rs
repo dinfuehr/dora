@@ -29,6 +29,7 @@ pub enum ParseError {
     ExpectedPathSegment,
     ExpectedExpression,
     ExpectedStatement,
+    VariadicParameterNotAllowedInTuple,
 }
 
 impl ParseError {
@@ -72,6 +73,9 @@ impl ParseError {
             }
             ParseError::ExpectedExpression => "expected expression.".into(),
             ParseError::ExpectedStatement => "expected statement.".into(),
+            ParseError::VariadicParameterNotAllowedInTuple => {
+                "variadic parameter is not allowed in tuple types.".into()
+            }
         }
     }
 }

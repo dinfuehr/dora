@@ -2424,7 +2424,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             | BytecodeType::Assoc { .. }
             | BytecodeType::TypeParam(_)
             | BytecodeType::Class(_, _)
-            | BytecodeType::Lambda(_, _)
+            | BytecodeType::Lambda(..)
             | BytecodeType::This
             | BytecodeType::Ref(..) => {
                 unreachable!()
@@ -2471,14 +2471,16 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         idx: ConstPoolIdx,
         arguments: Vec<Register>,
     ) {
-        let (params, return_type) = match self.bytecode.const_pool(idx) {
-            ConstPoolEntry::Lambda(params, return_type) => (params.clone(), return_type.clone()),
+        let (params, return_type, is_variadic) = match self.bytecode.const_pool(idx) {
+            ConstPoolEntry::Lambda(params, return_type, is_variadic) => {
+                (params.clone(), return_type.clone(), *is_variadic)
+            }
             _ => unreachable!(),
         };
 
         let location = self.bytecode.offset_location(self.current_offset.to_u32());
 
-        self.emit_invoke_lambda(dest, params, return_type, arguments, location);
+        self.emit_invoke_lambda(dest, params, return_type, is_variadic, arguments, location);
     }
 
     fn emit_invoke_lambda(
@@ -2486,6 +2488,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         dest: Register,
         _params: BytecodeTypeArray,
         _return_type: BytecodeType,
+        _is_variadic: bool,
         arguments: Vec<Register>,
         location: Location,
     ) {
@@ -4912,7 +4915,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
 pub fn register_bty(ty: BytecodeType) -> BytecodeType {
     match ty {
-        BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => BytecodeType::Ptr,
+        BytecodeType::Class(_, _) | BytecodeType::Lambda(..) => BytecodeType::Ptr,
         _ => ty,
     }
 }

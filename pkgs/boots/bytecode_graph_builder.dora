@@ -1846,10 +1846,16 @@ impl BytecodeGraphBuilder {
                 let ConstPoolEntry::Lambda(
                     params,
                     return_type,
+                    is_variadic,
                 ) = self.bc().const_pool_entry(idx);
                 let params = self.specialize_array(params);
                 let return_type = self.specialize_ty(return_type);
-                let info = LambdaFunctionInfo(params, return_type, receiver_is_first);
+                let info = LambdaFunctionInfo(
+                    params,
+                    return_type,
+                    is_variadic,
+                    receiver_is_first,
+                );
                 graph::create_invoke_lambda_inst(info, args, return_ty)
             }
 

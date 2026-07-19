@@ -1580,6 +1580,20 @@ impl AstLambdaType {
             .filter_map(|n| AstType::cast(n))
             .last()
     }
+
+    pub fn variadic(&self) -> bool {
+        self.variadic_param_idx().is_some()
+    }
+
+    pub fn variadic_param_idx(&self) -> Option<usize> {
+        self.param_list().entries().position(|entry| {
+            entry
+                .syntax_node()
+                .children_with_tokens()
+                .filter_map(|node| node.to_token())
+                .any(|token| token.syntax_kind() == TokenKind::DOT_DOT_DOT)
+        })
+    }
 }
 
 #[derive(Clone, AstUnion)]

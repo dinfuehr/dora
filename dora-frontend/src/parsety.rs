@@ -389,7 +389,7 @@ pub(crate) fn expand_st(
             SourceType::Enum(*enum_id, expand_sta(sa, element, type_params, replace_self))
         }
 
-        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+        SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
             expand_sta(sa, element, params, replace_self.clone()),
             Box::new(expand_st(
                 sa,
@@ -397,6 +397,7 @@ pub(crate) fn expand_st(
                 return_type.as_ref().clone(),
                 replace_self,
             )),
+            *is_variadic,
         ),
 
         SourceType::Tuple(subtypes) => {

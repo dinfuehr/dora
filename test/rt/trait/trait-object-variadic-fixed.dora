@@ -1,0 +1,26 @@
+trait Fold {
+    fn fold(base: Int64, values: Int64...): Int64;
+}
+
+struct Summer
+
+impl Fold for Summer {
+    fn fold(base: Int64, values: Int64...): Int64 {
+        let mut result = base;
+        let mut idx = 0;
+
+        while idx < values.size() {
+            result = result + values(idx);
+            idx = idx + 1;
+        }
+
+        result
+    }
+}
+
+fn main() {
+    let summer = Summer() as Fold;
+    assert(summer.fold(10) == 10);
+    assert(summer.fold(10, 1) == 11);
+    assert(summer.fold(10, 1, 2, 3) == 16);
+}

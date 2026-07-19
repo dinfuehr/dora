@@ -1,0 +1,17 @@
+error: Argument expects value of type `(Int32...) -> Int32` but got `(Array[Int32]) -> Int32`.
+--> variadic-and-array-lambda-differ.dora:13:22
+ |     };
+ | 
+ |     expects_variadic(array);
+                        ~~~~~
+ |     expects_array(variadic);
+ | }
+error: Argument expects value of type `(Array[Int32]) -> Int32` but got `(Int32...) -> Int32`.
+--> variadic-and-array-lambda-differ.dora:14:19
+ | 
+ |     expects_variadic(array);
+ |     expects_array(variadic);
+                     ~~~~~~~~
+ | }
+ | 
+2 errors found.

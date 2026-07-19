@@ -319,11 +319,11 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
                 )
             }
 
-            BytecodeType::Lambda(params, return_type) => {
+            BytecodeType::Lambda(params, return_type, is_variadic) => {
                 write!(
                     f,
                     "({}): {}",
-                    fmt_type_list(self.prog, &params, self.type_params),
+                    fmt_lambda_params(self.prog, &params, self.type_params, *is_variadic),
                     fmt_ty(self.prog, &return_type, self.type_params, false)
                 )
             }
@@ -474,6 +474,21 @@ fn fmt_type_list<'a>(
         prog,
         type_params,
         array,
+        is_variadic: false,
+    }
+}
+
+pub fn fmt_lambda_params<'a>(
+    prog: &'a Program,
+    array: &'a BytecodeTypeArray,
+    type_params: TypeParamMode<'a>,
+    is_variadic: bool,
+) -> TypeListPrinter<'a> {
+    TypeListPrinter {
+        prog,
+        type_params,
+        array,
+        is_variadic,
     }
 }
 
@@ -509,12 +524,13 @@ pub struct TypeListPrinter<'a> {
     prog: &'a Program,
     type_params: TypeParamMode<'a>,
     array: &'a BytecodeTypeArray,
+    is_variadic: bool,
 }
 
 impl<'a> std::fmt::Display for TypeListPrinter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut first = true;
-        for ty in self.array.iter() {
+        for (idx, ty) in self.array.iter().enumerate() {
             if !first {
                 write!(f, ", ")?;
             }
@@ -523,6 +539,9 @@ impl<'a> std::fmt::Display for TypeListPrinter<'a> {
                 "{}",
                 fmt_ty(&self.prog, &ty, self.type_params.clone(), false)
             )?;
+            if self.is_variadic && idx + 1 == self.array.len() {
+                write!(f, "...")?;
+            }
             first = false;
         }
 

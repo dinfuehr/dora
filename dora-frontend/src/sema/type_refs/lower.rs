@@ -1,5 +1,5 @@
 use crate::args;
-use crate::error::diagnostics::INVALID_TYPE;
+use crate::error::diagnostics::{INVALID_TYPE, VARIADIC_PARAMETER_NEEDS_TO_BE_LAST};
 use crate::sema::{Sema, SourceFileId, TypeRefArenaBuilder};
 
 use dora_parser::ast::{self, AstCommaList, SyntaxNodeBase};
@@ -37,7 +37,27 @@ pub(crate) fn lower_type(
                 unit_ty_in_arena(type_refs)
             };
 
-            TypeRef::Lambda { params, return_ty }
+            let is_variadic = if let Some(idx) = node.variadic_param_idx() {
+                if idx + 1 == params.len() {
+                    true
+                } else {
+                    sa.report(
+                        file_id,
+                        node.span(),
+                        &VARIADIC_PARAMETER_NEEDS_TO_BE_LAST,
+                        args!(),
+                    );
+                    false
+                }
+            } else {
+                false
+            };
+
+            TypeRef::Lambda {
+                params,
+                return_ty,
+                is_variadic,
+            }
         }
         ast::AstType::QualifiedPathType(node) => {
             let ty = lower_type(sa, type_refs, file_id, node.ty());

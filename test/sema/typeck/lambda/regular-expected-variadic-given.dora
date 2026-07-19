@@ -1,0 +1,8 @@
+fn expects_regular(f: (Int32): Int32) {}
+
+fn main() {
+    let variadic = |values: Int32...|: Int32 {
+        values(0i64)
+    };
+    expects_regular(variadic);
+}

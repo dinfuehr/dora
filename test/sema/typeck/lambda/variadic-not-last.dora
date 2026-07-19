@@ -1,0 +1,6 @@
+fn f() {
+    |values: Int32..., other: Int32| {
+        values;
+        other;
+    };
+}

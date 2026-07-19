@@ -64,7 +64,9 @@ pub(crate) fn parse_type_ref(
                 parse_type_ref(sa, type_refs, table, file_id, element, *subtype);
             }
         }
-        TypeRef::Lambda { params, return_ty } => {
+        TypeRef::Lambda {
+            params, return_ty, ..
+        } => {
             for param in params {
                 parse_type_ref(sa, type_refs, table, file_id, element, *param);
             }

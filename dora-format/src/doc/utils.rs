@@ -414,8 +414,22 @@ pub(crate) fn print_comma_list_grouped<T: AstCommaList>(
     node: &T,
     opt: &Options,
 ) {
+    print_comma_list_grouped_with(f, node, opt, |f, iter, opt| {
+        print_node::<T::Item>(f, iter, opt);
+    });
+}
+
+pub(crate) fn print_comma_list_grouped_with<T, F>(
+    f: &mut Formatter,
+    node: &T,
+    opt: &Options,
+    format_item: F,
+) where
+    T: AstCommaList,
+    F: Fn(&mut Formatter, &mut Iter<'_>, &Options),
+{
     f.group(|f| {
-        print_comma_list_ungrouped(f, node, opt);
+        print_comma_list_ungrouped_with(f, node, opt, &format_item);
     });
 }
 
@@ -424,6 +438,20 @@ pub(crate) fn print_comma_list_ungrouped<T: AstCommaList>(
     node: &T,
     opt: &Options,
 ) {
+    print_comma_list_ungrouped_with(f, node, opt, &|f, iter, opt| {
+        print_node::<T::Item>(f, iter, opt);
+    });
+}
+
+fn print_comma_list_ungrouped_with<T, F>(
+    f: &mut Formatter,
+    node: &T,
+    opt: &Options,
+    format_item: &F,
+) where
+    T: AstCommaList,
+    F: Fn(&mut Formatter, &mut Iter<'_>, &Options),
+{
     let iter = &mut node.children_with_tokens();
     print_next_token(f, iter, opt);
     f.soft_break();
@@ -444,7 +472,14 @@ pub(crate) fn print_comma_list_ungrouped<T: AstCommaList>(
 
             index += 1;
             let is_last = index == entry_count;
-            print_comma_list_item::<T::Item>(list_item_node, f, opt, is_last, has_multiple_entries);
+            print_comma_list_item(
+                list_item_node,
+                f,
+                opt,
+                is_last,
+                has_multiple_entries,
+                format_item,
+            );
         }
 
         // Keep comments between the final list item and closing delimiter nested with the list.
@@ -454,15 +489,18 @@ pub(crate) fn print_comma_list_ungrouped<T: AstCommaList>(
     print_next_token(f, iter, opt);
 }
 
-fn print_comma_list_item<T: SyntaxNodeBase>(
+fn print_comma_list_item<F>(
     node: SyntaxNode,
     f: &mut Formatter,
     opt: &Options,
     is_last: bool,
     has_multiple_entries: bool,
-) {
+    format_item: &F,
+) where
+    F: Fn(&mut Formatter, &mut Iter<'_>, &Options),
+{
     let iter = &mut node.children_with_tokens();
-    print_node::<T>(f, iter, opt);
+    format_item(f, iter, opt);
     eat_token_opt(f, iter, TokenKind::COMMA, opt);
     let trailing_comments = collect_comment_docs(iter, f);
     let has_line_comment = has_line_comment(&trailing_comments);

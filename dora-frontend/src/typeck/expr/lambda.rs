@@ -6,6 +6,7 @@ use crate::sema::{
     Param, Params,
 };
 use crate::typeck::TypeCheck;
+use crate::{args, error::diagnostics::VARIADIC_PARAMETER_NEEDS_TO_BE_LAST};
 
 pub(super) fn check_expr_lambda(
     ck: &mut TypeCheck,
@@ -15,9 +16,20 @@ pub(super) fn check_expr_lambda(
 ) -> SourceType {
     // Extract expected param and return types from expected_ty if it's a lambda
     let (expected_params, expected_return_type) = match expected_ty.to_lambda() {
-        Some((params, ret)) => (Some(params), Some(ret)),
+        Some((params, ret, _)) => (Some(params), Some(ret)),
         None => (None, None),
     };
+
+    for lambda_param in sema_expr.params.iter().rev().skip(1) {
+        if lambda_param.variadic {
+            ck.report(
+                sema_expr.span,
+                &VARIADIC_PARAMETER_NEEDS_TO_BE_LAST,
+                args!(),
+            );
+        }
+    }
+    let is_variadic = sema_expr.params.last().is_some_and(|param| param.variadic);
 
     let lambda_return_type = if let Some(ret_ty) = sema_expr.return_ty {
         // Explicit annotation takes precedence
@@ -77,6 +89,7 @@ pub(super) fn check_expr_lambda(
     let ty = SourceType::Lambda(
         SourceTypeArray::with(param_types),
         Box::new(lambda_return_type.clone()),
+        is_variadic,
     );
 
     let param = Param::new_ty(SourceType::Ptr);
@@ -108,7 +121,7 @@ pub(super) fn check_expr_lambda(
             in_loop: false,
             is_lambda: true,
             param_types: lambda_params.clone(),
-            is_variadic: false,
+            is_variadic,
             return_type: Some(lambda_return_type.clone()),
             parent: ck.parent.clone(),
             has_hidden_self_argument: true,
@@ -142,7 +155,7 @@ pub(super) fn check_expr_lambda(
         Annotations::default(),
         name,
         ck.type_param_definition.clone(),
-        Params::new(lambda_params, true, false),
+        Params::new(lambda_params, true, is_variadic),
         lambda_return_type.clone(),
         FctParent::Function,
     );

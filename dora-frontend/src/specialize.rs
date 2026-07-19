@@ -98,9 +98,10 @@ pub fn replace_type(
             replace_sta(sa, alias_type_params, type_params, self_ty),
         ),
 
-        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+        SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
             replace_sta(sa, params, type_params, self_ty.clone()),
             Box::new(replace_type(sa, *return_type, type_params, self_ty)),
+            is_variadic,
         ),
 
         SourceType::Tuple(subtypes) => {
@@ -268,7 +269,7 @@ pub fn specialize_ty_for_call(
             }
         }
 
-        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+        SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
             specialize_ty_for_call_array(sa, params, caller_element, call_data),
             Box::new(specialize_ty_for_call(
                 sa,
@@ -276,6 +277,7 @@ pub fn specialize_ty_for_call(
                 caller_element,
                 call_data,
             )),
+            is_variadic,
         ),
 
         SourceType::Tuple(subtypes) => SourceType::Tuple(specialize_ty_for_call_array(
@@ -392,7 +394,7 @@ pub fn specialize_ty_for_trait_object(
             assoc_types[alias.idx_in_trait()].clone()
         }
 
-        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+        SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
             specialize_ty_for_trait_object_array(sa, params, trait_id, type_params, assoc_types),
             Box::new(specialize_ty_for_trait_object(
                 sa,
@@ -401,6 +403,7 @@ pub fn specialize_ty_for_trait_object(
                 type_params,
                 assoc_types,
             )),
+            is_variadic,
         ),
 
         SourceType::Tuple(subtypes) => SourceType::Tuple(specialize_ty_for_trait_object_array(
@@ -617,7 +620,7 @@ pub fn specialize_ty_for_default_trait_method(
             }
         }
 
-        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+        SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
             specialize_ty_array_for_default_trait_method(
                 sa,
                 params,
@@ -634,6 +637,7 @@ pub fn specialize_ty_for_default_trait_method(
                 trait_ty,
                 extended_ty,
             )),
+            is_variadic,
         ),
 
         SourceType::Tuple(subtypes) => {
@@ -917,7 +921,7 @@ pub fn specialize_ty_for_generic(
             }
         }
 
-        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+        SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
             specialize_ty_for_generic_array(
                 sa,
                 params,
@@ -936,6 +940,7 @@ pub fn specialize_ty_for_generic(
                 type_params,
                 object_type,
             )),
+            is_variadic,
         ),
 
         SourceType::Tuple(subtypes) => SourceType::Tuple(specialize_ty_for_generic_array(
@@ -1027,7 +1032,7 @@ pub fn specialize_for_element(
             specialize_for_element_array(sa, alias_type_params, element, type_params_for_element),
         ),
 
-        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+        SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
             specialize_for_element_array(sa, params, element, type_params_for_element),
             Box::new(specialize_for_element(
                 sa,
@@ -1035,6 +1040,7 @@ pub fn specialize_for_element(
                 element,
                 type_params_for_element,
             )),
+            is_variadic,
         ),
 
         SourceType::Tuple(subtypes) => SourceType::Tuple(specialize_for_element_array(
@@ -1185,10 +1191,10 @@ pub fn specialize_type_for_implements(ty: SourceType, type_params: &SourceTypeAr
             let new_subtypes = specialize_type_array_for_implements(&subtypes, type_params);
             SourceType::Tuple(new_subtypes)
         }
-        SourceType::Lambda(params, return_type) => {
+        SourceType::Lambda(params, return_type, is_variadic) => {
             let new_params = specialize_type_array_for_implements(&params, type_params);
             let new_return_type = specialize_type_for_implements(*return_type, type_params);
-            SourceType::Lambda(new_params, Box::new(new_return_type))
+            SourceType::Lambda(new_params, Box::new(new_return_type), is_variadic)
         }
         SourceType::Ref(inner) => SourceType::Ref(Box::new(specialize_type_for_implements(
             *inner,

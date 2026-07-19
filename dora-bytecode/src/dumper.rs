@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::display::{fmt_trait_ty, fmt_tuple, fmt_ty, fmt_type_params};
+use crate::display::{fmt_lambda_params, fmt_trait_ty, fmt_tuple, fmt_ty, fmt_type_params};
 use crate::{
     BytecodeFunction, BytecodeOffset, BytecodeVisitor, ConstId, ConstPoolEntry, ConstPoolIdx,
     GlobalId, Program, Register, TypeParamMode, display_fct, display_fct_specialized,
@@ -219,12 +219,12 @@ pub fn dump(
                 idx,
                 fmt_tuple(prog, subtypes, type_params)
             )?,
-            ConstPoolEntry::Lambda(params, return_type) => writeln!(
+            ConstPoolEntry::Lambda(params, return_type, is_variadic) => writeln!(
                 w,
-                "{}{} => Lambda {}: {}",
+                "{}{} => Lambda ({}): {}",
                 align,
                 idx,
-                fmt_tuple(prog, params, type_params),
+                fmt_lambda_params(prog, params, type_params, *is_variadic),
                 fmt_ty(prog, return_type, type_params, false)
             )?,
             ConstPoolEntry::JumpTable {
@@ -466,7 +466,7 @@ impl<'a> BytecodeDumper<'a> {
             ConstPoolEntry::Fct(fct_id, _)
             | ConstPoolEntry::Generic { fct_id, .. }
             | ConstPoolEntry::TraitObjectMethod(_, fct_id) => fct_id,
-            ConstPoolEntry::Lambda(_, _) => return "lambda".into(),
+            ConstPoolEntry::Lambda(..) => return "lambda".into(),
             _ => unreachable!(),
         };
 

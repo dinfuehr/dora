@@ -137,7 +137,7 @@ pub struct TraitObjectThunkCompilationData<'a> {
 
 pub fn register_ty(ty: BytecodeType) -> BytecodeType {
     match ty {
-        BytecodeType::Class(_, _) | BytecodeType::Lambda(_, _) => BytecodeType::Ptr,
+        BytecodeType::Class(_, _) | BytecodeType::Lambda(..) => BytecodeType::Ptr,
         _ => ty,
     }
 }

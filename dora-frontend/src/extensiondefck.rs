@@ -251,7 +251,7 @@ fn discover_type_params(sa: &Sema, ty: SourceType, used_type_params: &mut FixedB
                 discover_type_params(sa, subtype.clone(), used_type_params);
             }
         }
-        SourceType::Lambda(params, return_type) => {
+        SourceType::Lambda(params, return_type, _) => {
             for param in params.iter() {
                 discover_type_params(sa, param, used_type_params);
             }

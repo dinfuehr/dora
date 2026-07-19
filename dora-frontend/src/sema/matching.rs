@@ -231,8 +231,8 @@ fn match_concrete_types(
         | SourceType::Float64
         | SourceType::TypeParam(_) => check_ty == ext_ty,
 
-        SourceType::Lambda(check_params, check_ret_type) => match ext_ty {
-            SourceType::Lambda(ext_params, ext_ret_type) => {
+        SourceType::Lambda(check_params, check_ret_type, check_is_variadic) => match ext_ty {
+            SourceType::Lambda(ext_params, ext_ret_type, ext_is_variadic) => {
                 match_arrays(
                     sa,
                     &check_params,
@@ -241,15 +241,16 @@ fn match_concrete_types(
                     &ext_params,
                     ext_type_param_defs,
                     bindings,
-                ) && match_types(
-                    sa,
-                    *check_ret_type,
-                    check_element,
-                    check_type_param_defs,
-                    *ext_ret_type,
-                    ext_type_param_defs,
-                    bindings,
-                )
+                ) && check_is_variadic == ext_is_variadic
+                    && match_types(
+                        sa,
+                        *check_ret_type,
+                        check_element,
+                        check_type_param_defs,
+                        *ext_ret_type,
+                        ext_type_param_defs,
+                        bindings,
+                    )
             }
 
             _ => false,

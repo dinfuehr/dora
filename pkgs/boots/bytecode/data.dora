@@ -102,7 +102,7 @@ pub enum ConstPoolEntry {
     TraitObject(BytecodeType, BytecodeType),
     TupleElement(BytecodeType, Int32),
     Tuple(Array[BytecodeType]),
-    Lambda(Array[BytecodeType], BytecodeType),
+    Lambda(Array[BytecodeType], BytecodeType, Bool),
     JumpTable {
         targets: Array[Int32],
         default: Int32,
@@ -195,7 +195,11 @@ impl Stringable for ConstPoolEntry {
             ) => "Trait ${trait_ty}.${actual_object_ty}",
             ConstPoolEntry::TupleElement(ty, idx) => "TupleElement ${ty}.${idx}",
             ConstPoolEntry::Tuple(types) => "Tuple ${types}",
-            ConstPoolEntry::Lambda(params, ret) => "Lambda ${params}:${ret}",
+            ConstPoolEntry::Lambda(
+                params,
+                ret,
+                is_variadic,
+            ) => "Lambda ${params}:${ret}, variadic=${is_variadic}",
             ConstPoolEntry::JumpTable(targets, default) => {
                 let output = StringBuffer::new();
 
@@ -259,7 +263,7 @@ pub enum BytecodeType {
     TraitObject(TraitId, Array[BytecodeType], Array[BytecodeType]),
     Tuple(Array[BytecodeType]),
     TypeParam(Int32),
-    Lambda(Array[BytecodeType], BytecodeType),
+    Lambda(Array[BytecodeType], BytecodeType, Bool),
     TypeAlias(AliasId),
     Assoc {
         ty: BytecodeType,
@@ -306,7 +310,11 @@ impl BytecodeType {
             ) => type_params.is_generic(),
             BytecodeType::Tuple(subtypes) => subtypes.is_generic(),
             BytecodeType::TypeParam(idx) => true,
-            BytecodeType::Lambda(params, ret) => params.is_generic() || ret.is_generic(),
+            BytecodeType::Lambda(
+                params,
+                ret,
+                _,
+            ) => params.is_generic() || ret.is_generic(),
             BytecodeType::TypeAlias(..) => unreachable[Bool](),
         }
     }
@@ -477,12 +485,15 @@ impl Equals for BytecodeType {
                 }
             }
 
-            BytecodeType::Lambda(params, ret) => {
+            BytecodeType::Lambda(params, ret, is_variadic) => {
                 match other {
                     BytecodeType::Lambda(
                         other_params,
                         other_ret,
-                    ) => params == other_params && ret == other_ret,
+                        other_is_variadic,
+                    ) => params == other_params &&
+                    ret == other_ret &&
+                    is_variadic == other_is_variadic,
                     _ => false,
                 }
             }
@@ -535,7 +546,17 @@ impl Hash for BytecodeType {
             assoc_types.hash(),
             BytecodeType::Tuple(subtypes) => opc::BYTECODE_TYPE_TUPLE ^ subtypes.hash(),
             BytecodeType::TypeParam(id) => opc::BYTECODE_TYPE_TYPE_PARAM ^ id,
-            BytecodeType::Lambda(params, ret) => params.hash() ^ ret.hash(),
+            BytecodeType::Lambda(
+                params,
+                ret,
+                is_variadic,
+            ) => params.hash() ^
+            ret.hash() ^
+            if is_variadic {
+                1i32
+            } else {
+                0i32
+            },
             BytecodeType::TypeAlias(id) => opc::BYTECODE_TYPE_TYPE_ALIAS ^ id.hash(),
             BytecodeType::Assoc(..) => unreachable[Int32](),
         }
@@ -566,7 +587,11 @@ impl Stringable for BytecodeType {
             ) => "TraitObject(${id}, ${params}, ${assoc})",
             BytecodeType::Tuple(types) => "Tuple(${types})",
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
-            BytecodeType::Lambda(params, ty) => "Lambda(${params}, ${ty})",
+            BytecodeType::Lambda(
+                params,
+                ty,
+                is_variadic,
+            ) => "Lambda(${params}, ${ty}, variadic=${is_variadic})",
             BytecodeType::TypeAlias(id) => "TypeAlias(${id})",
             BytecodeType::Assoc(..) => unreachable[String](),
         }

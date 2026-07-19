@@ -723,10 +723,15 @@ impl Parser {
 
     fn parse_tuple_or_lambda_type(&mut self, m: Marker) {
         let m_list = self.open();
+        let mut variadic_param_spans = Vec::new();
         self.assert(L_PAREN);
         self.parse_comma_list_items(R_PAREN, TYPE_PARAM_RS, ParseError::ExpectedType, |p| {
             if p.is_set(TYPE_FIRST) {
                 p.parse_type();
+                if p.is(DOT_DOT_DOT) {
+                    variadic_param_spans.push(p.current_span());
+                    p.assert(DOT_DOT_DOT);
+                }
                 true
             } else {
                 false
@@ -740,6 +745,9 @@ impl Parser {
             self.parse_type();
             self.close(m, LAMBDA_TYPE);
         } else {
+            for span in variadic_param_spans {
+                self.report_error_at(ParseError::VariadicParameterNotAllowedInTuple, span);
+            }
             self.cancel_node(m_list);
             self.close(m, TUPLE_TYPE);
         }

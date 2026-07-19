@@ -1,0 +1,3 @@
+fn f(sum: (Int32...): Int32): Int32 {
+    sum(1i32, 2i32, false)
+}

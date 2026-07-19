@@ -36,8 +36,16 @@ pub(super) fn gen_expr_call(
             return gen_expr_call_class(g, expr_id, e, cls_id, type_params, dest);
         }
 
-        CallType::Lambda(ref params, ref return_type) => {
-            return gen_expr_call_lambda(g, expr_id, e, params.clone(), return_type.clone(), dest);
+        CallType::Lambda(ref params, ref return_type, is_variadic) => {
+            return gen_expr_call_lambda(
+                g,
+                expr_id,
+                e,
+                params.clone(),
+                return_type.clone(),
+                is_variadic,
+                dest,
+            );
         }
 
         CallType::Expr(..)
@@ -137,6 +145,7 @@ fn gen_expr_call_lambda(
     e: &CallExpr,
     params: SourceTypeArray,
     return_type: SourceType,
+    is_variadic: bool,
     dest: DataDest,
 ) -> Register {
     let mut arguments = Vec::new();
@@ -144,13 +153,25 @@ fn gen_expr_call_lambda(
     let lambda_object = gen_expr(g, e.callee, DataDest::Alloc);
     arguments.push(lambda_object);
 
-    for arg in &e.args {
+    let regular_arguments = params.len() - is_variadic as usize;
+    for arg in e.args.iter().take(regular_arguments) {
         arguments.push(gen_expr(g, arg.expr, DataDest::Alloc));
     }
+    if is_variadic {
+        arguments.push(emit_array_with_variadic_arguments(
+            g,
+            e,
+            params.types(),
+            regular_arguments,
+            DataDest::Alloc,
+        ));
+    }
 
-    let bc_params = g.convert_tya(&params);
+    let bc_params = g.emitter.convert_tya(g.sa, &params);
     let bc_return_type = g.emitter.convert_ty(g.sa, return_type.clone());
-    let idx = g.builder.add_const_lambda(bc_params, bc_return_type);
+    let idx = g
+        .builder
+        .add_const_lambda(bc_params, bc_return_type, is_variadic);
 
     let location = g.loc_for_expr(expr_id);
     let dest_reg = if return_type.is_unit() {

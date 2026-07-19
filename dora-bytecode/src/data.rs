@@ -958,7 +958,7 @@ pub enum ConstPoolEntry {
     },
     TupleElement(BytecodeType, u32),
     Tuple(BytecodeTypeArray),
-    Lambda(BytecodeTypeArray, BytecodeType),
+    Lambda(BytecodeTypeArray, BytecodeType, bool),
     JumpTable {
         targets: Vec<u32>,
         default_target: u32,

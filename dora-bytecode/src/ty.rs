@@ -23,7 +23,7 @@ pub enum BytecodeType {
     Struct(StructId, BytecodeTypeArray),
     Class(ClassId, BytecodeTypeArray),
     TraitObject(TraitId, BytecodeTypeArray, BytecodeTypeArray),
-    Lambda(BytecodeTypeArray, Box<BytecodeType>),
+    Lambda(BytecodeTypeArray, Box<BytecodeType>, bool),
     TypeAlias(AliasId),
     Assoc {
         ty: Box<BytecodeType>,
@@ -140,7 +140,7 @@ impl BytecodeType {
             }
 
             BytecodeType::Tuple(subtypes) => subtypes.is_concrete_type(),
-            BytecodeType::Lambda(params, return_type) => {
+            BytecodeType::Lambda(params, return_type, _) => {
                 params.is_concrete_type() && return_type.is_concrete_type()
             }
             BytecodeType::Ref(inner) => inner.is_concrete_type(),

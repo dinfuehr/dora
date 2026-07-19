@@ -281,7 +281,7 @@ pub enum CallType {
     Intrinsic(Intrinsic),
 
     // Invoke lambda function.
-    Lambda(SourceTypeArray, SourceType),
+    Lambda(SourceTypeArray, SourceType, bool),
 }
 
 impl CallType {

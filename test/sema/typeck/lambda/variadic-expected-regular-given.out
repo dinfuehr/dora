@@ -1,0 +1,9 @@
+error: Argument expects value of type `(Int32...) -> Int32` but got `(Int32) -> Int32`.
+--> variadic-expected-regular-given.dora:7:22
+ |         value
+ |     };
+ |     expects_variadic(regular);
+                        ~~~~~~~
+ | }
+ | 
+1 error found.

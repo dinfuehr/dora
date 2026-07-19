@@ -113,7 +113,11 @@ fn convert_type_ref_inner(
 
             SourceType::Tuple(SourceTypeArray::with(new_subtypes))
         }
-        TypeRef::Lambda { params, return_ty } => {
+        TypeRef::Lambda {
+            params,
+            return_ty,
+            is_variadic,
+        } => {
             let mut new_params = Vec::with_capacity(params.len());
 
             for param in params {
@@ -127,7 +131,11 @@ fn convert_type_ref_inner(
 
             let new_return_ty =
                 convert_type_ref_inner(sa, type_ref_arena, ctxt_element, *return_ty);
-            SourceType::Lambda(SourceTypeArray::with(new_params), Box::new(new_return_ty))
+            SourceType::Lambda(
+                SourceTypeArray::with(new_params),
+                Box::new(new_return_ty),
+                *is_variadic,
+            )
         }
         TypeRef::Path { type_arguments, .. } => {
             let type_symbol = match type_ref_arena.symbol(type_ref_id) {

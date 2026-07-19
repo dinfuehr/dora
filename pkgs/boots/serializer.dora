@@ -391,10 +391,11 @@ pub fn encode_bytecode_type(writer: ByteWriter, ty: BytecodeType) {
             encode_bytecode_type_array(writer, source_type_array);
             encode_bytecode_type_array(writer, assoc_types);
         }
-        BytecodeType::Lambda(params, ret) => {
+        BytecodeType::Lambda(params, ret, is_variadic) => {
             writer.emit_byte(opc::BYTECODE_TYPE_LAMBDA.to_uint8());
             encode_bytecode_type_array(writer, params);
             encode_bytecode_type(writer, ret);
+            writer.emit_bool(is_variadic);
         }
         BytecodeType::Assoc(ty, trait_ty, assoc_id) => {
             writer.emit_byte(opc::BYTECODE_TYPE_ASSOC.to_uint8());

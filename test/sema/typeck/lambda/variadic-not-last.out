@@ -1,0 +1,3 @@
+error: variadic parameter needs to be last.
+--> variadic-not-last.dora:2:5 - 5:6
+1 error found.

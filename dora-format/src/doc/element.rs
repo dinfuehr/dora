@@ -77,9 +77,11 @@ pub(crate) fn format_field(node: AstFieldDecl, f: &mut Formatter) {
 pub(crate) fn format_param(node: AstParam, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_node::<dora_parser::ast::AstPattern>(f, &mut iter, &opt);
-        print_token(f, &mut iter, COLON, &opt);
-        f.text(" ");
-        print_node::<AstType>(f, &mut iter, &opt);
+        if is_token(&mut iter, COLON) {
+            print_token(f, &mut iter, COLON, &opt);
+            f.text(" ");
+            print_node::<AstType>(f, &mut iter, &opt);
+        }
         if is_token(&mut iter, DOT_DOT_DOT) {
             print_token(f, &mut iter, DOT_DOT_DOT, &opt);
         }

@@ -1,0 +1,19 @@
+//= ok
+fn create[T](fallback: T): (T...): T {
+    |values...|: T {
+        if values.size() == 0 {
+            fallback
+        } else {
+            values(values.size() - 1)
+        }
+    }
+}
+
+fn invoke[T](f: (T...): T, first: T, second: T): T {
+    f(first, second)
+}
+
+fn main() {
+    invoke[Int32](create[Int32](0i32), 1i32, 2i32);
+    invoke[String](create[String]("fallback"), "one", "two");
+}

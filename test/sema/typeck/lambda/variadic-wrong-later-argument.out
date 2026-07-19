@@ -1,0 +1,8 @@
+error: Argument expects value of type `Int32` but got `Bool`.
+--> variadic-wrong-later-argument.dora:2:21
+ | fn f(sum: (Int32...): Int32): Int32 {
+ |     sum(1i32, 2i32, false)
+                       ~~~~~
+ | }
+ | 
+1 error found.

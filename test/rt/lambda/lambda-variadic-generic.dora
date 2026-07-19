@@ -1,0 +1,38 @@
+class Box {
+    value: Int32,
+}
+
+struct Pair {
+    first: Int32,
+    second: Int32,
+}
+
+fn choose_last[T](fallback: T): (T...): T {
+    |values: T...|: T {
+        std::force_collect();
+
+        if values.size() == 0 {
+            fallback
+        } else {
+            values(values.size() - 1)
+        }
+    }
+}
+
+fn main() {
+    let choose_int = choose_last[Int32](10i32);
+    assert(choose_int() == 10i32);
+    assert(choose_int(1i32, 2i32, 3i32) == 3i32);
+
+    let choose_box = choose_last[Box](Box(10i32));
+    assert(choose_box().value == 10i32);
+    assert(choose_box(Box(1i32), Box(2i32)).value == 2i32);
+
+    let choose_pair = choose_last[Pair](Pair(first = 10i32, second = 11i32));
+    let pair = choose_pair(
+        Pair(first = 1i32, second = 2i32),
+        Pair(first = 3i32, second = 4i32),
+    );
+    assert(pair.first == 3i32);
+    assert(pair.second == 4i32);
+}

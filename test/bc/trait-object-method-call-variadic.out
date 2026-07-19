@@ -1,0 +1,40 @@
+fn Sum::sum:
+  <no bytecode>
+
+fn f:
+  0: ConstInt64 r2, @2 # 3
+  3: NewArray r3, r2, @1 # Array[Int32]
+  7: ConstInt32 r5, @3 # 1
+ 10: ConstInt64 r4, @4 # 0
+ 13: StoreArray r5, r3, r4
+ 17: ConstInt32 r5, @5 # 2
+ 20: ConstInt64 r4, @6 # 1
+ 23: StoreArray r5, r3, r4
+ 27: ConstInt32 r5, @7 # 3
+ 30: ConstInt64 r4, @8 # 2
+ 33: StoreArray r5, r3, r4
+ 37: InvokeVirtual r1, @0, r0, r3 # Sum::sum
+ 43: Ret r1
+
+  Registers:
+   0 => Sum
+   1 => Int32
+   2 => Int64
+   3 => Ptr
+   4 => Int64
+   5 => Int32
+
+  Constants:
+   0 => TraitObjectMethod Sum.Sum::sum
+   1 => Class std::collections::Array[Int32]
+   2 => Int64 3
+   3 => Int32 1
+   4 => Int64 0
+   5 => Int32 2
+   6 => Int64 1
+   7 => Int32 3
+   8 => Int64 2
+
+  Locations:
+   3 => 6:5
+

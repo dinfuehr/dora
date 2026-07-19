@@ -1,0 +1,28 @@
+fn call_sum(sum: (Int32...): Int32): Int32 {
+    sum(1i32, 2i32, 3i32)
+}
+
+class SumHolder {
+    sum: (Int32...): Int32,
+}
+
+fn main() {
+    let offset = 10i32;
+    let sum = |values: Int32...|: Int32 {
+        let mut result = offset;
+        let mut idx = 0i64;
+
+        while idx < values.size() {
+            result = result + values(idx);
+            idx = idx + 1i64;
+        }
+
+        result
+    };
+
+    assert(sum() == 10i32);
+    assert(sum(7i32) == 17i32);
+    assert(sum(1i32, 2i32, 3i32, 4i32) == 20i32);
+    assert(call_sum(sum) == 16i32);
+    assert(SumHolder(sum).sum(5i32, 6i32) == 21i32);
+}

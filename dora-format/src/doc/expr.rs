@@ -612,6 +612,14 @@ mod tests {
     }
 
     #[test]
+    fn formats_lambda_expr_with_inferred_variadic_param() {
+        let input = "fn  main (  ) {  let  f : ( Int ... ) : Int = | values ... | : Int { 0 }; }";
+        let expected =
+            "fn main() {\n    let f: (Int...): Int = |values...|: Int {\n        0\n    };\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
     fn formats_tuple_expr() {
         let input = "fn  main (  ) {  let  x  =  ( 1 , 2 , 3 ) ; }";
         let expected = "fn main() {\n    let x = (1, 2, 3);\n}\n";

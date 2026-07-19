@@ -1,0 +1,3 @@
+fn invoke[T](f: (T...): T, value: T): T {
+    f(value, false)
+}

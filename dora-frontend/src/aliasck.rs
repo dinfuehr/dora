@@ -96,7 +96,7 @@ fn expand_type(
             expand_sta(sa, type_params, visited, visiting, context),
         ),
 
-        SourceType::Lambda(params, return_type) => SourceType::Lambda(
+        SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
             expand_sta(sa, params, visited, visiting, context),
             Box::new(expand_type(
                 sa,
@@ -105,6 +105,7 @@ fn expand_type(
                 visiting,
                 context,
             )),
+            *is_variadic,
         ),
 
         SourceType::Tuple(subtypes) => {

@@ -330,6 +330,10 @@ fn method_definitions_compatible(
         return false;
     }
 
+    if trait_method.params.is_variadic() != impl_method.params.is_variadic() {
+        return false;
+    }
+
     let fct_type_params = trait_method.type_param_definition().own_type_params_len();
 
     if fct_type_params != impl_method.type_param_definition().own_type_params_len() {
@@ -548,27 +552,30 @@ fn trait_and_impl_arg_ty_compatible(
             _ => false,
         },
 
-        SourceType::Lambda(trait_arg_params, trait_arg_return_type) => match impl_arg_ty {
-            SourceType::Lambda(impl_arg_params, impl_arg_return_type) => {
-                trait_and_impl_arg_ty_compatible_array(
-                    sa,
-                    trait_arg_params,
-                    trait_type_params.clone(),
-                    trait_alias_map,
-                    impl_arg_params,
-                    self_ty.clone(),
-                ) && trait_and_impl_arg_ty_compatible(
-                    sa,
-                    *trait_arg_return_type,
-                    trait_type_params,
-                    trait_alias_map,
-                    *impl_arg_return_type,
-                    self_ty,
-                )
-            }
+        SourceType::Lambda(trait_arg_params, trait_arg_return_type, trait_is_variadic) => {
+            match impl_arg_ty {
+                SourceType::Lambda(impl_arg_params, impl_arg_return_type, impl_is_variadic) => {
+                    trait_and_impl_arg_ty_compatible_array(
+                        sa,
+                        trait_arg_params,
+                        trait_type_params.clone(),
+                        trait_alias_map,
+                        impl_arg_params,
+                        self_ty.clone(),
+                    ) && trait_is_variadic == impl_is_variadic
+                        && trait_and_impl_arg_ty_compatible(
+                            sa,
+                            *trait_arg_return_type,
+                            trait_type_params,
+                            trait_alias_map,
+                            *impl_arg_return_type,
+                            self_ty,
+                        )
+                }
 
-            _ => false,
-        },
+                _ => false,
+            }
+        }
 
         SourceType::Tuple(trait_tuple_subtypes) => {
             if let Some(impl_tuple_subtypes) = impl_arg_ty.tuple_subtypes() {

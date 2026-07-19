@@ -48,9 +48,10 @@ impl BytecodeBuilder {
         &mut self,
         params: BytecodeTypeArray,
         return_type: BytecodeType,
+        is_variadic: bool,
     ) -> ConstPoolIdx {
         self.writer
-            .add_const(ConstPoolEntry::Lambda(params, return_type))
+            .add_const(ConstPoolEntry::Lambda(params, return_type, is_variadic))
     }
 
     pub fn add_const_fct(&mut self, id: FunctionId) -> ConstPoolIdx {

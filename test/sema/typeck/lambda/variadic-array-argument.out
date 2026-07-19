@@ -1,0 +1,8 @@
+error: Argument expects value of type `Int32` but got `Array[Int32]`.
+--> variadic-array-argument.dora:2:9
+ | fn f(sum: (Int32...): Int32, values: Array[Int32]): Int32 {
+ |     sum(values)
+           ~~~~~~
+ | }
+ | 
+1 error found.

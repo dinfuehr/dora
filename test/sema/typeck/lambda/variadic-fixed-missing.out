@@ -1,0 +1,8 @@
+error: Call should have 1 arguments but got only 0.
+--> variadic-fixed-missing.dora:2:5
+ | fn f(sum: (Int32, String...): Int64): Int64 {
+ |     sum()
+       ~~~~~
+ | }
+ | 
+1 error found.

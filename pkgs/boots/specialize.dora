@@ -74,10 +74,11 @@ pub fn specialize_ty(
                 type_params(idx.to_int64())
             }
         }
-        BytecodeType::Lambda(params, ret) => {
+        BytecodeType::Lambda(params, ret, is_variadic) => {
             BytecodeType::Lambda(
                 specialize_array(ci, specialize_self, params, type_params),
                 specialize_ty(ci, specialize_self, ret, type_params),
+                is_variadic,
             )
         }
         BytecodeType::Assoc(..) => {

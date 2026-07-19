@@ -5,7 +5,10 @@ use dora_parser::ast::{
 };
 
 use crate::doc::Formatter;
-use crate::doc::utils::{Options, is_node, print_comma_list_grouped, print_node, print_token};
+use crate::doc::utils::{
+    Options, eat_token_opt, is_node, print_comma_list_grouped, print_comma_list_grouped_with,
+    print_node, print_token,
+};
 use crate::with_iter;
 
 pub(crate) fn format_path_type(node: AstPathType, f: &mut Formatter) {
@@ -43,7 +46,12 @@ pub(crate) fn format_lambda_type(node: AstLambdaType, f: &mut Formatter) {
 
 pub(crate) fn format_lambda_param_list(node: AstLambdaParamList, f: &mut Formatter) {
     let opt = Options::new();
-    print_comma_list_grouped(f, &node, &opt);
+    print_comma_list_grouped_with(f, &node, &opt, |f, iter, opt| {
+        print_node::<AstType>(f, iter, opt);
+        if eat_token_opt(f, iter, DOT_DOT_DOT, opt) {
+            f.text("...");
+        }
+    });
 }
 
 pub(crate) fn format_tuple_type(node: AstTupleType, f: &mut Formatter) {
@@ -88,6 +96,13 @@ mod tests {
     fn formats_lambda_type() {
         let input = "fn  main ( x : ( Int , String ) : Bool ) { }";
         let expected = "fn main(x: (Int, String): Bool) {}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_variadic_lambda_type() {
+        let input = "fn  main ( x : ( Int , String ... ) : Bool ) { }";
+        let expected = "fn main(x: (Int, String...): Bool) {}\n";
         assert_source(input, expected);
     }
 

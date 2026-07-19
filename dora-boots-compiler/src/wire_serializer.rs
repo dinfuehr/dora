@@ -293,10 +293,11 @@ fn encode_constpool_entry(const_entry: &ConstPoolEntry, buffer: &mut ByteBuffer)
             buffer.emit_u8(ConstPoolOpcode::Tuple.into());
             encode_bytecode_type_array(&source_type_array, buffer);
         }
-        &ConstPoolEntry::Lambda(ref params, ref return_type) => {
+        &ConstPoolEntry::Lambda(ref params, ref return_type, is_variadic) => {
             buffer.emit_u8(ConstPoolOpcode::Lambda.into());
             encode_bytecode_type_array(params, buffer);
             encode_bytecode_type(return_type, buffer);
+            buffer.emit_bool(is_variadic);
         }
         &ConstPoolEntry::JumpTable {
             ref targets,
