@@ -1,0 +1,31 @@
+trait Selectable {
+    fn select[T](value: T): T;
+}
+
+impl Selectable for Int64 {
+    fn select[T](value: T): T { value }
+}
+
+trait Container {
+    type Item: Selectable;
+}
+
+trait GenericAssociatedReceiver[C: Container] {
+    fn select_on_item(item: C::Item): String {
+        item.select[String]("generic associated")
+    }
+}
+
+class Values
+
+impl Container for Values {
+    type Item = Int64;
+}
+
+class Source
+
+impl GenericAssociatedReceiver[Values] for Source {}
+
+fn main() {
+    assert(Source().select_on_item(42) == "generic associated");
+}

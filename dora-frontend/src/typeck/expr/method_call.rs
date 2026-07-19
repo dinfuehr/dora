@@ -34,7 +34,7 @@ pub(crate) fn check_expr_method_call(
     let object_type = check_expr(ck, sema_expr.object, SourceType::Any);
     let method_name = ck.sa.interner.str(sema_expr.name).to_string();
 
-    let type_params: SourceTypeArray = SourceTypeArray::with(
+    let mtd_type_params: SourceTypeArray = SourceTypeArray::with(
         sema_expr
             .type_params
             .iter()
@@ -48,7 +48,7 @@ pub(crate) fn check_expr_method_call(
         expr_id,
         object_type.clone(),
         method_name,
-        type_params,
+        mtd_type_params,
     );
 
     // Check if calling a mutating method on a value type requires the receiver to be mutable.
@@ -114,7 +114,7 @@ fn check_expr_call_method(
     call_expr_id: ExprId,
     object_type: SourceType,
     method_name: String,
-    fct_type_params: SourceTypeArray,
+    mtd_type_params: SourceTypeArray,
 ) -> SourceType {
     // Auto-dereference Ref types for method calls.
     let object_type = match object_type {
@@ -129,30 +129,35 @@ fn check_expr_call_method(
             SourceType::TypeParam(id),
             id,
             method_name,
-            fct_type_params,
+            mtd_type_params,
             call_expr_id,
         );
     } else if object_type.is_assoc() {
-        assert_eq!(fct_type_params.len(), 0);
         return check_method_call_on_assoc(
             ck,
             call_expr_id,
             method_name,
             object_type,
+            mtd_type_params,
             call_expr_id,
         );
     } else if object_type.is_generic_assoc() {
-        assert_eq!(fct_type_params.len(), 0);
         return check_method_call_on_generic_assoc(
             ck,
             call_expr_id,
             method_name,
             object_type,
+            mtd_type_params,
             call_expr_id,
         );
     } else if object_type.is_self() {
-        assert_eq!(fct_type_params.len(), 0);
-        return check_method_call_on_self(ck, call_expr_id, method_name, call_expr_id);
+        return check_method_call_on_self(
+            ck,
+            call_expr_id,
+            method_name,
+            mtd_type_params,
+            call_expr_id,
+        );
     }
 
     if object_type.is_error() {
@@ -180,7 +185,7 @@ fn check_expr_call_method(
             call_expr_id,
             object_type,
             method_name,
-            fct_type_params,
+            mtd_type_params,
             call_expr_id,
         )
     } else if candidates.len() > 1 {
@@ -202,7 +207,7 @@ fn check_expr_call_method(
             ck.sa,
             fct.type_param_definition(ck.sa),
             &candidate.container_type_params,
-            &fct_type_params,
+            &mtd_type_params,
             Some(candidate.object_type.clone()),
         );
 
@@ -348,6 +353,7 @@ fn check_method_call_on_self(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     name: String,
+    mtd_type_params: SourceTypeArray,
     call_expr_id: ExprId,
 ) -> SourceType {
     let mut matched_methods: Vec<(FctDefinitionId, TraitType)> = Vec::new();
@@ -392,7 +398,7 @@ fn check_method_call_on_self(
             ck.sa,
             trait_method.type_param_definition(ck.sa),
             &trait_ty.type_params,
-            &SourceTypeArray::empty(),
+            &mtd_type_params,
             Some(SourceType::This),
         );
 
@@ -457,6 +463,7 @@ fn check_method_call_on_assoc(
     expr_id: ExprId,
     name: String,
     object_type: SourceType,
+    mtd_type_params: SourceTypeArray,
     call_expr_id: ExprId,
 ) -> SourceType {
     let mut matched_methods = Vec::new();
@@ -478,7 +485,7 @@ fn check_method_call_on_assoc(
             ck.sa,
             trait_method.type_param_definition(ck.sa),
             &trait_ty.type_params,
-            &SourceTypeArray::empty(),
+            &mtd_type_params,
             Some(object_type.clone()),
         );
 
@@ -544,6 +551,7 @@ fn check_method_call_on_generic_assoc(
     expr_id: ExprId,
     name: String,
     object_type: SourceType,
+    mtd_type_params: SourceTypeArray,
     call_expr_id: ExprId,
 ) -> SourceType {
     let mut matched_methods = Vec::new();
@@ -565,7 +573,7 @@ fn check_method_call_on_generic_assoc(
             ck.sa,
             trait_method.type_param_definition(ck.sa),
             &trait_ty.type_params,
-            &SourceTypeArray::empty(),
+            &mtd_type_params,
             Some(object_type.clone()),
         );
 
@@ -649,7 +657,7 @@ fn check_method_call_on_type_param(
     object_type: SourceType,
     type_param_id: TypeParamId,
     name: String,
-    pure_fct_type_params: SourceTypeArray,
+    mtd_type_params: SourceTypeArray,
     call_expr_id: ExprId,
 ) -> SourceType {
     assert!(object_type.is_type_param());
@@ -677,7 +685,7 @@ fn check_method_call_on_type_param(
             ck.sa,
             trait_method.type_param_definition(ck.sa),
             &trait_ty.type_params,
-            &pure_fct_type_params,
+            &mtd_type_params,
             Some(object_type.clone()),
         );
 
