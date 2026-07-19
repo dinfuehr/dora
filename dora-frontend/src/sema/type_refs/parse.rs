@@ -371,13 +371,13 @@ enum AliasLookupResult {
 fn lookup_alias_on_type_param(
     sa: &Sema,
     element: &dyn Element,
-    id: TypeParamId,
+    type_param_id: TypeParamId,
     name: Name,
 ) -> AliasLookupResult {
     let type_param_definition = element.type_param_definition(sa);
     let mut results = Vec::with_capacity(2);
 
-    for bound in type_param_definition.bounds_for_type_param(sa, id) {
+    for bound in type_param_definition.bounds_for_type_param(sa, type_param_id) {
         let trait_id = bound.trait_id;
         let trait_ = sa.trait_(trait_id);
 

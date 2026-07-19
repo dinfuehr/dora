@@ -97,34 +97,42 @@ impl TypeParamDefinition {
         }
     }
 
-    fn type_param_id(&self, sa: &Sema, id: TypeParamIdx) -> TypeParamId {
-        let id = id.index();
+    fn type_param_id(&self, sa: &Sema, idx: TypeParamIdx) -> TypeParamId {
+        let idx = idx.index();
 
-        if id < self.container_type_params() {
+        if idx < self.container_type_params() {
             let parent = self.parent.expect("parent missing");
             sa.type_param_definition(parent)
-                .type_param_id(sa, TypeParamIdx(id))
+                .type_param_id(sa, TypeParamIdx(idx))
         } else {
-            self.type_params[id - self.container_type_params()]
+            self.type_params[idx - self.container_type_params()]
         }
     }
 
-    pub fn type_param_idx(&self, sa: &Sema, id: TypeParamId) -> Option<TypeParamIdx> {
-        self.classify_type_param(sa, id).map(|kind| match kind {
-            TypeParamKind::Container(idx) | TypeParamKind::Own(idx) => idx,
-        })
+    pub fn type_param_idx(&self, sa: &Sema, type_param_id: TypeParamId) -> Option<TypeParamIdx> {
+        self.classify_type_param(sa, type_param_id)
+            .map(|kind| match kind {
+                TypeParamKind::Container(idx) | TypeParamKind::Own(idx) => idx,
+            })
     }
 
-    pub fn classify_type_param(&self, sa: &Sema, id: TypeParamId) -> Option<TypeParamKind> {
+    pub fn classify_type_param(
+        &self,
+        sa: &Sema,
+        type_param_id: TypeParamId,
+    ) -> Option<TypeParamKind> {
         if let Some(parent) = self.parent {
-            if let Some(idx) = sa.type_param_definition(parent).type_param_idx(sa, id) {
+            if let Some(idx) = sa
+                .type_param_definition(parent)
+                .type_param_idx(sa, type_param_id)
+            {
                 return Some(TypeParamKind::Container(idx));
             }
         }
 
         self.type_params
             .iter()
-            .position(|&type_param_id| type_param_id == id)
+            .position(|&id| id == type_param_id)
             .map(|idx| TypeParamKind::Own(TypeParamIdx(self.container_type_params + idx)))
     }
 
@@ -164,12 +172,12 @@ impl TypeParamDefinition {
         sa: &mut Sema,
         type_ref_arena: &mut TypeRefArenaBuilder,
         file_id: SourceFileId,
-        id: TypeParamId,
+        type_param_id: TypeParamId,
         ast_trait_ty: ast::AstType,
     ) {
         let type_ref_id = lower_type(sa, type_ref_arena, file_id, ast_trait_ty);
         let bound = Bound::new(
-            ParsedType::new_ty(SourceType::TypeParam(id)),
+            ParsedType::new_ty(SourceType::TypeParam(type_param_id)),
             ParsedTraitType::new(type_ref_id),
         );
 
@@ -197,8 +205,13 @@ impl TypeParamDefinition {
         self.bounds.push(bound);
     }
 
-    pub fn implements_trait(&self, sa: &Sema, id: TypeParamId, trait_ty: TraitType) -> bool {
-        for bound_trait_ty in self.bounds_for_type_param(sa, id) {
+    pub fn implements_trait(
+        &self,
+        sa: &Sema,
+        type_param_id: TypeParamId,
+        trait_ty: TraitType,
+    ) -> bool {
+        for bound_trait_ty in self.bounds_for_type_param(sa, type_param_id) {
             if bound_trait_ty.implements_trait(sa, &trait_ty) {
                 return true;
             }
@@ -228,10 +241,12 @@ impl TypeParamDefinition {
     pub fn bounds_for_type_param<'a>(
         &'a self,
         sa: &'a Sema,
-        id: TypeParamId,
+        type_param_id: TypeParamId,
     ) -> impl Iterator<Item = TraitType> + 'a {
         self.bounds(sa)
-            .filter(move |b| b.ty() == SourceType::TypeParam(id) && b.trait_ty().is_some())
+            .filter(move |b| {
+                b.ty() == SourceType::TypeParam(type_param_id) && b.trait_ty().is_some()
+            })
             .map(|b| b.trait_ty().expect("trait type expected"))
     }
 
@@ -371,7 +386,7 @@ impl TypeParam {
 }
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct TypeParamIdx(pub usize);
+pub struct TypeParamIdx(usize);
 
 impl TypeParamIdx {
     pub fn index(self) -> usize {

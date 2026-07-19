@@ -674,7 +674,7 @@ fn check_method_call_on_type_param(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     object_type: SourceType,
-    id: TypeParamId,
+    type_param_id: TypeParamId,
     name: String,
     pure_fct_type_params: SourceTypeArray,
     call_expr_id: ExprId,
@@ -683,7 +683,10 @@ fn check_method_call_on_type_param(
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
-    for trait_ty in ck.type_param_definition.bounds_for_type_param(ck.sa, id) {
+    for trait_ty in ck
+        .type_param_definition
+        .bounds_for_type_param(ck.sa, type_param_id)
+    {
         let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
@@ -713,7 +716,16 @@ fn check_method_call_on_type_param(
             &type_params,
             ck.file_id,
             || ck.expr_span(expr_id),
-            |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, id, &trait_ty, &type_params),
+            |ty| {
+                specialize_ty_for_generic(
+                    ck.sa,
+                    ty,
+                    ck.element,
+                    type_param_id,
+                    &trait_ty,
+                    &type_params,
+                )
+            },
         );
 
         if type_params_ok {
@@ -721,7 +733,7 @@ fn check_method_call_on_type_param(
                 ck.sa,
                 trait_method.return_type(),
                 ck.element,
-                id,
+                type_param_id,
                 &trait_ty,
                 &type_params,
             );
@@ -738,7 +750,16 @@ fn check_method_call_on_type_param(
             let expected = build_expected_method_call_args(
                 trait_method.params.regular_params(),
                 trait_method.params.variadic_param(),
-                |ty| specialize_ty_for_generic(ck.sa, ty, ck.element, id, &trait_ty, &type_params),
+                |ty| {
+                    specialize_ty_for_generic(
+                        ck.sa,
+                        ty,
+                        ck.element,
+                        type_param_id,
+                        &trait_ty,
+                        &type_params,
+                    )
+                },
             );
             check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
 
