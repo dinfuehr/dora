@@ -3,23 +3,42 @@ use fixedbitset::FixedBitSet;
 use crate::{
     BytecodeFunction, BytecodeInstruction, BytecodeOffset, BytecodeReader, BytecodeTraitType,
     BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, FunctionData,
-    FunctionId, FunctionKind, Program, Register, TypeParamData,
+    FunctionId, FunctionKind, Program, Register, TypeParamData, resolve_path,
 };
 
 pub fn verify(program: &Program) {
     verify_program_types(program);
+    let array_class_id = resolve_stdlib_class(program, "collections::Array");
+    let string_class_id = resolve_stdlib_class(program, "string::String");
 
     for (function_idx, function) in program.functions.iter().enumerate() {
         if let Some(bytecode) = &function.bytecode {
-            Verifier::new(program, function_idx.into(), bytecode).verify();
+            Verifier::new(
+                program,
+                function_idx.into(),
+                bytecode,
+                array_class_id,
+                string_class_id,
+            )
+            .verify();
         }
     }
+}
+
+fn resolve_stdlib_class(program: &Program, path: &str) -> ClassId {
+    let package_name = &program.package(program.stdlib_package_id).name;
+    resolve_path(program, &format!("{}::{}", package_name, path))
+        .unwrap()
+        .class_id()
+        .unwrap()
 }
 
 struct Verifier<'a> {
     program: &'a Program,
     function_id: FunctionId,
     bytecode: &'a BytecodeFunction,
+    array_class_id: ClassId,
+    string_class_id: ClassId,
     offset: BytecodeOffset,
     instruction_offsets: FixedBitSet,
     jump_targets: Vec<(BytecodeOffset, u32, JumpDirection)>,
@@ -36,11 +55,15 @@ impl<'a> Verifier<'a> {
         program: &'a Program,
         function_id: FunctionId,
         bytecode: &'a BytecodeFunction,
+        array_class_id: ClassId,
+        string_class_id: ClassId,
     ) -> Verifier<'a> {
         Verifier {
             program,
             function_id,
             bytecode,
+            array_class_id,
+            string_class_id,
             offset: BytecodeOffset(0),
             instruction_offsets: FixedBitSet::with_capacity(bytecode.code().len()),
             jump_targets: Vec::new(),
@@ -331,11 +354,7 @@ impl<'a> Verifier<'a> {
                     call_arguments.iter().zip(params.iter()).enumerate()
                 {
                     if *variadic && argument_idx + 1 == params.len() {
-                        let BytecodeType::Class(_, type_params) = self.ty(argument) else {
-                            panic!("variadic lambda argument is not an array");
-                        };
-                        assert_eq!(type_params.len(), 1);
-                        assert_eq!(&type_params[0], &expected);
+                        assert!(types_match(self.array_element_type(argument), &expected));
                     } else {
                         self.assert_type(argument, &expected);
                     }
@@ -377,7 +396,8 @@ impl<'a> Verifier<'a> {
 
             BytecodeInstruction::NewArray { dest, length, idx } => {
                 let (class_id, type_params) = self.class_entry(idx);
-                assert!(!type_params.is_empty());
+                assert_eq!(class_id, self.array_class_id);
+                assert_eq!(type_params.len(), 1);
                 self.assert_type(dest, &BytecodeType::Class(class_id, type_params));
                 self.assert_type(length, &BytecodeType::Int64);
             }
@@ -473,18 +493,17 @@ impl<'a> Verifier<'a> {
 
             BytecodeInstruction::ArrayLength { dest, arr } => {
                 self.assert_type(dest, &BytecodeType::Int64);
-                assert!(self.ty(arr).is_class());
+                self.indexed_element_type(arr);
             }
 
             BytecodeInstruction::LoadArray { dest, arr, idx } => {
-                self.ty(dest);
-                assert!(self.ty(arr).is_class());
+                let element_type = self.indexed_element_type(arr);
+                self.assert_type(dest, &element_type);
                 self.assert_type(idx, &BytecodeType::Int64);
             }
 
             BytecodeInstruction::StoreArray { src, arr, idx } => {
-                self.ty(src);
-                assert!(self.ty(arr).is_class());
+                self.assert_type(src, self.array_element_type(arr));
                 self.assert_type(idx, &BytecodeType::Int64);
             }
 
@@ -657,6 +676,30 @@ impl<'a> Verifier<'a> {
         inner.as_ref().clone()
     }
 
+    fn array_element_type(&self, array: Register) -> &BytecodeType {
+        let BytecodeType::Class(class_id, type_params) = self.ty(array) else {
+            panic!("array register does not have class type");
+        };
+        assert_eq!(*class_id, self.array_class_id);
+        assert_eq!(type_params.len(), 1);
+        &type_params[0]
+    }
+
+    fn indexed_element_type(&self, indexed: Register) -> BytecodeType {
+        let BytecodeType::Class(class_id, type_params) = self.ty(indexed) else {
+            panic!("indexed register does not have class type");
+        };
+
+        if *class_id == self.array_class_id {
+            assert_eq!(type_params.len(), 1);
+            type_params[0].clone()
+        } else {
+            assert_eq!(*class_id, self.string_class_id);
+            assert!(type_params.is_empty());
+            BytecodeType::UInt8
+        }
+    }
+
     fn assert_call_argument_types(
         &self,
         arguments: &[Register],
@@ -667,11 +710,7 @@ impl<'a> Verifier<'a> {
         assert_eq!(arguments.len(), expected_types.len());
         for (idx, (&argument, expected)) in arguments.iter().zip(expected_types).enumerate() {
             if variadic && idx + 1 == expected_types.len() {
-                let BytecodeType::Class(_, type_params) = self.ty(argument) else {
-                    panic!("variadic argument is not an array");
-                };
-                assert_eq!(type_params.len(), 1);
-                assert!(types_match(&type_params[0], expected));
+                assert!(types_match(self.array_element_type(argument), expected));
             } else {
                 self.assert_type(argument, expected);
             }
