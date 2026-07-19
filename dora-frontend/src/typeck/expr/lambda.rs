@@ -1,10 +1,7 @@
 use crate::SourceType;
 use crate::SourceTypeArray;
 use crate::element_collector::Annotations;
-use crate::sema::{
-    Body, ExprId, FctDefinition, FctParent, LambdaExpr, LazyLambdaCreationData, LazyLambdaId,
-    Param, Params,
-};
+use crate::sema::{Body, ExprId, FctDefinition, FctParent, LambdaExpr, LambdaId, Param, Params};
 use crate::typeck::TypeCheck;
 use crate::{args, error::diagnostics::VARIADIC_PARAMETER_NEEDS_TO_BE_LAST};
 
@@ -128,7 +125,7 @@ pub(super) fn check_expr_lambda(
             is_mutating: ck.is_mutating,
             self_ty: ck.self_ty.clone(),
             vars: ck.vars,
-            lazy_lambda_creation: ck.lazy_lambda_creation,
+            lambda_definitions: ck.lambda_definitions,
             contexts: ck.contexts,
             active_contexts: ck.active_contexts,
             start_context_idx: 0,
@@ -163,13 +160,9 @@ pub(super) fn check_expr_lambda(
         .set_ty(lambda_return_type.clone());
     lambda.set_body(body);
 
-    let lambda_id = LazyLambdaId::new();
-
-    ck.lazy_lambda_creation.push(LazyLambdaCreationData {
-        id: lambda_id.clone(),
-        fct_definition: lambda,
-    });
-    ck.body.insert_lambda(expr_id, lambda_id);
+    let lambda_id = LambdaId(ck.lambda_definitions.len());
+    ck.lambda_definitions.push(lambda);
+    ck.body.insert_lambda_id(expr_id, lambda_id);
     ck.body.set_ty(expr_id, ty.clone());
 
     if param_count_mismatch {

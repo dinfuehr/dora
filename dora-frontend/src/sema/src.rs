@@ -1,36 +1,15 @@
-use std::cell::OnceCell;
 use std::collections::hash_map::{HashMap, Iter};
 use std::ops::{Index, IndexMut};
 use std::rc::Rc;
 
 use crate::sema::{
-    ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinition,
-    FctDefinitionId, FieldDefinition, FieldIndex, GlobalDefinitionId, Intrinsic,
-    StructDefinitionId, UniversalId,
+    ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
+    FieldDefinition, FieldIndex, GlobalDefinitionId, Intrinsic, StructDefinitionId, UniversalId,
 };
 use crate::ty::{SourceType, SourceTypeArray, TraitType};
 
-#[derive(Clone, Debug)]
-pub struct LazyLambdaId(Rc<OnceCell<FctDefinitionId>>);
-
-impl LazyLambdaId {
-    pub fn new() -> LazyLambdaId {
-        LazyLambdaId(Rc::new(OnceCell::new()))
-    }
-
-    pub fn fct_id(&self) -> FctDefinitionId {
-        self.0.get().cloned().expect("uninitialized")
-    }
-
-    pub fn set_fct_id(&self, fct_id: FctDefinitionId) {
-        assert!(self.0.set(fct_id).is_ok());
-    }
-}
-
-pub struct LazyLambdaCreationData {
-    pub id: LazyLambdaId,
-    pub fct_definition: FctDefinition,
-}
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct LambdaId(pub usize);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ContextId(pub usize);

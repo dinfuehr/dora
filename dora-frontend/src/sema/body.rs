@@ -8,7 +8,7 @@ use dora_parser::ast::SyntaxNodePtr;
 
 use crate::sema::{
     ArrayAssignment, CallType, ConstValue, ContextId, FctDefinitionId, ForTypeInfo, IdentType,
-    LazyLambdaId, NodeMap, TypeRefArena, TypeRefId, VarAccess, VarId,
+    LambdaId, NodeMap, TypeRefArena, TypeRefId, VarAccess, VarId,
 };
 use crate::{SourceType, SourceTypeArray};
 
@@ -258,7 +258,7 @@ pub struct Body {
     map_vars: RefCell<NodeMap<VarId>>,
     map_consts: RefCell<NodeMap<ConstValue>>,
     map_fors: RefCell<NodeMap<ForTypeInfo>>,
-    map_lambdas: RefCell<NodeMap<LazyLambdaId>>,
+    map_lambda_ids: RefCell<NodeMap<LambdaId>>,
     map_block_contexts: RefCell<NodeMap<ContextId>>,
     map_argument: RefCell<NodeMap<usize>>,
     map_field_ids: RefCell<NodeMap<usize>>,
@@ -319,7 +319,7 @@ impl Body {
             map_vars: RefCell::new(NodeMap::new()),
             map_consts: RefCell::new(NodeMap::new()),
             map_fors: RefCell::new(NodeMap::new()),
-            map_lambdas: RefCell::new(NodeMap::new()),
+            map_lambda_ids: RefCell::new(NodeMap::new()),
             map_block_contexts: RefCell::new(NodeMap::new()),
             map_argument: RefCell::new(NodeMap::new()),
             map_field_ids: RefCell::new(NodeMap::new()),
@@ -446,14 +446,14 @@ impl Body {
         self.map_fors.borrow_mut().insert(id, info);
     }
 
-    pub fn get_lambda<T: ExprMapId>(&self, id: T) -> Option<LazyLambdaId> {
+    pub fn get_lambda_id<T: ExprMapId>(&self, id: T) -> Option<LambdaId> {
         let id = id.to_universal_id();
-        self.map_lambdas.borrow().get(id).cloned()
+        self.map_lambda_ids.borrow().get(id).copied()
     }
 
-    pub fn insert_lambda<T: ExprMapId>(&self, id: T, lambda: LazyLambdaId) {
+    pub fn insert_lambda_id<T: ExprMapId>(&self, id: T, lambda_id: LambdaId) {
         let id = id.to_universal_id();
-        self.map_lambdas.borrow_mut().insert(id, lambda);
+        self.map_lambda_ids.borrow_mut().insert(id, lambda_id);
     }
 
     pub fn get_block_context_id<T: ExprMapId>(&self, id: T) -> Option<ContextId> {

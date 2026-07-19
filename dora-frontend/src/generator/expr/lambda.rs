@@ -17,11 +17,11 @@ pub(super) fn gen_expr_lambda(
     let ty = g.emitter.convert_ty(g.sa, ty);
     let dest = ensure_register(g, dest, ty);
 
-    let lambda_fct_id = g
+    let lambda_id = g
         .analysis
-        .get_lambda(expr_id)
-        .expect("missing lambda id")
-        .fct_id();
+        .get_lambda_id(expr_id)
+        .expect("missing lambda id");
+    let lambda_fct_id = g.sa.lambda_fct_id(lambda_id);
 
     let lambda_fct = g.sa.fct(lambda_fct_id);
     let lambda_analysis = lambda_fct.analysis();

@@ -18,11 +18,10 @@ use crate::interner::Name;
 use crate::sema::{
     Body, CallArg, ClassDefinition, ConstValue as SemaConstValue, ContextData, ContextFieldId,
     ContextId, Element, Expr, ExprId, ExprMapId, FctDefinition, FctParent, FieldDefinition,
-    FieldIndex, GlobalDefinition, IdentType, LambdaExpr, LazyLambdaCreationData,
-    ModuleDefinitionId, NestedScopeId, NestedVarId, PackageDefinitionId, Param, PatternId, ScopeId,
-    Sema, SourceFileId, StmtId, TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation,
-    Visibility, check_type_ref, convert_trait_type_ref, convert_type_ref, new_identity_type_params,
-    parse_type_ref,
+    FieldIndex, GlobalDefinition, IdentType, LambdaExpr, ModuleDefinitionId, NestedScopeId,
+    NestedVarId, PackageDefinitionId, Param, PatternId, ScopeId, Sema, SourceFileId, StmtId,
+    TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation, Visibility, check_type_ref,
+    convert_trait_type_ref, convert_type_ref, new_identity_type_params, parse_type_ref,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
@@ -48,11 +47,11 @@ pub use lookup::find_method_call_candidates;
 
 pub fn check(sa: &mut Sema) {
     let mut contexts = Vec::new();
-    let mut lazy_lambda_creation = Vec::new();
+    let mut lambda_definitions = Vec::new();
 
     for (_id, fct) in sa.fcts.iter() {
         if fct.has_body(sa) {
-            check_function(sa, fct, &mut contexts, &mut lazy_lambda_creation);
+            check_function(sa, fct, &mut contexts, &mut lambda_definitions);
         }
     }
 
@@ -75,19 +74,19 @@ pub fn check(sa: &mut Sema) {
     }
 
     for (_id, global) in sa.globals.iter() {
-        check_global(sa, global, &mut contexts, &mut lazy_lambda_creation);
+        check_global(sa, global, &mut contexts, &mut lambda_definitions);
     }
 
     create_context_classes(sa, &mut contexts);
     sa.contexts = contexts;
-    create_lambda_functions(sa, lazy_lambda_creation);
+    create_lambda_functions(sa, lambda_definitions);
 }
 
 fn check_function(
     sa: &Sema,
     fct: &FctDefinition,
     contexts: &mut Vec<ContextData>,
-    lazy_lambda_creation: &mut Vec<LazyLambdaCreationData>,
+    lambda_definitions: &mut Vec<FctDefinition>,
 ) {
     let analysis = fct.body();
     let mut symtable = ModuleSymTable::new(sa, fct.module_id);
@@ -121,7 +120,7 @@ fn check_function(
         self_ty,
         is_lambda: false,
         vars: &mut vars,
-        lazy_lambda_creation,
+        lambda_definitions,
         contexts,
         active_contexts: &mut active_contexts,
         start_context_idx: 0,
@@ -136,7 +135,7 @@ fn check_global(
     sa: &Sema,
     global: &GlobalDefinition,
     contexts: &mut Vec<ContextData>,
-    lazy_lambda_creation: &mut Vec<LazyLambdaCreationData>,
+    lambda_definitions: &mut Vec<FctDefinition>,
 ) {
     {
         if !global.has_initial_value() {
@@ -167,7 +166,7 @@ fn check_global(
             is_mutating: false,
             self_ty: None,
             vars: &mut vars,
-            lazy_lambda_creation,
+            lambda_definitions,
             contexts,
             active_contexts: &mut active_contexts,
             start_context_idx: 0,
@@ -204,8 +203,8 @@ pub struct TypeCheck<'a> {
     pub active_contexts: &'a mut Vec<ContextId>,
     pub start_context_idx: usize,
     pub needs_context_slot_in_lambda_object: bool,
-    // Lazily create lambdas discovered while checking functions.
-    pub lazy_lambda_creation: &'a mut Vec<LazyLambdaCreationData>,
+    // Lambda functions discovered while checking functions.
+    pub lambda_definitions: &'a mut Vec<FctDefinition>,
 }
 
 impl<'a> TypeCheck<'a> {
@@ -1225,11 +1224,14 @@ fn enclosing_context_class(contexts: &[ContextData], context_id: ContextId) -> C
     parent_id
 }
 
-fn create_lambda_functions(sa: &mut Sema, lazy_lambdas: Vec<LazyLambdaCreationData>) {
-    for lazy_lambda in lazy_lambdas {
-        let fct_id = sa.fcts.alloc(lazy_lambda.fct_definition);
+fn create_lambda_functions(sa: &mut Sema, lambda_definitions: Vec<FctDefinition>) {
+    assert!(sa.lambda_fct_ids.is_empty());
+    sa.lambda_fct_ids.reserve(lambda_definitions.len());
+
+    for lambda_definition in lambda_definitions {
+        let fct_id = sa.fcts.alloc(lambda_definition);
         sa.fcts[fct_id].id = Some(fct_id);
-        lazy_lambda.id.set_fct_id(fct_id);
+        sa.lambda_fct_ids.push(fct_id);
     }
 }
 
