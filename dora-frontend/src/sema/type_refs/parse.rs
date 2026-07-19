@@ -299,7 +299,7 @@ fn find_alias_in_super_traits(
     name: Name,
     matches: &mut Vec<AliasDefinitionId>,
 ) {
-    for super_trait_ty in trait_.type_param_definition.bounds_for_self() {
+    for super_trait_ty in trait_.type_param_definition(sa).bounds_for_self(sa) {
         let super_trait = sa.trait_(super_trait_ty.trait_id);
 
         if let Some(id) = super_trait.alias_names().get(&name) {
@@ -374,10 +374,10 @@ fn lookup_alias_on_type_param(
     id: TypeParamId,
     name: Name,
 ) -> AliasLookupResult {
-    let type_param_definition = element.type_param_definition();
+    let type_param_definition = element.type_param_definition(sa);
     let mut results = Vec::with_capacity(2);
 
-    for bound in type_param_definition.bounds_for_type_param(id) {
+    for bound in type_param_definition.bounds_for_type_param(sa, id) {
         let trait_id = bound.trait_id;
         let trait_ = sa.trait_(trait_id);
 

@@ -88,7 +88,9 @@ pub type AnalysisData = Body;
 pub use self::structs::{StructDefinition, StructDefinitionId};
 pub use self::traits::{TraitDefinition, TraitDefinitionId, is_trait_object_safe};
 pub use self::tuples::create_tuple;
-pub use self::type_params::{Bound, TypeParamDefinition, TypeParamId, new_identity_type_params};
+pub use self::type_params::{
+    Bound, TypeParamDefinition, TypeParamDefinitionId, TypeParamId, new_identity_type_params,
+};
 pub use self::type_refs::{TypeRef, TypeRefArena, TypeRefArenaBuilder, TypeRefId, TypeSymbol};
 pub(crate) use self::type_refs::{
     check_trait_type_ref, check_type_ref, convert_trait_type_ref, convert_type_ref, lower_type,
@@ -223,9 +225,10 @@ pub struct Sema {
     pub impls: Arena<ImplDefinition>,    // stores all impl definitions
     pub globals: Arena<GlobalDefinition>, // stores all global variables
     pub uses: Arena<UseDefinition>,      // stores all uses
-    pub contexts: Vec<ContextData>,      // stores all potential context objects
+    pub type_param_definitions: Arena<TypeParamDefinition>,
+    pub contexts: Vec<ContextData>, // stores all potential context objects
     pub lambda_fct_ids: Vec<FctDefinitionId>, // maps lambda ids to function ids
-    type_refs: TypeRefArena,             // stores all type references with metadata
+    type_refs: TypeRefArena,        // stores all type references with metadata
     pub packages: Arena<PackageDefinition>,
     pub package_names: HashMap<String, PackageDefinitionId>,
     pub prelude_module_id: Option<ModuleDefinitionId>,
@@ -269,6 +272,7 @@ impl Sema {
             impls: Arena::new(),
             globals: Arena::new(),
             uses: Arena::new(),
+            type_param_definitions: Arena::new(),
             contexts: Vec::new(),
             lambda_fct_ids: Vec::new(),
             type_refs: TypeRefArena::new(),
@@ -300,6 +304,10 @@ impl Sema {
 
     pub fn type_ref(&self, id: TypeRefId) -> &TypeRef {
         self.type_refs.type_ref(id)
+    }
+
+    pub fn type_param_definition(&self, id: TypeParamDefinitionId) -> &TypeParamDefinition {
+        &self.type_param_definitions[id]
     }
 
     pub fn by_id<T: ElementAccess>(&self, id: T::Id) -> &T {
@@ -554,7 +562,7 @@ pub fn lambda_outer_context_type(
     let context_class_id = sa.context(context_id).class_id();
     let context_class = sa.class(context_class_id);
     assert_eq!(
-        context_class.type_param_definition().type_param_count(),
+        context_class.type_param_definition(sa).type_param_count(),
         type_params_len,
     );
 

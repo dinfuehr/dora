@@ -1,6 +1,5 @@
 use std::cell::{OnceCell, RefCell};
 use std::collections::hash_map::HashMap;
-use std::rc::Rc;
 
 use id_arena::Id;
 
@@ -11,7 +10,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FieldDefinitionId,
-    FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
+    FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinitionId,
     TypeRefArena, Visibility, module_path, new_identity_type_params,
 };
 use crate::{SourceType, SourceTypeArray};
@@ -26,7 +25,7 @@ pub struct StructDefinition {
     pub file_id: SourceFileId,
     pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub primitive_ty: Option<SourceType>,
-    pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
     pub type_refs: OnceCell<TypeRefArena>,
     pub visibility: Visibility,
     pub is_internal: bool,
@@ -48,7 +47,7 @@ impl StructDefinition {
         ast: ast::AstStruct,
         modifiers: Annotations,
         name: Name,
-        type_param_definition: Rc<TypeParamDefinition>,
+        type_param_definition_id: TypeParamDefinitionId,
     ) -> StructDefinition {
         let syntax_node_ptr = ast.syntax_node().as_ptr();
 
@@ -64,7 +63,7 @@ impl StructDefinition {
             name,
             is_internal: modifiers.is_internal,
             internal_resolved: false,
-            type_param_definition,
+            type_param_definition_id,
             type_refs: OnceCell::new(),
             field_ids: OnceCell::new(),
             field_names: OnceCell::new(),
@@ -109,13 +108,13 @@ impl StructDefinition {
         name
     }
 
-    pub fn ty(&self) -> SourceType {
+    pub fn ty(&self, sa: &Sema) -> SourceType {
         if let Some(ref primitive_ty) = self.primitive_ty {
             primitive_ty.clone()
         } else {
             SourceType::Struct(
                 self.id(),
-                new_identity_type_params(0, self.type_param_definition().type_param_count()),
+                new_identity_type_params(0, self.type_param_definition(sa).type_param_count()),
             )
         }
     }
@@ -170,12 +169,12 @@ impl Element for StructDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
+        self.type_param_definition_id
     }
 
-    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
-        Some(self.ty())
+    fn self_ty(&self, sa: &Sema) -> Option<SourceType> {
+        Some(self.ty(sa))
     }
 
     fn visibility(&self) -> Visibility {

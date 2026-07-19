@@ -3,7 +3,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::io::{Error, Read};
 use std::path::PathBuf;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::args;
@@ -22,8 +21,8 @@ use crate::sema::{
     FctDefinitionId, FctParent, FieldDefinition, FieldIndex, GlobalDefinition, ImplDefinition,
     ImplDefinitionId, ModuleDefinition, ModuleDefinitionId, PackageDefinition, PackageDefinitionId,
     PackageName, Param, Params, Sema, SourceFile, SourceFileId, StructDefinition, ToArcString,
-    TraitDefinition, TraitDefinitionId, TypeParamDefinition, TypeRefArenaBuilder, UseDefinition,
-    VariantDefinition, Visibility, lower_type,
+    TraitDefinition, TraitDefinitionId, TypeParamDefinition, TypeParamDefinitionId,
+    TypeRefArenaBuilder, UseDefinition, VariantDefinition, Visibility, lower_type,
 };
 use crate::sym::{SymTable, Symbol, SymbolKind};
 use crate::{ParsedTraitType, ParsedType, SourceType, report_sym_shadow_span, ty};
@@ -1138,7 +1137,7 @@ fn find_elements_in_trait(
                             trait_.package_id,
                             trait_.module_id,
                             trait_.file_id,
-                            trait_.type_param_definition().clone(),
+                            trait_.type_param_definition_id(),
                         )
                     };
 
@@ -1247,7 +1246,7 @@ fn find_elements_in_trait(
                     });
 
                     let container_type_param_definition =
-                        sa.trait_(trait_id).type_param_definition().clone();
+                        sa.trait_(trait_id).type_param_definition_id();
                     let type_param_definition = build_type_param_definition(
                         sa,
                         &mut type_ref_arena,
@@ -1354,7 +1353,7 @@ fn find_elements_in_impl(
 
                     let mut type_ref_arena = TypeRefArenaBuilder::new();
                     let container_type_param_definition =
-                        sa.impl_(impl_id).type_param_definition().clone();
+                        sa.impl_(impl_id).type_param_definition_id();
                     let type_param_definition = build_type_param_definition(
                         sa,
                         &mut type_ref_arena,
@@ -1412,7 +1411,7 @@ fn find_elements_in_impl(
                     };
 
                     let container_type_param_definition =
-                        sa.impl_(impl_id).type_param_definition().clone();
+                        sa.impl_(impl_id).type_param_definition_id();
                     let type_param_definition = build_type_param_definition(
                         sa,
                         &mut type_ref_arena,
@@ -1494,7 +1493,7 @@ fn find_elements_in_extension(
                             extension.package_id,
                             extension.module_id,
                             extension.file_id,
-                            extension.type_param_definition().clone(),
+                            extension.type_param_definition_id(),
                         )
                     };
                     let modifiers = check_annotations(
@@ -1819,13 +1818,13 @@ fn add_package(
 fn build_type_param_definition(
     sa: &mut Sema,
     type_ref_arena: &mut TypeRefArenaBuilder,
-    parent: Option<Rc<TypeParamDefinition>>,
+    parent: Option<TypeParamDefinitionId>,
     ast_type_params: Option<ast::AstTypeParamList>,
     where_: Option<ast::AstWhereClause>,
     trait_bounds: Option<ast::AstTypeBounds>,
     file_id: SourceFileId,
-) -> Rc<TypeParamDefinition> {
-    let mut type_param_definition = TypeParamDefinition::new(parent);
+) -> TypeParamDefinitionId {
+    let mut type_param_definition = TypeParamDefinition::new(sa, parent);
 
     if let Some(ast_type_params) = ast_type_params {
         if ast_type_params.items_len() == 0 {
@@ -1894,7 +1893,7 @@ fn build_type_param_definition(
         }
     }
 
-    Rc::new(type_param_definition)
+    sa.type_param_definitions.alloc(type_param_definition)
 }
 
 fn build_function_params(

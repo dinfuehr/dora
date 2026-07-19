@@ -1,6 +1,5 @@
 use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use crate::element_collector::Annotations;
 use crate::interner::Name;
@@ -11,7 +10,7 @@ use id_arena::Id;
 
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FieldDefinitionId,
-    FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition,
+    FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId, TypeParamDefinitionId,
     TypeRefArena, Visibility, module_path,
 };
 use crate::{SourceType, SourceTypeArray};
@@ -30,7 +29,7 @@ pub struct EnumDefinition {
     pub span: Span,
     pub name: Name,
     pub visibility: Visibility,
-    pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
     pub type_refs: OnceCell<TypeRefArena>,
     pub variants: OnceCell<Vec<VariantDefinitionId>>,
     pub children: OnceCell<Vec<ElementId>>,
@@ -47,7 +46,7 @@ impl EnumDefinition {
         ast: ast::AstEnum,
         modifiers: Annotations,
         name: Name,
-        type_param_definition: Rc<TypeParamDefinition>,
+        type_param_definition_id: TypeParamDefinitionId,
     ) -> EnumDefinition {
         let syntax_node_ptr = ast.syntax_node().as_ptr();
 
@@ -59,7 +58,7 @@ impl EnumDefinition {
             syntax_node_ptr,
             span: ast.span(),
             name,
-            type_param_definition,
+            type_param_definition_id,
             type_refs: OnceCell::new(),
             visibility: modifiers.visibility(),
             variants: OnceCell::new(),
@@ -144,12 +143,12 @@ impl Element for EnumDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
+        self.type_param_definition_id
     }
 
-    fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {
-        let type_params = self.type_param_definition().type_param_count();
+    fn self_ty(&self, sa: &Sema) -> Option<SourceType> {
+        let type_params = self.type_param_definition(sa).type_param_count();
         let type_params = new_identity_type_params(0, type_params);
         Some(SourceType::Enum(self.id(), type_params))
     }
@@ -231,7 +230,7 @@ impl Element for VariantDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
         unreachable!()
     }
 

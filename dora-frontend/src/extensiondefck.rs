@@ -50,9 +50,9 @@ pub fn check(sa: &Sema) {
                     sa,
                     extension.ty().clone(),
                     fct,
-                    extension.type_param_definition(),
+                    extension.type_param_definition(sa),
                     cmp_extension.ty().clone(),
-                    cmp_extension.type_param_definition(),
+                    cmp_extension.type_param_definition(sa),
                 )
                 .is_some()
                 {
@@ -160,7 +160,7 @@ impl<'x> ExtensionCheck<'x> {
         check_for_unconstrained_type_params(
             self.sa,
             self.extension.ty(),
-            self.extension.type_param_definition(),
+            self.extension.type_param_definition(self.sa),
             self.extension.file_id,
             self.extension.ast(self.sa).extended_type().unwrap().span(),
         );
@@ -210,7 +210,7 @@ pub fn check_for_unconstrained_type_params(
     bitset.toggle_range(..);
 
     for idx in bitset.ones() {
-        let type_param_def = type_params_defs.name(TypeParamId(idx));
+        let type_param_def = type_params_defs.name(sa, TypeParamId(idx));
         let tp_name = sa.interner.str(type_param_def).to_string();
         sa.report(file_id, span, &UNCONSTRAINED_TYPE_PARAM, args!(tp_name));
     }

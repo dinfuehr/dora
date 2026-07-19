@@ -1,5 +1,4 @@
 use std::cell::{OnceCell, RefCell};
-use std::rc::Rc;
 
 use id_arena::Id;
 
@@ -10,7 +9,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::sema::{
     Element, ElementAccess, ElementId, ElementWithFields, ExtensionDefinitionId, FctDefinitionId,
     FieldDefinitionId, FieldIndex, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, TypeRefArena, module_path,
+    TypeParamDefinitionId, TypeRefArena, module_path,
 };
 use crate::{SourceType, SourceTypeArray, Span, TypeArgs, specialize_for_element};
 
@@ -37,7 +36,7 @@ pub struct ClassDefinition {
 
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
 
-    pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
     pub type_refs: OnceCell<TypeRefArena>,
 
     // true if this class is the generic Array class
@@ -53,7 +52,7 @@ impl ClassDefinition {
         ast: ast::AstClass,
         modifiers: Annotations,
         name: Name,
-        type_param_definition: Rc<TypeParamDefinition>,
+        type_param_definition_id: TypeParamDefinitionId,
     ) -> ClassDefinition {
         let syntax_node_ptr = ast.syntax_node().as_ptr();
 
@@ -74,7 +73,7 @@ impl ClassDefinition {
             field_ids: OnceCell::new(),
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
-            type_param_definition,
+            type_param_definition_id,
             type_refs: OnceCell::new(),
             is_array: false,
             is_str: false,
@@ -88,7 +87,7 @@ impl ClassDefinition {
         span: Option<Span>,
         name: Name,
         visibility: Visibility,
-        type_param_definition: Rc<TypeParamDefinition>,
+        type_param_definition_id: TypeParamDefinitionId,
     ) -> ClassDefinition {
         ClassDefinition {
             id: None,
@@ -107,7 +106,7 @@ impl ClassDefinition {
             field_ids: OnceCell::new(),
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
-            type_param_definition,
+            type_param_definition_id,
             type_refs: OnceCell::new(),
             is_array: false,
             is_str: false,
@@ -216,8 +215,8 @@ impl Element for ClassDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
+        self.type_param_definition_id
     }
 
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {

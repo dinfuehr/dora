@@ -15,7 +15,7 @@ pub fn check_type_params<'a>(
     span: impl Fn() -> Span,
     specialize: impl Fn(SourceType) -> SourceType,
 ) -> bool {
-    let callee_type_param_defs = callee_element.type_param_definition();
+    let callee_type_param_defs = callee_element.type_param_definition(sa);
 
     let expected_container = callee_type_param_defs.container_type_params();
     let expected_own = callee_type_param_defs.own_type_params_len();
@@ -35,7 +35,7 @@ pub fn check_type_params<'a>(
 
     let mut succeeded = true;
 
-    for bound in callee_type_param_defs.bounds() {
+    for bound in callee_type_param_defs.bounds(sa) {
         let tp_ty = bound.ty();
         if let Some(trait_ty) = bound.trait_ty() {
             let tp_ty = specialize(tp_ty);

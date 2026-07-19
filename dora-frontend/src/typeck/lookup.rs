@@ -110,7 +110,7 @@ fn find_super_trait_methods_on_trait_object(
     name: Name,
     candidates: &mut Vec<Candidate>,
 ) {
-    for bound in trait_.type_param_definition().bounds_for_self() {
+    for bound in trait_.type_param_definition(sa).bounds_for_self(sa) {
         let super_trait = sa.trait_(bound.trait_id);
         if let Some(fct_id) = super_trait.get_method(name, false) {
             candidates.push(Candidate {

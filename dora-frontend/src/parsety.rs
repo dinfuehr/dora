@@ -237,11 +237,11 @@ pub(crate) fn check_type_params(
 
     let type_arguments = SourceTypeArray::with(type_arguments.to_vec());
     let type_args = TypeArgs::from_own(&type_arguments);
-    let ctxt_type_param_definition = ctxt_element.type_param_definition();
+    let ctxt_type_param_definition = ctxt_element.type_param_definition(sa);
 
     let mut success = true;
 
-    for bound in callee_type_param_definition.bounds() {
+    for bound in callee_type_param_definition.bounds(sa) {
         let tp_ty = bound.ty();
 
         if let Some(trait_ty) = bound.trait_ty() {
@@ -274,13 +274,13 @@ pub(crate) fn check_trait_type_param_definition(
     span: Span,
     context_type_param_definition: &TypeParamDefinition,
 ) -> bool {
-    let type_param_definition = trait_.type_param_definition();
+    let type_param_definition = trait_.type_param_definition(sa);
     let generic_arguments = SourceTypeArray::with(generic_arguments.to_vec());
     let type_args = TypeArgs::from_own(&generic_arguments);
 
     let mut success = true;
 
-    for bound in type_param_definition.bounds() {
+    for bound in type_param_definition.bounds(sa) {
         let tp_ty = bound.ty();
 
         if tp_ty.is_self() {

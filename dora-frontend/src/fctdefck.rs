@@ -14,7 +14,7 @@ fn check_test(sa: &Sema, fct: &FctDefinition) {
     }
 
     if !fct.parent.is_none()
-        || !fct.type_param_definition().is_empty()
+        || !fct.type_param_definition(sa).is_empty()
         || !fct.params_with_self().is_empty()
         || (!fct.return_type().is_unit() && !fct.return_type().is_error())
     {

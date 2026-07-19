@@ -200,8 +200,9 @@ pub fn create_lambda_class(sa: &mut Sema) {
     let class_name = sa.interner.intern("$Lambda");
     let context_name = sa.interner.intern("context");
     let context_type_name = sa.interner.intern("Context");
-    let mut type_params = TypeParamDefinition::new(None);
+    let mut type_params = TypeParamDefinition::new(sa, None);
     let context_type_id = type_params.add_type_param(context_type_name);
+    let type_param_definition_id = sa.type_param_definitions.alloc(type_params);
 
     let class = ClassDefinition::new_without_source(
         sa.stdlib_package_id(),
@@ -210,7 +211,7 @@ pub fn create_lambda_class(sa: &mut Sema) {
         None,
         class_name,
         Visibility::Public,
-        Rc::new(type_params),
+        type_param_definition_id,
     );
 
     let class_id = sa.classes.alloc(class);

@@ -318,7 +318,7 @@ fn find_in_super_traits_self(
     name: Name,
     matched_methods: &mut Vec<(FctDefinitionId, TraitType)>,
 ) {
-    for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
+    for super_trait_ty in trait_.type_param_definition(sa).bounds_for_self(sa) {
         // Substitute the super trait's type params with the current trait's type params
         let type_args = TypeArgs::from_own(trait_type_params);
         let specialized_super_trait_ty = specialize_trait_type(sa, super_trait_ty, &type_args);
@@ -352,7 +352,7 @@ fn check_method_call_on_self(
         let trait_ = ck.sa.trait_(trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
-            let type_param_count = trait_.type_param_definition.type_param_count();
+            let type_param_count = trait_.type_param_definition(ck.sa).type_param_count();
             let type_params = new_identity_type_params(0, type_param_count);
             let trait_ty = TraitType {
                 trait_id,
@@ -363,7 +363,7 @@ fn check_method_call_on_self(
         }
     }
 
-    for trait_ty in ck.type_param_definition.bounds_for_self() {
+    for trait_ty in ck.type_param_definition.bounds_for_self(ck.sa) {
         let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, false) {
@@ -456,7 +456,7 @@ fn check_method_call_on_assoc(
 
     assert!(object_type.is_assoc());
 
-    for bound in ck.type_param_definition.bounds() {
+    for bound in ck.type_param_definition.bounds(ck.sa) {
         if object_type != bound.ty() {
             continue;
         }
@@ -647,7 +647,7 @@ fn find_in_super_traits(
     name: Name,
     matched_methods: &mut Vec<(FctDefinitionId, TraitType)>,
 ) {
-    for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
+    for super_trait_ty in trait_.type_param_definition(sa).bounds_for_self(sa) {
         let super_trait_ = sa.trait_(super_trait_ty.trait_id);
 
         if let Some(trait_method_id) = super_trait_.get_method(name, false) {
@@ -671,7 +671,7 @@ fn check_method_call_on_type_param(
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
-    for trait_ty in ck.type_param_definition.bounds_for_type_param(id) {
+    for trait_ty in ck.type_param_definition.bounds_for_type_param(ck.sa, id) {
         let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, false) {

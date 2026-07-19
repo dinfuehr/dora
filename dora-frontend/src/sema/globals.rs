@@ -1,13 +1,12 @@
 use std::cell::OnceCell;
-use std::rc::Rc;
 
 use crate::ParsedType;
 use crate::element_collector::Annotations;
 use crate::interner::Name;
 use crate::sema::{
     Body, Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder, Visibility, lower_type,
-    module_path,
+    SourceFileId, TypeParamDefinition, TypeParamDefinitionId, TypeRefArena, TypeRefArenaBuilder,
+    Visibility, lower_type, module_path,
 };
 use crate::ty::SourceType;
 use dora_bytecode::BytecodeBody;
@@ -31,7 +30,7 @@ pub struct GlobalDefinition {
     pub type_refs: OnceCell<TypeRefArena>,
     pub mutable: bool,
     pub name: Name,
-    pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
     pub initializer: OnceCell<FctDefinitionId>,
     pub body: OnceCell<Body>,
     pub bytecode: OnceCell<BytecodeBody>,
@@ -48,6 +47,10 @@ impl GlobalDefinition {
         modifiers: Annotations,
         name: Name,
     ) -> GlobalDefinition {
+        let type_param_definition_id = sa
+            .type_param_definitions
+            .alloc(TypeParamDefinition::empty());
+
         GlobalDefinition {
             id: None,
             package_id,
@@ -64,7 +67,7 @@ impl GlobalDefinition {
             ),
             type_refs: OnceCell::new(),
             mutable: ast.mutable(),
-            type_param_definition: TypeParamDefinition::empty(),
+            type_param_definition_id,
             initializer: OnceCell::new(),
             body: OnceCell::new(),
             bytecode: OnceCell::new(),
@@ -138,8 +141,8 @@ impl Element for GlobalDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
+        self.type_param_definition_id
     }
 
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {

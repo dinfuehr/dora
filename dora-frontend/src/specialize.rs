@@ -195,7 +195,7 @@ pub fn specialize_ty_for_call(
                 let assoc_trait_id = assoc.parent.to_trait_id().expect("expected trait");
 
                 let trait_ = sa.trait_(current_trait_id);
-                let trait_param_count = trait_.type_param_definition().type_param_count();
+                let trait_param_count = trait_.type_param_definition(sa).type_param_count();
                 let trait_type_params = type_params
                     .iter()
                     .take(trait_param_count)
@@ -214,7 +214,7 @@ pub fn specialize_ty_for_call(
                 sa,
                 caller_element,
                 specialized_ty,
-                caller_element.type_param_definition(),
+                caller_element.type_param_definition(sa),
                 trait_ty,
             ) {
                 let impl_ = sa.impl_(impl_match.id);
@@ -510,7 +510,7 @@ pub fn specialize_ty_for_default_trait_method(
                         sa,
                         trait_method,
                         extended_ty.clone(),
-                        trait_method.type_param_definition(),
+                        trait_method.type_param_definition(sa),
                         super_trait_ty.clone(),
                     ) {
                         let found_impl = sa.impl_(impl_match.id);
@@ -562,7 +562,7 @@ pub fn specialize_ty_for_default_trait_method(
                 sa,
                 trait_method,
                 specialized_ty.clone(),
-                trait_method.type_param_definition(),
+                trait_method.type_param_definition(sa),
                 local_trait_ty.clone(),
             ) {
                 let found_impl = sa.impl_(impl_match.id);
@@ -618,7 +618,7 @@ pub fn specialize_ty_for_default_trait_method(
         SourceType::TypeParam(id) => {
             let trait_type_params = sa
                 .trait_(trait_ty.trait_id)
-                .type_param_definition()
+                .type_param_definition(sa)
                 .type_param_count();
 
             if id.index() < trait_type_params {
@@ -627,7 +627,7 @@ pub fn specialize_ty_for_default_trait_method(
                 type_args[id].clone()
             } else {
                 // This is a function-type parameter.
-                let id = impl_.type_param_definition().type_param_count()
+                let id = impl_.type_param_definition(sa).type_param_count()
                     + (id.index() - trait_type_params);
                 SourceType::TypeParam(TypeParamId(id))
             }
@@ -666,7 +666,7 @@ pub fn find_super_trait_ty(
     }
 
     // Search in the trait's bounds for Self
-    for bound in trait_.type_param_definition().bounds_for_self() {
+    for bound in trait_.type_param_definition(sa).bounds_for_self(sa) {
         if bound.trait_id == target_trait_id {
             // Found it - specialize the type parameters
             let type_args = TypeArgs::from_own(&trait_ty.type_params);
@@ -851,7 +851,7 @@ pub fn specialize_ty_for_generic(
                 sa,
                 element,
                 specialized_ty,
-                element.type_param_definition(),
+                element.type_param_definition(sa),
                 local_trait_ty.clone(),
             ) {
                 let impl_ = sa.impl_(impl_match.id);
@@ -1012,7 +1012,7 @@ pub fn specialize_for_element(
                 sa,
                 element,
                 specialized_ty,
-                element.type_param_definition(),
+                element.type_param_definition(sa),
                 trait_ty,
             ) {
                 let impl_ = sa.impl_(impl_match.id);

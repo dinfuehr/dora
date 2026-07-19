@@ -1,6 +1,5 @@
 use id_arena::Id;
 use std::cell::OnceCell;
-use std::rc::Rc;
 
 use crate::element_collector::Annotations;
 use crate::interner::Name;
@@ -11,7 +10,8 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 use crate::ParsedType;
 use crate::sema::{
     Body, Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder, Visibility, lower_type, module_path,
+    TypeParamDefinition, TypeParamDefinitionId, TypeRefArena, TypeRefArenaBuilder, Visibility,
+    lower_type, module_path,
 };
 use crate::ty::SourceType;
 
@@ -29,7 +29,7 @@ pub struct ConstDefinition {
     pub name: Name,
     pub parsed_ty: ParsedType,
     pub type_refs: OnceCell<TypeRefArena>,
-    pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
     pub value: OnceCell<ConstValue>,
     body: OnceCell<Body>,
 }
@@ -45,6 +45,10 @@ impl ConstDefinition {
         modifiers: Annotations,
         name: Name,
     ) -> ConstDefinition {
+        let type_param_definition_id = sa
+            .type_param_definitions
+            .alloc(TypeParamDefinition::empty());
+
         ConstDefinition {
             id: None,
             package_id,
@@ -54,7 +58,7 @@ impl ConstDefinition {
             span: ast.span(),
             name,
             visibility: modifiers.visibility(),
-            type_param_definition: TypeParamDefinition::empty(),
+            type_param_definition_id,
             parsed_ty: ParsedType::new_opt(
                 ast.data_type()
                     .map(|ty| lower_type(sa, type_ref_arena, file_id, ty)),
@@ -128,8 +132,8 @@ impl Element for ConstDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
+        self.type_param_definition_id
     }
 
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {

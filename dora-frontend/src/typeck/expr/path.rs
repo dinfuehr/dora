@@ -483,7 +483,7 @@ fn lookup_alias_on_type_param(
 ) -> Vec<(TraitType, AliasDefinitionId)> {
     let mut results = Vec::with_capacity(2);
 
-    for bound in ck.type_param_definition.bounds_for_type_param(tp_id) {
+    for bound in ck.type_param_definition.bounds_for_type_param(ck.sa, tp_id) {
         let trait_id = bound.trait_id;
         let trait_ = ck.sa.trait_(trait_id);
 

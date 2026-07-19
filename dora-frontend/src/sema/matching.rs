@@ -19,7 +19,7 @@ pub fn extension_matches(
         check_element,
         check_type_param_defs,
         extension.ty().clone(),
-        extension.type_param_definition(),
+        extension.type_param_definition(sa),
     );
 
     bindings.map(|bindings| SourceTypeArray::with(bindings))
@@ -62,7 +62,7 @@ pub fn block_matches_ty(
         let bindings_array = SourceTypeArray::with(bindings.clone());
         let type_args = TypeArgs::from_own(&bindings_array);
 
-        for bound in ext_type_param_defs.bounds() {
+        for bound in ext_type_param_defs.bounds(sa) {
             let bound_ty = specialize_type(sa, bound.ty(), &type_args);
 
             if let Some(trait_ty) = bound.trait_ty() {
@@ -183,7 +183,7 @@ fn match_type_params(
     let ext_tp_id = ext_ty.type_param_id().expect("expected type param");
     let check_tp_id = check_ty.type_param_id().expect("expected type param");
 
-    for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
+    for trait_ty in ext_type_param_defs.bounds_for_type_param(sa, ext_tp_id) {
         if !check_type_param_defs.implements_trait(sa, check_tp_id, trait_ty) {
             return false;
         }
@@ -199,7 +199,7 @@ fn match_concrete_against_bounds(
     ext_tp_id: TypeParamId,
     ext_type_param_defs: &TypeParamDefinition,
 ) -> bool {
-    for trait_ty in ext_type_param_defs.bounds_for_type_param(ext_tp_id) {
+    for trait_ty in ext_type_param_defs.bounds_for_type_param(sa, ext_tp_id) {
         if !implements_trait(sa, check_ty.clone(), check_element, trait_ty) {
             return false;
         }

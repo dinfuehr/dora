@@ -108,6 +108,7 @@ pub(super) fn check_expr_lambda(
 
         let mut typeck = TypeCheck {
             sa: ck.sa,
+            type_param_definition_id: ck.type_param_definition_id,
             type_param_definition: ck.type_param_definition,
             package_id: ck.package_id,
             module_id: ck.module_id,
@@ -151,7 +152,7 @@ pub(super) fn check_expr_lambda(
         Some(ck.body.exprs().syntax_node_ptr(expr_id)),
         Annotations::default(),
         name,
-        ck.type_param_definition.clone(),
+        ck.type_param_definition_id,
         Params::new(lambda_params, true, is_variadic),
         lambda_return_type.clone(),
         FctParent::Function,

@@ -211,7 +211,7 @@ fn check_symbol(
             }
 
             let callee_element = get_symbol_element(sa, symbol);
-            let callee_type_param_definition = callee_element.type_param_definition();
+            let callee_type_param_definition = callee_element.type_param_definition(sa);
 
             if callee_type_param_definition.type_param_count() != type_params.len() {
                 return SourceType::Error;
@@ -265,7 +265,7 @@ fn check_trait_object(
         &binding_pairs,
         file_id,
         span,
-        ctxt_element.type_param_definition(),
+        ctxt_element.type_param_definition(sa),
     );
 }
 
@@ -333,7 +333,7 @@ pub(crate) fn check_trait_type_ref(
         &new_bindings,
         file_id,
         span,
-        ctxt_element.type_param_definition(),
+        ctxt_element.type_param_definition(sa),
     ) {
         Some(crate::TraitType {
             trait_id: trait_ty.trait_id,

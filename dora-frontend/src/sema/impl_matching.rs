@@ -18,7 +18,7 @@ pub fn impl_matches(
         check_element,
         check_type_param_defs,
         impl_.extended_ty(),
-        impl_.type_param_definition(),
+        impl_.type_param_definition(sa),
     );
 
     bindings.map(|bindings| SourceTypeArray::with(bindings))
@@ -31,7 +31,7 @@ pub fn implements_trait(
     trait_ty: TraitType,
 ) -> bool {
     let check_ty = maybe_alias_ty(sa, check_ty);
-    let check_type_param_defs = check_element.type_param_definition();
+    let check_type_param_defs = check_element.type_param_definition(sa);
 
     if check_ty.is_primitive() && sa.known.traits.zero() == trait_ty.trait_id {
         assert!(trait_ty.type_params.is_empty());
@@ -69,7 +69,7 @@ pub fn implements_trait(
 
         SourceType::This => {
             // First check the function's where clause bounds on Self
-            for bound_trait_ty in check_type_param_defs.bounds_for_self() {
+            for bound_trait_ty in check_type_param_defs.bounds_for_self(sa) {
                 if bound_trait_ty.implements_trait(sa, &trait_ty) {
                     return true;
                 }
@@ -81,7 +81,7 @@ pub fn implements_trait(
             let trait_ = sa.trait_(trait_id);
 
             // Create identity type params so that super traits can be properly specialized
-            let type_param_count = trait_.type_param_definition.type_param_count();
+            let type_param_count = trait_.type_param_definition(sa).type_param_count();
             let type_params = new_identity_type_params(0, type_param_count);
             let self_trait_ty = TraitType {
                 trait_id,
@@ -134,7 +134,7 @@ pub fn find_impl(
                 check_element,
                 check_type_param_definition,
                 impl_.extended_ty(),
-                impl_.type_param_definition(),
+                impl_.type_param_definition(sa),
             ) {
                 let mut bindings_for_types =
                     opt_bindings.iter().cloned().map(|t| Some(t)).collect();
@@ -183,7 +183,7 @@ fn trait_ty_match(
         check_element,
         check_type_param_definition,
         &impl_trait_ty.type_params,
-        impl_.type_param_definition(),
+        impl_.type_param_definition(sa),
         opt_bindings,
     ) {
         return false;

@@ -496,7 +496,7 @@ impl Emitter {
             if class.needs_self_type_param {
                 self.hidden_self_type_param = Some(
                     class
-                        .type_param_definition()
+                        .type_param_definition(sa)
                         .type_param_count()
                         .try_into()
                         .expect("type parameter overflow"),
@@ -508,7 +508,7 @@ impl Emitter {
 
             let package_id = self.convert_package_id(sa, class.package_id);
             let module_id = self.convert_module_id(sa, class.module_id);
-            let type_params = self.create_type_params(sa, class.type_param_definition());
+            let type_params = self.create_type_params(sa, class.type_param_definition(sa));
             self.classes.push(ClassData {
                 package_id,
                 module_id,
@@ -528,7 +528,7 @@ impl Emitter {
         type_params: &TypeParamDefinition,
     ) -> TypeParamData {
         let mut names: Vec<_> = type_params
-            .names()
+            .names(sa)
             .map(|(_, name)| sa.interner.str(name).to_string())
             .collect();
 
@@ -538,7 +538,7 @@ impl Emitter {
         }
 
         let mut bounds = Vec::new();
-        for b in type_params.bounds() {
+        for b in type_params.bounds(sa) {
             let ty = self.convert_ty(sa, b.ty());
             let trait_ty =
                 self.convert_trait_ty(sa, b.trait_ty().as_ref().expect("missing trait type"));
@@ -578,7 +578,7 @@ impl Emitter {
             let fields = self.create_struct_fields(sa, struct_);
             let package_id = self.convert_package_id(sa, struct_.package_id);
             let module_id = self.convert_module_id(sa, struct_.module_id);
-            let type_params = self.create_type_params(sa, struct_.type_param_definition());
+            let type_params = self.create_type_params(sa, struct_.type_param_definition(sa));
 
             self.structs.push(StructData {
                 package_id,
@@ -613,7 +613,7 @@ impl Emitter {
             let name = sa.interner.str(enum_.name).to_string();
             let variants = self.create_enum_variants(sa, &*enum_);
             let module_id = self.convert_module_id(sa, enum_.module_id);
-            let type_params = self.create_type_params(sa, enum_.type_param_definition());
+            let type_params = self.create_type_params(sa, enum_.type_param_definition(sa));
 
             self.enums.push(EnumData {
                 module_id,
@@ -656,7 +656,7 @@ impl Emitter {
             assert!(self.hidden_self_type_param.is_none());
             if fct.needs_self_type_param(sa) {
                 self.hidden_self_type_param = Some(
-                    fct.type_param_definition()
+                    fct.type_param_definition(sa)
                         .type_param_count()
                         .try_into()
                         .expect("type parameter overflow"),
@@ -680,7 +680,7 @@ impl Emitter {
             let file_id = self.convert_source_file_id(sa, fct.file_id);
             let package_id = self.convert_package_id(sa, fct.package_id);
             let module_id = self.convert_module_id(sa, fct.module_id);
-            let type_params = self.create_type_params(sa, fct.type_param_definition());
+            let type_params = self.create_type_params(sa, fct.type_param_definition(sa));
             let params: Vec<_> = fct
                 .params_with_self()
                 .iter()
@@ -726,7 +726,7 @@ impl Emitter {
                 assert!(self.hidden_self_type_param.is_none());
                 if fct.needs_self_type_param(sa) {
                     self.hidden_self_type_param = Some(
-                        fct.type_param_definition()
+                        fct.type_param_definition(sa)
                             .type_param_count()
                             .try_into()
                             .expect("type parameter overflow"),
@@ -752,7 +752,7 @@ impl Emitter {
             let file_id = self.convert_source_file_id(sa, global.file_id);
             let package_id = self.convert_package_id(sa, global.package_id);
             let module_id = self.convert_module_id(sa, global.module_id);
-            let type_params = self.create_type_params(sa, &TypeParamDefinition::empty());
+            let type_params = self.create_type_params(sa, global.type_param_definition(sa));
             let return_type = self.convert_ty(sa, global.ty());
 
             let analysis = global.analysis();
@@ -851,7 +851,7 @@ impl Emitter {
                 .collect();
 
             let module_id = self.convert_module_id(sa, trait_.module_id);
-            let type_params = self.create_type_params(sa, &trait_.type_param_definition());
+            let type_params = self.create_type_params(sa, trait_.type_param_definition(sa));
             let aliases = trait_
                 .aliases()
                 .iter()
@@ -889,7 +889,7 @@ impl Emitter {
             }
 
             let module_id = self.convert_module_id(sa, extension.module_id);
-            let type_params = self.create_type_params(sa, extension.type_param_definition());
+            let type_params = self.create_type_params(sa, extension.type_param_definition(sa));
             let extended_ty = self.convert_ty(sa, extension.ty().clone());
 
             self.extensions.push(ExtensionData {
@@ -945,7 +945,7 @@ impl Emitter {
             }
 
             let module_id = self.convert_module_id(sa, impl_.module_id);
-            let type_params = self.create_type_params(sa, impl_.type_param_definition());
+            let type_params = self.create_type_params(sa, impl_.type_param_definition(sa));
             let bc_trait_ty = self.convert_trait_ty(sa, &trait_ty);
             let extended_ty = self.convert_ty(sa, impl_.extended_ty());
 
@@ -965,7 +965,7 @@ impl Emitter {
         for (_id, alias) in sa.aliases.iter() {
             let ty = alias.parsed_ty().map(|pty| self.convert_ty(sa, pty.ty()));
             let module_id = self.convert_module_id(sa, alias.module_id);
-            let type_params = self.create_type_params(sa, alias.type_param_definition());
+            let type_params = self.create_type_params(sa, alias.type_param_definition(sa));
             self.aliases.push(AliasData {
                 module_id,
                 name: sa.interner.str(alias.name).to_string(),
@@ -999,7 +999,7 @@ impl Emitter {
 
         if (!ret.is_unit() && !ret.is_int32())
             || !fct.params_without_self().is_empty()
-            || !fct.type_param_definition().is_empty()
+            || !fct.type_param_definition(sa).is_empty()
         {
             None
         } else {

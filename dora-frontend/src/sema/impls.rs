@@ -1,14 +1,13 @@
 use std::cell::OnceCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use dora_parser::Span;
 use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     AliasDefinitionId, Element, ElementId, FctDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena,
-    TypeRefArenaBuilder, lower_type,
+    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinitionId,
+    TypeRefArena, TypeRefArenaBuilder, lower_type,
 };
 use crate::ty::SourceType;
 use crate::{ParsedTraitType, ParsedType, TraitType};
@@ -25,7 +24,7 @@ pub struct ImplDefinition {
     pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub declaration_span: Span,
     pub span: Span,
-    pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
     pub parsed_trait_ty: ParsedTraitType,
     pub parsed_extended_ty: ParsedType,
     pub type_refs: OnceCell<TypeRefArena>,
@@ -44,7 +43,7 @@ impl ImplDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: ast::AstImpl,
-        type_param_definition: Rc<TypeParamDefinition>,
+        type_param_definition_id: TypeParamDefinitionId,
     ) -> ImplDefinition {
         let syntax_node_ptr = ast.syntax_node().as_ptr();
 
@@ -54,7 +53,7 @@ impl ImplDefinition {
             module_id,
             file_id,
             syntax_node_ptr,
-            type_param_definition,
+            type_param_definition_id,
             declaration_span: ast.declaration_span(),
             span: ast.span(),
             parsed_trait_ty: ParsedTraitType::new(lower_type(
@@ -156,8 +155,8 @@ impl Element for ImplDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
+        self.type_param_definition_id
     }
 
     fn to_impl(&self) -> Option<&ImplDefinition> {

@@ -1,6 +1,5 @@
-use std::rc::Rc;
-
 use dora_parser::ast;
+use id_arena::Id;
 
 use crate::sema::{Element, ImplDefinition, Sema, SourceFileId, TypeRefArenaBuilder, lower_type};
 use crate::{
@@ -8,9 +7,11 @@ use crate::{
     specialize_trait_type_generic,
 };
 
+pub type TypeParamDefinitionId = Id<TypeParamDefinition>;
+
 #[derive(Clone, Debug)]
 pub struct TypeParamDefinition {
-    parent: Option<Rc<TypeParamDefinition>>,
+    parent: Option<TypeParamDefinitionId>,
     type_params: Vec<TypeParam>,
     bounds: Vec<Bound>,
     container_type_params: usize,
@@ -18,13 +19,14 @@ pub struct TypeParamDefinition {
 }
 
 impl TypeParamDefinition {
-    pub fn new(parent: Option<Rc<TypeParamDefinition>>) -> TypeParamDefinition {
+    pub fn new(sa: &Sema, parent: Option<TypeParamDefinitionId>) -> TypeParamDefinition {
         let container_type_params;
         let container_bounds;
 
-        if let Some(ref parent) = parent {
-            container_type_params = parent.type_params.len();
-            container_bounds = parent.bounds.len();
+        if let Some(parent) = parent {
+            let parent = sa.type_param_definition(parent);
+            container_type_params = parent.type_param_count();
+            container_bounds = parent.bounds_count();
         } else {
             container_type_params = 0;
             container_bounds = 0;
@@ -44,13 +46,14 @@ impl TypeParamDefinition {
         sa: &Sema,
         impl_: &ImplDefinition,
         specialize: &S,
-    ) -> Rc<TypeParamDefinition>
+    ) -> TypeParamDefinition
     where
         S: Fn(SourceType) -> SourceType,
     {
-        let parent = impl_.type_param_definition().to_owned();
-        let container_type_params = parent.type_params.len();
-        let container_bounds = parent.bounds.len();
+        let parent = impl_.type_param_definition_id();
+        let parent_definition = sa.type_param_definition(parent);
+        let container_type_params = parent_definition.type_param_count();
+        let container_bounds = parent_definition.bounds_count();
 
         let mut new_bounds = Vec::with_capacity(self.bounds.len());
 
@@ -68,38 +71,45 @@ impl TypeParamDefinition {
             new_bounds.push(bound);
         }
 
-        Rc::new(TypeParamDefinition {
+        TypeParamDefinition {
             parent: Some(parent),
             type_params: self.type_params.clone(),
             bounds: new_bounds,
             container_type_params,
             container_bounds,
-        })
+        }
     }
 
-    pub fn empty() -> Rc<TypeParamDefinition> {
-        Rc::new(TypeParamDefinition::new(None))
+    pub fn empty() -> TypeParamDefinition {
+        TypeParamDefinition {
+            parent: None,
+            type_params: Vec::new(),
+            bounds: Vec::new(),
+            container_type_params: 0,
+            container_bounds: 0,
+        }
     }
 
-    pub fn name(&self, id: TypeParamId) -> Name {
-        self.type_param(id).name
+    pub fn name(&self, sa: &Sema, id: TypeParamId) -> Name {
+        self.type_param(sa, id).name
     }
 
-    fn type_param(&self, id: TypeParamId) -> &TypeParam {
+    fn type_param<'a>(&'a self, sa: &'a Sema, id: TypeParamId) -> &'a TypeParam {
         let id = id.index();
 
         if id < self.container_type_params() {
-            let parent = self.parent.as_ref().expect("parent missing");
-            &parent.type_params[id]
+            let parent = self.parent.expect("parent missing");
+            sa.type_param_definition(parent)
+                .type_param(sa, TypeParamId(id))
         } else {
             &self.type_params[id - self.container_type_params()]
         }
     }
 
-    fn bound(&self, idx: usize) -> &Bound {
+    fn bound<'a>(&'a self, sa: &'a Sema, idx: usize) -> &'a Bound {
         if idx < self.container_bounds {
-            let parent = self.parent.as_ref().expect("parent missing");
-            &parent.bounds[idx]
+            let parent = self.parent.expect("parent missing");
+            sa.type_param_definition(parent).bound(sa, idx)
         } else {
             &self.bounds[idx - self.container_bounds]
         }
@@ -166,7 +176,7 @@ impl TypeParamDefinition {
     }
 
     pub fn implements_trait(&self, sa: &Sema, id: TypeParamId, trait_ty: TraitType) -> bool {
-        for bound_trait_ty in self.bounds_for_type_param(id) {
+        for bound_trait_ty in self.bounds_for_type_param(sa, id) {
             if bound_trait_ty.implements_trait(sa, &trait_ty) {
                 return true;
             }
@@ -175,16 +185,18 @@ impl TypeParamDefinition {
         false
     }
 
-    pub fn bounds(&self) -> BoundsIter<'_> {
+    pub fn bounds<'a>(&'a self, sa: &'a Sema) -> BoundsIter<'a> {
         BoundsIter {
+            sa,
             data: self,
             current: 0,
             total: self.container_bounds + self.bounds.len(),
         }
     }
 
-    pub fn own_bounds(&self) -> BoundsIter<'_> {
+    pub fn own_bounds<'a>(&'a self, sa: &'a Sema) -> BoundsIter<'a> {
         BoundsIter {
+            sa,
             data: self,
             current: self.container_bounds,
             total: self.container_bounds + self.bounds.len(),
@@ -193,15 +205,16 @@ impl TypeParamDefinition {
 
     pub fn bounds_for_type_param<'a>(
         &'a self,
+        sa: &'a Sema,
         id: TypeParamId,
     ) -> impl Iterator<Item = TraitType> + 'a {
-        self.bounds()
+        self.bounds(sa)
             .filter(move |b| b.ty() == SourceType::TypeParam(id) && b.trait_ty().is_some())
             .map(|b| b.trait_ty().expect("trait type expected"))
     }
 
-    pub fn bounds_for_self<'a>(&'a self) -> impl Iterator<Item = TraitType> + 'a {
-        self.bounds()
+    pub fn bounds_for_self<'a>(&'a self, sa: &'a Sema) -> impl Iterator<Item = TraitType> + 'a {
+        self.bounds(sa)
             .filter(move |b| {
                 b.parsed_ty().maybe_ty() == Some(SourceType::This) && b.trait_ty().is_some()
             })
@@ -212,12 +225,17 @@ impl TypeParamDefinition {
         self.container_type_params + self.type_params.len()
     }
 
+    pub fn bounds_count(&self) -> usize {
+        self.container_bounds + self.bounds.len()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.type_param_count() == 0
     }
 
-    pub fn names(&self) -> TypeParamNameIter<'_> {
+    pub fn names<'a>(&'a self, sa: &'a Sema) -> TypeParamNameIter<'a> {
         TypeParamNameIter {
+            sa,
             data: self,
             current: 0,
             total: self.type_param_count(),
@@ -257,6 +275,7 @@ impl Bound {
 }
 
 pub struct BoundsIter<'a> {
+    sa: &'a Sema,
     data: &'a TypeParamDefinition,
     current: usize,
     total: usize,
@@ -267,7 +286,7 @@ impl<'a> Iterator for BoundsIter<'a> {
 
     fn next(&mut self) -> Option<&'a Bound> {
         if self.current < self.total {
-            let bound = self.data.bound(self.current);
+            let bound = self.data.bound(self.sa, self.current);
             self.current += 1;
             Some(bound)
         } else {
@@ -277,6 +296,7 @@ impl<'a> Iterator for BoundsIter<'a> {
 }
 
 pub struct TypeParamNameIter<'a> {
+    sa: &'a Sema,
     data: &'a TypeParamDefinition,
     current: usize,
     total: usize,
@@ -289,7 +309,7 @@ impl<'a> Iterator for TypeParamNameIter<'a> {
         if self.current < self.total {
             let current = TypeParamId(self.current);
             self.current += 1;
-            Some((current, self.data.name(current)))
+            Some((current, self.data.name(self.sa, current)))
         } else {
             None
         }

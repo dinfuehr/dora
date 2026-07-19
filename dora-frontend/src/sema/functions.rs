@@ -1,5 +1,4 @@
 use std::cell::OnceCell;
-use std::rc::Rc;
 
 use crate::ParsedType;
 use crate::element_collector::Annotations;
@@ -10,8 +9,8 @@ use id_arena::Id;
 
 use crate::sema::{
     Body, Element, ElementId, ExprId, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena,
-    TypeRefArenaBuilder, Visibility, lower_type, module_path,
+    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinitionId,
+    TypeRefArena, TypeRefArenaBuilder, Visibility, lower_type, module_path,
 };
 use crate::ty::SourceType;
 use dora_bytecode::BytecodeBody;
@@ -44,7 +43,7 @@ pub struct FctDefinition {
 
     pub body: OnceCell<Body>,
 
-    pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
     pub container_type_params: OnceCell<usize>,
     pub bytecode: OnceCell<BytecodeBody>,
     pub intrinsic: OnceCell<Intrinsic>,
@@ -59,7 +58,7 @@ impl FctDefinition {
         ast: ast::AstCallable,
         modifiers: Annotations,
         name: Name,
-        type_params: Rc<TypeParamDefinition>,
+        type_param_definition_id: TypeParamDefinitionId,
         params: Params,
         return_type: ParsedType,
         parent: FctParent,
@@ -90,7 +89,7 @@ impl FctDefinition {
             is_in_trait,
             body: OnceCell::new(),
             type_refs: OnceCell::new(),
-            type_param_definition: type_params,
+            type_param_definition_id,
             container_type_params: OnceCell::new(),
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
@@ -107,7 +106,7 @@ impl FctDefinition {
         syntax_node_ptr: Option<SyntaxNodePtr>,
         modifiers: Annotations,
         name: Name,
-        type_params: Rc<TypeParamDefinition>,
+        type_param_definition_id: TypeParamDefinitionId,
         params: Params,
         return_type: SourceType,
         parent: FctParent,
@@ -137,7 +136,7 @@ impl FctDefinition {
             is_in_trait,
             body: OnceCell::new(),
             type_refs: OnceCell::new(),
-            type_param_definition: type_params,
+            type_param_definition_id,
             container_type_params: OnceCell::new(),
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
@@ -339,8 +338,8 @@ impl Element for FctDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
+        self.type_param_definition_id
     }
 
     fn to_fct(&self) -> Option<&FctDefinition> {

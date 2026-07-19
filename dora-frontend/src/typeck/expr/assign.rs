@@ -351,6 +351,7 @@ fn check_expr_assign_trait(
         let tp_id = lhs_type.type_param_id().expect("type param expected");
         let trait_ty = TraitType::from_trait_id(trait_id);
         let type_params = TypeArgs::from_definition(
+            ck.sa,
             method,
             &trait_ty.type_params,
             &SourceTypeArray::empty(),

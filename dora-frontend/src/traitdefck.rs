@@ -34,7 +34,11 @@ fn check_super_trait_cycles_for_trait(
         let trait_ = sa.trait_(trait_id);
         let type_refs = trait_.type_ref_arena();
 
-        for bound in trait_.type_param_definition.own_bounds().skip(bound_index) {
+        for bound in trait_
+            .type_param_definition(sa)
+            .own_bounds(sa)
+            .skip(bound_index)
+        {
             stack.last_mut().unwrap().1 += 1;
 
             // Check if this bound is for Self

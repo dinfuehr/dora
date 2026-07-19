@@ -463,7 +463,7 @@ impl SourceType {
     pub fn name_fct(&self, sa: &Sema, fct: &FctDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
-            type_params: Some(fct.type_param_definition()),
+            type_params: Some(fct.type_param_definition(sa)),
         };
 
         writer.name(self.clone())
@@ -472,7 +472,7 @@ impl SourceType {
     pub fn name_cls(&self, sa: &Sema, cls: &ClassDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
-            type_params: Some(cls.type_param_definition()),
+            type_params: Some(cls.type_param_definition(sa)),
         };
 
         writer.name(self.clone())
@@ -481,7 +481,7 @@ impl SourceType {
     pub fn name_struct(&self, sa: &Sema, struct_: &StructDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
-            type_params: Some(struct_.type_param_definition()),
+            type_params: Some(struct_.type_param_definition(sa)),
         };
 
         writer.name(self.clone())
@@ -490,7 +490,7 @@ impl SourceType {
     pub fn name_enum(&self, sa: &Sema, enum_: &EnumDefinition) -> String {
         let writer = SourceTypePrinter {
             sa,
-            type_params: Some(enum_.type_param_definition()),
+            type_params: Some(enum_.type_param_definition(sa)),
         };
 
         writer.name(self.clone())
@@ -794,12 +794,13 @@ impl TypeArgs {
     }
 
     pub fn from_definition(
+        sa: &Sema,
         fct: &FctDefinition,
         container: &SourceTypeArray,
         own: &SourceTypeArray,
         self_ty: Option<SourceType>,
     ) -> TypeArgs {
-        let definition = fct.type_param_definition();
+        let definition = fct.type_param_definition(sa);
 
         assert_eq!(container.len(), definition.container_type_params());
         assert_eq!(own.len(), definition.own_type_params_len());
@@ -1152,7 +1153,10 @@ impl<'a> SourceTypePrinter<'a> {
 
             SourceType::TypeParam(idx) => {
                 if let Some(type_params) = self.type_params {
-                    self.sa.interner.str(type_params.name(idx)).to_string()
+                    self.sa
+                        .interner
+                        .str(type_params.name(self.sa, idx))
+                        .to_string()
                 } else {
                     format!("TypeParam({})", idx.index())
                 }
@@ -1290,7 +1294,7 @@ impl TraitType {
 
         let trait_ = sa.trait_(self.trait_id);
 
-        for super_trait_ty in trait_.type_param_definition().bounds_for_self() {
+        for super_trait_ty in trait_.type_param_definition(sa).bounds_for_self(sa) {
             // Specialize the super trait's type params with this trait's type params
             let type_args = TypeArgs::from_own(&self.type_params);
             let specialized_super_trait_ty =

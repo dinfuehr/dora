@@ -1,10 +1,9 @@
 use id_arena::Id;
-use std::rc::Rc;
 
 use crate::interner::Name;
 use crate::sema::{
     Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, Visibility,
+    TypeParamDefinitionId, Visibility,
 };
 use crate::{ParsedType, SourceType, Span};
 
@@ -74,7 +73,7 @@ impl Element for FieldDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
         unreachable!()
     }
 

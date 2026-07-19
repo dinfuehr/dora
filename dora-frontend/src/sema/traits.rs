@@ -1,6 +1,5 @@
 use std::cell::OnceCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use crate::element_collector::Annotations;
 use crate::interner::Name;
@@ -9,7 +8,7 @@ use dora_parser::ast::{self, SyntaxNodeBase};
 
 use crate::sema::{
     AliasDefinitionId, Element, ElementAccess, ElementId, FctDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinition, TypeRefArena, Visibility,
+    PackageDefinitionId, Sema, SourceFileId, TypeParamDefinitionId, TypeRefArena, Visibility,
     module_path,
 };
 use crate::{SourceType, SourceTypeArray, contains_self};
@@ -28,7 +27,7 @@ pub struct TraitDefinition {
     pub span: Span,
     pub name: Name,
     pub is_trait_object: bool,
-    pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
     pub type_refs: OnceCell<TypeRefArena>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
     pub aliases: OnceCell<Vec<AliasDefinitionId>>,
@@ -46,7 +45,7 @@ impl TraitDefinition {
         ast: ast::AstTrait,
         modifiers: Annotations,
         name: Name,
-        type_params: Rc<TypeParamDefinition>,
+        type_param_definition_id: TypeParamDefinitionId,
     ) -> TraitDefinition {
         let syntax_node_ptr = ast.syntax_node().as_ptr();
 
@@ -60,7 +59,7 @@ impl TraitDefinition {
             span: ast.span(),
             name,
             is_trait_object: false,
-            type_param_definition: type_params,
+            type_param_definition_id,
             type_refs: OnceCell::new(),
             methods: OnceCell::new(),
             aliases: OnceCell::new(),
@@ -156,8 +155,8 @@ impl Element for TraitDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
+        self.type_param_definition_id
     }
 
     fn to_trait(&self) -> Option<&TraitDefinition> {
@@ -198,7 +197,7 @@ pub fn is_trait_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
 
     for &alias_id in trait_.aliases() {
         let alias = sa.alias(alias_id);
-        if alias.type_param_definition().has_own_type_params() {
+        if alias.type_param_definition(sa).has_own_type_params() {
             return false;
         }
     }
@@ -210,7 +209,7 @@ pub fn is_trait_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
             continue;
         }
 
-        if method.type_param_definition().has_own_type_params() {
+        if method.type_param_definition(sa).has_own_type_params() {
             return false;
         }
 
@@ -229,8 +228,8 @@ pub fn is_trait_object_safe(sa: &Sema, trait_id: TraitDefinitionId) -> bool {
         }
     }
 
-    let type_param_definition = trait_.type_param_definition();
-    for bound in type_param_definition.bounds_for_self() {
+    let type_param_definition = trait_.type_param_definition(sa);
+    for bound in type_param_definition.bounds_for_self(sa) {
         if !is_trait_object_safe(sa, bound.trait_id) {
             return false;
         }

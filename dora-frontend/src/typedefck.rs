@@ -22,7 +22,13 @@ fn parse_alias_types(sa: &Sema) {
         let mut table = ModuleSymTable::new(sa, alias.module_id);
         table.push_level();
 
-        parse_type_param_definition(sa, alias.type_param_definition(), &mut table, alias, false);
+        parse_type_param_definition(
+            sa,
+            alias.type_param_definition(sa),
+            &mut table,
+            alias,
+            false,
+        );
 
         for bound in &alias.bounds {
             parsety::parse_trait_bound_type(sa, &table, alias, false, bound.parsed_ty());
@@ -59,7 +65,7 @@ fn parse_trait_types(sa: &Sema) {
 
         parse_type_param_definition(
             sa,
-            trait_.type_param_definition(),
+            trait_.type_param_definition(sa),
             &mut symtable,
             trait_,
             true,
@@ -74,7 +80,7 @@ fn parse_impl_types(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, impl_.module_id);
         symtable.push_level();
 
-        for (id, name) in impl_.type_param_definition().names() {
+        for (id, name) in impl_.type_param_definition(sa).names(sa) {
             if symtable.get_unmarked(name).is_none() {
                 let old = symtable.insert(name, SymbolKind::TypeParam(id));
                 assert!(old.is_none());
@@ -85,7 +91,7 @@ fn parse_impl_types(sa: &Sema) {
 
         impl_.parsed_extended_ty().parse(sa, &symtable, impl_);
 
-        for bound in impl_.type_param_definition().own_bounds() {
+        for bound in impl_.type_param_definition(sa).own_bounds(sa) {
             bound.parsed_ty().parse(sa, &symtable, impl_);
             parsety::parse_trait_bound_type(sa, &symtable, impl_, true, bound.parsed_trait_ty());
         }
@@ -99,9 +105,9 @@ fn parse_class_types(sa: &Sema) {
         let mut symtable = ModuleSymTable::new(sa, cls.module_id);
         symtable.push_level();
 
-        parse_type_param_definition(sa, cls.type_param_definition(), &mut symtable, cls, false);
+        parse_type_param_definition(sa, cls.type_param_definition(sa), &mut symtable, cls, false);
 
-        let number_type_params = cls.type_param_definition().type_param_count();
+        let number_type_params = cls.type_param_definition(sa).type_param_count();
         cls.ty
             .set(SourceType::Class(
                 cls_id,
@@ -125,7 +131,7 @@ fn parse_enum_types(sa: &Sema) {
 
         parse_type_param_definition(
             sa,
-            enum_.type_param_definition(),
+            enum_.type_param_definition(sa),
             &mut symtable,
             enum_,
             false,
@@ -150,7 +156,7 @@ fn parse_struct_types(sa: &Sema) {
 
         parse_type_param_definition(
             sa,
-            struct_.type_param_definition(),
+            struct_.type_param_definition(sa),
             &mut symtable,
             struct_,
             false,
@@ -172,7 +178,7 @@ fn parse_extension_types(sa: &Sema) {
 
         parse_type_param_definition(
             sa,
-            extension.type_param_definition(),
+            extension.type_param_definition(sa),
             &mut symtable,
             extension,
             true,
@@ -190,7 +196,7 @@ fn parse_function_types(sa: &Sema) {
 
         parse_type_param_definition(
             sa,
-            fct.type_param_definition(),
+            fct.type_param_definition(sa),
             &mut sym_table,
             fct,
             fct.is_self_allowed(),
@@ -213,14 +219,14 @@ fn parse_type_param_definition(
     element: &dyn Element,
     allow_self: bool,
 ) {
-    for (id, name) in type_param_definition.names() {
+    for (id, name) in type_param_definition.names(sa) {
         if symtable.get_unmarked(name).is_none() {
             let old = symtable.insert(name, SymbolKind::TypeParam(id));
             assert!(old.is_none());
         }
     }
 
-    for bound in type_param_definition.own_bounds() {
+    for bound in type_param_definition.own_bounds(sa) {
         bound.parsed_ty().parse(sa, &symtable, element);
         parsety::parse_trait_bound_type(
             sa,
@@ -252,7 +258,7 @@ fn check_alias_types(sa: &Sema) {
             AliasParent::None => false,
         };
 
-        check_type_param_definition(sa, alias, alias.type_param_definition(), allow_self);
+        check_type_param_definition(sa, alias, alias.type_param_definition(sa), allow_self);
 
         if let Some(parsed_ty) = alias.parsed_ty() {
             parsed_ty.check(sa, alias, allow_self);
@@ -278,13 +284,13 @@ fn check_global_types(sa: &Sema) {
 
 fn check_trait_types(sa: &Sema) {
     for (_id, trait_) in sa.traits.iter() {
-        check_type_param_definition(sa, trait_, trait_.type_param_definition(), true);
+        check_type_param_definition(sa, trait_, trait_.type_param_definition(sa), true);
     }
 }
 
 fn check_struct_types(sa: &Sema) {
     for (_id, struct_) in sa.structs.iter() {
-        check_type_param_definition(sa, struct_, struct_.type_param_definition(), false);
+        check_type_param_definition(sa, struct_, struct_.type_param_definition(sa), false);
 
         for &field_id in struct_.field_ids() {
             let field = sa.field(field_id);
@@ -295,7 +301,7 @@ fn check_struct_types(sa: &Sema) {
 
 fn check_class_types(sa: &Sema) {
     for (_id, class) in sa.classes.iter() {
-        check_type_param_definition(sa, class, class.type_param_definition(), false);
+        check_type_param_definition(sa, class, class.type_param_definition(sa), false);
 
         for &field_id in class.field_ids() {
             let field = sa.field(field_id);
@@ -306,7 +312,7 @@ fn check_class_types(sa: &Sema) {
 
 fn check_enum_types(sa: &Sema) {
     for (_id, enum_) in sa.enums.iter() {
-        check_type_param_definition(sa, enum_, enum_.type_param_definition(), false);
+        check_type_param_definition(sa, enum_, enum_.type_param_definition(sa), false);
 
         for &variant_id in enum_.variant_ids() {
             let variant = sa.variant(variant_id);
@@ -320,7 +326,7 @@ fn check_enum_types(sa: &Sema) {
 
 fn check_impl_types(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
-        check_type_param_definition(sa, impl_, impl_.type_param_definition(), true);
+        check_type_param_definition(sa, impl_, impl_.type_param_definition(sa), true);
         impl_.parsed_extended_ty().check(sa, impl_, false);
         parsety::check_trait_type(sa, impl_, impl_.parsed_trait_ty());
     }
@@ -328,7 +334,7 @@ fn check_impl_types(sa: &Sema) {
 
 fn check_extension_types(sa: &Sema) {
     for (_id, extension) in sa.extensions.iter() {
-        check_type_param_definition(sa, extension, extension.type_param_definition(), true);
+        check_type_param_definition(sa, extension, extension.type_param_definition(sa), true);
         extension.parsed_ty().check(sa, extension, false);
     }
 }
@@ -336,7 +342,7 @@ fn check_extension_types(sa: &Sema) {
 fn check_function_types(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
         let allow_self = fct.is_self_allowed();
-        check_type_param_definition(sa, fct, fct.type_param_definition(), allow_self);
+        check_type_param_definition(sa, fct, fct.type_param_definition(sa), allow_self);
 
         for param in fct.params_with_self() {
             param.parsed_ty().check(sa, fct, allow_self);
@@ -352,7 +358,7 @@ fn check_type_param_definition(
     type_param_definition: &TypeParamDefinition,
     allow_self: bool,
 ) {
-    for bound in type_param_definition.own_bounds() {
+    for bound in type_param_definition.own_bounds(sa) {
         bound.parsed_ty().check(sa, element, allow_self);
         parsety::check_trait_type(sa, element, bound.parsed_trait_ty());
     }
@@ -381,7 +387,7 @@ fn expand_impl_types(sa: &Sema) {
             Some(impl_.extended_ty()),
         );
 
-        expand_type_param_definition(sa, impl_, impl_.type_param_definition(), None);
+        expand_type_param_definition(sa, impl_, impl_.type_param_definition(sa), None);
     }
 }
 
@@ -390,7 +396,7 @@ fn expand_trait_types(sa: &Sema) {
         expand_type_param_definition(
             sa,
             trait_,
-            trait_.type_param_definition(),
+            trait_.type_param_definition(sa),
             Some(SourceType::This),
         );
     }
@@ -398,7 +404,7 @@ fn expand_trait_types(sa: &Sema) {
 
 fn expand_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
-        expand_type_param_definition(sa, alias, alias.type_param_definition(), None);
+        expand_type_param_definition(sa, alias, alias.type_param_definition(sa), None);
 
         if let Some(parsed_ty) = alias.parsed_ty() {
             parsed_ty.expand(sa, alias, None);
@@ -414,7 +420,7 @@ fn expand_extension_types(sa: &Sema) {
         expand_type_param_definition(
             sa,
             extension,
-            extension.type_param_definition(),
+            extension.type_param_definition(sa),
             Some(extension.ty()),
         );
     }
@@ -430,7 +436,7 @@ fn expand_function_types(sa: &Sema) {
 
         fct.parsed_return_type()
             .expand(sa, fct, replace_self.clone());
-        expand_type_param_definition(sa, fct, fct.type_param_definition(), replace_self);
+        expand_type_param_definition(sa, fct, fct.type_param_definition(sa), replace_self);
     }
 }
 
@@ -470,7 +476,7 @@ fn expand_class_types(sa: &Sema) {
             field.parsed_ty().expand(sa, cls, None);
         }
 
-        expand_type_param_definition(sa, cls, cls.type_param_definition(), None);
+        expand_type_param_definition(sa, cls, cls.type_param_definition(sa), None);
     }
 }
 
@@ -481,7 +487,7 @@ fn expand_struct_types(sa: &Sema) {
             field.parsed_ty().expand(sa, struct_, None);
         }
 
-        expand_type_param_definition(sa, struct_, struct_.type_param_definition(), None);
+        expand_type_param_definition(sa, struct_, struct_.type_param_definition(sa), None);
     }
 }
 
@@ -495,7 +501,7 @@ fn expand_enum_types(sa: &Sema) {
             }
         }
 
-        expand_type_param_definition(sa, enum_, enum_.type_param_definition(), None);
+        expand_type_param_definition(sa, enum_, enum_.type_param_definition(sa), None);
     }
 }
 
@@ -505,7 +511,7 @@ fn expand_type_param_definition(
     type_param_definition: &TypeParamDefinition,
     replace_self: Option<SourceType>,
 ) {
-    for bound in type_param_definition.own_bounds() {
+    for bound in type_param_definition.own_bounds(sa) {
         bound.parsed_ty().expand(sa, element, replace_self.clone());
         parsety::expand_parsed_trait_type(
             sa,

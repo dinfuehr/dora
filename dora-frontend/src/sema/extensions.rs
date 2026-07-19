@@ -1,12 +1,11 @@
 use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use crate::ParsedType;
 use crate::interner::Name;
 use crate::sema::{
     Element, ElementId, FctDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder, lower_type,
+    SourceFileId, TypeParamDefinitionId, TypeRefArena, TypeRefArenaBuilder, lower_type,
 };
 use crate::ty::SourceType;
 use id_arena::Id;
@@ -24,7 +23,7 @@ pub struct ExtensionDefinition {
     pub file_id: SourceFileId,
     pub syntax_node_ptr: ast::SyntaxNodePtr,
     pub span: Span,
-    pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
     pub parsed_ty: ParsedType,
     pub type_refs: OnceCell<TypeRefArena>,
     pub methods: OnceCell<Vec<FctDefinitionId>>,
@@ -41,7 +40,7 @@ impl ExtensionDefinition {
         module_id: ModuleDefinitionId,
         file_id: SourceFileId,
         ast: ast::AstImpl,
-        type_param_definition: Rc<TypeParamDefinition>,
+        type_param_definition_id: TypeParamDefinitionId,
     ) -> ExtensionDefinition {
         ExtensionDefinition {
             id: OnceCell::new(),
@@ -50,7 +49,7 @@ impl ExtensionDefinition {
             file_id,
             syntax_node_ptr: ast.as_ptr(),
             span: ast.span(),
-            type_param_definition,
+            type_param_definition_id,
             parsed_ty: ParsedType::new_opt(
                 ast.extended_type()
                     .map(|ty| lower_type(sa, type_ref_arena, file_id, ty)),
@@ -110,8 +109,8 @@ impl Element for ExtensionDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
+        self.type_param_definition_id
     }
 
     fn self_ty(&self, _sa: &Sema) -> Option<SourceType> {

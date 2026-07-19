@@ -1,5 +1,4 @@
 use std::cell::OnceCell;
-use std::rc::Rc;
 
 use dora_parser::ast::SyntaxNodeBase;
 use dora_parser::{Span, ast};
@@ -9,7 +8,7 @@ use crate::SourceType;
 use crate::element_collector::Annotations;
 use crate::sema::{
     Element, ElementId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, Visibility,
+    TypeParamDefinitionId, Visibility,
 };
 
 pub type UseDefinitionId = Id<UseDefinition>;
@@ -74,7 +73,7 @@ impl Element for UseDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
         unreachable!()
     }
 

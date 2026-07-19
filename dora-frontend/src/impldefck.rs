@@ -59,7 +59,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
     check_for_unconstrained_type_params(
         sa,
         impl_.extended_ty(),
-        impl_.type_param_definition(),
+        impl_.type_param_definition(sa),
         impl_.file_id,
         impl_.ast(sa).span(),
     );
@@ -109,10 +109,21 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
         let trait_methods = setter.trait_methods;
         let mut new_fcts = Vec::new();
 
-        {
-            let impl_ = sa.impl_(setter.impl_id);
-
-            for trait_method_id in &trait_methods {
+        for trait_method_id in &trait_methods {
+            let (
+                package_id,
+                module_id,
+                file_id,
+                impl_id,
+                declaration_span,
+                span,
+                name,
+                params,
+                return_type,
+                type_param_definition,
+                modifiers,
+            ) = {
+                let impl_ = sa.impl_(setter.impl_id);
                 let trait_method = sa.fct(*trait_method_id);
 
                 let params = trait_method.params.clone();
@@ -142,8 +153,8 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     &extended_ty,
                 );
 
-                let type_params = trait_method
-                    .type_param_definition()
+                let type_param_definition = trait_method
+                    .type_param_definition(sa)
                     .specialize_for_default_trait_method(sa, impl_, &|ty| {
                         specialize_ty_for_default_trait_method(
                             sa,
@@ -167,24 +178,39 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     is_trait_object_ignore: trait_method.is_trait_object_ignore,
                 };
 
-                let fct = FctDefinition::new_no_source(
+                (
                     impl_.package_id,
                     impl_.module_id,
                     impl_.file_id,
+                    impl_.id(),
                     trait_method.declaration_span,
                     trait_method.span,
-                    None,
-                    modifiers,
                     trait_method.name,
-                    type_params,
                     params,
                     return_type,
-                    FctParent::Impl(impl_.id()),
-                    false,
-                );
-                assert!(fct.trait_method_impl.set(*trait_method_id).is_ok());
-                new_fcts.push(fct);
-            }
+                    type_param_definition,
+                    modifiers,
+                )
+            };
+
+            let type_param_definition_id = sa.type_param_definitions.alloc(type_param_definition);
+            let fct = FctDefinition::new_no_source(
+                package_id,
+                module_id,
+                file_id,
+                declaration_span,
+                span,
+                None,
+                modifiers,
+                name,
+                type_param_definition_id,
+                params,
+                return_type,
+                FctParent::Impl(impl_id),
+                false,
+            );
+            assert!(fct.trait_method_impl.set(*trait_method_id).is_ok());
+            new_fcts.push(fct);
         }
 
         for (new_fct, trait_method_id) in new_fcts.into_iter().zip(trait_methods.into_iter()) {
@@ -336,18 +362,25 @@ fn method_definitions_compatible(
         return false;
     }
 
-    let fct_type_params = trait_method.type_param_definition().own_type_params_len();
+    let fct_type_params = trait_method.type_param_definition(sa).own_type_params_len();
 
-    if fct_type_params != impl_method.type_param_definition().own_type_params_len() {
+    if fct_type_params != impl_method.type_param_definition(sa).own_type_params_len() {
         return false;
     }
 
     let method_type_params = new_identity_type_params(
-        impl_method.type_param_definition().container_type_params(),
+        impl_method
+            .type_param_definition(sa)
+            .container_type_params(),
         fct_type_params,
     );
-    let method_type_args =
-        TypeArgs::from_definition(trait_method, &trait_type_params, &method_type_params, None);
+    let method_type_args = TypeArgs::from_definition(
+        sa,
+        trait_method,
+        &trait_type_params,
+        &method_type_params,
+        None,
+    );
 
     for (trait_arg_ty, impl_arg_ty) in trait_params.iter().zip(impl_params.iter()) {
         if !trait_and_impl_arg_ty_compatible(
@@ -378,18 +411,25 @@ fn check_method_type_param_bounds(
     impl_method: &FctDefinition,
     trait_type_params: SourceTypeArray,
 ) {
-    let fct_type_params = trait_method.type_param_definition().own_type_params_len();
+    let fct_type_params = trait_method.type_param_definition(sa).own_type_params_len();
 
     // Build the specialization environment from trait parameters and identity method parameters.
     let method_type_params = new_identity_type_params(
-        impl_method.type_param_definition().container_type_params(),
+        impl_method
+            .type_param_definition(sa)
+            .container_type_params(),
         fct_type_params,
     );
-    let method_type_args =
-        TypeArgs::from_definition(trait_method, &trait_type_params, &method_type_params, None);
+    let method_type_args = TypeArgs::from_definition(
+        sa,
+        trait_method,
+        &trait_type_params,
+        &method_type_params,
+        None,
+    );
 
     // Check for missing bounds in impl
-    for trait_bound in trait_method.type_param_definition().own_bounds() {
+    for trait_bound in trait_method.type_param_definition(sa).own_bounds(sa) {
         if trait_bound.trait_ty().is_none() {
             continue;
         }
@@ -402,18 +442,18 @@ fn check_method_type_param_bounds(
             specialize_trait_type(sa, trait_bound_trait.clone(), &method_type_args);
 
         let has_bound = impl_method
-            .type_param_definition()
-            .own_bounds()
+            .type_param_definition(sa)
+            .own_bounds(sa)
             .any(|impl_bound| {
                 impl_bound.ty() == specialized_bound_ty
                     && impl_bound.trait_ty() == Some(specialized_trait_bound.clone())
             });
 
         if !has_bound {
-            let ty_name =
-                specialized_bound_ty.name_with_type_params(sa, impl_method.type_param_definition());
+            let ty_name = specialized_bound_ty
+                .name_with_type_params(sa, impl_method.type_param_definition(sa));
             let trait_name = specialized_trait_bound
-                .name_with_type_params(sa, impl_method.type_param_definition());
+                .name_with_type_params(sa, impl_method.type_param_definition(sa));
             sa.report(
                 impl_method.file_id,
                 impl_method.span,
@@ -424,7 +464,7 @@ fn check_method_type_param_bounds(
     }
 
     // Check for extra bounds in impl
-    for impl_bound in impl_method.type_param_definition().own_bounds() {
+    for impl_bound in impl_method.type_param_definition(sa).own_bounds(sa) {
         if impl_bound.trait_ty().is_none() {
             continue;
         }
@@ -432,8 +472,8 @@ fn check_method_type_param_bounds(
         let impl_bound_trait = impl_bound.trait_ty().unwrap();
 
         let has_bound = trait_method
-            .type_param_definition()
-            .own_bounds()
+            .type_param_definition(sa)
+            .own_bounds(sa)
             .any(|trait_bound| {
                 if trait_bound.trait_ty().is_none() {
                     return false;
@@ -450,9 +490,9 @@ fn check_method_type_param_bounds(
 
         if !has_bound {
             let ty_name =
-                impl_bound_ty.name_with_type_params(sa, impl_method.type_param_definition());
+                impl_bound_ty.name_with_type_params(sa, impl_method.type_param_definition(sa));
             let bound_name =
-                impl_bound_trait.name_with_type_params(sa, impl_method.type_param_definition());
+                impl_bound_trait.name_with_type_params(sa, impl_method.type_param_definition(sa));
             sa.report(
                 impl_method.file_id,
                 impl_method.span,
@@ -729,8 +769,10 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
             }
 
             let trait_alias = sa.alias(trait_alias_id);
-            let expected = trait_alias.type_param_definition.own_type_params_len();
-            let got = impl_alias.type_param_definition.own_type_params_len();
+            let trait_alias_type_params = trait_alias.type_param_definition(sa);
+            let impl_alias_type_params = impl_alias.type_param_definition(sa);
+            let expected = trait_alias_type_params.own_type_params_len();
+            let got = impl_alias_type_params.own_type_params_len();
 
             if expected != got {
                 sa.report(
@@ -742,27 +784,23 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
             } else {
                 // Check all bounds (including where clause bounds)
                 // Check for missing bounds in impl
-                for trait_bound in trait_alias.type_param_definition.own_bounds() {
+                for trait_bound in trait_alias_type_params.own_bounds(sa) {
                     if trait_bound.trait_ty().is_none() {
                         continue;
                     }
                     let trait_bound_ty = trait_bound.ty();
                     let trait_bound_trait = trait_bound.trait_ty().unwrap();
 
-                    let has_bound =
-                        impl_alias
-                            .type_param_definition
-                            .own_bounds()
-                            .any(|impl_bound| {
-                                impl_bound.ty() == trait_bound_ty
-                                    && impl_bound.trait_ty() == Some(trait_bound_trait.clone())
-                            });
+                    let has_bound = impl_alias_type_params.own_bounds(sa).any(|impl_bound| {
+                        impl_bound.ty() == trait_bound_ty
+                            && impl_bound.trait_ty() == Some(trait_bound_trait.clone())
+                    });
 
                     if !has_bound {
-                        let ty_name = trait_bound_ty
-                            .name_with_type_params(sa, &trait_alias.type_param_definition);
-                        let trait_name = trait_bound_trait
-                            .name_with_type_params(sa, &trait_alias.type_param_definition);
+                        let ty_name =
+                            trait_bound_ty.name_with_type_params(sa, trait_alias_type_params);
+                        let trait_name =
+                            trait_bound_trait.name_with_type_params(sa, trait_alias_type_params);
                         sa.report(
                             impl_alias.file_id,
                             impl_alias.span,
@@ -773,27 +811,23 @@ fn connect_aliases_to_trait_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &Tr
                 }
 
                 // Check for extra bounds in impl
-                for impl_bound in impl_alias.type_param_definition.own_bounds() {
+                for impl_bound in impl_alias_type_params.own_bounds(sa) {
                     if impl_bound.trait_ty().is_none() {
                         continue;
                     }
                     let impl_bound_ty = impl_bound.ty();
                     let impl_bound_trait = impl_bound.trait_ty().unwrap();
 
-                    let has_bound =
-                        trait_alias
-                            .type_param_definition
-                            .own_bounds()
-                            .any(|trait_bound| {
-                                trait_bound.ty() == impl_bound_ty
-                                    && trait_bound.trait_ty() == Some(impl_bound_trait.clone())
-                            });
+                    let has_bound = trait_alias_type_params.own_bounds(sa).any(|trait_bound| {
+                        trait_bound.ty() == impl_bound_ty
+                            && trait_bound.trait_ty() == Some(impl_bound_trait.clone())
+                    });
 
                     if !has_bound {
-                        let ty_name = impl_bound_ty
-                            .name_with_type_params(sa, &impl_alias.type_param_definition);
-                        let bound_name = impl_bound_trait
-                            .name_with_type_params(sa, &impl_alias.type_param_definition);
+                        let ty_name =
+                            impl_bound_ty.name_with_type_params(sa, impl_alias_type_params);
+                        let bound_name =
+                            impl_bound_trait.name_with_type_params(sa, impl_alias_type_params);
                         sa.report(
                             impl_alias.file_id,
                             impl_alias.span,
@@ -855,9 +889,9 @@ fn check_type_aliases_bounds_inner(sa: &Sema, impl_: &ImplDefinition, trait_: &T
                     if !implements_trait(sa, impl_alias.ty(), impl_, trait_ty.clone()) {
                         let name = impl_alias
                             .ty()
-                            .name_with_type_params(sa, impl_.type_param_definition());
+                            .name_with_type_params(sa, impl_.type_param_definition(sa));
                         let trait_name =
-                            trait_ty.name_with_type_params(sa, trait_.type_param_definition());
+                            trait_ty.name_with_type_params(sa, trait_.type_param_definition(sa));
                         sa.report(
                             impl_.file_id,
                             impl_alias.span,
@@ -881,9 +915,9 @@ pub fn check_super_traits(sa: &Sema) {
 
 fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: TraitType) {
     let trait_ = sa.trait_(trait_ty.trait_id);
-    let type_param_definition = trait_.type_param_definition();
+    let type_param_definition = trait_.type_param_definition(sa);
 
-    for bound in type_param_definition.bounds_for_self() {
+    for bound in type_param_definition.bounds_for_self(sa) {
         let type_args = TypeArgs::from_own(&trait_ty.type_params);
         let bound = specialize_trait_type(sa, bound.clone(), &type_args);
 
@@ -892,9 +926,9 @@ fn check_super_traits_for_bound(sa: &Sema, impl_: &ImplDefinition, trait_ty: Tra
         } else {
             let name = impl_
                 .extended_ty()
-                .name_with_type_params(sa, impl_.type_param_definition());
+                .name_with_type_params(sa, impl_.type_param_definition(sa));
 
-            let bound_name = bound.name_with_type_params(sa, trait_.type_param_definition());
+            let bound_name = bound.name_with_type_params(sa, trait_.type_param_definition(sa));
             let span = type_ref_span(
                 sa,
                 impl_.type_ref_arena(),

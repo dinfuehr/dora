@@ -21,9 +21,10 @@ use crate::error::diagnostics::{
 };
 use crate::interner::Name;
 use crate::sema::{
-    AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, ElementWithFields, EnumDefinitionId,
-    Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema, StructDefinitionId,
-    TraitDefinition, TypeParamId, find_impl, implements_trait, new_identity_type_params,
+    AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, Element, ElementWithFields,
+    EnumDefinitionId, Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema,
+    StructDefinitionId, TraitDefinition, TypeParamId, find_impl, implements_trait,
+    new_identity_type_params,
 };
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
@@ -267,7 +268,7 @@ fn check_expr_call_generic_static_method(
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
 
-    for trait_ty in ck.type_param_definition.bounds_for_type_param(tp_id) {
+    for trait_ty in ck.type_param_definition.bounds_for_type_param(ck.sa, tp_id) {
         let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
@@ -357,7 +358,7 @@ fn find_static_method_in_super_traits(
     name: Name,
     matched_methods: &mut Vec<(FctDefinitionId, TraitType)>,
 ) {
-    for super_trait_ty in trait_.type_param_definition.bounds_for_self() {
+    for super_trait_ty in trait_.type_param_definition(sa).bounds_for_self(sa) {
         // Substitute the super trait's type params with the current trait's type params
         let type_args = TypeArgs::from_own(trait_type_params);
         let specialized_super_trait_ty = specialize_trait_type(sa, super_trait_ty, &type_args);
@@ -392,7 +393,7 @@ fn check_expr_call_self_static_method(
         let trait_ = ck.sa.trait_(trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
-            let type_param_count = trait_.type_param_definition.type_param_count();
+            let type_param_count = trait_.type_param_definition(ck.sa).type_param_count();
             let type_params = new_identity_type_params(0, type_param_count);
             let trait_ty = TraitType {
                 trait_id,
@@ -404,7 +405,7 @@ fn check_expr_call_self_static_method(
     }
 
     // Then check super-traits from bounds_for_self
-    for trait_ty in ck.type_param_definition.bounds_for_self() {
+    for trait_ty in ck.type_param_definition.bounds_for_self(ck.sa) {
         let trait_ = ck.sa.trait_(trait_ty.trait_id);
 
         if let Some(trait_method_id) = trait_.get_method(interned_name, true) {
@@ -524,7 +525,7 @@ fn check_expr_call_self_assoc_type_static_method(
     let trait_param_count = ck
         .sa
         .trait_(current_trait_id)
-        .type_param_definition
+        .type_param_definition(ck.sa)
         .type_param_count();
     let current_trait_ty = TraitType {
         trait_id: current_trait_id,

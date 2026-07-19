@@ -29,7 +29,7 @@ pub(crate) fn convert_type_ref(
 fn current_trait_ty(sa: &Sema, ctxt_element: &dyn Element) -> Option<TraitType> {
     if let Some(trait_) = ctxt_element.to_trait() {
         let trait_id = trait_.id();
-        let trait_param_count = trait_.type_param_definition.type_param_count();
+        let trait_param_count = trait_.type_param_definition(sa).type_param_count();
         return Some(TraitType {
             trait_id,
             type_params: new_identity_type_params(0, trait_param_count),
@@ -41,7 +41,7 @@ fn current_trait_ty(sa: &Sema, ctxt_element: &dyn Element) -> Option<TraitType> 
         match fct.parent {
             FctParent::Trait(trait_id) => {
                 let trait_ = sa.trait_(trait_id);
-                let trait_param_count = trait_.type_param_definition.type_param_count();
+                let trait_param_count = trait_.type_param_definition(sa).type_param_count();
                 return Some(TraitType {
                     trait_id,
                     type_params: new_identity_type_params(0, trait_param_count),
@@ -68,7 +68,7 @@ fn current_trait_ty(sa: &Sema, ctxt_element: &dyn Element) -> Option<TraitType> 
             }
             AliasParent::Trait(trait_id) => {
                 let trait_ = sa.trait_(trait_id);
-                let trait_param_count = trait_.type_param_definition.type_param_count();
+                let trait_param_count = trait_.type_param_definition(sa).type_param_count();
                 return Some(TraitType {
                     trait_id,
                     type_params: new_identity_type_params(0, trait_param_count),
@@ -364,7 +364,7 @@ fn convert_type_ref_symbol(
 
             let new_type_params = SourceTypeArray::with(new_type_params);
             let callee_element = get_symbol_element(sa, symbol);
-            let callee_type_param_definition = callee_element.type_param_definition();
+            let callee_type_param_definition = callee_element.type_param_definition(sa);
 
             if callee_type_param_definition.type_param_count() != new_type_params.len() {
                 sa.report(

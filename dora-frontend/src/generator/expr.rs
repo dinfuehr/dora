@@ -1,3 +1,4 @@
+use crate::sema::Element;
 use dora_bytecode::{BytecodeType, ConstPoolEntry, ConstPoolIdx, Location, Register};
 
 mod as_;
@@ -182,7 +183,7 @@ pub(super) fn add_const_pool_entry_for_call(
         | CallType::Expr(.., type_params)
         | CallType::Fct(.., type_params) => {
             assert_eq!(
-                fct.type_param_definition.type_param_count(),
+                fct.type_param_definition(g.sa).type_param_count(),
                 type_params.len()
             );
             let bc_fct_id = g.emitter.convert_function_id(g.sa, fct.id());

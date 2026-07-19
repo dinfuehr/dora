@@ -4,7 +4,9 @@ use std::rc::Rc;
 use crate::SourceFileId;
 use crate::SourceType;
 use crate::element_collector::Annotations;
-use crate::sema::{Element, ElementId, PackageDefinitionId, Sema, TypeParamDefinition, Visibility};
+use crate::sema::{
+    Element, ElementId, PackageDefinitionId, Sema, TypeParamDefinitionId, Visibility,
+};
 use crate::sym::SymTable;
 
 use crate::interner::Name;
@@ -166,7 +168,7 @@ impl Element for ModuleDefinition {
         self.package_id.expect("missing package_id")
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
         unreachable!()
     }
 

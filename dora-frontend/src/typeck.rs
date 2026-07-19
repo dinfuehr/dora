@@ -1,6 +1,5 @@
 use std::cell::OnceCell;
 use std::collections::HashSet;
-use std::rc::Rc;
 use std::str::Chars;
 use std::{f32, f64};
 
@@ -20,9 +19,9 @@ use crate::sema::{
     ContextId, Element, Expr, ExprId, ExprMapId, FctDefinition, FctParent, FieldDefinition,
     FieldIndex, GlobalDefinition, IdentType, LambdaExpr, ModuleDefinitionId, NestedScopeId,
     NestedVarId, PackageDefinitionId, Param, PatternId, ScopeId, Sema, SourceFileId, StmtId,
-    TypeParamDefinition, TypeRefId, Var, VarAccess, VarId, VarLocation, Visibility, check_type_ref,
-    convert_trait_type_ref, convert_type_ref, generated_identity_type_params, lambda_object_type,
-    parse_type_ref,
+    TypeParamDefinition, TypeParamDefinitionId, TypeRefId, Var, VarAccess, VarId, VarLocation,
+    Visibility, check_type_ref, convert_trait_type_ref, convert_type_ref,
+    generated_identity_type_params, lambda_object_type, parse_type_ref,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
@@ -104,7 +103,8 @@ fn check_function(
 
     let mut typeck = TypeCheck {
         sa,
-        type_param_definition: fct.type_param_definition(),
+        type_param_definition_id: fct.type_param_definition_id(),
+        type_param_definition: fct.type_param_definition(sa),
         package_id: fct.package_id,
         module_id: fct.module_id,
         file_id: fct.file_id,
@@ -151,7 +151,8 @@ fn check_global(
 
         let mut typeck = TypeCheck {
             sa,
-            type_param_definition: global.type_param_definition(),
+            type_param_definition_id: global.type_param_definition_id(),
+            type_param_definition: global.type_param_definition(sa),
             package_id: global.package_id,
             module_id: global.module_id,
             file_id: global.file_id,
@@ -183,7 +184,8 @@ fn check_global(
 
 pub struct TypeCheck<'a> {
     pub sa: &'a Sema,
-    pub type_param_definition: &'a Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
+    pub type_param_definition: &'a TypeParamDefinition,
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
@@ -485,7 +487,7 @@ impl<'a> TypeCheck<'a> {
             None,
             name,
             Visibility::Public,
-            self.type_param_definition.clone(),
+            self.type_param_definition_id,
         );
         class.needs_self_type_param = self.contexts[context_id.0].needs_self_type_param();
 
@@ -493,7 +495,7 @@ impl<'a> TypeCheck<'a> {
     }
 
     fn add_type_params(&mut self) {
-        for (id, name) in self.type_param_definition.names() {
+        for (id, name) in self.type_param_definition.names(self.sa) {
             self.symtable.insert(name, SymbolKind::TypeParam(id));
         }
     }
@@ -1174,11 +1176,12 @@ fn create_context_classes(sa: &mut Sema, contexts: &mut [ContextData]) {
             let parent_class_id = contexts[parent_id.0].class_id();
             let parent_type_param_count = sa
                 .class(parent_class_id)
-                .type_param_definition()
+                .type_param_definition(sa)
                 .type_param_count();
             let context_class_id = contexts[context_idx].class_id();
             let context_class = sa.class(context_class_id);
-            let context_type_param_count = context_class.type_param_definition().type_param_count();
+            let context_type_param_count =
+                context_class.type_param_definition(sa).type_param_count();
             assert_eq!(parent_type_param_count, context_type_param_count);
             assert_eq!(
                 sa.class(parent_class_id).needs_self_type_param,
@@ -1244,7 +1247,9 @@ fn create_lambda_functions(sa: &mut Sema, lambda_definitions: Vec<FctDefinition>
     sa.lambda_fct_ids.reserve(lambda_definitions.len());
 
     for mut lambda_definition in lambda_definitions {
-        let type_params_len = lambda_definition.type_param_definition.type_param_count();
+        let type_params_len = sa
+            .type_param_definition(lambda_definition.type_param_definition_id)
+            .type_param_count();
         let self_type = lambda_object_type(sa, lambda_definition.analysis(), type_params_len);
         lambda_definition.params.params[0].parsed_ty = ParsedType::new_ty(self_type);
 

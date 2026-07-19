@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use dora_parser::ast;
 
 use crate::sema::{
@@ -7,8 +5,8 @@ use crate::sema::{
     EnumDefinitionId, ExtensionDefinitionId, FctDefinition, FctDefinitionId, FctParent,
     FieldDefinitionId, GlobalDefinitionId, ImplDefinition, ImplDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, Sema, SourceFileId, StructDefinitionId, TraitDefinition,
-    TraitDefinitionId, TypeParamDefinition, TypeRefArena, UseDefinitionId, VariantDefinitionId,
-    Visibility,
+    TraitDefinitionId, TypeParamDefinition, TypeParamDefinitionId, TypeRefArena, UseDefinitionId,
+    VariantDefinitionId, Visibility,
 };
 use crate::{Name, SourceType, Span};
 
@@ -37,7 +35,10 @@ pub trait Element {
     fn span(&self) -> Span;
     fn module_id(&self) -> ModuleDefinitionId;
     fn package_id(&self) -> PackageDefinitionId;
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition>;
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId;
+    fn type_param_definition<'a>(&self, sa: &'a Sema) -> &'a TypeParamDefinition {
+        sa.type_param_definition(self.type_param_definition_id())
+    }
     fn visibility(&self) -> Visibility;
     fn type_ref_arena(&self) -> &TypeRefArena {
         panic!("missing TypeRefArena for element")

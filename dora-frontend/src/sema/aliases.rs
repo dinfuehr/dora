@@ -5,14 +5,13 @@ use crate::{
     ty::{SourceType, TraitType},
 };
 use std::cell::OnceCell;
-use std::rc::Rc;
 
 use id_arena::Id;
 
 use crate::Span;
 use crate::sema::{
     Element, ElementId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
-    SourceFileId, TraitDefinitionId, TypeParamDefinition, TypeRefArena, TypeRefArenaBuilder,
+    SourceFileId, TraitDefinitionId, TypeParamDefinitionId, TypeRefArena, TypeRefArenaBuilder,
     Visibility, lower_type,
 };
 use dora_parser::ast::{self, SyntaxNodeBase};
@@ -68,7 +67,7 @@ pub struct AliasDefinition {
     pub name: Name,
     pub parsed_ty: Option<ParsedType>,
     pub type_refs: OnceCell<TypeRefArena>,
-    pub type_param_definition: Rc<TypeParamDefinition>,
+    pub type_param_definition_id: TypeParamDefinitionId,
     pub bounds: Vec<AliasBound>,
     pub visibility: Visibility,
     pub idx_in_trait: Option<usize>,
@@ -83,7 +82,7 @@ impl AliasDefinition {
         ast: ast::AstAlias,
         modifiers: Annotations,
         name: Name,
-        type_param_definition: Rc<TypeParamDefinition>,
+        type_param_definition_id: TypeParamDefinitionId,
         bounds: Vec<AliasBound>,
         parsed_ty: Option<ParsedType>,
         idx_in_trait: Option<usize>,
@@ -101,7 +100,7 @@ impl AliasDefinition {
             visibility: modifiers.visibility(),
             modifiers,
             name,
-            type_param_definition,
+            type_param_definition_id,
             parsed_ty,
             type_refs: OnceCell::new(),
             bounds,
@@ -160,8 +159,8 @@ impl Element for AliasDefinition {
         self.package_id
     }
 
-    fn type_param_definition(&self) -> &Rc<TypeParamDefinition> {
-        &self.type_param_definition
+    fn type_param_definition_id(&self) -> TypeParamDefinitionId {
+        self.type_param_definition_id
     }
 
     fn to_alias(&self) -> Option<&AliasDefinition> {
