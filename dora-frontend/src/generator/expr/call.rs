@@ -4,8 +4,8 @@ use super::bin::gen_intrinsic_bin;
 use super::{add_const_pool_entry_for_call, ensure_register, gen_expr, specialize_type_for_call};
 use crate::generator::{AstBytecodeGen, DataDest, IntrinsicInfo};
 use crate::sema::{
-    CallExpr, CallType, ClassDefinitionId, ExprId, FctDefinition, Intrinsic, StructDefinitionId,
-    emit_as_bytecode_operation,
+    CallArg, CallExpr, CallType, ClassDefinitionId, ExprId, FctDefinition, Intrinsic,
+    StructDefinitionId, emit_as_bytecode_operation,
 };
 use crate::ty::{SourceType, SourceTypeArray};
 
@@ -409,9 +409,26 @@ pub(super) fn emit_array_with_variadic_arguments(
     non_variadic_arguments: usize,
     dest: DataDest,
 ) -> Register {
-    let variadic_arguments = e.args.len() - non_variadic_arguments;
-
     let element_ty = arg_types.last().cloned().unwrap();
+    emit_array_with_variadic_call_arguments(
+        g,
+        &e.args,
+        element_ty,
+        non_variadic_arguments,
+        e.callee,
+        dest,
+    )
+}
+
+pub(super) fn emit_array_with_variadic_call_arguments(
+    g: &mut AstBytecodeGen,
+    args: &[CallArg],
+    element_ty: SourceType,
+    non_variadic_arguments: usize,
+    location_expr_id: ExprId,
+    dest: DataDest,
+) -> Register {
+    let variadic_arguments = args.len() - non_variadic_arguments;
     let ty = g.sa.known.array_ty(element_ty.clone());
     let (cls_id, type_params) = ty.to_class().expect("class expected");
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
@@ -423,13 +440,13 @@ pub(super) fn emit_array_with_variadic_arguments(
         .emit_const_int64(length_reg, variadic_arguments as i64);
 
     let array_reg = ensure_register(g, dest, BytecodeType::Ptr);
-    let location = g.loc_for_expr(e.callee);
+    let location = g.loc_for_expr(location_expr_id);
     g.builder
         .emit_new_array(array_reg, length_reg, cls_idx, location);
 
     let index_reg = g.alloc_temp(BytecodeType::Int64);
 
-    for (idx, arg) in e.args.iter().skip(non_variadic_arguments).enumerate() {
+    for (idx, arg) in args.iter().skip(non_variadic_arguments).enumerate() {
         let arg_reg = gen_expr(g, arg.expr, DataDest::Alloc);
         g.builder.emit_const_int64(index_reg, idx as i64);
         g.builder

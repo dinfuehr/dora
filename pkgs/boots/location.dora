@@ -3,7 +3,7 @@ use package::bytecode::BytecodeType;
 use package::calling_convention as cc;
 use package::calling_convention::ArgumentPassingMode;
 use package::codegen::CodeGen;
-use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
+use package::compilation::{CompilationInfo, FunctionSignature, SpecializeSelf};
 use package::graph::{
     Graph,
     InputOutputOverlap,
@@ -23,9 +23,9 @@ pub fn ensure_location_data(
     graph: Graph,
     codegen: CodeGen,
     ci: CompilationInfo,
-    fct: FunctionCompilationInfo,
+    signature: FunctionSignature,
 ): Int32 {
-    let argument_locations = compute_argument_locations(codegen, ci, fct);
+    let argument_locations = compute_argument_locations(codegen, ci, signature);
     codegen.set_argument_locations(argument_locations);
 
     let annotator = LocationAnnotation(
@@ -532,9 +532,9 @@ pub class ArgumentLocations {
 fn compute_argument_locations(
     codegen: CodeGen,
     ci: CompilationInfo,
-    fct: FunctionCompilationInfo,
+    signature: FunctionSignature,
 ): ArgumentLocations {
-    let arguments = fct.bc.arguments.to_int64();
+    let arguments = signature.params.size();
     let locations = Vec[Location]::new();
     locations.reserve(arguments);
     let mut gp_idx = 0;
@@ -547,8 +547,8 @@ fn compute_argument_locations(
     let ret_ty = specialize_ty(
         ci,
         None[SpecializeSelf],
-        fct.return_type,
-        fct.type_params,
+        signature.return_type,
+        signature.type_params,
     );
 
     if cc::argument_passing_mode(ci, ret_ty) is ArgumentPassingMode::Stack {
@@ -557,8 +557,8 @@ fn compute_argument_locations(
     }
 
     for idx in std::range(0, arguments) {
-        let ty = fct.bc.registers(idx);
-        let ty = specialize_ty(ci, fct.specialize_self, ty, fct.type_params);
+        let ty = signature.params(idx);
+        let ty = specialize_ty(ci, signature.specialize_self, ty, signature.type_params);
 
         let passing_mode = cc::argument_passing_mode(ci, ty);
         if passing_mode is ArgumentPassingMode::None {

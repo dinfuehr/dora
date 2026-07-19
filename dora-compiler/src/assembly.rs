@@ -789,8 +789,10 @@ fn write_test_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
 
 fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArch) {
     // The executable entry enters Rust startup first. The compiled entry
-    // symbol is passed as a third C argument.
+    // symbols are passed as the third and fourth C arguments.
     let compiler_entry_symbol = syntax.symbol(&mangle_name("interface::compile"));
+    let trait_object_thunk_entry_symbol =
+        syntax.symbol(&mangle_name("interface::compile_trait_object_thunk"));
     let startup_symbol = syntax.symbol("dora_boots_compiler_main");
 
     syntax.write_newline();
@@ -801,16 +803,30 @@ fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArc
         if syntax.is_macho() {
             syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}@PAGE"));
             syntax.write_indented_line(format_args!("add x2, x2, {compiler_entry_symbol}@PAGEOFF"));
+            syntax.write_indented_line(format_args!(
+                "adrp x3, {trait_object_thunk_entry_symbol}@PAGE"
+            ));
+            syntax.write_indented_line(format_args!(
+                "add x3, x3, {trait_object_thunk_entry_symbol}@PAGEOFF"
+            ));
         } else {
             syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}"));
             syntax.write_indented_line(format_args!("add x2, x2, :lo12:{compiler_entry_symbol}"));
+            syntax.write_indented_line(format_args!("adrp x3, {trait_object_thunk_entry_symbol}"));
+            syntax.write_indented_line(format_args!(
+                "add x3, x3, :lo12:{trait_object_thunk_entry_symbol}"
+            ));
         }
         syntax.write_indented_line(format_args!("b {startup_symbol}"));
     } else {
         if syntax.is_coff() {
             syntax.write_indented_line(format_args!("lea r8, [{compiler_entry_symbol}]"));
+            syntax.write_indented_line(format_args!("lea r9, [{trait_object_thunk_entry_symbol}]"));
         } else {
             syntax.write_indented_line(format_args!("leaq {compiler_entry_symbol}(%rip), %rdx"));
+            syntax.write_indented_line(format_args!(
+                "leaq {trait_object_thunk_entry_symbol}(%rip), %rcx"
+            ));
         }
         syntax.write_indented_line(format_args!("jmp {startup_symbol}"));
     }

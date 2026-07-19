@@ -1,0 +1,26 @@
+trait Sum {
+    fn sum(values: Int32...): Int32;
+}
+
+struct Summer
+
+impl Sum for Summer {
+    fn sum(values: Int32...): Int32 {
+        let mut result = 0i32;
+        let mut idx = 0i64;
+
+        while idx < values.size() {
+            result = result + values(idx);
+            idx = idx + 1i64;
+        }
+
+        result
+    }
+}
+
+fn main() {
+    let summer = Summer() as Sum;
+    assert(summer.sum() == 0i32);
+    assert(summer.sum(7i32) == 7i32);
+    assert(summer.sum(1i32, 2i32, 3i32, 4i32) == 10i32);
+}

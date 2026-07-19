@@ -10,14 +10,18 @@ use package::graph::html::{HtmlWriter, create_html_writer};
 use package::interface as iface;
 use package::serializer::ByteWriter;
 
-pub class CompilationInfo {
-    pub fct_id: FunctionId,
-    pub loc: Location,
+pub struct CompilationOptions {
     pub emit_debug: Bool,
     pub emit_final_graph: Bool,
     pub emit_graph_after_each_pass: Bool,
     pub emit_html: Bool,
     pub emit_code_comments: Bool,
+}
+
+pub class CompilationInfo {
+    pub fct_id: FunctionId,
+    pub loc: Location,
+    pub options: CompilationOptions,
     pub inline: Bool,
     pub optimize: Bool,
     display_name: Option[String],
@@ -32,20 +36,12 @@ impl CompilationInfo {
     pub static fn new(
         fct_id: FunctionId,
         loc: Location,
-        emit_debug: Bool,
-        emit_final_graph: Bool,
-        emit_graph_after_each_pass: Bool,
-        emit_html: Bool,
-        emit_code_comments: Bool,
+        options: CompilationOptions,
     ): CompilationInfo {
         CompilationInfo(
             fct_id,
             loc,
-            emit_debug,
-            emit_final_graph,
-            emit_graph_after_each_pass,
-            emit_html,
-            emit_code_comments,
+            options,
             inline = true,
             optimize = true,
             display_name = None[String],
@@ -84,7 +80,7 @@ impl CompilationInfo {
     }
 
     pub fn init_html_writer() {
-        if self.emit_html {
+        if self.options.emit_html {
             self.html_writer = Some[HtmlWriter](create_html_writer(self));
         }
     }
@@ -95,12 +91,45 @@ impl CompilationInfo {
     }
 }
 
-pub class FunctionCompilationInfo {
-    pub fct_id: FunctionId,
-    pub bc: BytecodeFunction,
+pub class FunctionSignature {
+    pub params: Array[BytecodeType],
     pub return_type: BytecodeType,
     pub type_params: Array[BytecodeType],
     pub specialize_self: Option[SpecializeSelf],
+}
+
+impl FunctionSignature {
+    pub static fn from_bytecode(
+        bc: BytecodeFunction,
+        return_type: BytecodeType,
+        type_params: Array[BytecodeType],
+        specialize_self: Option[SpecializeSelf],
+    ): FunctionSignature {
+        let params = Array[BytecodeType]::fill(
+            bc.arguments.to_int64(),
+            BytecodeType::Unit,
+        );
+        for idx in std::range(0, bc.arguments.to_int64()) {
+            params(idx) = bc.registers(idx);
+        }
+
+        FunctionSignature(params, return_type, type_params, specialize_self)
+    }
+}
+
+pub class FunctionCompilationInfo {
+    pub fct_id: FunctionId,
+    pub bc: BytecodeFunction,
+    pub signature: FunctionSignature,
+}
+
+pub class TraitObjectThunk {
+    pub fct_id: FunctionId,
+    pub signature: FunctionSignature,
+    pub actual_object_ty: BytecodeType,
+    pub receiver_by_reference: Bool,
+    pub callee_fct_id: FunctionId,
+    pub callee_type_params: Array[BytecodeType],
 }
 
 pub struct SpecializeSelf {

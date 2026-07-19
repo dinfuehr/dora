@@ -48,7 +48,7 @@ pub fn generate_code(
     assert(stack_size >= 0i32);
     assert(stack_size % STACK_FRAME_ALIGNMENT.to_int32() == 0i32);
 
-    if ci.emit_debug {
+    if ci.options.emit_debug {
         codegen.emit_breakpoint();
     }
 

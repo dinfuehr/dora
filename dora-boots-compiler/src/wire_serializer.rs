@@ -6,20 +6,46 @@ use dora_bytecode::{
     ConstPoolOpcode, ConstValue, EnumData, FunctionData, Location, Program, StructData,
 };
 use dora_compiler::wire::{ByteBuffer, encode_bytecode_type, encode_bytecode_type_array};
-use dora_compiler::{CompilationData, SpecializeSelf, get_bytecode};
+use dora_compiler::{
+    CompilationData, CompilationOptions, FunctionSignature, SpecializeSelf,
+    TraitObjectThunkCompilationData, get_bytecode,
+};
 
-pub fn encode_compilation_info(compilation_data: &CompilationData, buffer: &mut ByteBuffer) {
+pub fn encode_compilation_data(compilation_data: &CompilationData, buffer: &mut ByteBuffer) {
     encode_bytecode_function(&compilation_data.bytecode_fct, buffer);
     buffer.emit_id(compilation_data.fct_id.index());
-    encode_type_params(&compilation_data.type_params, buffer);
-    encode_bytecode_type(&compilation_data.return_type, buffer);
-    encode_optional_specialize_self(&compilation_data.specialize_self, buffer);
+    encode_function_signature(&compilation_data.signature, buffer);
     encode_location(&compilation_data.loc, buffer);
-    buffer.emit_bool(compilation_data.emit_debug);
-    buffer.emit_bool(compilation_data.emit_final_graph);
-    buffer.emit_bool(compilation_data.emit_graph_after_each_pass);
-    buffer.emit_bool(compilation_data.emit_html);
-    buffer.emit_bool(compilation_data.emit_code_comments);
+    encode_compilation_options(&compilation_data.options, buffer);
+}
+
+pub fn encode_trait_object_thunk_compilation_data(
+    compilation_data: &TraitObjectThunkCompilationData,
+    buffer: &mut ByteBuffer,
+) {
+    encode_bytecode_type(&compilation_data.actual_object_ty, buffer);
+    buffer.emit_bool(compilation_data.receiver_by_reference);
+    buffer.emit_id(compilation_data.callee_fct_id.index());
+    encode_bytecode_type_array(&compilation_data.callee_type_params, buffer);
+    buffer.emit_id(compilation_data.trait_fct_id.index());
+    encode_function_signature(&compilation_data.signature, buffer);
+    encode_location(&compilation_data.loc, buffer);
+    encode_compilation_options(&compilation_data.options, buffer);
+}
+
+fn encode_function_signature(signature: &FunctionSignature, buffer: &mut ByteBuffer) {
+    encode_bytecode_type_array(&signature.params, buffer);
+    encode_bytecode_type(&signature.return_type, buffer);
+    encode_type_params(&signature.type_params, buffer);
+    encode_optional_specialize_self(&signature.specialize_self, buffer);
+}
+
+fn encode_compilation_options(options: &CompilationOptions, buffer: &mut ByteBuffer) {
+    buffer.emit_bool(options.emit_debug);
+    buffer.emit_bool(options.emit_final_graph);
+    buffer.emit_bool(options.emit_graph_after_each_pass);
+    buffer.emit_bool(options.emit_html);
+    buffer.emit_bool(options.emit_code_comments);
 }
 
 pub fn encode_optional_specialize_self(

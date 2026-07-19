@@ -16,7 +16,14 @@ use package::bytecode::{
     TraitId,
 };
 use package::bytecode::opcode as opc;
-use package::compilation::{CompilationInfo, FunctionCompilationInfo, SpecializeSelf};
+use package::compilation::{
+    CompilationInfo,
+    CompilationOptions,
+    FunctionCompilationInfo,
+    FunctionSignature,
+    SpecializeSelf,
+    TraitObjectThunk,
+};
 use package::interface::{Config, EnumData, EnumVariantData, StructData};
 use package::interface::{Architecture, FunctionBytecodeData, FunctionInliningInfo};
 
@@ -48,37 +55,57 @@ pub fn decode_config(encoded: Array[UInt8]): Config {
     )
 }
 
-pub fn decode_compilation_info(
-    reader: ByteReader
-): (CompilationInfo, FunctionCompilationInfo) {
+pub fn decode_function_compilation_info(reader: ByteReader): FunctionCompilationInfo {
     let bc = decode_bytecode_function(reader);
     let fct_id = FunctionId(reader.read_int32());
-    let type_params = decode_type_params(reader);
+    let signature = decode_function_signature(reader);
+    FunctionCompilationInfo(fct_id, bc, signature)
+}
+
+pub fn decode_trait_object_thunk(reader: ByteReader): TraitObjectThunk {
+    let actual_object_ty = decode_bytecode_type(reader);
+    let receiver_by_reference = reader.read_bool();
+    let callee_fct_id = FunctionId(reader.read_int32());
+    let callee_type_params = decode_bytecode_type_array(reader);
+    let fct_id = FunctionId(reader.read_int32());
+    let signature = decode_function_signature(reader);
+    TraitObjectThunk(
+        fct_id,
+        signature,
+        actual_object_ty,
+        receiver_by_reference,
+        callee_fct_id,
+        callee_type_params,
+    )
+}
+
+pub fn decode_function_signature(reader: ByteReader): FunctionSignature {
+    let params = decode_bytecode_type_array(reader);
     let return_type = decode_bytecode_type(reader);
+    let type_params = decode_type_params(reader);
     let specialize_self = decode_optional_specialize_self(reader);
+    FunctionSignature(params, return_type, type_params, specialize_self)
+}
+
+pub fn decode_compilation_info(reader: ByteReader, fct_id: FunctionId): CompilationInfo {
     let loc = decode_location(reader);
+    let options = decode_compilation_options(reader);
+    CompilationInfo::new(fct_id, loc, options)
+}
+
+pub fn decode_compilation_options(reader: ByteReader): CompilationOptions {
     let emit_debug = reader.read_bool();
     let emit_final_graph = reader.read_bool();
     let emit_graph_after_each_pass = reader.read_bool();
     let emit_html = reader.read_bool();
     let emit_code_comments = reader.read_bool();
-    let ci = CompilationInfo::new(
-        fct_id,
-        loc,
+    CompilationOptions(
         emit_debug,
         emit_final_graph,
         emit_graph_after_each_pass,
         emit_html,
         emit_code_comments,
-    );
-    let fct_data = FunctionCompilationInfo(
-        fct_id,
-        bc,
-        return_type,
-        type_params,
-        specialize_self,
-    );
-    (ci, fct_data)
+    )
 }
 
 pub fn decode_const_value(reader: ByteReader): ConstValue {

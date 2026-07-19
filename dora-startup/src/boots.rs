@@ -68,6 +68,7 @@ pub fn dora_boots_compiler_main(
     argc: c_int,
     argv: *const *const c_char,
     compile_address: *const u8,
+    compile_trait_object_thunk_address: *const u8,
 ) -> i32 {
     let args = match parse_args(argc, argv) {
         Ok(args) => args,
@@ -125,6 +126,7 @@ pub fn dora_boots_compiler_main(
 
     let compiler_invocation = CompilerInvocation::new(dora_boots_compiler::BootsAotBackend::new(
         compile_address,
+        compile_trait_object_thunk_address,
         dora_entry_trampoline,
     ));
     let aot_inputs = AotCompileInputs::from_program(&input_program, &args, compiler_invocation);
@@ -136,7 +138,18 @@ pub fn dora_boots_compiler_main(
     } else if args.internal_compile_boots {
         let compile_fct_id = lookup_fct(&input_program, "program::interface::compile")
             .expect("program::interface::compile not found");
-        execute_on_main(|| compile_boots_compiler_aot(&input_program, compile_fct_id, aot_inputs))
+        let compile_trait_object_thunk_fct_id = lookup_fct(
+            &input_program,
+            "program::interface::compile_trait_object_thunk",
+        )
+        .expect("program::interface::compile_trait_object_thunk not found");
+        execute_on_main(|| {
+            compile_boots_compiler_aot(
+                &input_program,
+                &[compile_fct_id, compile_trait_object_thunk_fct_id],
+                aot_inputs,
+            )
+        })
     } else if args.test {
         execute_on_main(|| {
             compile_test_runner(&input_program, input_program.program_package_id, aot_inputs)

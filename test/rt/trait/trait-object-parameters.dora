@@ -1,0 +1,21 @@
+trait Calculator {
+    fn calculate(text: String, small: Small, large: Large): Int;
+}
+
+struct Receiver(Int)
+
+struct Small(Int)
+
+struct Large(Int, Int)
+
+impl Calculator for Receiver {
+    fn calculate(text: String, small: Small, large: Large): Int {
+        self.0 + text.size() + small.0 + large.0 + large.1
+    }
+}
+
+fn main() {
+    let calculator = Receiver(1) as Calculator;
+    let result = calculator.calculate("test", Small(2), Large(4, 8));
+    assert(result == 19);
+}

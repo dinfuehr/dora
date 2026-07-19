@@ -12,10 +12,11 @@ use crate::{
     AotGlobalRelocationTarget, AotInlinedFunction, AotJumpTable, AotKnownShape, AotKnownShapeKind,
     AotLayout, AotLocation, AotRelocation, AotRelocationTarget, AotShape, AotShapeInterner,
     AotShapeKey, AotStringTable, AotTestFunction, BytecodeTypeExt, CodeDescriptor, CollectorName,
-    CompilationData, GlobalLayout, GlobalLayoutEntry, InstanceSize, Intrinsic, RelocationKind,
-    RuntimeFunction, STDLIB_INTRINSICS, ShapeKind, ShapeVisitor, SpecializeSelf, TargetArch,
-    TraitObjectThunk, TransitiveClosure, align_usize_up, compute_transitive_closure,
-    generate_bytecode_for_trait_object_thunk, get_bytecode, native_function_symbol,
+    CompilationData, CompilationOptions, FunctionSignature, GlobalLayout, GlobalLayoutEntry,
+    InstanceSize, Intrinsic, RelocationKind, RuntimeFunction, STDLIB_INTRINSICS, ShapeKind,
+    ShapeVisitor, SpecializeSelf, TargetArch, TraitObjectThunk, TraitObjectThunkCompilationData,
+    TransitiveClosure, align_usize_up, compute_transitive_closure, find_trait_impl_in_program,
+    get_bytecode, native_function_symbol, specialize_bty_for_trait_object,
 };
 use dora_symbol::mangle_name;
 
@@ -89,10 +90,10 @@ fn test_fct_ids(program: &Program, package_id: PackageId) -> Vec<FunctionId> {
 
 pub fn compile_boots_compiler_aot(
     program: &Program,
-    entry_id: FunctionId,
+    entry_ids: &[FunctionId],
     inputs: AotCompileInputs,
 ) -> AotCompilation {
-    let tc = compute_transitive_closure(program, &[entry_id], inputs.emit_compiler);
+    let tc = compute_transitive_closure(program, entry_ids, inputs.emit_compiler);
     let ctx = Box::new(AotCodegenContext {
         program,
         layout: AotLayout::new(program),
@@ -290,7 +291,6 @@ fn compile_function(
         });
     } else if let Some(_) = get_bytecode(ctx.program, fct) {
         let program_fct = ctx.program.fct(fct_id);
-        let params = BytecodeTypeArray::new(program_fct.params.clone());
         let (bytecode_fct, specialize_self) =
             get_bytecode(ctx.program, program_fct).expect("missing bytecode");
 
@@ -298,7 +298,6 @@ fn compile_function(
             ctx,
             fct_id,
             program_fct,
-            params,
             program_fct.return_type.clone(),
             bytecode_fct,
             &type_params,
@@ -320,7 +319,6 @@ fn compile_fct_to_descriptor(
     ctx: &AotCodegenContext<'_>,
     fct_id: FunctionId,
     program_fct: &FunctionData,
-    params: BytecodeTypeArray,
     return_type: BytecodeType,
     bytecode_fct: &BytecodeFunction,
     type_params: &BytecodeTypeArray,
@@ -328,26 +326,18 @@ fn compile_fct_to_descriptor(
 ) -> (CodeDescriptor, CompiledCodeKind) {
     debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-    let (emit_graph, emit_html) = should_emit_graph(ctx.program, fct_id, ctx.emit_graph);
-    let emit_final_graph = emit_graph;
-    let emit_graph_after_each_pass = emit_graph && ctx.emit_graph_after_each_pass;
-
     let compilation_data = CompilationData {
         program: ctx.program,
         bytecode_fct,
-        params,
-        has_variadic_parameter: program_fct.is_variadic,
-        return_type,
         fct_id,
-        type_params: type_params.clone(),
-        specialize_self,
+        signature: FunctionSignature::from_bytecode(
+            bytecode_fct,
+            return_type,
+            type_params.clone(),
+            specialize_self,
+        ),
         loc: program_fct.loc,
-
-        emit_debug: false,
-        emit_code_comments: false,
-        emit_final_graph,
-        emit_graph_after_each_pass,
-        emit_html,
+        options: create_compilation_options(ctx, fct_id),
     };
 
     let code = ctx.compiler_invocation.compile(compilation_data, ctx);
@@ -365,38 +355,95 @@ fn compile_trait_object_thunk(
 
     assert!(all_type_params.iter().all(|ty| ty.is_concrete_type()));
 
-    let trait_object_type_param_id = all_type_params.len() - 1;
-    assert_eq!(
-        &all_type_params[trait_object_type_param_id],
-        &thunk.actual_object_ty
+    let trait_fct = ctx.program.fct(trait_fct_id);
+    let (trait_id, trait_type_params, trait_assoc_types) = match &thunk.trait_object_ty {
+        BytecodeType::TraitObject(trait_id, trait_type_params, trait_assoc_types) => {
+            (*trait_id, trait_type_params, trait_assoc_types)
+        }
+        _ => unreachable!(),
+    };
+
+    let mut params = Vec::with_capacity(trait_fct.params.len());
+    assert_eq!(trait_fct.params[0], BytecodeType::This);
+    params.push(thunk.trait_object_ty.clone());
+    for (param_idx, param_ty) in trait_fct.params.iter().enumerate().skip(1) {
+        let param_ty = specialize_bty_for_trait_object(
+            ctx.program,
+            param_ty.clone(),
+            trait_id,
+            trait_type_params,
+            trait_assoc_types,
+        );
+        let param_ty = if trait_fct.is_variadic && param_idx + 1 == trait_fct.params.len() {
+            BytecodeType::Class(ctx.array_class_id(), BytecodeTypeArray::one(param_ty))
+        } else {
+            param_ty
+        };
+        params.push(param_ty);
+    }
+
+    let return_type = specialize_bty_for_trait_object(
+        ctx.program,
+        trait_fct.return_type.clone(),
+        trait_id,
+        trait_type_params,
+        trait_assoc_types,
     );
 
-    let bytecode_fct = generate_bytecode_for_trait_object_thunk(
+    let trait_ty = dora_bytecode::BytecodeTraitType {
+        trait_id,
+        type_params: trait_type_params.clone(),
+        bindings: Vec::new(),
+    };
+    let (callee_fct_id, callee_type_params) = find_trait_impl_in_program(
         ctx.program,
         trait_fct_id,
-        thunk.trait_object_ty.clone(),
-        trait_object_type_param_id,
+        trait_ty,
         thunk.actual_object_ty.clone(),
     );
 
-    let trait_fct = ctx.program.fct(trait_fct_id);
-    let params = {
-        let mut params = trait_fct.params.clone();
-        assert_eq!(params[0], BytecodeType::This);
-        params[0] = thunk.trait_object_ty.clone();
-        BytecodeTypeArray::new(params)
+    let compilation_data = TraitObjectThunkCompilationData {
+        program: ctx.program,
+        trait_fct_id,
+        trait_object_ty: thunk.trait_object_ty.clone(),
+        actual_object_ty: thunk.actual_object_ty.clone(),
+        receiver_by_reference: trait_fct.is_mutating
+            && matches!(
+                thunk.actual_object_ty,
+                BytecodeType::Struct(..) | BytecodeType::Tuple(..)
+            ),
+        callee_fct_id,
+        callee_type_params,
+        signature: FunctionSignature {
+            params: BytecodeTypeArray::new(params),
+            return_type,
+            type_params: all_type_params,
+            specialize_self: None,
+        },
+        loc: trait_fct.loc,
+        options: create_compilation_options(ctx, trait_fct_id),
     };
 
-    compile_fct_to_descriptor(
-        ctx,
-        trait_fct_id,
-        trait_fct,
-        params,
-        bytecode_fct.return_type().clone(),
-        &bytecode_fct,
-        &all_type_params,
-        None,
-    )
+    let code = ctx
+        .compiler_invocation
+        .compile_trait_object_thunk(compilation_data, ctx);
+
+    (code, CompiledCodeKind::OptimizedFct)
+}
+
+fn create_compilation_options(
+    ctx: &AotCodegenContext<'_>,
+    fct_id: FunctionId,
+) -> CompilationOptions {
+    let (emit_graph, emit_html) = should_emit_graph(ctx.program, fct_id, ctx.emit_graph);
+
+    CompilationOptions {
+        emit_debug: false,
+        emit_final_graph: emit_graph,
+        emit_graph_after_each_pass: emit_graph && ctx.emit_graph_after_each_pass,
+        emit_html,
+        emit_code_comments: false,
+    }
 }
 
 pub(super) fn should_emit_graph(
@@ -458,6 +505,16 @@ pub trait AotBackend {
         compilation_data: CompilationData<'a>,
         ctx: &AotCodegenContext<'_>,
     ) -> CodeDescriptor;
+
+    fn compile_trait_object_thunk<'a>(
+        &self,
+        compilation_data: TraitObjectThunkCompilationData<'a>,
+        ctx: &AotCodegenContext<'_>,
+    ) -> CodeDescriptor {
+        let bytecode_fct = compilation_data.generate_bytecode(ctx.array_class_id());
+        let compilation_data = compilation_data.into_bytecode_compilation_data(&bytecode_fct);
+        self.compile(compilation_data, ctx)
+    }
 }
 
 struct ExternalAotBackend {
@@ -502,6 +559,15 @@ impl CompilerInvocation {
         ctx: &AotCodegenContext<'_>,
     ) -> CodeDescriptor {
         self.backend.compile(compilation_data, ctx)
+    }
+
+    fn compile_trait_object_thunk<'a>(
+        &self,
+        compilation_data: TraitObjectThunkCompilationData<'a>,
+        ctx: &AotCodegenContext<'_>,
+    ) -> CodeDescriptor {
+        self.backend
+            .compile_trait_object_thunk(compilation_data, ctx)
     }
 }
 

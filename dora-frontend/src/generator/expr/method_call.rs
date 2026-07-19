@@ -2,7 +2,8 @@ use dora_bytecode::{BytecodeType, Register};
 
 use super::bin::gen_intrinsic_bin;
 use super::call::{
-    emit_call_inst, emit_intrinsic_array_set, emit_intrinsic_bin, emit_intrinsic_un_id,
+    determine_callee_types, emit_array_with_variadic_call_arguments, emit_call_inst,
+    emit_intrinsic_array_set, emit_intrinsic_bin, emit_intrinsic_un_id,
 };
 use super::{add_const_pool_entry_for_call, ensure_register, gen_expr};
 use crate::generator::{AstBytecodeGen, DataDest, IntrinsicInfo};
@@ -65,7 +66,8 @@ pub(super) fn gen_expr_method_call(
     };
 
     // Evaluate function arguments
-    let mut arguments = emit_method_call_arguments(g, e);
+    let (arg_types, _) = determine_callee_types(g, &call_type, callee);
+    let mut arguments = emit_method_call_arguments(g, e, callee, &arg_types);
     arguments.insert(0, object_reg);
 
     // Emit the actual Invoke(Direct|Static|Virtual)XXX instruction
@@ -324,12 +326,34 @@ fn gen_expr_method_call_intrinsic(
     }
 }
 
-fn emit_method_call_arguments(g: &mut AstBytecodeGen, e: &MethodCallExpr) -> Vec<Register> {
+fn emit_method_call_arguments(
+    g: &mut AstBytecodeGen,
+    e: &MethodCallExpr,
+    callee: &crate::sema::FctDefinition,
+    arg_types: &[SourceType],
+) -> Vec<Register> {
     let mut registers = Vec::new();
+    let non_variadic_arguments = callee.params.regular_params().len();
 
-    for arg in &e.args {
+    for arg in e.args.iter().take(non_variadic_arguments) {
         let reg = gen_expr(g, arg.expr, DataDest::Alloc);
         registers.push(reg);
+    }
+
+    if callee.params.is_variadic() {
+        let element_ty = arg_types
+            .last()
+            .cloned()
+            .expect("missing variadic parameter");
+        let array_reg = emit_array_with_variadic_call_arguments(
+            g,
+            &e.args,
+            element_ty,
+            non_variadic_arguments,
+            e.object,
+            DataDest::Alloc,
+        );
+        registers.push(array_reg);
     }
 
     registers

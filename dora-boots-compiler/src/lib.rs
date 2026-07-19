@@ -11,7 +11,10 @@ use dora_bytecode::{
 use dora_compiler::wire::{
     ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array,
 };
-use dora_compiler::{AotBackend, AotCodegenContext, AotContextGuard, CompilationData};
+use dora_compiler::{
+    AotBackend, AotCodegenContext, AotContextGuard, CompilationData,
+    TraitObjectThunkCompilationData,
+};
 use dora_runtime::runtime::{CodeDescriptor, get_runtime, impls, specialize_ty_in_program};
 use dora_runtime::{
     Address, Handle, Object, Ref, Str, UInt8Array, byte_array_from_buffer, create_handle,
@@ -25,20 +28,25 @@ mod wire_serializer;
 use crate::wire_deserializer::{
     decode_bytecode_trait_ty, decode_code_descriptor, decode_specialize_self,
 };
-use crate::wire_serializer::encode_compilation_info;
+use crate::wire_serializer::{encode_compilation_data, encode_trait_object_thunk_compilation_data};
 
 pub struct BootsAotBackend {
     compile_address: Address,
+    compile_trait_object_thunk_address: Address,
     dora_entry_trampoline_address: Address,
 }
 
 impl BootsAotBackend {
     pub fn new(
         compile_address: *const u8,
+        compile_trait_object_thunk_address: *const u8,
         dora_entry_trampoline_address: *const u8,
     ) -> BootsAotBackend {
         BootsAotBackend {
             compile_address: Address::from_ptr(compile_address),
+            compile_trait_object_thunk_address: Address::from_ptr(
+                compile_trait_object_thunk_address,
+            ),
             dora_entry_trampoline_address: Address::from_ptr(dora_entry_trampoline_address),
         }
     }
@@ -63,6 +71,27 @@ impl AotBackend for BootsAotBackend {
             compilation_data,
         )
     }
+
+    fn compile_trait_object_thunk<'a>(
+        &self,
+        compilation_data: TraitObjectThunkCompilationData<'a>,
+        ctx: &AotCodegenContext<'_>,
+    ) -> CodeDescriptor {
+        if ctx
+            .intrinsic_for_function(compilation_data.callee_fct_id)
+            .is_some()
+        {
+            let bytecode_fct = compilation_data.generate_bytecode(ctx.array_class_id());
+            let compilation_data = compilation_data.into_bytecode_compilation_data(&bytecode_fct);
+            self.compile(compilation_data, ctx)
+        } else {
+            compile_trait_object_thunk(
+                self.compile_trait_object_thunk_address,
+                self.dora_entry_trampoline_address,
+                compilation_data,
+            )
+        }
+    }
 }
 
 thread_local! {
@@ -84,10 +113,27 @@ fn compile(
     dora_entry_trampoline_address: Address,
     compilation_data: CompilationData,
 ) -> CodeDescriptor {
-    handle_scope(|| {
-        let mut buffer = ByteBuffer::new();
-        encode_compilation_info(&compilation_data, &mut buffer);
+    let mut buffer = ByteBuffer::new();
+    encode_compilation_data(&compilation_data, &mut buffer);
+    invoke_compiler_entry(compile_address, dora_entry_trampoline_address, buffer)
+}
 
+fn compile_trait_object_thunk(
+    compile_address: Address,
+    dora_entry_trampoline_address: Address,
+    compilation_data: TraitObjectThunkCompilationData,
+) -> CodeDescriptor {
+    let mut buffer = ByteBuffer::new();
+    encode_trait_object_thunk_compilation_data(&compilation_data, &mut buffer);
+    invoke_compiler_entry(compile_address, dora_entry_trampoline_address, buffer)
+}
+
+fn invoke_compiler_entry(
+    compile_address: Address,
+    dora_entry_trampoline_address: Address,
+    buffer: ByteBuffer,
+) -> CodeDescriptor {
+    handle_scope(|| {
         let encoded_compilation_info: Handle<Object> =
             create_handle(byte_array_from_buffer(get_runtime(), buffer.data()).cast());
 

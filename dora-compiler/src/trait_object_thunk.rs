@@ -1,6 +1,6 @@
 use crate::{register_ty, specialize_bty_for_trait_object};
 use dora_bytecode::{
-    BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter,
+    BytecodeFunction, BytecodeTraitType, BytecodeType, BytecodeTypeArray, BytecodeWriter, ClassId,
     ConstPoolEntry, FunctionId, Program, Register,
 };
 
@@ -10,6 +10,7 @@ pub fn generate_bytecode_for_thunk(
     trait_object_ty: BytecodeType,
     trait_object_type_param_id: usize,
     actual_ty: BytecodeType,
+    array_class_id: ClassId,
 ) -> BytecodeFunction {
     let program_trait_fct = program.fct(fct_id);
 
@@ -23,7 +24,7 @@ pub fn generate_bytecode_for_thunk(
     let mut w = BytecodeWriter::new();
     w.add_register(register_ty(trait_object_ty.clone()));
 
-    for param_ty in program_trait_fct.params.iter().skip(1) {
+    for (param_idx, param_ty) in program_trait_fct.params.iter().enumerate().skip(1) {
         let param_ty = specialize_bty_for_trait_object(
             program,
             param_ty.clone(),
@@ -31,6 +32,12 @@ pub fn generate_bytecode_for_thunk(
             trait_type_params,
             trait_assoc_types,
         );
+        let param_ty =
+            if program_trait_fct.is_variadic && param_idx + 1 == program_trait_fct.params.len() {
+                BytecodeType::Class(array_class_id, BytecodeTypeArray::one(param_ty))
+            } else {
+                param_ty
+            };
         w.add_register(register_ty(param_ty));
     }
 

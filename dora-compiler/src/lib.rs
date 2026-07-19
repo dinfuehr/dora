@@ -81,22 +81,96 @@ pub struct SpecializeSelf {
     pub extended_ty: BytecodeType,
 }
 
-pub struct CompilationData<'a> {
-    pub program: &'a Program,
-    pub bytecode_fct: &'a BytecodeFunction,
+pub struct FunctionSignature {
     pub params: BytecodeTypeArray,
-    pub has_variadic_parameter: bool,
     pub return_type: BytecodeType,
-    pub fct_id: FunctionId,
     pub type_params: BytecodeTypeArray,
     pub specialize_self: Option<SpecializeSelf>,
-    pub loc: Location,
+}
 
+impl FunctionSignature {
+    pub(crate) fn from_bytecode(
+        bytecode_fct: &BytecodeFunction,
+        return_type: BytecodeType,
+        type_params: BytecodeTypeArray,
+        specialize_self: Option<SpecializeSelf>,
+    ) -> FunctionSignature {
+        let argument_count = bytecode_fct.arguments() as usize;
+        let params = BytecodeTypeArray::new(bytecode_fct.registers()[..argument_count].to_vec());
+
+        FunctionSignature {
+            params,
+            return_type,
+            type_params,
+            specialize_self,
+        }
+    }
+}
+
+pub struct CompilationOptions {
     pub emit_debug: bool,
-    pub emit_code_comments: bool,
     pub emit_final_graph: bool,
     pub emit_graph_after_each_pass: bool,
     pub emit_html: bool,
+    pub emit_code_comments: bool,
+}
+
+pub struct CompilationData<'a> {
+    pub program: &'a Program,
+    pub bytecode_fct: &'a BytecodeFunction,
+    pub fct_id: FunctionId,
+    pub signature: FunctionSignature,
+    pub loc: Location,
+    pub options: CompilationOptions,
+}
+
+pub struct TraitObjectThunkCompilationData<'a> {
+    pub program: &'a Program,
+    pub trait_fct_id: FunctionId,
+    pub trait_object_ty: BytecodeType,
+    pub actual_object_ty: BytecodeType,
+    pub receiver_by_reference: bool,
+    pub callee_fct_id: FunctionId,
+    pub callee_type_params: BytecodeTypeArray,
+    pub signature: FunctionSignature,
+    pub loc: Location,
+    pub options: CompilationOptions,
+}
+
+impl<'a> TraitObjectThunkCompilationData<'a> {
+    pub fn generate_bytecode(&self, array_class_id: ClassId) -> BytecodeFunction {
+        let trait_object_type_param_id = self.signature.type_params.len() - 1;
+        assert_eq!(
+            &self.signature.type_params[trait_object_type_param_id],
+            &self.actual_object_ty
+        );
+
+        generate_bytecode_for_trait_object_thunk(
+            self.program,
+            self.trait_fct_id,
+            self.trait_object_ty.clone(),
+            trait_object_type_param_id,
+            self.actual_object_ty.clone(),
+            array_class_id,
+        )
+    }
+
+    pub fn into_bytecode_compilation_data<'b>(
+        self,
+        bytecode_fct: &'b BytecodeFunction,
+    ) -> CompilationData<'b>
+    where
+        'a: 'b,
+    {
+        CompilationData {
+            program: self.program,
+            bytecode_fct,
+            fct_id: self.trait_fct_id,
+            signature: self.signature,
+            loc: self.loc,
+            options: self.options,
+        }
+    }
 }
 
 pub fn register_ty(ty: BytecodeType) -> BytecodeType {

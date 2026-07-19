@@ -30,6 +30,7 @@ use package::compile_function;
 use package::deserializer::{
     decode_compilation_info,
     decode_enum_data,
+    decode_function_compilation_info,
     decode_struct_data,
 };
 use package::deserializer;
@@ -412,9 +413,21 @@ pub let config: Config = decode_config(get_system_config_raw());
 
 pub fn compile(encoded: Array[UInt8]): Array[UInt8] {
     let reader = ByteReader::new(encoded);
-    let (ci, fct_data) = decode_compilation_info(reader);
+    let fct_data = decode_function_compilation_info(reader);
+    let ci = decode_compilation_info(reader, fct_data.fct_id);
     assert(!reader.more_bytes());
-    let code = compile_function(ci, fct_data);
+    encode_compilation_result(ci, compile_function(ci, fct_data))
+}
+
+pub fn compile_trait_object_thunk(encoded: Array[UInt8]): Array[UInt8] {
+    let reader = ByteReader::new(encoded);
+    let thunk = deserializer::decode_trait_object_thunk(reader);
+    let ci = decode_compilation_info(reader, thunk.fct_id);
+    assert(!reader.more_bytes());
+    encode_compilation_result(ci, package::compile_trait_object_thunk(ci, thunk))
+}
+
+fn encode_compilation_result(ci: CompilationInfo, code: CodeDescriptor): Array[UInt8] {
     let writer = ci.get_byte_writer();
     encode_code_descriptor(writer, code);
     writer.to_array()

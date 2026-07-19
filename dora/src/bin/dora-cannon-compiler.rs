@@ -84,7 +84,14 @@ fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), Stri
     } else if args.internal_compile_boots {
         let compile_fct_id = lookup_fct(&program, "program::interface::compile")
             .expect("program::interface::compile not found");
-        compile_boots_compiler_aot(&program, compile_fct_id, aot_inputs)
+        let compile_trait_object_thunk_fct_id =
+            lookup_fct(&program, "program::interface::compile_trait_object_thunk")
+                .expect("program::interface::compile_trait_object_thunk not found");
+        compile_boots_compiler_aot(
+            &program,
+            &[compile_fct_id, compile_trait_object_thunk_fct_id],
+            aot_inputs,
+        )
     } else if args.test {
         compile_test_runner(&program, program.program_package_id, aot_inputs)
     } else {

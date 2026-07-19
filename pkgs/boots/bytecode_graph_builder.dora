@@ -51,16 +51,21 @@ pub fn compute_inline_return_type(
 ): Option[Type] {
     let return_type = specialize_ty(
         ci,
-        fct.specialize_self,
-        fct.return_type,
-        fct.type_params,
+        fct.signature.specialize_self,
+        fct.signature.return_type,
+        fct.signature.type_params,
     );
 
     match cc::argument_passing_mode(ci, return_type) {
         ArgumentPassingMode::None | ArgumentPassingMode::Stack => None[Type],
         ArgumentPassingMode::Register(register_ty) => {
             Some[Type](
-                bytecode_graph_ty(ci, fct.specialize_self, fct.type_params, register_ty)
+                bytecode_graph_ty(
+                    ci,
+                    fct.signature.specialize_self,
+                    fct.signature.type_params,
+                    register_ty,
+                )
             )
         }
     }
@@ -102,9 +107,9 @@ impl BytecodeGraphBuilder {
             fct_id = fct.fct_id,
             inlined_function_id = None[InlinedFunctionId],
             bc = fct.bc,
-            type_params = fct.type_params,
-            return_type = fct.return_type,
-            specialize_self = fct.specialize_self,
+            type_params = fct.signature.type_params,
+            return_type = fct.signature.return_type,
+            specialize_self = fct.signature.specialize_self,
             analysis,
             current_block = None[Block],
             offset = 0i32,
@@ -136,9 +141,9 @@ impl BytecodeGraphBuilder {
             fct_id = fct.fct_id,
             inlined_function_id = Some[InlinedFunctionId](inlined_function_id),
             bc = fct.bc,
-            type_params = fct.type_params,
-            return_type = fct.return_type,
-            specialize_self = fct.specialize_self,
+            type_params = fct.signature.type_params,
+            return_type = fct.signature.return_type,
+            specialize_self = fct.signature.specialize_self,
             analysis,
             current_block = None[Block],
             offset = 0i32,
@@ -1743,30 +1748,7 @@ impl BytecodeGraphBuilder {
 
         self.store_call_result(dest, dest_ty, passing_mode, inst, return_ty);
 
-        self.add_to_inlinable_calls(fct_id, inst);
-    }
-
-    fn add_to_inlinable_calls(fct_id: FunctionId, inst: Inst) {
-        let info = iface::get_function_info_for_inlining(fct_id);
-
-        if !info.has_bytecode || info.has_never_inline_annotation {
-            return;
-        }
-
-        if !info.has_force_inline_annotation {
-            if info.bytecode_size > self.ci.max_inlinable_function_bytecode_size {
-                return;
-            }
-
-            if (
-                self.graph.inlined_bytecode_size + info.bytecode_size >
-                self.ci.max_total_inlined_bytecode_size
-            ) {
-                return;
-            }
-        }
-
-        self.graph.inlinable_calls.push((inst, info));
+        add_to_inlinable_calls(self.ci, self.graph, fct_id, inst);
     }
 
     fn emit_invoke_virtual(
@@ -4046,7 +4028,7 @@ fn find_block_starts(bc: BytecodeFunction): BitSet {
     starts
 }
 
-fn bytecode_graph_ty(
+pub fn bytecode_graph_ty(
     ci: CompilationInfo,
     specialize_self: Option[SpecializeSelf],
     fct_type_params: Array[BytecodeType],
@@ -4099,4 +4081,32 @@ fn compute_bytecode_enum_layout(
         fct_type_params,
     );
     regalloc::compute_enum_layout(ci, None[SpecializeSelf], enum_id, enum_type_params)
+}
+
+pub fn add_to_inlinable_calls(
+    ci: CompilationInfo,
+    graph: Graph,
+    fct_id: FunctionId,
+    inst: Inst,
+) {
+    let info = iface::get_function_info_for_inlining(fct_id);
+
+    if !info.has_bytecode || info.has_never_inline_annotation {
+        return;
+    }
+
+    if !info.has_force_inline_annotation {
+        if info.bytecode_size > ci.max_inlinable_function_bytecode_size {
+            return;
+        }
+
+        if (
+            graph.inlined_bytecode_size + info.bytecode_size >
+            ci.max_total_inlined_bytecode_size
+        ) {
+            return;
+        }
+    }
+
+    graph.inlinable_calls.push((inst, info));
 }

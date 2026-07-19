@@ -43,7 +43,6 @@ pub struct CannonCodeGen<'a, 'i> {
 
     location: Location,
     params: BytecodeTypeArray,
-    has_variadic_parameter: bool,
     return_type: BytecodeType,
     fct_id: FunctionId,
     emit_debug: bool,
@@ -79,20 +78,22 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         compilation_data: CompilationData<'a>,
         aot_intrinsics: &'i HashMap<FunctionId, Intrinsic>,
     ) -> CannonCodeGen<'a, 'i> {
+        let options = compilation_data.options;
+        let signature = compilation_data.signature;
+
         CannonCodeGen {
             program: compilation_data.program,
             layout: AotLayout::new(compilation_data.program),
-            params: compilation_data.params,
-            has_variadic_parameter: compilation_data.has_variadic_parameter,
-            return_type: compilation_data.return_type,
+            params: signature.params,
+            return_type: signature.return_type,
             fct_id: compilation_data.fct_id,
             location: compilation_data.loc,
-            emit_debug: compilation_data.emit_debug,
+            emit_debug: options.emit_debug,
             asm: BaselineAssembler::new(compilation_data.program),
             bytecode: compilation_data.bytecode_fct,
-            emit_code_comments: compilation_data.emit_code_comments,
-            type_params: compilation_data.type_params,
-            specialize_self: compilation_data.specialize_self,
+            emit_code_comments: options.emit_code_comments,
+            type_params: signature.type_params,
+            specialize_self: signature.specialize_self,
             offset_to_address: HashMap::new(),
             offset_to_label: HashMap::new(),
             aot_intrinsics,
@@ -226,15 +227,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let params = self.params.clone();
 
         for (idx, param_ty) in params.iter().enumerate() {
-            let param_ty = self.specialize_function_ty(param_ty.clone());
+            let param_ty = self.specialize_ty(param_ty.clone());
             assert!(param_ty.is_concrete_type());
 
             let dest = Register(idx);
 
-            let param_ty = if idx == self.params.len() - 1 && self.has_variadic_parameter {
-                assert_eq!(self.bytecode.register_type(dest), BytecodeType::Ptr);
-                BytecodeType::Ptr
-            } else if param_ty.is_unit() {
+            let param_ty = if param_ty.is_unit() {
                 continue;
             } else {
                 assert_eq!(

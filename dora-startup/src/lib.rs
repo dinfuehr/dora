@@ -407,8 +407,14 @@ pub extern "C" fn dora_boots_compiler_main(
     argc: c_int,
     argv: *const *const c_char,
     compile_address: *const u8,
+    compile_trait_object_thunk_address: *const u8,
 ) -> i32 {
-    boots::dora_boots_compiler_main(argc, argv, compile_address)
+    boots::dora_boots_compiler_main(
+        argc,
+        argv,
+        compile_address,
+        compile_trait_object_thunk_address,
+    )
 }
 
 fn decode_collector_name(value: u8) -> CollectorName {
