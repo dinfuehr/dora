@@ -278,6 +278,7 @@ name = "dora-bytecode"
 version = "0.0.2"
 dependencies = [
  "bincode",
+ "fixedbitset",
 ]
 
 [[package]]

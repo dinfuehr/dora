@@ -7,6 +7,7 @@ pub mod program;
 pub mod reader;
 pub mod serializer;
 pub mod ty;
+pub mod verifier;
 pub mod writer;
 
 #[cfg(test)]
@@ -30,4 +31,5 @@ pub use program::{
 pub use reader::*;
 pub use serializer::{decode_program_from_bytes, read_program_from_file};
 pub use ty::{BytecodeTraitType, BytecodeType, BytecodeTypeArray};
+pub use verifier::verify as verify_program;
 pub use writer::*;

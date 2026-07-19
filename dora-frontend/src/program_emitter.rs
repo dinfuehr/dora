@@ -9,6 +9,7 @@ use dora_bytecode::{
     ExtensionId, FunctionData, FunctionId, FunctionKind, GlobalData, GlobalId, ImplId, ModuleData,
     ModuleElementId, ModuleId, PackageData, PackageId, Program, SourceFileData, SourceFileId,
     StructData, StructField, StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
+    verify_program,
 };
 
 use crate::generator::{generate_fct, generate_global_initializer};
@@ -45,7 +46,7 @@ pub fn emit_program(sa: Sema) -> Program {
     let program_package_id = emitter.convert_package_id(&sa, sa.program_package_id());
     let main_fct_id = emitter.find_main_fct_id(&sa);
 
-    Program {
+    let program = Program {
         packages: emitter.packages,
         modules: emitter.modules,
         functions: emitter.functions,
@@ -62,7 +63,11 @@ pub fn emit_program(sa: Sema) -> Program {
         stdlib_package_id,
         program_package_id,
         main_fct_id,
-    }
+    };
+
+    verify_program(&program);
+
+    program
 }
 
 pub struct Emitter {
