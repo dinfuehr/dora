@@ -24,13 +24,16 @@ pub mod thread;
 pub mod traits;
 
 @internal
+pub struct Never
+
+@internal
 pub fn fatal_error[T](msg: String): T;
 
 @native
-pub fn abort();
+pub fn abort(): Never;
 
 @native
-pub fn exit(status: Int32);
+pub fn exit(status: Int32): Never;
 
 @internal
 pub fn unreachable[T](): T;

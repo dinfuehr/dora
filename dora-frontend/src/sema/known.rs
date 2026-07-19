@@ -121,6 +121,7 @@ pub struct KnownStructs {
     pub int64: Option<StructDefinitionId>,
     pub float32: Option<StructDefinitionId>,
     pub float64: Option<StructDefinitionId>,
+    pub never: Option<StructDefinitionId>,
 }
 
 impl KnownStructs {
@@ -133,6 +134,7 @@ impl KnownStructs {
             int64: None,
             float32: None,
             float64: None,
+            never: None,
         }
     }
 
@@ -162,6 +164,10 @@ impl KnownStructs {
 
     pub fn float64(&self) -> StructDefinitionId {
         self.float64.expect("uninitialized")
+    }
+
+    pub fn never(&self) -> StructDefinitionId {
+        self.never.expect("uninitialized")
     }
 }
 
@@ -312,8 +318,6 @@ pub struct KnownFunctions {
     pub unreachable: Option<FctDefinitionId>,
     pub unimplemented: Option<FctDefinitionId>,
     pub fatal_error: Option<FctDefinitionId>,
-    pub abort: Option<FctDefinitionId>,
-    pub exit: Option<FctDefinitionId>,
     pub uint8_to_int32: Option<FctDefinitionId>,
     pub int64_to_int32: Option<FctDefinitionId>,
     pub option_is_some: Option<FctDefinitionId>,
@@ -336,8 +340,6 @@ impl KnownFunctions {
             unreachable: None,
             unimplemented: None,
             fatal_error: None,
-            abort: None,
-            exit: None,
             uint8_to_int32: None,
             int64_to_int32: None,
             option_is_none: None,
@@ -382,8 +384,6 @@ impl KnownFunctions {
         self.unreachable == Some(fct_id)
             || self.unimplemented == Some(fct_id)
             || self.fatal_error == Some(fct_id)
-            || self.abort == Some(fct_id)
-            || self.exit == Some(fct_id)
     }
 
     pub fn uint8_to_int32(&self) -> FctDefinitionId {

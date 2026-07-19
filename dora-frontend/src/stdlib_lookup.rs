@@ -50,6 +50,8 @@ pub fn lookup_known_fundamental_types(sa: &mut Sema) {
         Some(SourceType::Float64),
     ));
 
+    sa.known.structs.never = Some(internal_struct(sa, "std::Never", None));
+
     sa.known.classes.string = Some(internal_class(sa, "std::string::String"));
 
     sa.known.classes.string_buffer = Some(find_class(sa, "std::string::StringBuffer"));
@@ -326,8 +328,6 @@ fn resolve_functions(sa: &mut Sema) {
     sa.known.functions.unreachable = Some(lookup_fct(sa, "std::unreachable"));
     sa.known.functions.unimplemented = Some(lookup_fct(sa, "std::unimplemented"));
     sa.known.functions.fatal_error = Some(lookup_fct(sa, "std::fatal_error"));
-    sa.known.functions.abort = Some(lookup_fct(sa, "std::abort"));
-    sa.known.functions.exit = Some(lookup_fct(sa, "std::exit"));
 }
 
 fn lookup_ordering(sa: &mut Sema) {

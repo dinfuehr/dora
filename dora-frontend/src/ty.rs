@@ -315,6 +315,10 @@ impl SourceType {
         }
     }
 
+    pub fn is_never(&self, sa: &Sema) -> bool {
+        self.struct_id() == Some(sa.known.structs.never())
+    }
+
     pub fn is_primitive(&self) -> bool {
         match self {
             &SourceType::Bool

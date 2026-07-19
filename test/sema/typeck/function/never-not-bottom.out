@@ -1,0 +1,3 @@
+error: `return` expects value of type `Int32` but got `Never`.
+--> never-not-bottom.dora:1:15 - 3:2
+1 error found.

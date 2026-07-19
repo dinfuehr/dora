@@ -1,6 +1,10 @@
 //= ok
 enum Foo { A(Int64), B }
 
+fn diverge(): std::Never {
+    std::abort()
+}
+
 fn withReturn(value: Foo): Int64 {
     let Foo::A(value) = value else { return 10; };
     value
@@ -28,6 +32,11 @@ fn withAbort(value: Foo): Int64 {
 
 fn withExit(value: Foo): Int64 {
     let Foo::A(value) = value else { std::exit(1i32); };
+    value
+}
+
+fn withNeverReturnType(value: Foo): Int64 {
+    let Foo::A(value) = value else { diverge(); };
     value
 }
 

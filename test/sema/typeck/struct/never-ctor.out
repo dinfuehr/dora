@@ -1,0 +1,8 @@
+error: constructor of struct `std::Never` is not accessible.
+--> never-ctor.dora:2:5
+ | fn f() {
+ |     std::Never();
+       ~~~~~~~~~~~~
+ | }
+ | 
+1 error found.
