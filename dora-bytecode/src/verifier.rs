@@ -2,8 +2,8 @@ use fixedbitset::FixedBitSet;
 
 use crate::{
     BytecodeFunction, BytecodeInstruction, BytecodeOffset, BytecodeReader, BytecodeTraitType,
-    BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, FunctionId,
-    FunctionKind, Program, Register, TypeParamData,
+    BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, FunctionData,
+    FunctionId, FunctionKind, Program, Register, TypeParamData,
 };
 
 pub fn verify(program: &Program) {
@@ -299,42 +299,13 @@ impl<'a> Verifier<'a> {
                 dest,
                 fct,
                 arguments,
-            } => {
-                let ConstPoolEntry::Fct(function_id, type_params) = self.const_pool(fct) else {
-                    panic!("expected Fct constant pool entry");
-                };
-                let function = self.program.fct(*function_id);
-                assert_eq!(function.type_params.type_param_count(), type_params.len());
-                self.assert_invoke_return_type(
-                    dest,
-                    &specialize_type(&function.return_type, type_params),
-                );
-                self.assert_call_registers(dest, &arguments);
-            }
+            } => self.verify_invoke(dest, fct, &arguments),
 
             BytecodeInstruction::InvokeVirtual {
                 dest,
                 fct,
                 arguments,
-            } => {
-                let ConstPoolEntry::TraitObjectMethod(trait_object_ty, function_id) =
-                    self.const_pool(fct)
-                else {
-                    panic!("expected TraitObjectMethod constant pool entry");
-                };
-                let BytecodeType::TraitObject(trait_id, type_params, _) = trait_object_ty else {
-                    panic!("InvokeVirtual receiver type is not a trait object");
-                };
-                let function = self.program.fct(*function_id);
-                assert!(matches!(function.kind, FunctionKind::Trait(id) if id == *trait_id));
-                assert_eq!(function.type_params.type_param_count(), type_params.len());
-                self.assert_invoke_return_type(
-                    dest,
-                    &specialize_type(&function.return_type, type_params),
-                );
-                assert!(self.ty(arguments[0]).is_reference_type());
-                self.assert_call_registers(dest, &arguments);
-            }
+            } => self.verify_invoke_virtual(dest, fct, &arguments),
 
             BytecodeInstruction::InvokeLambda {
                 dest,
@@ -380,32 +351,7 @@ impl<'a> Verifier<'a> {
                 dest,
                 fct,
                 arguments,
-            } => {
-                let ConstPoolEntry::Generic {
-                    object_type,
-                    trait_ty,
-                    fct_id,
-                    fct_type_params,
-                } = self.const_pool(fct)
-                else {
-                    panic!("expected Generic constant pool entry");
-                };
-                let function = self.program.fct(*fct_id);
-                assert!(
-                    matches!(function.kind, FunctionKind::Trait(id) if id == trait_ty.trait_id)
-                );
-                let type_params = trait_ty.type_params.connect(fct_type_params);
-                assert_eq!(function.type_params.type_param_count(), type_params.len());
-                self.assert_invoke_return_type(
-                    dest,
-                    &specialize_type_with_self(
-                        &function.return_type,
-                        &type_params,
-                        Some(object_type),
-                    ),
-                );
-                self.assert_call_registers(dest, &arguments);
-            }
+            } => self.verify_invoke_generic(dest, fct, &arguments),
 
             BytecodeInstruction::NewObjectUninitialized { dest, cls } => {
                 let (class_id, type_params) = self.class_entry(cls);
@@ -592,6 +538,79 @@ impl<'a> Verifier<'a> {
         }
     }
 
+    fn verify_invoke(&self, dest: Register, fct: ConstPoolIdx, arguments: &[Register]) {
+        let ConstPoolEntry::Fct(function_id, type_params) = self.const_pool(fct) else {
+            panic!("expected Fct constant pool entry");
+        };
+        let function = self.program.fct(*function_id);
+        assert_eq!(function.type_params.type_param_count(), type_params.len());
+        self.assert_invoke_return_type(dest, &specialize_type(&function.return_type, type_params));
+        let self_type = match function.kind {
+            FunctionKind::Impl(id) => Some(specialize_type(
+                &self.program.impl_(id).extended_ty,
+                type_params,
+            )),
+            FunctionKind::Extension(id) => Some(specialize_type(
+                &self.program.extension(id).extended_ty,
+                type_params,
+            )),
+            FunctionKind::Lambda | FunctionKind::Trait(_) | FunctionKind::Function => None,
+        };
+        let params = specialize_function_params(function, type_params, self_type.as_ref());
+        self.assert_call_argument_types(arguments, &params, function.is_variadic);
+    }
+
+    fn verify_invoke_virtual(&self, dest: Register, fct: ConstPoolIdx, arguments: &[Register]) {
+        let ConstPoolEntry::TraitObjectMethod(trait_object_ty, function_id) = self.const_pool(fct)
+        else {
+            panic!("expected TraitObjectMethod constant pool entry");
+        };
+        let BytecodeType::TraitObject(trait_id, type_params, bindings) = trait_object_ty else {
+            panic!("InvokeVirtual receiver type is not a trait object");
+        };
+        let function = self.program.fct(*function_id);
+        assert!(matches!(function.kind, FunctionKind::Trait(id) if id == *trait_id));
+        assert_eq!(function.type_params.type_param_count(), type_params.len());
+        self.assert_invoke_return_type(dest, &specialize_type(&function.return_type, type_params));
+        assert!(!function.is_static);
+        assert!(!function.params.is_empty());
+        let (&receiver, arguments) = arguments
+            .split_first()
+            .expect("InvokeVirtual is missing its receiver");
+        self.assert_type(receiver, trait_object_ty);
+        let params = function
+            .params
+            .iter()
+            .skip(1)
+            .map(|param| {
+                specialize_type_for_trait_object(self.program, param, type_params, bindings)
+            })
+            .collect::<Vec<_>>();
+        self.assert_call_argument_types(arguments, &params, function.is_variadic);
+    }
+
+    fn verify_invoke_generic(&self, dest: Register, fct: ConstPoolIdx, arguments: &[Register]) {
+        let ConstPoolEntry::Generic {
+            object_type,
+            trait_ty,
+            fct_id,
+            fct_type_params,
+        } = self.const_pool(fct)
+        else {
+            panic!("expected Generic constant pool entry");
+        };
+        let function = self.program.fct(*fct_id);
+        assert!(matches!(function.kind, FunctionKind::Trait(id) if id == trait_ty.trait_id));
+        let type_params = trait_ty.type_params.connect(fct_type_params);
+        assert_eq!(function.type_params.type_param_count(), type_params.len());
+        self.assert_invoke_return_type(
+            dest,
+            &specialize_type_with_self(&function.return_type, &type_params, Some(object_type)),
+        );
+        let params = specialize_function_params(function, &type_params, Some(object_type));
+        self.assert_call_argument_types(arguments, &params, function.is_variadic);
+    }
+
     fn class_entry(&self, idx: ConstPoolIdx) -> (ClassId, BytecodeTypeArray) {
         let ConstPoolEntry::Class(class_id, type_params) = self.const_pool(idx) else {
             panic!("expected Class constant pool entry");
@@ -638,10 +657,24 @@ impl<'a> Verifier<'a> {
         inner.as_ref().clone()
     }
 
-    fn assert_call_registers(&self, dest: Register, arguments: &[Register]) {
-        self.ty(dest);
-        for &argument in arguments {
-            self.ty(argument);
+    fn assert_call_argument_types(
+        &self,
+        arguments: &[Register],
+        expected_types: &[BytecodeType],
+        variadic: bool,
+    ) {
+        assert!(!variadic || !expected_types.is_empty());
+        assert_eq!(arguments.len(), expected_types.len());
+        for (idx, (&argument, expected)) in arguments.iter().zip(expected_types).enumerate() {
+            if variadic && idx + 1 == expected_types.len() {
+                let BytecodeType::Class(_, type_params) = self.ty(argument) else {
+                    panic!("variadic argument is not an array");
+                };
+                assert_eq!(type_params.len(), 1);
+                assert!(types_match(&type_params[0], expected));
+            } else {
+                self.assert_type(argument, expected);
+            }
         }
     }
 
@@ -868,6 +901,102 @@ fn specialize_trait_type_with_self(
             .map(|(id, ty)| (*id, specialize_type_with_self(ty, type_params, self_type)))
             .collect(),
     }
+}
+
+fn specialize_function_params(
+    function: &FunctionData,
+    type_params: &BytecodeTypeArray,
+    self_type: Option<&BytecodeType>,
+) -> Vec<BytecodeType> {
+    let mut params = function
+        .params
+        .iter()
+        .map(|param| specialize_type_with_self(param, type_params, self_type))
+        .collect::<Vec<_>>();
+
+    if !function.is_static
+        && function.is_mutating
+        && matches!(
+            self_type,
+            Some(BytecodeType::Struct(..) | BytecodeType::Tuple(..))
+        )
+    {
+        assert!(!params.is_empty());
+        params[0] = BytecodeType::Ref(Box::new(self_type.unwrap().clone()));
+    }
+
+    params
+}
+
+fn specialize_type_for_trait_object(
+    program: &Program,
+    ty: &BytecodeType,
+    type_params: &BytecodeTypeArray,
+    bindings: &BytecodeTypeArray,
+) -> BytecodeType {
+    match ty {
+        BytecodeType::TypeParam(id) => type_params[*id as usize].clone(),
+        BytecodeType::Tuple(types) => BytecodeType::Tuple(specialize_types_for_trait_object(
+            program,
+            types,
+            type_params,
+            bindings,
+        )),
+        BytecodeType::Enum(id, types) => BytecodeType::Enum(
+            *id,
+            specialize_types_for_trait_object(program, types, type_params, bindings),
+        ),
+        BytecodeType::Struct(id, types) => BytecodeType::Struct(
+            *id,
+            specialize_types_for_trait_object(program, types, type_params, bindings),
+        ),
+        BytecodeType::Class(id, types) => BytecodeType::Class(
+            *id,
+            specialize_types_for_trait_object(program, types, type_params, bindings),
+        ),
+        BytecodeType::TraitObject(id, types, inner_bindings) => BytecodeType::TraitObject(
+            *id,
+            specialize_types_for_trait_object(program, types, type_params, bindings),
+            specialize_types_for_trait_object(program, inner_bindings, type_params, bindings),
+        ),
+        BytecodeType::Lambda(params, return_type, variadic) => BytecodeType::Lambda(
+            specialize_types_for_trait_object(program, params, type_params, bindings),
+            Box::new(specialize_type_for_trait_object(
+                program,
+                return_type,
+                type_params,
+                bindings,
+            )),
+            *variadic,
+        ),
+        BytecodeType::Assoc { assoc_id, .. } => {
+            bindings[program.alias(*assoc_id).idx_in_trait()].clone()
+        }
+        BytecodeType::Ref(inner) => BytecodeType::Ref(Box::new(specialize_type_for_trait_object(
+            program,
+            inner,
+            type_params,
+            bindings,
+        ))),
+        BytecodeType::This | BytecodeType::TypeAlias(_) => {
+            panic!("unexpected type in trait-object function signature")
+        }
+        _ => ty.clone(),
+    }
+}
+
+fn specialize_types_for_trait_object(
+    program: &Program,
+    types: &BytecodeTypeArray,
+    type_params: &BytecodeTypeArray,
+    bindings: &BytecodeTypeArray,
+) -> BytecodeTypeArray {
+    BytecodeTypeArray::new(
+        types
+            .iter()
+            .map(|ty| specialize_type_for_trait_object(program, &ty, type_params, bindings))
+            .collect(),
+    )
 }
 
 fn verify_program_types(program: &Program) {
