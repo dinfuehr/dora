@@ -1590,10 +1590,8 @@ impl Inst {
     }
 
     pub fn get_function_info(): FunctionInfo {
-        match self.extra {
-            InstExtraData::FunctionInfo(info) => info,
-            _ => unreachable[FunctionInfo](),
-        }
+        let InstExtraData::FunctionInfo(info) = self.extra;
+        info
     }
 
     pub fn has_runtime_function(): Bool {
