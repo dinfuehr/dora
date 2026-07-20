@@ -9,7 +9,7 @@ use crate::sema::{Sema, SourceFileId};
 use crate::sym::{ModuleSymTable, SymTable, Symbol, SymbolKind};
 #[allow(unused)]
 use crate::ty::{
-    SourceType, SourceTypeArray, TraitType, TyKind, TypeArgs, contains_self, empty_sta,
+    SourceType, SourceTypeArray, TraitType, TyKind, TypeArgs, TypeVarId, contains_self, empty_sta,
 };
 use dora_bytecode::{FunctionId, Program, TypeParamMode, display_fct, dump_stdout};
 use dora_parser::Span;

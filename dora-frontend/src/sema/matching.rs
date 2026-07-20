@@ -235,6 +235,8 @@ fn match_concrete_types(
         | SourceType::Float64
         | SourceType::TypeParam(_) => check_ty == ext_ty,
 
+        SourceType::TypeVar(_) => unreachable!(),
+
         SourceType::Lambda(check_params, check_ret_type, check_is_variadic) => match ext_ty {
             SourceType::Lambda(ext_params, ext_ret_type, ext_is_variadic) => {
                 match_arrays(

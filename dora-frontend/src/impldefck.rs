@@ -36,6 +36,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         SourceType::Any
         | SourceType::Ptr
         | SourceType::This
+        | SourceType::TypeVar(..)
         | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. }
         | SourceType::Ref(..) => {
@@ -719,7 +720,11 @@ fn trait_and_impl_arg_ty_compatible(
             }
         }
 
-        SourceType::Alias(..) | SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {
+        SourceType::Alias(..)
+        | SourceType::Any
+        | SourceType::Ptr
+        | SourceType::Ref(..)
+        | SourceType::TypeVar(..) => {
             unreachable!()
         }
     }
@@ -1068,7 +1073,8 @@ fn find_super_trait_witness(
         | SourceType::GenericAssoc { .. }
         | SourceType::Ref(..)
         | SourceType::Ptr
-        | SourceType::Any => unreachable!(),
+        | SourceType::Any
+        | SourceType::TypeVar(..) => unreachable!(),
     }
 }
 

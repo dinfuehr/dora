@@ -1875,6 +1875,8 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
 
         SourceType::TypeParam(_) => def == arg,
 
+        SourceType::TypeVar(_) => unreachable!(),
+
         SourceType::Class(cls_id, ref params) => {
             if def == arg {
                 return true;

@@ -92,6 +92,7 @@ fn check_function(
     let mut symtable = ModuleSymTable::new(sa, fct.module_id);
     let mut vars = VarManager::new();
     let mut active_contexts = Vec::new();
+    let mut type_variables = Vec::new();
 
     let self_ty = match fct.parent {
         FctParent::None => None,
@@ -127,6 +128,7 @@ fn check_function(
         active_contexts: &mut active_contexts,
         start_context_idx: 0,
         needs_context_slot_in_lambda_object: false,
+        type_variables: &mut type_variables,
         element: fct,
     };
 
@@ -148,6 +150,7 @@ fn check_global(
         let mut symtable = ModuleSymTable::new(sa, global.module_id);
         let mut vars = VarManager::new();
         let mut active_contexts = Vec::new();
+        let mut type_variables = Vec::new();
 
         let mut typeck = TypeCheck {
             sa,
@@ -175,6 +178,7 @@ fn check_global(
             active_contexts: &mut active_contexts,
             start_context_idx: 0,
             needs_context_slot_in_lambda_object: false,
+            type_variables: &mut type_variables,
             element: global,
         };
 
@@ -209,8 +213,20 @@ pub struct TypeCheck<'a> {
     pub active_contexts: &'a mut Vec<ContextId>,
     pub start_context_idx: usize,
     pub needs_context_slot_in_lambda_object: bool,
+    #[allow(dead_code)]
+    type_variables: &'a mut Vec<TypeVariable>,
     // Lambda functions discovered while checking functions.
     pub lambda_definitions: &'a mut Vec<FctDefinition>,
+}
+
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+pub struct TypeVarId(usize);
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+struct TypeVariable {
+    value: Option<SourceType>,
+    type_ref_id: TypeRefId,
 }
 
 impl<'a> TypeCheck<'a> {

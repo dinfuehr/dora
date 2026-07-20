@@ -130,6 +130,7 @@ fn expand_type(
         | SourceType::Error
         | SourceType::This
         | SourceType::TypeParam(..)
+        | SourceType::TypeVar(..)
         | SourceType::GenericAssoc { .. } => ty,
 
         SourceType::Any | SourceType::Ptr | SourceType::Ref(..) => {

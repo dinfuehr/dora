@@ -8,6 +8,7 @@ use crate::sema::{
     TypeParamDefinition, TypeParamId,
 };
 use crate::specialize::specialize_trait_type_for_implements;
+pub use crate::typeck::TypeVarId;
 
 pub fn error() -> SourceType {
     SourceType::Error
@@ -100,6 +101,7 @@ pub enum TyKind {
     Tuple,
     TraitObject,
     TypeParam,
+    TypeVar,
     Alias,
     Assoc,
     GenericAssoc,
@@ -149,6 +151,9 @@ pub enum SourceType {
     // Some type variable.
     TypeParam(TypeParamId),
 
+    // Type variable used for inference within a function body.
+    TypeVar(TypeVarId),
+
     // Type alias.
     Alias(AliasDefinitionId, SourceTypeArray),
 
@@ -193,6 +198,7 @@ impl SourceType {
             SourceType::TraitObject(..) => TyKind::TraitObject,
             SourceType::Lambda(..) => TyKind::Lambda,
             SourceType::TypeParam(..) => TyKind::TypeParam,
+            SourceType::TypeVar(..) => TyKind::TypeVar,
             SourceType::Alias(..) => TyKind::Alias,
             SourceType::Enum(..) => TyKind::Enum,
             SourceType::Class(..) => TyKind::Class,
@@ -546,6 +552,7 @@ impl SourceType {
             | SourceType::Assoc { .. }
             | SourceType::This
             | SourceType::TypeParam(..)
+            | SourceType::TypeVar(..)
             | SourceType::Lambda(..)
             | SourceType::GenericAssoc { .. }
             | SourceType::Ref(..) => *self == other,
@@ -580,7 +587,9 @@ impl SourceType {
 
     pub fn is_defined_type(&self, sa: &Sema) -> bool {
         match self {
-            SourceType::Error | SourceType::Any | SourceType::Ptr => false,
+            SourceType::Error | SourceType::Any | SourceType::Ptr | SourceType::TypeVar(..) => {
+                false
+            }
             SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
@@ -694,6 +703,7 @@ impl SourceType {
             }
             SourceType::Alias(..)
             | SourceType::TypeParam(_)
+            | SourceType::TypeVar(_)
             | SourceType::Assoc { .. }
             | SourceType::GenericAssoc { .. }
             | SourceType::Ref(..) => false,
@@ -715,6 +725,7 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::TypeParam(..)
+        | SourceType::TypeVar(..)
         | SourceType::Assoc { .. } => false,
 
         SourceType::Alias(..) | SourceType::GenericAssoc { .. } => {
@@ -1175,6 +1186,8 @@ impl<'a> SourceTypePrinter<'a> {
                 .interner
                 .str(self.sa.type_param(id).name())
                 .to_string(),
+
+            SourceType::TypeVar(_) => "_".into(),
 
             SourceType::Lambda(params, return_type, is_variadic) => {
                 let mut params = params

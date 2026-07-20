@@ -904,6 +904,8 @@ fn check_expr_assign_unnamed_field(
             check_expr(ck, rhs_id, SourceType::Any);
         }
 
+        SourceType::TypeVar(..) => unreachable!(),
+
         SourceType::Struct(struct_id, struct_type_params) => {
             let struct_ = ck.sa.struct_(struct_id);
             if !struct_.field_name_style.is_named() && index < struct_.field_ids().len() {

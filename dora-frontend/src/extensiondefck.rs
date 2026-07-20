@@ -77,7 +77,8 @@ pub fn package_for_type(sa: &Sema, ty: SourceType) -> Option<PackageDefinitionId
         | SourceType::Unit
         | SourceType::Lambda(..)
         | SourceType::Tuple(..)
-        | SourceType::TypeParam(..) => None,
+        | SourceType::TypeParam(..)
+        | SourceType::TypeVar(..) => None,
         SourceType::Any | SourceType::Ptr | SourceType::This | SourceType::Ref(..) => {
             unreachable!()
         }
@@ -120,6 +121,7 @@ impl<'x> ExtensionCheck<'x> {
             SourceType::Any
             | SourceType::Ptr
             | SourceType::This
+            | SourceType::TypeVar(..)
             | SourceType::Assoc { .. }
             | SourceType::GenericAssoc { .. }
             | SourceType::Ref(..) => {
@@ -232,6 +234,7 @@ fn discover_type_params(
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Ptr => {}
+        SourceType::TypeVar(..) => unreachable!(),
         SourceType::TraitObject(_id, type_params, bindings) => {
             for param in type_params.iter() {
                 discover_type_params(sa, type_param_definition, param, used_type_params);

@@ -493,7 +493,8 @@ pub(crate) fn expand_st(
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Error
-        | SourceType::TypeParam(..) => ty,
+        | SourceType::TypeParam(..)
+        | SourceType::TypeVar(..) => ty,
         SourceType::This => replace_self.expect("self expected"),
 
         SourceType::Ref(inner) => SourceType::Ref(Box::new(expand_st(

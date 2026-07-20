@@ -132,6 +132,7 @@ pub(super) fn check_expr_lambda(
             active_contexts: ck.active_contexts,
             start_context_idx: 0,
             needs_context_slot_in_lambda_object: false,
+            type_variables: ck.type_variables,
             element: ck.element,
         };
 

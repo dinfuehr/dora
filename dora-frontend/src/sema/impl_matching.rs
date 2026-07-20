@@ -97,7 +97,7 @@ pub fn implements_trait(
             self_trait_ty.implements_trait(sa, &trait_ty)
         }
 
-        SourceType::Ptr | SourceType::Any => unreachable!(),
+        SourceType::Ptr | SourceType::Any | SourceType::TypeVar(..) => unreachable!(),
     }
 }
 

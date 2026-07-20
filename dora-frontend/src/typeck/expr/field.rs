@@ -81,6 +81,7 @@ pub(super) fn check_expr_field_named(
         | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. }
         | SourceType::Ref(..) => {}
+        SourceType::TypeVar(..) => unreachable!(),
         SourceType::Class(cls_id, class_type_params) => {
             if let Some((field_index, _)) = find_field_in_class(ck.sa, object_type.clone(), name) {
                 let ident_type = IdentType::ClassField(object_type.clone(), field_index);
@@ -200,6 +201,8 @@ fn check_expr_field_unnamed(
             );
             SourceType::Error
         }
+
+        SourceType::TypeVar(..) => unreachable!(),
 
         SourceType::Class(class_id, class_type_params) => {
             let cls = ck.sa.class(class_id);
