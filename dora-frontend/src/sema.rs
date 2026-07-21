@@ -96,7 +96,7 @@ pub use self::type_params::{
 };
 pub(crate) use self::type_refs::{
     TypeContext, check_trait_type_ref, check_type_ref, convert_trait_type_ref, convert_type_ref,
-    lower_type, parse_type_ref, type_ref_span,
+    convert_type_ref_with_inference, lower_type, parse_type_ref, type_ref_span,
 };
 pub use self::type_refs::{TypeRef, TypeRefArena, TypeRefArenaBuilder, TypeRefId, TypeSymbol};
 pub use self::uses::{UseDefinition, UseDefinitionId};

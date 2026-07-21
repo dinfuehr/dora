@@ -24,7 +24,27 @@ pub(crate) fn convert_type_ref(
     type_ref_id: TypeRefId,
     type_context: TypeContext,
 ) -> SourceType {
-    convert_type_ref_inner(sa, type_ref_arena, ctxt_element, type_ref_id, type_context)
+    let mut convert_infer = |_| match type_context {
+        TypeContext::FunctionBody => unimplemented!(),
+        TypeContext::Declaration => SourceType::Error,
+    };
+    convert_type_ref_with_inference(
+        sa,
+        type_ref_arena,
+        ctxt_element,
+        type_ref_id,
+        &mut convert_infer,
+    )
+}
+
+pub(crate) fn convert_type_ref_with_inference(
+    sa: &Sema,
+    type_ref_arena: &TypeRefArena,
+    ctxt_element: &dyn Element,
+    type_ref_id: TypeRefId,
+    convert_infer: &mut dyn FnMut(TypeRefId) -> SourceType,
+) -> SourceType {
+    convert_type_ref_inner(sa, type_ref_arena, ctxt_element, type_ref_id, convert_infer)
 }
 
 fn current_trait_ty(sa: &Sema, ctxt_element: &dyn Element) -> Option<TraitType> {
@@ -88,17 +108,15 @@ fn convert_type_ref_inner(
     type_ref_arena: &TypeRefArena,
     ctxt_element: &dyn Element,
     type_ref_id: TypeRefId,
-    type_context: TypeContext,
+    convert_infer: &mut dyn FnMut(TypeRefId) -> SourceType,
 ) -> SourceType {
     match type_ref_arena.type_ref(type_ref_id) {
-        TypeRef::Infer => match type_context {
-            TypeContext::FunctionBody => unimplemented!(),
-            TypeContext::Declaration => SourceType::Error,
-        },
+        TypeRef::Infer => convert_infer(type_ref_id),
         TypeRef::This => SourceType::This,
         TypeRef::Error => SourceType::Error,
         TypeRef::Ref { ty } => {
-            let inner = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, *ty, type_context);
+            let inner =
+                convert_type_ref_inner(sa, type_ref_arena, ctxt_element, *ty, convert_infer);
             SourceType::Ref(Box::new(inner))
         }
         TypeRef::Tuple { subtypes } => {
@@ -114,7 +132,7 @@ fn convert_type_ref_inner(
                     type_ref_arena,
                     ctxt_element,
                     *subtype,
-                    type_context,
+                    convert_infer,
                 ));
             }
 
@@ -133,12 +151,12 @@ fn convert_type_ref_inner(
                     type_ref_arena,
                     ctxt_element,
                     *param,
-                    type_context,
+                    convert_infer,
                 ));
             }
 
             let new_return_ty =
-                convert_type_ref_inner(sa, type_ref_arena, ctxt_element, *return_ty, type_context);
+                convert_type_ref_inner(sa, type_ref_arena, ctxt_element, *return_ty, convert_infer);
             SourceType::Lambda(
                 SourceTypeArray::with(new_params),
                 Box::new(new_return_ty),
@@ -159,7 +177,7 @@ fn convert_type_ref_inner(
                     type_ref_id,
                     symbol,
                     type_arguments,
-                    type_context,
+                    convert_infer,
                 ),
                 TypeSymbol::Assoc(_) => unreachable!(),
                 TypeSymbol::GenericAssoc {
@@ -200,7 +218,7 @@ fn convert_type_ref_inner(
             type_ref_id,
             *ty,
             *trait_ty,
-            type_context,
+            convert_infer,
         ),
     }
 }
@@ -212,14 +230,14 @@ fn convert_type_ref_qualified_path(
     type_ref_id: TypeRefId,
     ty: TypeRefId,
     trait_ty_ref_id: TypeRefId,
-    type_context: TypeContext,
+    convert_infer: &mut dyn FnMut(TypeRefId) -> SourceType,
 ) -> SourceType {
     let assoc_id = match type_ref_arena.symbol(type_ref_id) {
         Some(TypeSymbol::Assoc(assoc_id)) => assoc_id,
         _ => return SourceType::Error,
     };
 
-    let inner_ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, ty, type_context);
+    let inner_ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, ty, convert_infer);
 
     // For qualified paths, we need to handle the trait specially - don't require bindings
     let trait_ty = match type_ref_arena.symbol(trait_ty_ref_id) {
@@ -236,7 +254,7 @@ fn convert_type_ref_qualified_path(
                 trait_ty_ref_id,
                 trait_id,
                 type_arguments,
-                type_context,
+                convert_infer,
             )
         }
         _ => return SourceType::Error,
@@ -262,7 +280,7 @@ fn convert_type_ref_trait_for_qualified_path(
     type_ref_id: TypeRefId,
     trait_id: TraitDefinitionId,
     type_arguments: &[TypeArgument],
-    type_context: TypeContext,
+    convert_infer: &mut dyn FnMut(TypeRefId) -> SourceType,
 ) -> Option<TraitType> {
     let trait_ = sa.trait_(trait_id);
     let file_id = ctxt_element.file_id();
@@ -284,7 +302,7 @@ fn convert_type_ref_trait_for_qualified_path(
             break;
         }
 
-        let ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, type_context);
+        let ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, convert_infer);
         trait_type_params.push(ty);
         idx += 1;
     }
@@ -307,7 +325,8 @@ fn convert_type_ref_trait_for_qualified_path(
                 return None;
             }
 
-            let ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, type_context);
+            let ty =
+                convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, convert_infer);
             bindings.push((alias_id, ty));
         } else {
             sa.report(file_id, span, &UNKNOWN_TYPE_BINDING, args!());
@@ -332,7 +351,7 @@ fn convert_type_ref_symbol(
     type_ref_id: TypeRefId,
     symbol: SymbolKind,
     type_arguments: &[TypeArgument],
-    type_context: TypeContext,
+    convert_infer: &mut dyn FnMut(TypeRefId) -> SourceType,
 ) -> SourceType {
     let file_id = ctxt_element.file_id();
     let span = type_ref_span(sa, type_ref_arena, file_id, type_ref_id);
@@ -353,7 +372,7 @@ fn convert_type_ref_symbol(
             type_ref_id,
             trait_id,
             type_arguments,
-            type_context,
+            convert_infer,
         ),
         SymbolKind::Class(..)
         | SymbolKind::Struct(..)
@@ -374,7 +393,7 @@ fn convert_type_ref_symbol(
                 }
 
                 let ty =
-                    convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, type_context);
+                    convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, convert_infer);
                 new_type_params.push(ty);
             }
 
@@ -408,7 +427,7 @@ fn convert_type_ref_trait_object(
     type_ref_id: TypeRefId,
     trait_id: TraitDefinitionId,
     type_arguments: &[TypeArgument],
-    type_context: TypeContext,
+    convert_infer: &mut dyn FnMut(TypeRefId) -> SourceType,
 ) -> SourceType {
     let trait_ = sa.trait_(trait_id);
     let file_id = ctxt_element.file_id();
@@ -428,7 +447,7 @@ fn convert_type_ref_trait_object(
             break;
         }
 
-        let ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, type_context);
+        let ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, convert_infer);
         trait_type_params.push(ty);
         idx += 1;
     }
@@ -454,7 +473,8 @@ fn convert_type_ref_trait_object(
                 return SourceType::Error;
             }
 
-            let ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, type_context);
+            let ty =
+                convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, convert_infer);
             used_aliases.insert(alias_id, ty);
         } else {
             let arg_span = get_type_argument_span(sa, type_ref_arena, file_id, type_ref_id, idx);
@@ -501,6 +521,11 @@ pub(crate) fn convert_trait_type_ref(
     allow_bindings: bool,
     type_context: TypeContext,
 ) -> Option<TraitType> {
+    let mut convert_infer = |_| match type_context {
+        TypeContext::FunctionBody => unimplemented!(),
+        TypeContext::Declaration => SourceType::Error,
+    };
+
     let file_id = ctxt_element.file_id();
     let span = type_ref_span(sa, type_ref_arena, file_id, type_ref_id);
 
@@ -532,7 +557,7 @@ pub(crate) fn convert_trait_type_ref(
         trait_id,
         type_arguments,
         allow_bindings,
-        type_context,
+        &mut convert_infer,
     )
 }
 
@@ -544,7 +569,7 @@ fn convert_trait_type_ref_inner(
     trait_id: TraitDefinitionId,
     type_arguments: &[TypeArgument],
     allow_bindings: bool,
-    type_context: TypeContext,
+    convert_infer: &mut dyn FnMut(TypeRefId) -> SourceType,
 ) -> Option<TraitType> {
     let trait_ = sa.trait_(trait_id);
     let file_id = ctxt_element.file_id();
@@ -566,7 +591,7 @@ fn convert_trait_type_ref_inner(
             break;
         }
 
-        let ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, type_context);
+        let ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, convert_infer);
         trait_type_params.push(ty);
         idx += 1;
     }
@@ -596,7 +621,8 @@ fn convert_trait_type_ref_inner(
                 return None;
             }
 
-            let ty = convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, type_context);
+            let ty =
+                convert_type_ref_inner(sa, type_ref_arena, ctxt_element, arg.ty, convert_infer);
             bindings.push((alias_id, ty));
         } else {
             let arg_span = get_type_argument_span(sa, type_ref_arena, file_id, type_ref_id, idx);

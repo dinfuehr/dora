@@ -1,7 +1,7 @@
 use crate::error::diagnostics::{CANNOT_INFER_TYPE, CANNOT_INFER_TYPE_ARGUMENTS};
 use crate::sema::{
-    ExprId, TypeContext, TypeRef, TypeRefId, check_type_ref, convert_type_ref, parse_type_ref,
-    type_ref_span,
+    ExprId, TypeContext, TypeRefId, check_type_ref, convert_type_ref_with_inference,
+    parse_type_ref, type_ref_span,
 };
 use crate::{SourceType, SourceTypeArray, TraitType, args};
 
@@ -24,18 +24,21 @@ impl TypeCheck<'_> {
             TypeContext::FunctionBody,
         );
 
-        if matches!(type_refs.type_ref(id), TypeRef::Infer) {
-            let type_var_id = self.create_type_variable(TypeVariableOrigin::TypeRef(id));
-            type_variables.push(type_var_id);
-            return SourceType::TypeVar(type_var_id);
-        }
-
-        let ty = convert_type_ref(
+        let registered_type_variables = &mut self.type_variables;
+        let ty = convert_type_ref_with_inference(
             self.sa,
             type_refs,
             self.element,
             id,
-            TypeContext::FunctionBody,
+            &mut |type_ref_id| {
+                let type_var_id = TypeVarId(registered_type_variables.len());
+                registered_type_variables.push(TypeVariable {
+                    value: None,
+                    origin: TypeVariableOrigin::TypeRef(type_ref_id),
+                });
+                type_variables.push(type_var_id);
+                SourceType::TypeVar(type_var_id)
+            },
         );
         let allow_self = self.self_ty.is_some();
         let ty = check_type_ref(self.sa, type_refs, self.element, id, ty, allow_self);

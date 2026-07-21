@@ -11,7 +11,8 @@ use crate::error::DescriptorArgs;
 use crate::error::diagnostics::{
     ASSIGN_TYPE, DiagnosticDescriptor, INVALID_CHAR_LITERAL, INVALID_ESCAPE_SEQUENCE,
     INVALID_NUMBER_FORMAT, NAME_BOUND_MULTIPLE_TIMES_IN_PARAMS, NEGATIVE_UNSIGNED,
-    NUMBER_LIMIT_OVERFLOW, NUMBER_OVERFLOW, RETURN_TYPE, UNKNOWN_SUFFIX, UNUSED_VARIABLE,
+    NUMBER_LIMIT_OVERFLOW, NUMBER_OVERFLOW, RETURN_TYPE, TYPE_INFERENCE_NOT_SUPPORTED_IN_CONTEXT,
+    UNKNOWN_SUFFIX, UNUSED_VARIABLE,
 };
 use crate::interner::Name;
 use crate::sema::{
@@ -20,8 +21,9 @@ use crate::sema::{
     FieldIndex, GlobalDefinition, IdentType, LambdaExpr, ModuleDefinitionId, NestedScopeId,
     NestedVarId, PackageDefinitionId, Param, PatternId, ScopeId, Sema, SourceFileId, StmtId,
     TypeContext, TypeParamDefinition, TypeParamDefinitionId, TypeRefId, Var, VarAccess, VarId,
-    VarLocation, Visibility, check_type_ref, convert_trait_type_ref, convert_type_ref,
-    generated_identity_type_params, lambda_object_type, parse_type_ref,
+    VarLocation, Visibility, check_type_ref, convert_trait_type_ref,
+    convert_type_ref_with_inference, generated_identity_type_params, lambda_object_type,
+    parse_type_ref, type_ref_span,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
@@ -604,16 +606,22 @@ impl<'a> TypeCheck<'a> {
             id,
             TypeContext::FunctionBody,
         );
-        let ty = convert_type_ref(
-            self.sa,
-            type_refs,
-            self.element,
-            id,
-            TypeContext::FunctionBody,
-        );
+        let sa = self.sa;
+        let file_id = self.file_id;
+        let ty =
+            convert_type_ref_with_inference(sa, type_refs, self.element, id, &mut |type_ref_id| {
+                let span = type_ref_span(sa, type_refs, file_id, type_ref_id);
+                sa.report(
+                    file_id,
+                    span,
+                    &TYPE_INFERENCE_NOT_SUPPORTED_IN_CONTEXT,
+                    args!(),
+                );
+                SourceType::Error
+            });
         let allow_self = self.self_ty.is_some();
-        let ty = check_type_ref(self.sa, type_refs, self.element, id, ty, allow_self);
-        crate::parsety::expand_st(self.sa, self.element, ty, self.self_ty.clone())
+        let ty = check_type_ref(sa, type_refs, self.element, id, ty, allow_self);
+        crate::parsety::expand_st(sa, self.element, ty, self.self_ty.clone())
     }
 
     /// Read a trait type for qualified path expressions like `[T as Trait]::Item`.

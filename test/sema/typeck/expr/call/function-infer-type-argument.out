@@ -4,14 +4,38 @@ error: type inference is not supported in this context.
  | fn f() {
  |     identity[_](unknown);
                 ~
+ |     identity[(_, _)](unknownTuple);
  | }
- | 
 error: unknown identifier `unknown`.
 --> function-infer-type-argument.dora:4:17
  | 
  | fn f() {
  |     identity[_](unknown);
                    ~~~~~~~
+ |     identity[(_, _)](unknownTuple);
+ | }
+error: type inference is not supported in this context.
+--> function-infer-type-argument.dora:5:15
+ | fn f() {
+ |     identity[_](unknown);
+ |     identity[(_, _)](unknownTuple);
+                 ~
  | }
  | 
-2 errors found.
+error: type inference is not supported in this context.
+--> function-infer-type-argument.dora:5:18
+ | fn f() {
+ |     identity[_](unknown);
+ |     identity[(_, _)](unknownTuple);
+                    ~
+ | }
+ | 
+error: unknown identifier `unknownTuple`.
+--> function-infer-type-argument.dora:5:22
+ | fn f() {
+ |     identity[_](unknown);
+ |     identity[(_, _)](unknownTuple);
+                        ~~~~~~~~~~~~
+ | }
+ | 
+5 errors found.

@@ -14,8 +14,7 @@ use crate::error::diagnostics::{
     INDEX_GET_NOT_IMPLEMENTED, INVALID_LEFT_SIDE_OF_SEPARATOR, MISSING_ARGUMENTS,
     MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD,
     MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
-    STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT,
-    TYPE_INFERENCE_NOT_SUPPORTED_IN_CONTEXT, TYPE_NOT_IMPLEMENTING_TRAIT,
+    STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT, TYPE_NOT_IMPLEMENTING_TRAIT,
     UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT, UNEXPECTED_NAMED_ARGUMENT,
     UNEXPECTED_POSITIONAL_ARGUMENT, UNKNOWN_IDENTIFIER_IN_MODULE, UNKNOWN_STATIC_METHOD,
     UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM, USE_OF_UNKNOWN_ARGUMENT, WRONG_TYPE_FOR_ARGUMENT,
@@ -24,8 +23,8 @@ use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, Element, ElementWithFields,
     EnumDefinitionId, Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema,
-    StructDefinitionId, TraitDefinition, TypeParamDefinition, TypeParamId, TypeRef, TypeRefId,
-    associated_type_bounds, find_impl, implements_trait, type_ref_span,
+    StructDefinitionId, TraitDefinition, TypeParamDefinition, TypeParamId, TypeRefId,
+    associated_type_bounds, find_impl, implements_trait,
 };
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
@@ -123,25 +122,13 @@ fn read_call_type_params_with_inference(
     (SourceTypeArray::with(type_params), type_variables)
 }
 
-fn read_call_type_params(
-    ck: &mut TypeCheck,
-    type_param_refs: &[TypeRefId],
-) -> Option<SourceTypeArray> {
-    let mut succeeded = true;
-    let mut type_params = Vec::with_capacity(type_param_refs.len());
-
-    for &type_param_ref in type_param_refs {
-        if matches!(ck.body.type_refs().type_ref(type_param_ref), TypeRef::Infer) {
-            let span = type_ref_span(ck.sa, ck.body.type_refs(), ck.file_id, type_param_ref);
-            ck.report(span, &TYPE_INFERENCE_NOT_SUPPORTED_IN_CONTEXT, args!());
-            type_params.push(SourceType::Error);
-            succeeded = false;
-        } else {
-            type_params.push(ck.read_type(type_param_ref));
-        }
-    }
-
-    succeeded.then(|| SourceTypeArray::with(type_params))
+fn read_call_type_params(ck: &mut TypeCheck, type_param_refs: &[TypeRefId]) -> SourceTypeArray {
+    SourceTypeArray::with(
+        type_param_refs
+            .iter()
+            .map(|&type_param_ref| ck.read_type(type_param_ref))
+            .collect(),
+    )
 }
 
 pub(crate) fn check_call_arguments(ck: &mut TypeCheck, sema_expr: &CallExpr) {
@@ -993,11 +980,7 @@ fn check_expr_call_fct(
     type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
 ) -> SourceType {
-    let Some(type_params) = read_call_type_params(ck, &type_param_refs) else {
-        check_call_arguments_any(ck, call_expr_id);
-        ck.body.set_ty(expr_id, ty_error());
-        return ty_error();
-    };
+    let type_params = read_call_type_params(ck, &type_param_refs);
     let fct = ck.sa.fct(fct_id);
     let type_params = TypeArgs::from_own(ck.sa, fct.type_param_definition(ck.sa), &type_params);
 
@@ -1693,11 +1676,6 @@ fn check_expr_call_sym(
         ),
 
         _ => {
-            if read_call_type_params(ck, &type_param_refs).is_none() {
-                check_call_arguments_any(ck, call_expr_id);
-                ck.body.set_ty(expr_id, ty_error());
-                return ty_error();
-            }
             let expr_type = check_expr(ck, callee_id, SourceType::Any);
             check_expr_call_expr(ck, expr_id, expr_type, call_expr_id)
         }
@@ -1765,15 +1743,10 @@ fn check_expr_call_path(
     let (type_params, container_type_params) = if defer_type_params {
         (SourceTypeArray::empty(), SourceTypeArray::empty())
     } else {
-        let type_params = read_call_type_params(ck, &type_param_refs);
-        let container_type_params = read_call_type_params(ck, &container_type_param_refs);
-        let (Some(type_params), Some(container_type_params)) = (type_params, container_type_params)
-        else {
-            check_call_arguments_any(ck, call_expr_id);
-            ck.body.set_ty(expr_id, ty_error());
-            return ty_error();
-        };
-        (type_params, container_type_params)
+        (
+            read_call_type_params(ck, &type_param_refs),
+            read_call_type_params(ck, &container_type_param_refs),
+        )
     };
 
     // Handle Self specially - it's not a symbol

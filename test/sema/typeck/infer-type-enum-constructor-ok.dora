@@ -19,6 +19,7 @@ mod foo {
 }
 
 fn takeBox(_value: Box[Int32]) {}
+fn takeTupleBox(_value: Box[(Int32, Bool)]) {}
 fn takePair(_value: Pair[String, Bool]) {}
 fn takeNested(_value: Nested[Int32]) {}
 fn takeNamed(_value: Named[Bool]) {}
@@ -29,6 +30,9 @@ fn takeQualified(_value: foo::Box[Int64]) {}
 fn main() {
     let box = Box::New[_](1i32);
     takeBox(box);
+
+    let tupleBox = Box::New[(_, _)]((1i32, true));
+    takeTupleBox(tupleBox);
 
     let pair = Pair::New[String, _]("value", true);
     takePair(pair);
