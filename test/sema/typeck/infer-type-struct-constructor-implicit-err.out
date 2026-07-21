@@ -1,0 +1,41 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-type-struct-constructor-implicit-err.dora:11:9
+ | 
+ | fn expectedConflict(): Box[Bool] {
+ |     Box(1i32)
+           ~~~~
+ | }
+ | 
+error: cannot infer type arguments: [_, _].
+--> infer-type-struct-constructor-implicit-err.dora:15:23
+ | 
+ | fn main() {
+ |     let _unresolved = Phantom();
+                         ~~~~~~~~~
+ |     let _partiallyUnresolved = Partial(1i32);
+ |     let _conflict = Same(1i32, true);
+error: cannot infer type arguments: [Int32, _].
+--> infer-type-struct-constructor-implicit-err.dora:16:32
+ | fn main() {
+ |     let _unresolved = Phantom();
+ |     let _partiallyUnresolved = Partial(1i32);
+                                  ~~~~~~~~~~~~~
+ |     let _conflict = Same(1i32, true);
+ |     let _invalidBound = Bounded(DoesNotImplementTrait());
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-type-struct-constructor-implicit-err.dora:17:32
+ |     let _unresolved = Phantom();
+ |     let _partiallyUnresolved = Partial(1i32);
+ |     let _conflict = Same(1i32, true);
+                                  ~~~~
+ |     let _invalidBound = Bounded(DoesNotImplementTrait());
+ | }
+error: type `DoesNotImplementTrait` does not implement trait `Trait`.
+--> infer-type-struct-constructor-implicit-err.dora:18:25
+ |     let _partiallyUnresolved = Partial(1i32);
+ |     let _conflict = Same(1i32, true);
+ |     let _invalidBound = Bounded(DoesNotImplementTrait());
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+5 errors found.

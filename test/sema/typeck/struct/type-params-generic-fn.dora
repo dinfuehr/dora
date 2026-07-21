@@ -1,2 +1,4 @@
+//= ok
+
 struct Foo[T](T, Bool)
 fn f[T](val: T): Foo[T] { Foo(val, false) }

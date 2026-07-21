@@ -87,7 +87,7 @@ pub(crate) fn check_expr_call(
                     sema_expr.callee,
                     sym,
                     type_params,
-                    &type_variables,
+                    type_variables,
                     call_expr_id,
                 )
             } else {
@@ -98,7 +98,7 @@ pub(crate) fn check_expr_call(
                     expr_id,
                     sema_expr.callee,
                     type_params,
-                    &type_variables,
+                    type_variables,
                     call_expr_id,
                 )
             }
@@ -1104,7 +1104,7 @@ fn check_expr_call_struct(
     expected_ty: SourceType,
     struct_id: StructDefinitionId,
     type_params: SourceTypeArray,
-    type_variables: &[TypeVarId],
+    type_variables: Vec<TypeVarId>,
     call_expr_id: ExprId,
 ) -> SourceType {
     let is_struct_accessible = struct_accessible_from(ck.sa, struct_id, ck.module_id);
@@ -1127,6 +1127,12 @@ fn check_expr_call_struct(
     }
 
     let type_param_definition = struct_.type_param_definition(ck.sa);
+    let (type_params, type_variables) = if type_params.is_empty() {
+        assert!(type_variables.is_empty());
+        ck.create_implicit_type_variables(type_param_definition.own_type_params_len(), expr_id)
+    } else {
+        (type_params, type_variables)
+    };
     let type_params =
         check_expr_call_struct_type_params(ck, expr_id, expected_ty, struct_id, type_params);
 
@@ -1150,7 +1156,7 @@ fn check_expr_call_struct(
         );
     }
 
-    if !ck.report_unresolved_type_variables(type_variables) {
+    if !ck.report_unresolved_type_variables(&type_variables, &type_params) {
         ck.body.set_ty(expr_id, ty_error());
         return ty_error();
     }
@@ -1638,11 +1644,11 @@ fn check_expr_call_sym(
     callee_id: ExprId,
     sym: SymbolKind,
     type_params: SourceTypeArray,
-    type_variables: &[TypeVarId],
+    type_variables: Vec<TypeVarId>,
     call_expr_id: ExprId,
 ) -> SourceType {
     if !matches!(&sym, SymbolKind::Struct(_))
-        && !ck.report_unresolved_type_variables(type_variables)
+        && !ck.report_unresolved_type_variables(&type_variables, &type_params)
     {
         ck.body.set_ty(expr_id, ty_error());
         return ty_error();
@@ -1698,7 +1704,7 @@ fn check_expr_call_path(
     expr_id: ExprId,
     callee_id: ExprId,
     type_params: SourceTypeArray,
-    type_variables: &[TypeVarId],
+    type_variables: Vec<TypeVarId>,
     call_expr_id: ExprId,
 ) -> SourceType {
     let path_expr = ck
@@ -1718,7 +1724,7 @@ fn check_expr_call_path(
     };
 
     if !matches!(&resolution, PathResolution::Symbol(SymbolKind::Module(_)))
-        && !ck.report_unresolved_type_variables(type_variables)
+        && !ck.report_unresolved_type_variables(&type_variables, &type_params)
     {
         check_call_arguments_any(ck, call_expr_id);
         ck.body.set_ty(expr_id, ty_error());

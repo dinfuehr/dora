@@ -227,7 +227,13 @@ pub struct TypeVarId(usize);
 #[derive(Clone, Debug)]
 struct TypeVariable {
     value: Option<SourceType>,
-    type_ref_id: TypeRefId,
+    origin: TypeVariableOrigin,
+}
+
+#[derive(Copy, Clone, Debug)]
+enum TypeVariableOrigin {
+    TypeRef(TypeRefId),
+    Expr(ExprId),
 }
 
 impl<'a> TypeCheck<'a> {

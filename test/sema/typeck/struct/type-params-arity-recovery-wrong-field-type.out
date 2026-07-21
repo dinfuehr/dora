@@ -1,11 +1,3 @@
-error: expected 1 type parameters but got 0.
---> type-params-arity-recovery-wrong-field-type.dora:4:5
- | 
- | fn missing(): Foo[Bool] {
- |     Foo(value = 1i32)
-       ~~~~~~~~~~~~~~~~~
- | }
- | 
 error: Argument expects value of type `Bool` but got `Int32`.
 --> type-params-arity-recovery-wrong-field-type.dora:4:9
  | 
@@ -30,4 +22,4 @@ error: Argument expects value of type `Bool` but got `Int32`.
                         ~~~~~~~~~~~~
  | }
  | 
-4 errors found.
+3 errors found.

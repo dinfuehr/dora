@@ -1,11 +1,11 @@
-use crate::error::diagnostics::CANNOT_INFER_TYPE;
+use crate::error::diagnostics::{CANNOT_INFER_TYPE, CANNOT_INFER_TYPE_ARGUMENTS};
 use crate::sema::{
-    TypeContext, TypeRef, TypeRefId, check_type_ref, convert_type_ref, parse_type_ref,
+    ExprId, TypeContext, TypeRef, TypeRefId, check_type_ref, convert_type_ref, parse_type_ref,
     type_ref_span,
 };
 use crate::{SourceType, SourceTypeArray, TraitType, args};
 
-use super::{TypeCheck, TypeVarId, TypeVariable};
+use super::{TypeCheck, TypeVarId, TypeVariable, TypeVariableOrigin};
 
 impl TypeCheck<'_> {
     pub(super) fn read_type_with_inference(
@@ -25,11 +25,7 @@ impl TypeCheck<'_> {
         );
 
         if matches!(type_refs.type_ref(id), TypeRef::Infer) {
-            let type_var_id = TypeVarId(self.type_variables.len());
-            self.type_variables.push(TypeVariable {
-                value: None,
-                type_ref_id: id,
-            });
+            let type_var_id = self.create_type_variable(TypeVariableOrigin::TypeRef(id));
             type_variables.push(type_var_id);
             return SourceType::TypeVar(type_var_id);
         }
@@ -44,6 +40,31 @@ impl TypeCheck<'_> {
         let allow_self = self.self_ty.is_some();
         let ty = check_type_ref(self.sa, type_refs, self.element, id, ty, allow_self);
         crate::parsety::expand_st(self.sa, self.element, ty, self.self_ty.clone())
+    }
+
+    pub(crate) fn create_implicit_type_variables(
+        &mut self,
+        count: usize,
+        expr_id: ExprId,
+    ) -> (SourceTypeArray, Vec<TypeVarId>) {
+        let mut type_variables = Vec::with_capacity(count);
+        let types = (0..count)
+            .map(|_| {
+                let id = self.create_type_variable(TypeVariableOrigin::Expr(expr_id));
+                type_variables.push(id);
+                SourceType::TypeVar(id)
+            })
+            .collect();
+        (SourceTypeArray::with(types), type_variables)
+    }
+
+    fn create_type_variable(&mut self, origin: TypeVariableOrigin) -> TypeVarId {
+        let id = TypeVarId(self.type_variables.len());
+        self.type_variables.push(TypeVariable {
+            value: None,
+            origin,
+        });
+        id
     }
 
     pub(crate) fn resolve_type(&mut self, ty: SourceType) -> SourceType {
@@ -210,24 +231,50 @@ impl TypeCheck<'_> {
     pub(crate) fn report_unresolved_type_variables(
         &mut self,
         type_variables: &[TypeVarId],
+        type_params: &SourceTypeArray,
     ) -> bool {
         let mut succeeded = true;
+        let mut implicit_expr_id = None;
 
         for &id in type_variables {
             let resolved = self.resolve_type(SourceType::TypeVar(id));
             if type_contains_variable(&resolved, None) {
-                let type_ref_id = self
+                let origin = self
                     .type_variables
                     .get(id.0)
                     .expect("type variable not registered")
-                    .type_ref_id;
-                self.report(
-                    type_ref_span(self.sa, self.body.type_refs(), self.file_id, type_ref_id),
-                    &CANNOT_INFER_TYPE,
-                    args!(),
-                );
+                    .origin;
+                match origin {
+                    TypeVariableOrigin::TypeRef(type_ref_id) => {
+                        let span = type_ref_span(
+                            self.sa,
+                            self.body.type_refs(),
+                            self.file_id,
+                            type_ref_id,
+                        );
+                        self.report(span, &CANNOT_INFER_TYPE, args!());
+                    }
+                    TypeVariableOrigin::Expr(expr_id) => {
+                        assert!(implicit_expr_id.is_none_or(|id| id == expr_id));
+                        implicit_expr_id = Some(expr_id);
+                    }
+                }
                 succeeded = false;
             }
+        }
+
+        if let Some(expr_id) = implicit_expr_id {
+            let mut arguments = Vec::new();
+            for ty in type_params.iter() {
+                let ty = self.resolve_type(ty);
+                arguments.push(self.ty_name(&ty));
+            }
+            let type_arguments = format!("[{}]", arguments.join(", "));
+            self.report(
+                self.expr_span(expr_id),
+                &CANNOT_INFER_TYPE_ARGUMENTS,
+                args!(type_arguments),
+            );
         }
 
         succeeded

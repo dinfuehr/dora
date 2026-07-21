@@ -1,0 +1,19 @@
+struct Phantom[A, B]
+struct Partial[A, B](A)
+struct Same[T](T, T)
+struct Box[T](T)
+
+trait Trait {}
+struct DoesNotImplementTrait
+struct Bounded[T: Trait](T)
+
+fn expectedConflict(): Box[Bool] {
+    Box(1i32)
+}
+
+fn main() {
+    let _unresolved = Phantom();
+    let _partiallyUnresolved = Partial(1i32);
+    let _conflict = Same(1i32, true);
+    let _invalidBound = Bounded(DoesNotImplementTrait());
+}

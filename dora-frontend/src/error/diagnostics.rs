@@ -1178,6 +1178,11 @@ pub static CANNOT_INFER_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
     level: ErrorLevel::Error,
 };
 
+pub static CANNOT_INFER_TYPE_ARGUMENTS: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "cannot infer type arguments: {0}.",
+    level: ErrorLevel::Error,
+};
+
 use crate::error::DescriptorArgs;
 use crate::sema::Sema;
 
