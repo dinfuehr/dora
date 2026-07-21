@@ -262,11 +262,6 @@ pub static USELESS_PATTERN: DiagnosticDescriptor = DiagnosticDescriptor {
     level: ErrorLevel::Error,
 };
 
-pub static VAR_NEEDS_TYPE_OR_EXPRESSION: DiagnosticDescriptor = DiagnosticDescriptor {
-    message: "variable needs either type declaration or expression.",
-    level: ErrorLevel::Error,
-};
-
 pub static UNUSED_VARIABLE: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "unused variable `{0}`.",
     level: ErrorLevel::Warn,
