@@ -1,0 +1,57 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-type-struct-constructor-err.dora:12:12
+ | 
+ | fn expectedConflict(): Box[Bool] {
+ |     Box[_](1i32)
+              ~~~~
+ | }
+ | 
+error: cannot infer type.
+--> infer-type-struct-constructor-err.dora:16:31
+ | 
+ | fn main() {
+ |     let _unresolved = Phantom[_]();
+                                 ~
+ |     let _conflict = Same[_](1i32, true);
+ |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-type-struct-constructor-err.dora:17:35
+ | fn main() {
+ |     let _unresolved = Phantom[_]();
+ |     let _conflict = Same[_](1i32, true);
+                                     ~~~~
+ |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
+ |     let _unsupported = identity[_](1i32);
+error: type `DoesNotImplementTrait` does not implement trait `Trait`.
+--> infer-type-struct-constructor-err.dora:18:25
+ |     let _unresolved = Phantom[_]();
+ |     let _conflict = Same[_](1i32, true);
+ |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _unsupported = identity[_](1i32);
+ |     let _wrongArity = Box[Int32, Bool](unknown);
+error: cannot infer type.
+--> infer-type-struct-constructor-err.dora:19:33
+ |     let _conflict = Same[_](1i32, true);
+ |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
+ |     let _unsupported = identity[_](1i32);
+                                   ~
+ |     let _wrongArity = Box[Int32, Bool](unknown);
+ | }
+error: expected 1 type parameters but got 2.
+--> infer-type-struct-constructor-err.dora:20:23
+ |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
+ |     let _unsupported = identity[_](1i32);
+ |     let _wrongArity = Box[Int32, Bool](unknown);
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: unknown identifier `unknown`.
+--> infer-type-struct-constructor-err.dora:20:40
+ |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
+ |     let _unsupported = identity[_](1i32);
+ |     let _wrongArity = Box[Int32, Bool](unknown);
+                                          ~~~~~~~
+ | }
+ | 
+7 errors found.

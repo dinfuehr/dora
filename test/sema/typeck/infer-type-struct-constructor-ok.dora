@@ -1,0 +1,48 @@
+//= ok
+
+struct Box[T](T)
+struct Pair[A, B](A, B)
+struct Nested[T](Option[T])
+struct Named[T] { value: T }
+struct Phantom[T]
+
+trait Trait {}
+struct ImplementsTrait
+impl Trait for ImplementsTrait {}
+struct Bounded[T: Trait](T)
+
+mod foo {
+    pub struct Box[T](pub T)
+}
+
+fn takeBox(_value: Box[Int32]) {}
+fn takePair(_value: Pair[String, Bool]) {}
+fn takeNested(_value: Nested[Int32]) {}
+fn takeNamed(_value: Named[Bool]) {}
+fn takeBounded(_value: Bounded[ImplementsTrait]) {}
+fn takeQualified(_value: foo::Box[Int64]) {}
+
+fn main() {
+    let box = Box[_](1i32);
+    takeBox(box);
+
+    let pair = Pair[String, _]("value", true);
+    takePair(pair);
+
+    let both = Pair[_, _]("value", true);
+    takePair(both);
+
+    let nested = Nested[_](Some[Int32](1i32));
+    takeNested(nested);
+
+    let named = Named[_](value = true);
+    takeNamed(named);
+
+    let _phantom: Phantom[Int64] = Phantom[_]();
+
+    let bounded = Bounded[_](ImplementsTrait());
+    takeBounded(bounded);
+
+    let qualified = foo::Box[_](1i64);
+    takeQualified(qualified);
+}

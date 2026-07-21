@@ -29,7 +29,8 @@ use crate::sema::{
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
 use crate::typeck::{
-    TypeCheck, call_arg_name_span, call_arg_span, check_expr, check_type_params,
+    TypeCheck, TypeVarId, call_arg_name_span, call_arg_span, check_expr, check_type_param_arity,
+    check_type_param_bounds, check_type_params,
     expr::{PathResolution, resolve_path},
     find_method_call_candidates,
 };
@@ -51,11 +52,12 @@ pub(crate) fn check_expr_call(
     match callee_expr {
         Expr::Path(name_expr) => {
             // Get type params from the last segment
+            let mut type_variables = Vec::new();
             let type_params = if let Some(last_segment) = name_expr.segments.last() {
                 let params: Vec<SourceType> = last_segment
                     .type_params
                     .iter()
-                    .map(|&ty| ck.read_type(ty))
+                    .map(|&ty| ck.read_type_with_inference(ty, &mut type_variables))
                     .collect();
                 SourceTypeArray::with(params)
             } else {
@@ -85,6 +87,7 @@ pub(crate) fn check_expr_call(
                     sema_expr.callee,
                     sym,
                     type_params,
+                    &type_variables,
                     call_expr_id,
                 )
             } else {
@@ -95,6 +98,7 @@ pub(crate) fn check_expr_call(
                     expr_id,
                     sema_expr.callee,
                     type_params,
+                    &type_variables,
                     call_expr_id,
                 )
             }
@@ -1097,8 +1101,10 @@ fn check_expr_call_static_method(
 fn check_expr_call_struct(
     ck: &mut TypeCheck,
     expr_id: ExprId,
+    expected_ty: SourceType,
     struct_id: StructDefinitionId,
     type_params: SourceTypeArray,
+    type_variables: &[TypeVarId],
     call_expr_id: ExprId,
 ) -> SourceType {
     let is_struct_accessible = struct_accessible_from(ck.sa, struct_id, ck.module_id);
@@ -1120,41 +1126,51 @@ fn check_expr_call_struct(
         );
     }
 
-    let ty = SourceType::Struct(struct_id, type_params.clone());
-    let type_args = TypeArgs::from_own(ck.sa, struct_.type_param_definition(ck.sa), &type_params);
-    let type_params_ok = check_type_params(
-        ck.sa,
-        ck.element,
-        ck.type_param_definition,
-        struct_,
-        &type_args,
-        ck.file_id,
-        || ck.expr_span(expr_id),
-        |ty| specialize_type(ck.sa, ty, &type_args),
-    );
-
-    if !type_params_ok {
-        ck.body.set_ty(expr_id, ty_error());
-        return ty_error();
-    }
+    let type_param_definition = struct_.type_param_definition(ck.sa);
+    let type_params =
+        check_expr_call_struct_type_params(ck, expr_id, expected_ty, struct_id, type_params);
 
     if struct_.field_name_style.is_named() {
         check_expr_call_ctor_with_named_fields(
             ck,
             struct_,
-            struct_.type_param_definition(ck.sa),
+            type_param_definition,
             type_params.clone(),
+            CtorTypeInference::Struct,
             call_expr_id,
         );
     } else {
         check_expr_call_ctor_with_unnamed_fields(
             ck,
             struct_,
-            struct_.type_param_definition(ck.sa),
+            type_param_definition,
             type_params.clone(),
+            CtorTypeInference::Struct,
             call_expr_id,
         );
     }
+
+    if !ck.report_unresolved_type_variables(type_variables) {
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let type_params = ck.resolve_type_array(type_params);
+    let type_args = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
+    if !check_type_param_bounds(
+        ck.sa,
+        ck.element,
+        ck.type_param_definition,
+        struct_,
+        ck.file_id,
+        || ck.expr_span(expr_id),
+        |ty| specialize_type(ck.sa, ty, &type_args),
+    ) {
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let ty = SourceType::Struct(struct_id, type_params.clone());
 
     ck.body.insert_call_type(
         expr_id,
@@ -1165,11 +1181,78 @@ fn check_expr_call_struct(
     ty
 }
 
+fn check_expr_call_struct_type_params(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    expected_ty: SourceType,
+    struct_id: StructDefinitionId,
+    type_params: SourceTypeArray,
+) -> SourceTypeArray {
+    let struct_ = ck.sa.struct_(struct_id);
+    let type_param_definition = struct_.type_param_definition(ck.sa);
+    let type_args = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
+    let type_params_ok = check_type_param_arity(ck.sa, struct_, &type_args, ck.file_id, || {
+        ck.expr_span(expr_id)
+    });
+
+    let expected_type_params = match &expected_ty {
+        SourceType::Struct(expected_id, expected_type_params) if *expected_id == struct_id => {
+            Some(expected_type_params)
+        }
+        _ => None,
+    };
+
+    let type_params = if type_params_ok {
+        type_params
+    } else {
+        let expected_len = type_param_definition.own_type_params_len();
+        let mut recovered_type_params = type_params.iter().take(expected_len).collect::<Vec<_>>();
+        while recovered_type_params.len() < expected_len {
+            let index = recovered_type_params.len();
+            let recovered_type = expected_type_params
+                .map(|type_params| type_params[index].clone())
+                .unwrap_or(SourceType::Error);
+            recovered_type_params.push(recovered_type);
+        }
+        SourceTypeArray::with(recovered_type_params)
+    };
+
+    if let Some(expected_type_params) = expected_type_params {
+        ck.unify_type_arrays(type_params.clone(), expected_type_params.clone());
+    }
+
+    type_params
+}
+
+#[derive(Clone, Copy)]
+enum CtorTypeInference {
+    None,
+    Struct,
+}
+
+fn report_wrong_type_for_ctor_argument(
+    ck: &mut TypeCheck,
+    call_expr_id: ExprId,
+    arg_index: usize,
+    expected_ty: &SourceType,
+    arg_ty: &SourceType,
+) {
+    let expected = ck.ty_name(expected_ty);
+    let actual = ck.ty_name(arg_ty);
+
+    ck.report(
+        call_arg_span(ck, call_expr_id, arg_index),
+        &WRONG_TYPE_FOR_ARGUMENT,
+        args!(expected, actual),
+    );
+}
+
 fn check_expr_call_ctor_with_named_fields(
     ck: &mut TypeCheck,
     element_with_fields: &dyn ElementWithFields,
     type_param_definition: &TypeParamDefinition,
     type_params: SourceTypeArray,
+    type_inference: CtorTypeInference,
     call_expr_id: ExprId,
 ) {
     let mut args_by_name: HashMap<Name, usize> = HashMap::new();
@@ -1237,18 +1320,38 @@ fn check_expr_call_ctor_with_named_fields(
             if let Some(arg_index) = args_by_name.remove(&name) {
                 let arg_id = call_args[arg_index].1;
                 let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &type_params);
-                let arg_ty = check_expr(ck, arg_id, def_ty.clone());
+                let expected_ty = match type_inference {
+                    CtorTypeInference::None => def_ty.clone(),
+                    CtorTypeInference::Struct => ck.expected_type_for_inference(def_ty.clone()),
+                };
+                let arg_ty = check_expr(ck, arg_id, expected_ty);
                 ck.body.set_ty(arg_id, arg_ty.clone());
 
-                if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
-                    let exp = ck.ty_name(&def_ty);
-                    let got = ck.ty_name(&arg_ty);
-
-                    ck.report(
-                        call_arg_span(ck, call_expr_id, arg_index),
-                        &WRONG_TYPE_FOR_ARGUMENT,
-                        args!(exp, got),
-                    );
+                match type_inference {
+                    CtorTypeInference::None => {
+                        if !def_ty.allows(ck.sa, arg_ty.clone()) {
+                            report_wrong_type_for_ctor_argument(
+                                ck,
+                                call_expr_id,
+                                arg_index,
+                                &def_ty,
+                                &arg_ty,
+                            );
+                        }
+                    }
+                    CtorTypeInference::Struct => {
+                        let unified = ck.unify_types(def_ty.clone(), arg_ty.clone());
+                        let def_ty = ck.resolve_type(def_ty);
+                        if !unified {
+                            report_wrong_type_for_ctor_argument(
+                                ck,
+                                call_expr_id,
+                                arg_index,
+                                &def_ty,
+                                &arg_ty,
+                            );
+                        }
+                    }
                 }
 
                 ck.body.insert_argument(arg_id, field.index.to_usize());
@@ -1303,6 +1406,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
     element_with_fields: &dyn ElementWithFields,
     type_param_definition: &TypeParamDefinition,
     type_params: SourceTypeArray,
+    type_inference: CtorTypeInference,
     call_expr_id: ExprId,
 ) -> bool {
     let type_params = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
@@ -1320,7 +1424,11 @@ fn check_expr_call_ctor_with_unnamed_fields(
         let field_id = element_with_fields.field_ids()[idx];
         let field = ck.sa.field(field_id);
         let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &type_params);
-        let arg_ty = check_expr(ck, arg_id, def_ty.clone());
+        let expected_ty = match type_inference {
+            CtorTypeInference::None => def_ty.clone(),
+            CtorTypeInference::Struct => ck.expected_type_for_inference(def_ty.clone()),
+        };
+        let arg_ty = check_expr(ck, arg_id, expected_ty);
         ck.body.set_ty(arg_id, arg_ty.clone());
 
         if name.is_some() {
@@ -1329,15 +1437,19 @@ fn check_expr_call_ctor_with_unnamed_fields(
             ck.report(span, &UNEXPECTED_NAMED_ARGUMENT, args!());
         }
 
-        if !def_ty.allows(ck.sa, arg_ty.clone()) && !arg_ty.is_error() {
-            let exp = ck.ty_name(&def_ty);
-            let got = ck.ty_name(&arg_ty);
-
-            ck.report(
-                call_arg_span(ck, call_expr_id, idx),
-                &WRONG_TYPE_FOR_ARGUMENT,
-                args!(exp, got),
-            );
+        match type_inference {
+            CtorTypeInference::None => {
+                if !def_ty.allows(ck.sa, arg_ty.clone()) {
+                    report_wrong_type_for_ctor_argument(ck, call_expr_id, idx, &def_ty, &arg_ty);
+                }
+            }
+            CtorTypeInference::Struct => {
+                let unified = ck.unify_types(def_ty.clone(), arg_ty.clone());
+                let def_ty = ck.resolve_type(def_ty);
+                if !unified {
+                    report_wrong_type_for_ctor_argument(ck, call_expr_id, idx, &def_ty, &arg_ty);
+                }
+            }
         }
 
         ck.body.insert_argument(arg_id, field.index.to_usize());
@@ -1420,6 +1532,7 @@ fn check_expr_call_class(
             cls,
             cls.type_param_definition(ck.sa),
             type_params.clone(),
+            CtorTypeInference::None,
             call_expr_id,
         );
     } else {
@@ -1428,6 +1541,7 @@ fn check_expr_call_class(
             cls,
             cls.type_param_definition(ck.sa),
             type_params.clone(),
+            CtorTypeInference::None,
             call_expr_id,
         );
     }
@@ -1493,6 +1607,7 @@ fn check_expr_call_enum_variant(
                 variant,
                 enum_.type_param_definition(ck.sa),
                 type_params.clone(),
+                CtorTypeInference::None,
                 call_expr_id,
             );
         } else {
@@ -1501,6 +1616,7 @@ fn check_expr_call_enum_variant(
                 variant,
                 enum_.type_param_definition(ck.sa),
                 type_params.clone(),
+                CtorTypeInference::None,
                 call_expr_id,
             );
         }
@@ -1522,8 +1638,16 @@ fn check_expr_call_sym(
     callee_id: ExprId,
     sym: SymbolKind,
     type_params: SourceTypeArray,
+    type_variables: &[TypeVarId],
     call_expr_id: ExprId,
 ) -> SourceType {
+    if !matches!(&sym, SymbolKind::Struct(_))
+        && !ck.report_unresolved_type_variables(type_variables)
+    {
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
     match sym {
         SymbolKind::Fct(fct_id) => {
             check_expr_call_fct(ck, expr_id, fct_id, type_params, call_expr_id)
@@ -1533,9 +1657,15 @@ fn check_expr_call_sym(
             check_expr_call_class(ck, expr_id, expected_ty, cls_id, type_params, call_expr_id)
         }
 
-        SymbolKind::Struct(struct_id) => {
-            check_expr_call_struct(ck, expr_id, struct_id, type_params, call_expr_id)
-        }
+        SymbolKind::Struct(struct_id) => check_expr_call_struct(
+            ck,
+            expr_id,
+            expected_ty,
+            struct_id,
+            type_params,
+            type_variables,
+            call_expr_id,
+        ),
 
         SymbolKind::EnumVariant(enum_id, variant_idx) => check_expr_call_enum_variant(
             ck,
@@ -1568,6 +1698,7 @@ fn check_expr_call_path(
     expr_id: ExprId,
     callee_id: ExprId,
     type_params: SourceTypeArray,
+    type_variables: &[TypeVarId],
     call_expr_id: ExprId,
 ) -> SourceType {
     let path_expr = ck
@@ -1585,6 +1716,14 @@ fn check_expr_call_path(
             return ty_error();
         }
     };
+
+    if !matches!(&resolution, PathResolution::Symbol(SymbolKind::Module(_)))
+        && !ck.report_unresolved_type_variables(type_variables)
+    {
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
 
     // The last segment is the method/constructor/variant name
     let last_segment = &segments[segments.len() - 1];
@@ -1812,6 +1951,7 @@ fn check_expr_call_path(
                 callee_id,
                 sym,
                 type_params,
+                type_variables,
                 call_expr_id,
             )
         }

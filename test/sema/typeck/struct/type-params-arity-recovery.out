@@ -1,0 +1,33 @@
+error: expected 1 type parameters but got 0.
+--> type-params-arity-recovery.dora:4:20
+ | 
+ | fn main() {
+ |     let _missing = Foo(value = 1i32, unknown = 2i32);
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _tooMany = Foo[Int32, Bool](value = 1i32, unknown = 2i32);
+ | }
+error: Named argument with this name does not exist.
+--> type-params-arity-recovery.dora:4:38
+ | 
+ | fn main() {
+ |     let _missing = Foo(value = 1i32, unknown = 2i32);
+                                        ~~~~~~~~~~~~~~
+ |     let _tooMany = Foo[Int32, Bool](value = 1i32, unknown = 2i32);
+ | }
+error: expected 1 type parameters but got 2.
+--> type-params-arity-recovery.dora:5:20
+ | fn main() {
+ |     let _missing = Foo(value = 1i32, unknown = 2i32);
+ |     let _tooMany = Foo[Int32, Bool](value = 1i32, unknown = 2i32);
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: Named argument with this name does not exist.
+--> type-params-arity-recovery.dora:5:51
+ | fn main() {
+ |     let _missing = Foo(value = 1i32, unknown = 2i32);
+ |     let _tooMany = Foo[Int32, Bool](value = 1i32, unknown = 2i32);
+                                                     ~~~~~~~~~~~~~~
+ | }
+ | 
+4 errors found.

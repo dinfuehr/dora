@@ -15,6 +15,28 @@ pub fn check_type_params<'a>(
     span: impl Fn() -> Span,
     specialize: impl Fn(SourceType) -> SourceType,
 ) -> bool {
+    if !check_type_param_arity(sa, callee_element, params, file_id, || span()) {
+        return false;
+    }
+
+    check_type_param_bounds(
+        sa,
+        caller_element,
+        caller_type_param_defs,
+        callee_element,
+        file_id,
+        span,
+        specialize,
+    )
+}
+
+pub fn check_type_param_arity(
+    sa: &Sema,
+    callee_element: &dyn Element,
+    params: &TypeArgs,
+    file_id: SourceFileId,
+    span: impl Fn() -> Span,
+) -> bool {
     let callee_type_param_defs = callee_element.type_param_definition(sa);
 
     let expected_container = callee_type_param_defs.container_type_params();
@@ -33,6 +55,19 @@ pub fn check_type_params<'a>(
         return false;
     }
 
+    true
+}
+
+pub fn check_type_param_bounds<'a>(
+    sa: &'a Sema,
+    caller_element: &'a dyn Element,
+    caller_type_param_defs: &'a TypeParamDefinition,
+    callee_element: &'a dyn Element,
+    file_id: SourceFileId,
+    span: impl Fn() -> Span,
+    specialize: impl Fn(SourceType) -> SourceType,
+) -> bool {
+    let callee_type_param_defs = callee_element.type_param_definition(sa);
     let mut succeeded = true;
 
     for bound in callee_type_param_defs.bounds(sa) {

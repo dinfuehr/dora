@@ -1,0 +1,9 @@
+struct Foo[T] { value: T }
+
+fn missing(): Foo[Bool] {
+    Foo(value = 1i32)
+}
+
+fn tooMany(): Foo[Bool] {
+    Foo[Bool, Int32](value = 1i32)
+}

@@ -1,0 +1,33 @@
+error: expected 1 type parameters but got 0.
+--> type-params-arity-recovery-wrong-field-type.dora:4:5
+ | 
+ | fn missing(): Foo[Bool] {
+ |     Foo(value = 1i32)
+       ~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: Argument expects value of type `Bool` but got `Int32`.
+--> type-params-arity-recovery-wrong-field-type.dora:4:9
+ | 
+ | fn missing(): Foo[Bool] {
+ |     Foo(value = 1i32)
+           ~~~~~~~~~~~~
+ | }
+ | 
+error: expected 1 type parameters but got 2.
+--> type-params-arity-recovery-wrong-field-type.dora:8:5
+ | 
+ | fn tooMany(): Foo[Bool] {
+ |     Foo[Bool, Int32](value = 1i32)
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: Argument expects value of type `Bool` but got `Int32`.
+--> type-params-arity-recovery-wrong-field-type.dora:8:22
+ | 
+ | fn tooMany(): Foo[Bool] {
+ |     Foo[Bool, Int32](value = 1i32)
+                        ~~~~~~~~~~~~
+ | }
+ | 
+4 errors found.

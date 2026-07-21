@@ -1173,6 +1173,11 @@ pub static INFERRED_TYPE_NOT_ALLOWED_IN_DECLARATION: DiagnosticDescriptor = Diag
     level: ErrorLevel::Error,
 };
 
+pub static CANNOT_INFER_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "cannot infer type.",
+    level: ErrorLevel::Error,
+};
+
 use crate::error::DescriptorArgs;
 use crate::sema::Sema;
 

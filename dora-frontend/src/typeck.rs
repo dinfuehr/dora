@@ -28,7 +28,9 @@ use crate::typeck::constck::ConstCheck;
 use crate::typeck::expr::check_expr;
 use crate::typeck::pattern::check_pattern;
 use crate::typeck::stmt::check_stmt;
-use crate::typeck::type_params::check_type_params;
+use crate::typeck::type_params::{
+    check_type_param_arity, check_type_param_bounds, check_type_params,
+};
 use crate::{
     ParsedType, SourceType, SymbolKind, always_returns, args, expr_always_returns,
     report_sym_shadow_span,
@@ -36,6 +38,7 @@ use crate::{
 
 mod constck;
 mod expr;
+mod infer;
 mod lookup;
 mod pattern;
 mod stmt;
@@ -213,7 +216,6 @@ pub struct TypeCheck<'a> {
     pub active_contexts: &'a mut Vec<ContextId>,
     pub start_context_idx: usize,
     pub needs_context_slot_in_lambda_object: bool,
-    #[allow(dead_code)]
     type_variables: &'a mut Vec<TypeVariable>,
     // Lambda functions discovered while checking functions.
     pub lambda_definitions: &'a mut Vec<FctDefinition>,
@@ -222,7 +224,6 @@ pub struct TypeCheck<'a> {
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TypeVarId(usize);
 
-#[allow(dead_code)]
 #[derive(Clone, Debug)]
 struct TypeVariable {
     value: Option<SourceType>,

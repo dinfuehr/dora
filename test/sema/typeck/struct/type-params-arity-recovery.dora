@@ -1,0 +1,6 @@
+struct Foo[T] { value: T }
+
+fn main() {
+    let _missing = Foo(value = 1i32, unknown = 2i32);
+    let _tooMany = Foo[Int32, Bool](value = 1i32, unknown = 2i32);
+}

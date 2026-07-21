@@ -587,10 +587,9 @@ impl SourceType {
 
     pub fn is_defined_type(&self, sa: &Sema) -> bool {
         match self {
-            SourceType::Error | SourceType::Any | SourceType::Ptr | SourceType::TypeVar(..) => {
-                false
-            }
-            SourceType::Unit
+            SourceType::Any | SourceType::Ptr | SourceType::TypeVar(..) => false,
+            SourceType::Error
+            | SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
