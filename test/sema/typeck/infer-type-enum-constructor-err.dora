@@ -1,0 +1,22 @@
+enum Phantom[T] { New(Int32) }
+enum Same[T] { New(T, T) }
+enum Box[T] { New(T) }
+
+trait Trait {}
+class DoesNotImplementTrait
+enum Bounded[T: Trait] { New(T) }
+
+fn identity[T](value: T): T { value }
+
+fn expectedConflict(): Box[Bool] {
+    Box::New[_](1i32)
+}
+
+fn main() {
+    let _unresolved = Phantom::New[_](1i32);
+    let _containerUnresolved = Phantom[_]::New(1i32);
+    let _conflict = Same::New[_](1i32, true);
+    let _invalidBound = Bounded::New[_](DoesNotImplementTrait());
+    let _unsupported = identity[_](1i32);
+    let _wrongArity = Box::New[Int32, Bool](unknown);
+}

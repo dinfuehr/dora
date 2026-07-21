@@ -1,0 +1,54 @@
+//= ok
+
+enum Box[T] { New(T) }
+enum Same[T] { New(T, T) }
+enum Pair[A, B] { New(A, B) }
+enum Nested[T] { New(Option[T]) }
+enum Named[T] { New { value: T } }
+enum Phantom[T] { New(Int32) }
+
+trait Trait {}
+class ImplementsTrait
+impl Trait for ImplementsTrait {}
+enum Bounded[T: Trait] { New(T) }
+
+enum Imported[T] { New(T) }
+use self::Imported::New;
+
+mod foo {
+    pub enum Box[T] { New(T) }
+}
+
+fn takeBox(_value: Box[Int32]) {}
+fn takeSame(_value: Same[Int32]) {}
+fn takePair(_value: Pair[String, Bool]) {}
+fn takeNested(_value: Nested[Int32]) {}
+fn takeNamed(_value: Named[Bool]) {}
+fn takePhantom(_value: Phantom[Int64]) {}
+fn takeBounded(_value: Bounded[ImplementsTrait]) {}
+fn takeImported(_value: Imported[Int32]) {}
+fn takeQualified(_value: foo::Box[Int64]) {}
+
+fn makePair[T](value: T): Pair[T, Bool] {
+    Pair::New(value, false)
+}
+
+fn main() {
+    let box = Box::New(1i32);
+    takeBox(box);
+
+    let same = Same::New(1i32, 2i32);
+    takeSame(same);
+
+    let pair = Pair::New("value", true);
+    takePair(pair);
+
+    takeNested(Nested::New(Some[Int32](1i32)));
+    takeNamed(Named::New(value = true));
+    takePhantom(Phantom::New(1i32));
+    takeBounded(Bounded::New(ImplementsTrait()));
+    takeImported(New(1i32));
+    takeQualified(foo::Box::New(1i64));
+
+    takePair(makePair[String]("value"));
+}

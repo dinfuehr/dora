@@ -1,0 +1,41 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-type-enum-constructor-implicit-err.dora:11:14
+ | 
+ | fn expectedConflict(): Box[Bool] {
+ |     Box::New(1i32)
+                ~~~~
+ | }
+ | 
+error: cannot infer type arguments: [_, _].
+--> infer-type-enum-constructor-implicit-err.dora:15:23
+ | 
+ | fn main() {
+ |     let _unresolved = Phantom::New(1i32);
+                         ~~~~~~~~~~~~~~~~~~
+ |     let _partiallyUnresolved = Partial::New(1i32);
+ |     let _conflict = Same::New(1i32, true);
+error: cannot infer type arguments: [Int32, _].
+--> infer-type-enum-constructor-implicit-err.dora:16:32
+ | fn main() {
+ |     let _unresolved = Phantom::New(1i32);
+ |     let _partiallyUnresolved = Partial::New(1i32);
+                                  ~~~~~~~~~~~~~~~~~~
+ |     let _conflict = Same::New(1i32, true);
+ |     let _invalidBound = Bounded::New(DoesNotImplementTrait());
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-type-enum-constructor-implicit-err.dora:17:37
+ |     let _unresolved = Phantom::New(1i32);
+ |     let _partiallyUnresolved = Partial::New(1i32);
+ |     let _conflict = Same::New(1i32, true);
+                                       ~~~~
+ |     let _invalidBound = Bounded::New(DoesNotImplementTrait());
+ | }
+error: type `DoesNotImplementTrait` does not implement trait `Trait`.
+--> infer-type-enum-constructor-implicit-err.dora:18:25
+ |     let _partiallyUnresolved = Partial::New(1i32);
+ |     let _conflict = Same::New(1i32, true);
+ |     let _invalidBound = Bounded::New(DoesNotImplementTrait());
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+5 errors found.

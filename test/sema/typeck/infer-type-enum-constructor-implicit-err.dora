@@ -1,0 +1,19 @@
+enum Phantom[A, B] { New(Int32) }
+enum Partial[A, B] { New(A) }
+enum Same[T] { New(T, T) }
+enum Box[T] { New(T) }
+
+trait Trait {}
+class DoesNotImplementTrait
+enum Bounded[T: Trait] { New(T) }
+
+fn expectedConflict(): Box[Bool] {
+    Box::New(1i32)
+}
+
+fn main() {
+    let _unresolved = Phantom::New(1i32);
+    let _partiallyUnresolved = Partial::New(1i32);
+    let _conflict = Same::New(1i32, true);
+    let _invalidBound = Bounded::New(DoesNotImplementTrait());
+}

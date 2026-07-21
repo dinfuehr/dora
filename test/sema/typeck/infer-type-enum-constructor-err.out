@@ -1,0 +1,65 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-type-enum-constructor-err.dora:12:17
+ | 
+ | fn expectedConflict(): Box[Bool] {
+ |     Box::New[_](1i32)
+                   ~~~~
+ | }
+ | 
+error: cannot infer type.
+--> infer-type-enum-constructor-err.dora:16:36
+ | 
+ | fn main() {
+ |     let _unresolved = Phantom::New[_](1i32);
+                                      ~
+ |     let _containerUnresolved = Phantom[_]::New(1i32);
+ |     let _conflict = Same::New[_](1i32, true);
+error: cannot infer type.
+--> infer-type-enum-constructor-err.dora:17:40
+ | fn main() {
+ |     let _unresolved = Phantom::New[_](1i32);
+ |     let _containerUnresolved = Phantom[_]::New(1i32);
+                                          ~
+ |     let _conflict = Same::New[_](1i32, true);
+ |     let _invalidBound = Bounded::New[_](DoesNotImplementTrait());
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-type-enum-constructor-err.dora:18:40
+ |     let _unresolved = Phantom::New[_](1i32);
+ |     let _containerUnresolved = Phantom[_]::New(1i32);
+ |     let _conflict = Same::New[_](1i32, true);
+                                          ~~~~
+ |     let _invalidBound = Bounded::New[_](DoesNotImplementTrait());
+ |     let _unsupported = identity[_](1i32);
+error: type `DoesNotImplementTrait` does not implement trait `Trait`.
+--> infer-type-enum-constructor-err.dora:19:25
+ |     let _containerUnresolved = Phantom[_]::New(1i32);
+ |     let _conflict = Same::New[_](1i32, true);
+ |     let _invalidBound = Bounded::New[_](DoesNotImplementTrait());
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _unsupported = identity[_](1i32);
+ |     let _wrongArity = Box::New[Int32, Bool](unknown);
+error: cannot infer type.
+--> infer-type-enum-constructor-err.dora:20:33
+ |     let _conflict = Same::New[_](1i32, true);
+ |     let _invalidBound = Bounded::New[_](DoesNotImplementTrait());
+ |     let _unsupported = identity[_](1i32);
+                                   ~
+ |     let _wrongArity = Box::New[Int32, Bool](unknown);
+ | }
+error: expected 1 type parameters but got 2.
+--> infer-type-enum-constructor-err.dora:21:23
+ |     let _invalidBound = Bounded::New[_](DoesNotImplementTrait());
+ |     let _unsupported = identity[_](1i32);
+ |     let _wrongArity = Box::New[Int32, Bool](unknown);
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: unknown identifier `unknown`.
+--> infer-type-enum-constructor-err.dora:21:45
+ |     let _invalidBound = Bounded::New[_](DoesNotImplementTrait());
+ |     let _unsupported = identity[_](1i32);
+ |     let _wrongArity = Box::New[Int32, Bool](unknown);
+                                               ~~~~~~~
+ | }
+ | 
+8 errors found.
