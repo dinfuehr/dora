@@ -1,0 +1,15 @@
+error: type inference is not supported in this context.
+--> call-expr-infer-type-argument.dora:2:15
+ | fn f(_callable: Array[Int32]) {
+ |     _callable[_](unknown);
+                 ~
+ | }
+ | 
+error: unknown identifier `unknown`.
+--> call-expr-infer-type-argument.dora:2:18
+ | fn f(_callable: Array[Int32]) {
+ |     _callable[_](unknown);
+                    ~~~~~~~
+ | }
+ | 
+2 errors found.

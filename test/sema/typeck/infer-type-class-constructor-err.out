@@ -30,7 +30,7 @@ error: type `DoesNotImplementTrait` does not implement trait `Trait`.
                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  |     let _unsupported = identity[_](1i32);
  |     let _wrongArity = Box[Int32, Bool](unknown);
-error: cannot infer type.
+error: type inference is not supported in this context.
 --> infer-type-class-constructor-err.dora:19:33
  |     let _conflict = Same[_](1i32, true);
  |     let _invalidBound = Bounded[_](DoesNotImplementTrait());

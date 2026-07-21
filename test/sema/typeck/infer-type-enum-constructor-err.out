@@ -38,7 +38,7 @@ error: type `DoesNotImplementTrait` does not implement trait `Trait`.
                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  |     let _unsupported = identity[_](1i32);
  |     let _wrongArity = Box::New[Int32, Bool](unknown);
-error: cannot infer type.
+error: type inference is not supported in this context.
 --> infer-type-enum-constructor-err.dora:20:33
  |     let _conflict = Same::New[_](1i32, true);
  |     let _invalidBound = Bounded::New[_](DoesNotImplementTrait());

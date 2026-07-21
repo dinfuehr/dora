@@ -1168,6 +1168,11 @@ pub static INFERRED_TYPE_NOT_ALLOWED_IN_DECLARATION: DiagnosticDescriptor = Diag
     level: ErrorLevel::Error,
 };
 
+pub static TYPE_INFERENCE_NOT_SUPPORTED_IN_CONTEXT: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "type inference is not supported in this context.",
+    level: ErrorLevel::Error,
+};
+
 pub static CANNOT_INFER_TYPE: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "cannot infer type.",
     level: ErrorLevel::Error,

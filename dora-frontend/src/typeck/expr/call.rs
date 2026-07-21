@@ -14,7 +14,8 @@ use crate::error::diagnostics::{
     INDEX_GET_NOT_IMPLEMENTED, INVALID_LEFT_SIDE_OF_SEPARATOR, MISSING_ARGUMENTS,
     MISSING_NAMED_ARGUMENT, MULTIPLE_CANDIDATES_FOR_METHOD,
     MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM, NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE,
-    STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT, TYPE_NOT_IMPLEMENTING_TRAIT,
+    STRUCT_CONSTRUCTOR_NOT_ACCESSIBLE, SUPERFLUOUS_ARGUMENT,
+    TYPE_INFERENCE_NOT_SUPPORTED_IN_CONTEXT, TYPE_NOT_IMPLEMENTING_TRAIT,
     UNEXPECTED_ARGUMENTS_FOR_ENUM_VARIANT, UNEXPECTED_NAMED_ARGUMENT,
     UNEXPECTED_POSITIONAL_ARGUMENT, UNKNOWN_IDENTIFIER_IN_MODULE, UNKNOWN_STATIC_METHOD,
     UNKNOWN_STATIC_METHOD_WITH_TYPE_PARAM, USE_OF_UNKNOWN_ARGUMENT, WRONG_TYPE_FOR_ARGUMENT,
@@ -23,8 +24,8 @@ use crate::interner::Name;
 use crate::sema::{
     AliasDefinitionId, CallExpr, CallType, ClassDefinitionId, Element, ElementWithFields,
     EnumDefinitionId, Expr, ExprId, FctDefinitionId, Param, QualifiedPathExpr, Sema,
-    StructDefinitionId, TraitDefinition, TypeParamDefinition, TypeParamId, associated_type_bounds,
-    find_impl, implements_trait,
+    StructDefinitionId, TraitDefinition, TypeParamDefinition, TypeParamId, TypeRef, TypeRefId,
+    associated_type_bounds, find_impl, implements_trait, type_ref_span,
 };
 use crate::specialize_ty_for_call;
 use crate::sym::SymbolKind;
@@ -51,18 +52,11 @@ pub(crate) fn check_expr_call(
 
     match callee_expr {
         Expr::Path(name_expr) => {
-            // Get type params from the last segment
-            let mut type_variables = Vec::new();
-            let type_params = if let Some(last_segment) = name_expr.segments.last() {
-                let params: Vec<SourceType> = last_segment
-                    .type_params
-                    .iter()
-                    .map(|&ty| ck.read_type_with_inference(ty, &mut type_variables))
-                    .collect();
-                SourceTypeArray::with(params)
-            } else {
-                SourceTypeArray::empty()
-            };
+            let type_param_refs = name_expr
+                .segments
+                .last()
+                .map(|segment| segment.type_params.clone())
+                .unwrap_or_default();
 
             if name_expr.segments.len() == 1 {
                 // Single segment: simple identifier lookup
@@ -86,8 +80,7 @@ pub(crate) fn check_expr_call(
                     expr_id,
                     sema_expr.callee,
                     sym,
-                    type_params,
-                    type_variables,
+                    type_param_refs,
                     call_expr_id,
                 )
             } else {
@@ -97,8 +90,7 @@ pub(crate) fn check_expr_call(
                     expected_ty,
                     expr_id,
                     sema_expr.callee,
-                    type_params,
-                    type_variables,
+                    type_param_refs,
                     call_expr_id,
                 )
             }
@@ -117,6 +109,39 @@ pub(crate) fn check_expr_call(
             check_expr_call_expr(ck, expr_id, expr_type, call_expr_id)
         }
     }
+}
+
+fn read_call_type_params_with_inference(
+    ck: &mut TypeCheck,
+    type_param_refs: &[TypeRefId],
+) -> (SourceTypeArray, Vec<TypeVarId>) {
+    let mut type_variables = Vec::new();
+    let type_params = type_param_refs
+        .iter()
+        .map(|&ty| ck.read_type_with_inference(ty, &mut type_variables))
+        .collect();
+    (SourceTypeArray::with(type_params), type_variables)
+}
+
+fn read_call_type_params(
+    ck: &mut TypeCheck,
+    type_param_refs: &[TypeRefId],
+) -> Option<SourceTypeArray> {
+    let mut succeeded = true;
+    let mut type_params = Vec::with_capacity(type_param_refs.len());
+
+    for &type_param_ref in type_param_refs {
+        if matches!(ck.body.type_refs().type_ref(type_param_ref), TypeRef::Infer) {
+            let span = type_ref_span(ck.sa, ck.body.type_refs(), ck.file_id, type_param_ref);
+            ck.report(span, &TYPE_INFERENCE_NOT_SUPPORTED_IN_CONTEXT, args!());
+            type_params.push(SourceType::Error);
+            succeeded = false;
+        } else {
+            type_params.push(ck.read_type(type_param_ref));
+        }
+    }
+
+    succeeded.then(|| SourceTypeArray::with(type_params))
 }
 
 pub(crate) fn check_call_arguments(ck: &mut TypeCheck, sema_expr: &CallExpr) {
@@ -965,9 +990,14 @@ fn check_expr_call_fct(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     fct_id: FctDefinitionId,
-    type_params: SourceTypeArray,
+    type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
 ) -> SourceType {
+    let Some(type_params) = read_call_type_params(ck, &type_param_refs) else {
+        check_call_arguments_any(ck, call_expr_id);
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    };
     let fct = ck.sa.fct(fct_id);
     let type_params = TypeArgs::from_own(ck.sa, fct.type_param_definition(ck.sa), &type_params);
 
@@ -1103,10 +1133,10 @@ fn check_expr_call_struct(
     expr_id: ExprId,
     expected_ty: SourceType,
     struct_id: StructDefinitionId,
-    type_params: SourceTypeArray,
-    type_variables: Vec<TypeVarId>,
+    type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
 ) -> SourceType {
+    let (type_params, type_variables) = read_call_type_params_with_inference(ck, &type_param_refs);
     let is_struct_accessible = struct_accessible_from(ck.sa, struct_id, ck.module_id);
 
     if !is_struct_accessible {
@@ -1446,10 +1476,10 @@ fn check_expr_call_class(
     expr_id: ExprId,
     expected_ty: SourceType,
     cls_id: ClassDefinitionId,
-    type_params: SourceTypeArray,
-    type_variables: Vec<TypeVarId>,
+    type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
 ) -> SourceType {
+    let (type_params, type_variables) = read_call_type_params_with_inference(ck, &type_param_refs);
     let is_class_accessible = class_accessible_from(ck.sa, cls_id, ck.module_id);
 
     if !is_class_accessible {
@@ -1535,11 +1565,11 @@ fn check_expr_call_enum_variant(
     expr_id: ExprId,
     expected_ty: SourceType,
     enum_id: EnumDefinitionId,
-    type_params: SourceTypeArray,
-    type_variables: Vec<TypeVarId>,
+    type_param_refs: Vec<TypeRefId>,
     variant_idx: u32,
     call_expr_id: ExprId,
 ) -> SourceType {
+    let (type_params, type_variables) = read_call_type_params_with_inference(ck, &type_param_refs);
     let enum_ = ck.sa.enum_(enum_id);
     let variant_id = enum_.variant_id_at(variant_idx as usize);
 
@@ -1626,22 +1656,12 @@ fn check_expr_call_sym(
     expr_id: ExprId,
     callee_id: ExprId,
     sym: SymbolKind,
-    type_params: SourceTypeArray,
-    type_variables: Vec<TypeVarId>,
+    type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
 ) -> SourceType {
-    if !matches!(
-        &sym,
-        SymbolKind::Class(_) | SymbolKind::Struct(_) | SymbolKind::EnumVariant(..)
-    ) && !ck.report_unresolved_type_variables(&type_variables, &type_params)
-    {
-        ck.body.set_ty(expr_id, ty_error());
-        return ty_error();
-    }
-
     match sym {
         SymbolKind::Fct(fct_id) => {
-            check_expr_call_fct(ck, expr_id, fct_id, type_params, call_expr_id)
+            check_expr_call_fct(ck, expr_id, fct_id, type_param_refs, call_expr_id)
         }
 
         SymbolKind::Class(cls_id) => check_expr_call_class(
@@ -1649,8 +1669,7 @@ fn check_expr_call_sym(
             expr_id,
             expected_ty,
             cls_id,
-            type_params,
-            type_variables,
+            type_param_refs,
             call_expr_id,
         ),
 
@@ -1659,8 +1678,7 @@ fn check_expr_call_sym(
             expr_id,
             expected_ty,
             struct_id,
-            type_params,
-            type_variables,
+            type_param_refs,
             call_expr_id,
         ),
 
@@ -1669,13 +1687,17 @@ fn check_expr_call_sym(
             expr_id,
             expected_ty,
             enum_id,
-            type_params,
-            type_variables,
+            type_param_refs,
             variant_idx,
             call_expr_id,
         ),
 
         _ => {
+            if read_call_type_params(ck, &type_param_refs).is_none() {
+                check_call_arguments_any(ck, call_expr_id);
+                ck.body.set_ty(expr_id, ty_error());
+                return ty_error();
+            }
             let expr_type = check_expr(ck, callee_id, SourceType::Any);
             check_expr_call_expr(ck, expr_id, expr_type, call_expr_id)
         }
@@ -1695,8 +1717,7 @@ fn check_expr_call_path(
     expected_ty: SourceType,
     expr_id: ExprId,
     callee_id: ExprId,
-    type_params: SourceTypeArray,
-    type_variables: Vec<TypeVarId>,
+    type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
 ) -> SourceType {
     let path_expr = ck
@@ -1724,18 +1745,10 @@ fn check_expr_call_path(
     };
     let method_name = ck.sa.interner.str(interned_method_name).to_string();
 
-    // Extract type params from the second-to-last segment (the class/struct/enum segment)
-    let mut container_type_variables = Vec::new();
-    let container_type_params = if segments.len() >= 2 {
-        let container_segment = &segments[segments.len() - 2];
-        let params: Vec<SourceType> = container_segment
-            .type_params
-            .iter()
-            .map(|&ty| ck.read_type_with_inference(ty, &mut container_type_variables))
-            .collect();
-        SourceTypeArray::with(params)
+    let container_type_param_refs = if segments.len() >= 2 {
+        segments[segments.len() - 2].type_params.clone()
     } else {
-        SourceTypeArray::empty()
+        Vec::new()
     };
 
     let is_enum_variant = match &resolution {
@@ -1747,17 +1760,21 @@ fn check_expr_call_path(
         _ => false,
     };
 
-    if !matches!(&resolution, PathResolution::Symbol(SymbolKind::Module(_))) && !is_enum_variant {
-        let type_params_resolved =
-            ck.report_unresolved_type_variables(&type_variables, &type_params);
-        let container_type_params_resolved =
-            ck.report_unresolved_type_variables(&container_type_variables, &container_type_params);
-        if !type_params_resolved || !container_type_params_resolved {
+    let defer_type_params =
+        matches!(&resolution, PathResolution::Symbol(SymbolKind::Module(_))) || is_enum_variant;
+    let (type_params, container_type_params) = if defer_type_params {
+        (SourceTypeArray::empty(), SourceTypeArray::empty())
+    } else {
+        let type_params = read_call_type_params(ck, &type_param_refs);
+        let container_type_params = read_call_type_params(ck, &container_type_param_refs);
+        let (Some(type_params), Some(container_type_params)) = (type_params, container_type_params)
+        else {
             check_call_arguments_any(ck, call_expr_id);
             ck.body.set_ty(expr_id, ty_error());
             return ty_error();
-        }
-    }
+        };
+        (type_params, container_type_params)
+    };
 
     // Handle Self specially - it's not a symbol
     if let PathResolution::Self_ = resolution {
@@ -1879,7 +1896,7 @@ fn check_expr_call_path(
 
             if let Some(&variant_idx) = enum_.name_to_value().get(&interned_method_name) {
                 // Check if both enum and variant have type params - that's an error
-                if !container_type_params.is_empty() && !type_params.is_empty() {
+                if !container_type_param_refs.is_empty() && !type_param_refs.is_empty() {
                     ck.report(
                         path_expr_last_segment_span(ck, callee_id),
                         &NO_TYPE_PARAMS_EXPECTED,
@@ -1888,18 +1905,17 @@ fn check_expr_call_path(
                 }
 
                 // Use container_type_params for enum variant calls like Option[Int]::Some(x)
-                let (used_type_params, used_type_variables) = if container_type_params.is_empty() {
-                    (type_params, type_variables)
+                let used_type_param_refs = if container_type_param_refs.is_empty() {
+                    type_param_refs
                 } else {
-                    (container_type_params, container_type_variables)
+                    container_type_param_refs
                 };
                 check_expr_call_enum_variant(
                     ck,
                     expr_id,
                     expected_ty,
                     enum_id,
-                    used_type_params,
-                    used_type_variables,
+                    used_type_param_refs,
                     variant_idx,
                     call_expr_id,
                 )
@@ -1963,8 +1979,7 @@ fn check_expr_call_path(
                 expr_id,
                 callee_id,
                 sym,
-                type_params,
-                type_variables,
+                type_param_refs,
                 call_expr_id,
             )
         }

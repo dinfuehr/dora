@@ -1,0 +1,5 @@
+fn identity[T](value: T): T { value }
+
+fn f() {
+    identity[_](unknown);
+}

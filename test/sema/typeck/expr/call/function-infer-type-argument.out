@@ -1,0 +1,17 @@
+error: type inference is not supported in this context.
+--> function-infer-type-argument.dora:4:14
+ | 
+ | fn f() {
+ |     identity[_](unknown);
+                ~
+ | }
+ | 
+error: unknown identifier `unknown`.
+--> function-infer-type-argument.dora:4:17
+ | 
+ | fn f() {
+ |     identity[_](unknown);
+                   ~~~~~~~
+ | }
+ | 
+2 errors found.
