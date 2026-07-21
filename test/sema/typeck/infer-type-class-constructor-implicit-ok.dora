@@ -1,0 +1,44 @@
+//= ok
+
+class Box[T](T)
+class Pair[A, B](A, B)
+class Nested[T](Option[T])
+class Named[T] { value: T }
+class Phantom[T]
+
+trait Trait {}
+class ImplementsTrait
+impl Trait for ImplementsTrait {}
+class Bounded[T: Trait](T)
+
+mod foo {
+    pub class Box[T](pub T)
+}
+
+fn takeBox(_value: Box[Int32]) {}
+fn takePair(_value: Pair[String, Bool]) {}
+fn takeNested(_value: Nested[Int32]) {}
+fn takeNamed(_value: Named[Bool]) {}
+fn takePhantom(_value: Phantom[Int64]) {}
+fn takeBounded(_value: Bounded[ImplementsTrait]) {}
+fn takeQualified(_value: foo::Box[Int64]) {}
+
+fn makePair[T](value: T): Pair[T, Bool] {
+    Pair(value, false)
+}
+
+fn main() {
+    let box = Box(1i32);
+    takeBox(box);
+
+    let pair = Pair("value", true);
+    takePair(pair);
+
+    takeNested(Nested(Some[Int32](1i32)));
+    takeNamed(Named(value = true));
+    takePhantom(Phantom());
+    takeBounded(Bounded(ImplementsTrait()));
+    takeQualified(foo::Box(1i64));
+
+    takePair(makePair[String]("value"));
+}

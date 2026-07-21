@@ -1,4 +1,4 @@
-error: expected 2 type parameters but got 0.
+error: cannot infer type arguments: [_, _].
 --> ctor-without-type-params.dora:2:13
  | class Foo[A, B]
  | fn test() { Foo(); }

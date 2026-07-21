@@ -1133,8 +1133,14 @@ fn check_expr_call_struct(
     } else {
         (type_params, type_variables)
     };
+    let expected_type_params = match &expected_ty {
+        SourceType::Struct(expected_id, expected_type_params) if *expected_id == struct_id => {
+            Some(expected_type_params)
+        }
+        _ => None,
+    };
     let type_params =
-        check_expr_call_struct_type_params(ck, expr_id, expected_ty, struct_id, type_params);
+        check_expr_call_ctor_type_params(ck, expr_id, struct_, expected_type_params, type_params);
 
     if struct_.field_name_style.is_named() {
         check_expr_call_ctor_with_named_fields(
@@ -1142,7 +1148,7 @@ fn check_expr_call_struct(
             struct_,
             type_param_definition,
             type_params.clone(),
-            CtorTypeInference::Struct,
+            CtorTypeInference::TypeParams,
             call_expr_id,
         );
     } else {
@@ -1151,7 +1157,7 @@ fn check_expr_call_struct(
             struct_,
             type_param_definition,
             type_params.clone(),
-            CtorTypeInference::Struct,
+            CtorTypeInference::TypeParams,
             call_expr_id,
         );
     }
@@ -1187,26 +1193,18 @@ fn check_expr_call_struct(
     ty
 }
 
-fn check_expr_call_struct_type_params(
+fn check_expr_call_ctor_type_params(
     ck: &mut TypeCheck,
     expr_id: ExprId,
-    expected_ty: SourceType,
-    struct_id: StructDefinitionId,
+    element: &dyn Element,
+    expected_type_params: Option<&SourceTypeArray>,
     type_params: SourceTypeArray,
 ) -> SourceTypeArray {
-    let struct_ = ck.sa.struct_(struct_id);
-    let type_param_definition = struct_.type_param_definition(ck.sa);
+    let type_param_definition = element.type_param_definition(ck.sa);
     let type_args = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
-    let type_params_ok = check_type_param_arity(ck.sa, struct_, &type_args, ck.file_id, || {
+    let type_params_ok = check_type_param_arity(ck.sa, element, &type_args, ck.file_id, || {
         ck.expr_span(expr_id)
     });
-
-    let expected_type_params = match &expected_ty {
-        SourceType::Struct(expected_id, expected_type_params) if *expected_id == struct_id => {
-            Some(expected_type_params)
-        }
-        _ => None,
-    };
 
     let type_params = if type_params_ok {
         type_params
@@ -1233,7 +1231,7 @@ fn check_expr_call_struct_type_params(
 #[derive(Clone, Copy)]
 enum CtorTypeInference {
     None,
-    Struct,
+    TypeParams,
 }
 
 fn report_wrong_type_for_ctor_argument(
@@ -1328,7 +1326,7 @@ fn check_expr_call_ctor_with_named_fields(
                 let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &type_params);
                 let expected_ty = match type_inference {
                     CtorTypeInference::None => def_ty.clone(),
-                    CtorTypeInference::Struct => ck.expected_type_for_inference(def_ty.clone()),
+                    CtorTypeInference::TypeParams => ck.expected_type_for_inference(def_ty.clone()),
                 };
                 let arg_ty = check_expr(ck, arg_id, expected_ty);
                 ck.body.set_ty(arg_id, arg_ty.clone());
@@ -1345,7 +1343,7 @@ fn check_expr_call_ctor_with_named_fields(
                             );
                         }
                     }
-                    CtorTypeInference::Struct => {
+                    CtorTypeInference::TypeParams => {
                         let unified = ck.unify_types(def_ty.clone(), arg_ty.clone());
                         let def_ty = ck.resolve_type(def_ty);
                         if !unified {
@@ -1432,7 +1430,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
         let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &type_params);
         let expected_ty = match type_inference {
             CtorTypeInference::None => def_ty.clone(),
-            CtorTypeInference::Struct => ck.expected_type_for_inference(def_ty.clone()),
+            CtorTypeInference::TypeParams => ck.expected_type_for_inference(def_ty.clone()),
         };
         let arg_ty = check_expr(ck, arg_id, expected_ty);
         ck.body.set_ty(arg_id, arg_ty.clone());
@@ -1449,7 +1447,7 @@ fn check_expr_call_ctor_with_unnamed_fields(
                     report_wrong_type_for_ctor_argument(ck, call_expr_id, idx, &def_ty, &arg_ty);
                 }
             }
-            CtorTypeInference::Struct => {
+            CtorTypeInference::TypeParams => {
                 let unified = ck.unify_types(def_ty.clone(), arg_ty.clone());
                 let def_ty = ck.resolve_type(def_ty);
                 if !unified {
@@ -1489,6 +1487,7 @@ fn check_expr_call_class(
     expected_ty: SourceType,
     cls_id: ClassDefinitionId,
     type_params: SourceTypeArray,
+    type_variables: Vec<TypeVarId>,
     call_expr_id: ExprId,
 ) -> SourceType {
     let is_class_accessible = class_accessible_from(ck.sa, cls_id, ck.module_id);
@@ -1497,29 +1496,22 @@ fn check_expr_call_class(
         ck.report(ck.expr_span(expr_id), &NOT_ACCESSIBLE, args!());
     }
 
-    let type_params = if expected_ty.cls_id() == Some(cls_id) && type_params.is_empty() {
-        expected_ty.type_params()
-    } else {
-        type_params
-    };
-
     let cls = ck.sa.class(cls_id);
-    let type_args = TypeArgs::from_own(ck.sa, cls.type_param_definition(ck.sa), &type_params);
-
-    if !check_type_params(
-        ck.sa,
-        ck.element,
-        ck.type_param_definition,
-        cls,
-        &type_args,
-        ck.file_id,
-        || ck.expr_span(expr_id),
-        |ty| specialize_type(ck.sa, ty, &type_args),
-    ) {
-        return ty_error();
+    let type_param_definition = cls.type_param_definition(ck.sa);
+    let (type_params, type_variables) = if type_params.is_empty() {
+        assert!(type_variables.is_empty());
+        ck.create_implicit_type_variables(type_param_definition.own_type_params_len(), expr_id)
+    } else {
+        (type_params, type_variables)
     };
-
-    let cls_ty = SourceType::Class(cls_id, type_params.clone());
+    let expected_type_params = match &expected_ty {
+        SourceType::Class(expected_id, expected_type_params) if *expected_id == cls_id => {
+            Some(expected_type_params)
+        }
+        _ => None,
+    };
+    let type_params =
+        check_expr_call_ctor_type_params(ck, expr_id, cls, expected_type_params, type_params);
 
     if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
         && !cls.all_fields_are_public(ck.sa)
@@ -1536,21 +1528,43 @@ fn check_expr_call_class(
         check_expr_call_ctor_with_named_fields(
             ck,
             cls,
-            cls.type_param_definition(ck.sa),
+            type_param_definition,
             type_params.clone(),
-            CtorTypeInference::None,
+            CtorTypeInference::TypeParams,
             call_expr_id,
         );
     } else {
         check_expr_call_ctor_with_unnamed_fields(
             ck,
             cls,
-            cls.type_param_definition(ck.sa),
+            type_param_definition,
             type_params.clone(),
-            CtorTypeInference::None,
+            CtorTypeInference::TypeParams,
             call_expr_id,
         );
     }
+
+    if !ck.report_unresolved_type_variables(&type_variables, &type_params) {
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let type_params = ck.resolve_type_array(type_params);
+    let type_args = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
+    if !check_type_param_bounds(
+        ck.sa,
+        ck.element,
+        ck.type_param_definition,
+        cls,
+        ck.file_id,
+        || ck.expr_span(expr_id),
+        |ty| specialize_type(ck.sa, ty, &type_args),
+    ) {
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let cls_ty = SourceType::Class(cls_id, type_params.clone());
 
     ck.body
         .insert_call_type(expr_id, Rc::new(CallType::NewClass(cls.id(), type_params)));
@@ -1647,7 +1661,7 @@ fn check_expr_call_sym(
     type_variables: Vec<TypeVarId>,
     call_expr_id: ExprId,
 ) -> SourceType {
-    if !matches!(&sym, SymbolKind::Struct(_))
+    if !matches!(&sym, SymbolKind::Class(_) | SymbolKind::Struct(_))
         && !ck.report_unresolved_type_variables(&type_variables, &type_params)
     {
         ck.body.set_ty(expr_id, ty_error());
@@ -1659,9 +1673,15 @@ fn check_expr_call_sym(
             check_expr_call_fct(ck, expr_id, fct_id, type_params, call_expr_id)
         }
 
-        SymbolKind::Class(cls_id) => {
-            check_expr_call_class(ck, expr_id, expected_ty, cls_id, type_params, call_expr_id)
-        }
+        SymbolKind::Class(cls_id) => check_expr_call_class(
+            ck,
+            expr_id,
+            expected_ty,
+            cls_id,
+            type_params,
+            type_variables,
+            call_expr_id,
+        ),
 
         SymbolKind::Struct(struct_id) => check_expr_call_struct(
             ck,

@@ -1,0 +1,21 @@
+class Phantom[T]
+class Same[T](T, T)
+class Box[T](T)
+
+trait Trait {}
+class DoesNotImplementTrait
+class Bounded[T: Trait](T)
+
+fn identity[T](value: T): T { value }
+
+fn expectedConflict(): Box[Bool] {
+    Box[_](1i32)
+}
+
+fn main() {
+    let _unresolved = Phantom[_]();
+    let _conflict = Same[_](1i32, true);
+    let _invalidBound = Bounded[_](DoesNotImplementTrait());
+    let _unsupported = identity[_](1i32);
+    let _wrongArity = Box[Int32, Bool](unknown);
+}
