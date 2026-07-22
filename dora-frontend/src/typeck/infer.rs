@@ -71,92 +71,46 @@ impl TypeCheck<'_> {
     }
 
     pub(crate) fn resolve_type(&mut self, ty: SourceType) -> SourceType {
-        match ty {
-            SourceType::TypeVar(id) => {
-                let value = self
-                    .type_variables
-                    .get(id.0)
+        replace_type_variable(ty, &mut |id| {
+            let value = self
+                .type_variables
+                .get(id.0)
+                .expect("type variable not registered")
+                .value
+                .clone();
+
+            if let Some(value) = value {
+                let value = self.resolve_type(value);
+                self.type_variables
+                    .get_mut(id.0)
                     .expect("type variable not registered")
-                    .value
-                    .clone();
-
-                if let Some(value) = value {
-                    let value = self.resolve_type(value);
-                    self.type_variables
-                        .get_mut(id.0)
-                        .expect("type variable not registered")
-                        .value = Some(value.clone());
-                    value
-                } else {
-                    SourceType::TypeVar(id)
-                }
+                    .value = Some(value.clone());
+                value
+            } else {
+                SourceType::TypeVar(id)
             }
-            SourceType::Class(id, type_params) => {
-                SourceType::Class(id, self.resolve_type_array(type_params))
-            }
-            SourceType::Struct(id, type_params) => {
-                SourceType::Struct(id, self.resolve_type_array(type_params))
-            }
-            SourceType::Enum(id, type_params) => {
-                SourceType::Enum(id, self.resolve_type_array(type_params))
-            }
-            SourceType::Tuple(subtypes) => SourceType::Tuple(self.resolve_type_array(subtypes)),
-            SourceType::TraitObject(id, type_params, bindings) => SourceType::TraitObject(
-                id,
-                self.resolve_type_array(type_params),
-                self.resolve_type_array(bindings),
-            ),
-            SourceType::Alias(id, type_params) => {
-                SourceType::Alias(id, self.resolve_type_array(type_params))
-            }
-            SourceType::Assoc { trait_ty, assoc_id } => SourceType::Assoc {
-                trait_ty: self.resolve_trait_type(trait_ty),
-                assoc_id,
-            },
-            SourceType::GenericAssoc {
-                ty,
-                trait_ty,
-                assoc_id,
-            } => SourceType::GenericAssoc {
-                ty: Box::new(self.resolve_type(*ty)),
-                trait_ty: self.resolve_trait_type(trait_ty),
-                assoc_id,
-            },
-            SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
-                self.resolve_type_array(params),
-                Box::new(self.resolve_type(*return_type)),
-                is_variadic,
-            ),
-            SourceType::Ref(inner) => SourceType::Ref(Box::new(self.resolve_type(*inner))),
-            ty => ty,
-        }
-    }
-
-    fn resolve_trait_type(&mut self, trait_ty: TraitType) -> TraitType {
-        let type_params = self.resolve_type_array(trait_ty.type_params);
-        let bindings = trait_ty
-            .bindings
-            .into_iter()
-            .map(|(id, ty)| (id, self.resolve_type(ty)))
-            .collect();
-        TraitType {
-            trait_id: trait_ty.trait_id,
-            type_params,
-            bindings,
-        }
+        })
     }
 
     pub(crate) fn resolve_type_array(&mut self, types: SourceTypeArray) -> SourceTypeArray {
-        SourceTypeArray::with(types.iter().map(|ty| self.resolve_type(ty)).collect())
+        replace_type_variable_array(types, &mut |id| self.resolve_type(SourceType::TypeVar(id)))
     }
 
     pub(crate) fn expected_type_for_inference(&mut self, ty: SourceType) -> SourceType {
-        let ty = self.resolve_type(ty);
-        if type_contains_variable(&ty, None) {
-            SourceType::Any
-        } else {
-            ty
-        }
+        replace_type_variable(ty, &mut |id| {
+            let value = self
+                .type_variables
+                .get(id.0)
+                .expect("type variable not registered")
+                .value
+                .clone();
+
+            if let Some(value) = value {
+                self.expected_type_for_inference(value)
+            } else {
+                SourceType::Any
+            }
+        })
     }
 
     pub(crate) fn unify_types(&mut self, lhs: SourceType, rhs: SourceType) -> bool {
@@ -282,6 +236,82 @@ impl TypeCheck<'_> {
         }
 
         succeeded
+    }
+}
+
+fn replace_type_variable<F>(ty: SourceType, replace: &mut F) -> SourceType
+where
+    F: FnMut(TypeVarId) -> SourceType,
+{
+    match ty {
+        SourceType::TypeVar(id) => replace(id),
+        SourceType::Class(id, type_params) => {
+            SourceType::Class(id, replace_type_variable_array(type_params, replace))
+        }
+        SourceType::Struct(id, type_params) => {
+            SourceType::Struct(id, replace_type_variable_array(type_params, replace))
+        }
+        SourceType::Enum(id, type_params) => {
+            SourceType::Enum(id, replace_type_variable_array(type_params, replace))
+        }
+        SourceType::Tuple(subtypes) => {
+            SourceType::Tuple(replace_type_variable_array(subtypes, replace))
+        }
+        SourceType::TraitObject(id, type_params, bindings) => SourceType::TraitObject(
+            id,
+            replace_type_variable_array(type_params, replace),
+            replace_type_variable_array(bindings, replace),
+        ),
+        SourceType::Alias(id, type_params) => {
+            SourceType::Alias(id, replace_type_variable_array(type_params, replace))
+        }
+        SourceType::Assoc { trait_ty, assoc_id } => SourceType::Assoc {
+            trait_ty: replace_type_variable_trait(trait_ty, replace),
+            assoc_id,
+        },
+        SourceType::GenericAssoc {
+            ty,
+            trait_ty,
+            assoc_id,
+        } => SourceType::GenericAssoc {
+            ty: Box::new(replace_type_variable(*ty, replace)),
+            trait_ty: replace_type_variable_trait(trait_ty, replace),
+            assoc_id,
+        },
+        SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
+            replace_type_variable_array(params, replace),
+            Box::new(replace_type_variable(*return_type, replace)),
+            is_variadic,
+        ),
+        SourceType::Ref(inner) => SourceType::Ref(Box::new(replace_type_variable(*inner, replace))),
+        ty => ty,
+    }
+}
+
+fn replace_type_variable_array<F>(types: SourceTypeArray, replace: &mut F) -> SourceTypeArray
+where
+    F: FnMut(TypeVarId) -> SourceType,
+{
+    SourceTypeArray::with(
+        types
+            .iter()
+            .map(|ty| replace_type_variable(ty, replace))
+            .collect(),
+    )
+}
+
+fn replace_type_variable_trait<F>(trait_ty: TraitType, replace: &mut F) -> TraitType
+where
+    F: FnMut(TypeVarId) -> SourceType,
+{
+    TraitType {
+        trait_id: trait_ty.trait_id,
+        type_params: replace_type_variable_array(trait_ty.type_params, replace),
+        bindings: trait_ty
+            .bindings
+            .into_iter()
+            .map(|(id, ty)| (id, replace_type_variable(ty, replace)))
+            .collect(),
     }
 }
 

@@ -7,6 +7,8 @@ impl Trait for ImplementsTrait {}
 fn identity[T](value: T): T { value }
 fn same[T](first: T, _second: T): T { first }
 fn sameVariadic[T](first: T, _rest: T...): T { first }
+fn nested[T](first: Option[T], _second: T): Option[T] { first }
+fn nestedVec[T](first: Option[Vec[T]], _second: T): Option[Vec[T]] { first }
 fn bounded[T: Trait](value: T): T { value }
 fn nothing[T](): Option[T] { None }
 
@@ -20,6 +22,7 @@ fn takeInt32(_value: Int32) {}
 fn takeTuple(_value: (Int32, Bool)) {}
 fn takeTuple64(_value: (Int64, Bool)) {}
 fn takeOption(_value: Option[Bool]) {}
+fn takeNestedVec(_value: Option[Vec[Bool]]) {}
 fn takeBounded(_value: ImplementsTrait) {}
 
 fn main() {
@@ -30,6 +33,10 @@ fn main() {
     takeInt32(sameInt32);
     let sameVariadicInt32 = sameVariadic(1i32, 1, 2);
     takeInt32(sameVariadicInt32);
+    let nestedOption = nested(None, true);
+    takeOption(nestedOption);
+    let nestedVecOption = nestedVec(None, true);
+    takeNestedVec(nestedVecOption);
     takeBounded(bounded[_](ImplementsTrait()));
 
     let qualified = foo::bar::baz[_, _](1, true);
