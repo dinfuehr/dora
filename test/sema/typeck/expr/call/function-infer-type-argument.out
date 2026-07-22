@@ -1,41 +1,121 @@
-error: type inference is not supported in this context.
---> function-infer-type-argument.dora:4:14
+error: Argument expects value of type `Bool` but got `Int32`.
+--> function-infer-type-argument.dora:17:17
+ | 
+ | fn expectedConflict(): Bool {
+ |     identity[_](1i32)
+                   ~~~~
+ | }
+ | 
+error: cannot infer type.
+--> function-infer-type-argument.dora:21:14
  | 
  | fn f() {
  |     identity[_](unknown);
                 ~
  |     identity[(_, _)](unknownTuple);
- | }
+ |     same[_](1i32, true);
 error: unknown identifier `unknown`.
---> function-infer-type-argument.dora:4:17
+--> function-infer-type-argument.dora:21:17
  | 
  | fn f() {
  |     identity[_](unknown);
                    ~~~~~~~
  |     identity[(_, _)](unknownTuple);
- | }
-error: type inference is not supported in this context.
---> function-infer-type-argument.dora:5:15
+ |     same[_](1i32, true);
+error: cannot infer type.
+--> function-infer-type-argument.dora:22:15
  | fn f() {
  |     identity[_](unknown);
  |     identity[(_, _)](unknownTuple);
                  ~
- | }
- | 
-error: type inference is not supported in this context.
---> function-infer-type-argument.dora:5:18
+ |     same[_](1i32, true);
+ |     sameWithPhantom[_](1i32, true);
+error: cannot infer type.
+--> function-infer-type-argument.dora:22:18
  | fn f() {
  |     identity[_](unknown);
  |     identity[(_, _)](unknownTuple);
                     ~
- | }
- | 
+ |     same[_](1i32, true);
+ |     sameWithPhantom[_](1i32, true);
 error: unknown identifier `unknownTuple`.
---> function-infer-type-argument.dora:5:22
+--> function-infer-type-argument.dora:22:22
  | fn f() {
  |     identity[_](unknown);
  |     identity[(_, _)](unknownTuple);
                         ~~~~~~~~~~~~
+ |     same[_](1i32, true);
+ |     sameWithPhantom[_](1i32, true);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> function-infer-type-argument.dora:23:19
+ |     identity[_](unknown);
+ |     identity[(_, _)](unknownTuple);
+ |     same[_](1i32, true);
+                     ~~~~
+ |     sameWithPhantom[_](1i32, true);
+ |     same[_, Bool](1i32, true);
+error: expected 2 type parameters but got 1.
+--> function-infer-type-argument.dora:24:5
+ |     identity[(_, _)](unknownTuple);
+ |     same[_](1i32, true);
+ |     sameWithPhantom[_](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     same[_, Bool](1i32, true);
+ |     foo::bar::baz[_](1, true);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> function-infer-type-argument.dora:24:30
+ |     identity[(_, _)](unknownTuple);
+ |     same[_](1i32, true);
+ |     sameWithPhantom[_](1i32, true);
+                                ~~~~
+ |     same[_, Bool](1i32, true);
+ |     foo::bar::baz[_](1, true);
+error: expected 1 type parameters but got 2.
+--> function-infer-type-argument.dora:25:5
+ |     same[_](1i32, true);
+ |     sameWithPhantom[_](1i32, true);
+ |     same[_, Bool](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     foo::bar::baz[_](1, true);
+ |     foo::bar::phantom[_](1i32);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> function-infer-type-argument.dora:25:25
+ |     same[_](1i32, true);
+ |     sameWithPhantom[_](1i32, true);
+ |     same[_, Bool](1i32, true);
+                           ~~~~
+ |     foo::bar::baz[_](1, true);
+ |     foo::bar::phantom[_](1i32);
+error: expected 2 type parameters but got 1.
+--> function-infer-type-argument.dora:26:5
+ |     sameWithPhantom[_](1i32, true);
+ |     same[_, Bool](1i32, true);
+ |     foo::bar::baz[_](1, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     foo::bar::phantom[_](1i32);
+ |     foo::bar::phantom(1i32);
+error: cannot infer type.
+--> function-infer-type-argument.dora:27:23
+ |     same[_, Bool](1i32, true);
+ |     foo::bar::baz[_](1, true);
+ |     foo::bar::phantom[_](1i32);
+                         ~
+ |     foo::bar::phantom(1i32);
+ |     bounded[_](DoesNotImplementTrait());
+error: cannot infer type arguments: [_].
+--> function-infer-type-argument.dora:28:5
+ |     foo::bar::baz[_](1, true);
+ |     foo::bar::phantom[_](1i32);
+ |     foo::bar::phantom(1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~~
+ |     bounded[_](DoesNotImplementTrait());
+ | }
+error: type `DoesNotImplementTrait` does not implement trait `Trait`.
+--> function-infer-type-argument.dora:29:5
+ |     foo::bar::phantom[_](1i32);
+ |     foo::bar::phantom(1i32);
+ |     bounded[_](DoesNotImplementTrait());
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  | }
  | 
-5 errors found.
+15 errors found.

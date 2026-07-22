@@ -1,0 +1,46 @@
+//= ok
+
+trait Trait {}
+class ImplementsTrait
+impl Trait for ImplementsTrait {}
+
+fn identity[T](value: T): T { value }
+fn same[T](first: T, _second: T): T { first }
+fn sameVariadic[T](first: T, _rest: T...): T { first }
+fn bounded[T: Trait](value: T): T { value }
+fn nothing[T](): Option[T] { None }
+
+mod foo {
+    pub mod bar {
+        pub fn baz[A, B](first: A, second: B): (A, B) { (first, second) }
+    }
+}
+
+fn takeInt32(_value: Int32) {}
+fn takeTuple(_value: (Int32, Bool)) {}
+fn takeTuple64(_value: (Int64, Bool)) {}
+fn takeOption(_value: Option[Bool]) {}
+fn takeBounded(_value: ImplementsTrait) {}
+
+fn main() {
+    takeInt32(identity[_](1i32));
+    takeTuple(identity[(_, _)]((1i32, true)));
+    takeInt32(same[_](1i32, 2i32));
+    let sameInt32 = same(1i32, 1);
+    takeInt32(sameInt32);
+    let sameVariadicInt32 = sameVariadic(1i32, 1, 2);
+    takeInt32(sameVariadicInt32);
+    takeBounded(bounded[_](ImplementsTrait()));
+
+    let qualified = foo::bar::baz[_, _](1, true);
+    takeTuple64(qualified);
+
+    let implicit = foo::bar::baz(1, true);
+    takeTuple64(implicit);
+
+    let partial = foo::bar::baz[Int32, _](1, true);
+    takeTuple(partial);
+
+    let inferredNothing: Option[Bool] = nothing[_]();
+    takeOption(inferredNothing);
+}

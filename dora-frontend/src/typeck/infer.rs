@@ -165,6 +165,7 @@ impl TypeCheck<'_> {
 
         match (lhs, rhs) {
             (SourceType::Error, _) | (_, SourceType::Error) => true,
+            (SourceType::Any, _) | (_, SourceType::Any) => true,
             (SourceType::TypeVar(id), ty) | (ty, SourceType::TypeVar(id)) => {
                 self.bind_type_variable(id, ty)
             }

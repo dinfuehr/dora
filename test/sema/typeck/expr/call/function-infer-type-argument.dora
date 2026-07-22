@@ -1,6 +1,30 @@
+trait Trait {}
+class DoesNotImplementTrait
+
 fn identity[T](value: T): T { value }
+fn same[T](first: T, _second: T): T { first }
+fn sameWithPhantom[A, B](first: A, _second: A): A { first }
+fn bounded[T: Trait](value: T): T { value }
+
+mod foo {
+    pub mod bar {
+        pub fn baz[A, B](first: A, _second: B): A { first }
+        pub fn phantom[T](value: Int32): Int32 { value }
+    }
+}
+
+fn expectedConflict(): Bool {
+    identity[_](1i32)
+}
 
 fn f() {
     identity[_](unknown);
     identity[(_, _)](unknownTuple);
+    same[_](1i32, true);
+    sameWithPhantom[_](1i32, true);
+    same[_, Bool](1i32, true);
+    foo::bar::baz[_](1, true);
+    foo::bar::phantom[_](1i32);
+    foo::bar::phantom(1i32);
+    bounded[_](DoesNotImplementTrait());
 }

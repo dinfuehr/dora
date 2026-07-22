@@ -176,6 +176,23 @@ pub(super) fn check_call_arguments_with_expected(
     call_expr_id: ExprId,
     expected: Option<&ExpectedCallArgs>,
 ) {
+    check_call_arguments_with_expected_inner(ck, call_expr_id, expected, false);
+}
+
+fn check_call_arguments_with_inference(
+    ck: &mut TypeCheck,
+    call_expr_id: ExprId,
+    expected: &ExpectedCallArgs,
+) {
+    check_call_arguments_with_expected_inner(ck, call_expr_id, Some(expected), true);
+}
+
+fn check_call_arguments_with_expected_inner(
+    ck: &mut TypeCheck,
+    call_expr_id: ExprId,
+    expected: Option<&ExpectedCallArgs>,
+    infer_type_params: bool,
+) {
     let Some(expected) = expected else {
         check_call_arguments_any(ck, call_expr_id);
         return;
@@ -187,26 +204,38 @@ pub(super) fn check_call_arguments_with_expected(
         .iter()
         .map(|arg| arg.expr)
         .collect::<Vec<_>>();
+    let mut inference_matches = Vec::with_capacity(arg_ids.len());
 
     for (idx, arg_id) in arg_ids.iter().enumerate() {
-        let expected_ty = if idx < expected.regular_types.len() {
+        let param_ty = if idx < expected.regular_types.len() {
             expected.regular_types[idx].clone()
         } else if let Some(ref variadic_type) = expected.variadic_type {
             variadic_type.clone()
         } else {
             SourceType::Any
         };
+        let expected_ty = if infer_type_params {
+            ck.expected_type_for_inference(param_ty.clone())
+        } else {
+            param_ty.clone()
+        };
 
         let ty = check_expr(ck, *arg_id, expected_ty);
+        let type_matches = !infer_type_params || ck.unify_types(param_ty, ty.clone());
+        inference_matches.push(type_matches);
         ck.body.set_ty(*arg_id, ty);
     }
 
-    // Second pass: check compatibility (need to re-borrow call_args)
-    let call_args = ck.call_args(call_expr_id);
+    // Second pass: check compatibility. Copy the call argument data since inference mutates `ck`.
+    let call_args = ck
+        .call_args(call_expr_id)
+        .iter()
+        .map(|arg| (arg.expr, arg.name))
+        .collect::<Vec<_>>();
 
     // Check for unexpected named arguments
-    for (idx, arg) in call_args.iter().enumerate() {
-        if arg.name.is_some() {
+    for (idx, (_, name)) in call_args.iter().enumerate() {
+        if name.is_some() {
             let span = call_arg_name_span(ck, call_expr_id, idx)
                 .unwrap_or_else(|| call_arg_span(ck, call_expr_id, idx));
             ck.report(span, &UNEXPECTED_NAMED_ARGUMENT, args!());
@@ -221,10 +250,20 @@ pub(super) fn check_call_arguments_with_expected(
         .take(call_args.len().min(no_regular_params))
         .enumerate()
     {
-        let arg_id = call_args[idx].expr;
+        let arg_id = call_args[idx].0;
         let arg_ty = ck.body.ty(arg_id);
+        let type_matches = if infer_type_params {
+            inference_matches[idx]
+        } else {
+            arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), None)
+        };
+        let param_ty = if infer_type_params {
+            ck.resolve_type(param_ty.clone())
+        } else {
+            param_ty.clone()
+        };
 
-        if !arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), None) && !arg_ty.is_error() {
+        if !type_matches {
             let exp = ck.ty_name(&param_ty);
             let got = ck.ty_name(&arg_ty);
 
@@ -246,10 +285,20 @@ pub(super) fn check_call_arguments_with_expected(
     } else if let Some(ref variadic_ty) = expected.variadic_type {
         // Check variadic arguments
         for idx in no_regular_params..call_args.len() {
-            let arg_id = call_args[idx].expr;
+            let arg_id = call_args[idx].0;
             let arg_ty = ck.body.ty(arg_id);
+            let type_matches = if infer_type_params {
+                inference_matches[idx]
+            } else {
+                arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), None)
+            };
+            let variadic_ty = if infer_type_params {
+                ck.resolve_type(variadic_ty.clone())
+            } else {
+                variadic_ty.clone()
+            };
 
-            if !arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), None) && !arg_ty.is_error() {
+            if !type_matches {
                 let exp = ck.ty_name(&variadic_ty);
                 let got = ck.ty_name(&arg_ty);
 
@@ -975,48 +1024,63 @@ fn check_expr_call_expr_lambda(
 
 fn check_expr_call_fct(
     ck: &mut TypeCheck,
+    expected_ty: SourceType,
     expr_id: ExprId,
     fct_id: FctDefinitionId,
     type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
 ) -> SourceType {
-    let type_params = read_call_type_params(ck, &type_param_refs);
+    let (type_params, type_variables) = read_call_type_params_with_inference(ck, &type_param_refs);
     let fct = ck.sa.fct(fct_id);
-    let type_params = TypeArgs::from_own(ck.sa, fct.type_param_definition(ck.sa), &type_params);
 
     if !fct_accessible_from(ck.sa, fct_id, ck.module_id) {
         ck.report(ck.expr_span(expr_id), &NOT_ACCESSIBLE, args!());
     }
 
-    let type_params_ok = check_type_params(
+    let type_param_definition = fct.type_param_definition(ck.sa);
+    let (mut type_params, type_variables) = if type_params.is_empty() {
+        assert!(type_variables.is_empty());
+        ck.create_implicit_type_variables(type_param_definition.own_type_params_len(), expr_id)
+    } else {
+        (type_params, type_variables)
+    };
+    type_params = prepare_call_type_params(ck, expr_id, fct, None, type_params);
+    let type_args = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
+
+    let return_type = specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &type_args);
+    ck.unify_types(return_type, expected_ty);
+
+    let expected = build_expected_call_args(
+        fct.params.regular_params(),
+        fct.params.variadic_param(),
+        |ty| specialize_ty_for_call(ck.sa, ty, ck.element, &type_args),
+    );
+    check_call_arguments_with_inference(ck, call_expr_id, &expected);
+
+    if !ck.report_unresolved_type_variables(&type_variables, &type_params) {
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let type_params = ck.resolve_type_array(type_params);
+    let type_args = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
+    if !check_type_param_bounds(
         ck.sa,
         ck.element,
-        &ck.type_param_definition,
+        ck.type_param_definition,
         fct,
-        &type_params,
         ck.file_id,
         || ck.expr_span(expr_id),
-        |ty| specialize_type(ck.sa, ty, &type_params),
-    );
+        |ty| specialize_type(ck.sa, ty, &type_args),
+    ) {
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
 
-    let expected = type_params_ok.then(|| {
-        build_expected_call_args(
-            fct.params.regular_params(),
-            fct.params.variadic_param(),
-            |ty| specialize_ty_for_call(ck.sa, ty, ck.element, &type_params),
-        )
-    });
-    check_call_arguments_with_expected(ck, call_expr_id, expected.as_ref());
-
-    let ty = if type_params_ok {
-        specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &type_params)
-    } else {
-        ty_error()
-    };
-
+    let ty = specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &type_args);
     ck.body.set_ty(expr_id, ty.clone());
 
-    let call_type = CallType::Fct(fct_id, type_params);
+    let call_type = CallType::Fct(fct_id, type_args);
     ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
     ty
@@ -1153,7 +1217,7 @@ fn check_expr_call_struct(
         _ => None,
     };
     let type_params =
-        prepare_ctor_type_params(ck, expr_id, struct_, expected_type_params, type_params);
+        prepare_call_type_params(ck, expr_id, struct_, expected_type_params, type_params);
 
     if struct_.field_name_style.is_named() {
         check_expr_call_ctor_with_named_fields(
@@ -1204,7 +1268,23 @@ fn check_expr_call_struct(
     ty
 }
 
-fn prepare_ctor_type_params(
+fn prepare_call_type_params(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    element: &dyn Element,
+    expected_type_params: Option<&SourceTypeArray>,
+    type_params: SourceTypeArray,
+) -> SourceTypeArray {
+    let type_params = fix_type_param_arity(ck, expr_id, element, expected_type_params, type_params);
+
+    if let Some(expected_type_params) = expected_type_params {
+        ck.unify_type_arrays(type_params.clone(), expected_type_params.clone());
+    }
+
+    type_params
+}
+
+fn fix_type_param_arity(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     element: &dyn Element,
@@ -1217,7 +1297,7 @@ fn prepare_ctor_type_params(
         ck.expr_span(expr_id)
     });
 
-    let type_params = if type_params_ok {
+    if type_params_ok {
         type_params
     } else {
         let expected_len = type_param_definition.own_type_params_len();
@@ -1230,13 +1310,7 @@ fn prepare_ctor_type_params(
             recovered_type_params.push(recovered_type);
         }
         SourceTypeArray::with(recovered_type_params)
-    };
-
-    if let Some(expected_type_params) = expected_type_params {
-        ck.unify_type_arrays(type_params.clone(), expected_type_params.clone());
     }
-
-    type_params
 }
 
 fn report_wrong_type_for_ctor_argument(
@@ -1483,7 +1557,7 @@ fn check_expr_call_class(
         }
         _ => None,
     };
-    let type_params = prepare_ctor_type_params(ck, expr_id, cls, expected_type_params, type_params);
+    let type_params = prepare_call_type_params(ck, expr_id, cls, expected_type_params, type_params);
 
     if !is_default_accessible(ck.sa, cls.module_id, ck.module_id)
         && !cls.all_fields_are_public(ck.sa)
@@ -1574,7 +1648,7 @@ fn check_expr_call_enum_variant(
         _ => None,
     };
     let type_params =
-        prepare_ctor_type_params(ck, expr_id, enum_, expected_type_params, type_params);
+        prepare_call_type_params(ck, expr_id, enum_, expected_type_params, type_params);
 
     let variant = ck.sa.variant(variant_id);
 
@@ -1643,9 +1717,14 @@ fn check_expr_call_sym(
     call_expr_id: ExprId,
 ) -> SourceType {
     match sym {
-        SymbolKind::Fct(fct_id) => {
-            check_expr_call_fct(ck, expr_id, fct_id, type_param_refs, call_expr_id)
-        }
+        SymbolKind::Fct(fct_id) => check_expr_call_fct(
+            ck,
+            expected_ty,
+            expr_id,
+            fct_id,
+            type_param_refs,
+            call_expr_id,
+        ),
 
         SymbolKind::Class(cls_id) => check_expr_call_class(
             ck,
