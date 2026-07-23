@@ -1,0 +1,65 @@
+//= ok
+
+trait Trait {}
+class ImplementsTrait
+impl Trait for ImplementsTrait {}
+
+class Factory
+impl Factory {
+    static fn identity[T](value: T): T { value }
+    static fn same[T](first: T, _second: T): T { first }
+    static fn sameVariadic[T](first: T, _rest: T...): T { first }
+    static fn nested[T](first: Option[T], _second: T): Option[T] { first }
+    static fn nestedVec[T](first: Option[Vec[T]], _second: T): Option[Vec[T]] { first }
+    static fn bounded[T: Trait](value: T): T { value }
+    static fn nothing[T](): Option[T] { None }
+    static fn pair[A, B](first: A, second: B): (A, B) { (first, second) }
+}
+
+struct StructFactory
+impl StructFactory {
+    static fn identity[T](value: T): T { value }
+}
+
+enum EnumFactory { Value }
+impl EnumFactory {
+    static fn identity[T](value: T): T { value }
+}
+
+type AliasFactory = Factory;
+
+class GenericFactory[T]
+impl[T] GenericFactory[T] {
+    static fn pair[U](first: T, second: U): (T, U) { (first, second) }
+}
+
+fn takeInt32(_value: Int32) {}
+fn takeTuple(_value: (Int32, Bool)) {}
+fn takeOption(_value: Option[Bool]) {}
+fn takeNestedVec(_value: Option[Vec[Bool]]) {}
+fn takeBounded(_value: ImplementsTrait) {}
+
+fn main() {
+    takeInt32(Factory::identity[_](1i32));
+    takeInt32(Factory::identity(1i32));
+    takeTuple(Factory::pair[Int32, _](1i32, true));
+
+    let sameInt32 = Factory::same(1i32, 1);
+    takeInt32(sameInt32);
+    let sameVariadicInt32 = Factory::sameVariadic(1i32, 1, 2);
+    takeInt32(sameVariadicInt32);
+
+    let nestedOption = Factory::nested(None, true);
+    takeOption(nestedOption);
+    let nestedVecOption = Factory::nestedVec(None, true);
+    takeNestedVec(nestedVecOption);
+
+    takeBounded(Factory::bounded[_](ImplementsTrait()));
+    let inferredNothing: Option[Bool] = Factory::nothing();
+    takeOption(inferredNothing);
+
+    takeInt32(StructFactory::identity(1i32));
+    takeInt32(EnumFactory::identity(1i32));
+    takeInt32(AliasFactory::identity(1i32));
+    takeTuple(GenericFactory[Int32]::pair(1i32, true));
+}

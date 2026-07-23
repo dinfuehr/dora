@@ -1,0 +1,26 @@
+trait Trait {}
+class DoesNotImplementTrait
+
+class Factory
+impl Factory {
+    static fn identity[T](value: T): T { value }
+    static fn same[T](first: T, _second: T): T { first }
+    static fn sameWithPhantom[A, B](first: A, _second: A): A { first }
+    static fn phantom[T](value: Int32): Int32 { value }
+    static fn bounded[T: Trait](value: T): T { value }
+}
+
+fn expectedConflict(): Bool {
+    Factory::identity[_](1i32)
+}
+
+fn f() {
+    Factory::identity[_](unknown);
+    Factory::identity[(_, _)](unknownTuple);
+    Factory::same[_](1i32, true);
+    Factory::sameWithPhantom[_](1i32, true);
+    Factory::same[_, Bool](1i32, true);
+    Factory::phantom[_](1i32);
+    Factory::phantom(1i32);
+    Factory::bounded[_](DoesNotImplementTrait());
+}

@@ -1,0 +1,113 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> static-method-infer-type-argument.dora:14:26
+ | 
+ | fn expectedConflict(): Bool {
+ |     Factory::identity[_](1i32)
+                            ~~~~
+ | }
+ | 
+error: cannot infer type.
+--> static-method-infer-type-argument.dora:18:23
+ | 
+ | fn f() {
+ |     Factory::identity[_](unknown);
+                         ~
+ |     Factory::identity[(_, _)](unknownTuple);
+ |     Factory::same[_](1i32, true);
+error: unknown identifier `unknown`.
+--> static-method-infer-type-argument.dora:18:26
+ | 
+ | fn f() {
+ |     Factory::identity[_](unknown);
+                            ~~~~~~~
+ |     Factory::identity[(_, _)](unknownTuple);
+ |     Factory::same[_](1i32, true);
+error: cannot infer type.
+--> static-method-infer-type-argument.dora:19:24
+ | fn f() {
+ |     Factory::identity[_](unknown);
+ |     Factory::identity[(_, _)](unknownTuple);
+                          ~
+ |     Factory::same[_](1i32, true);
+ |     Factory::sameWithPhantom[_](1i32, true);
+error: cannot infer type.
+--> static-method-infer-type-argument.dora:19:27
+ | fn f() {
+ |     Factory::identity[_](unknown);
+ |     Factory::identity[(_, _)](unknownTuple);
+                             ~
+ |     Factory::same[_](1i32, true);
+ |     Factory::sameWithPhantom[_](1i32, true);
+error: unknown identifier `unknownTuple`.
+--> static-method-infer-type-argument.dora:19:31
+ | fn f() {
+ |     Factory::identity[_](unknown);
+ |     Factory::identity[(_, _)](unknownTuple);
+                                 ~~~~~~~~~~~~
+ |     Factory::same[_](1i32, true);
+ |     Factory::sameWithPhantom[_](1i32, true);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> static-method-infer-type-argument.dora:20:28
+ |     Factory::identity[_](unknown);
+ |     Factory::identity[(_, _)](unknownTuple);
+ |     Factory::same[_](1i32, true);
+                              ~~~~
+ |     Factory::sameWithPhantom[_](1i32, true);
+ |     Factory::same[_, Bool](1i32, true);
+error: expected 2 type parameters but got 1.
+--> static-method-infer-type-argument.dora:21:5
+ |     Factory::identity[(_, _)](unknownTuple);
+ |     Factory::same[_](1i32, true);
+ |     Factory::sameWithPhantom[_](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     Factory::same[_, Bool](1i32, true);
+ |     Factory::phantom[_](1i32);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> static-method-infer-type-argument.dora:21:39
+ |     Factory::identity[(_, _)](unknownTuple);
+ |     Factory::same[_](1i32, true);
+ |     Factory::sameWithPhantom[_](1i32, true);
+                                         ~~~~
+ |     Factory::same[_, Bool](1i32, true);
+ |     Factory::phantom[_](1i32);
+error: expected 1 type parameters but got 2.
+--> static-method-infer-type-argument.dora:22:5
+ |     Factory::same[_](1i32, true);
+ |     Factory::sameWithPhantom[_](1i32, true);
+ |     Factory::same[_, Bool](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     Factory::phantom[_](1i32);
+ |     Factory::phantom(1i32);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> static-method-infer-type-argument.dora:22:34
+ |     Factory::same[_](1i32, true);
+ |     Factory::sameWithPhantom[_](1i32, true);
+ |     Factory::same[_, Bool](1i32, true);
+                                    ~~~~
+ |     Factory::phantom[_](1i32);
+ |     Factory::phantom(1i32);
+error: cannot infer type.
+--> static-method-infer-type-argument.dora:23:22
+ |     Factory::sameWithPhantom[_](1i32, true);
+ |     Factory::same[_, Bool](1i32, true);
+ |     Factory::phantom[_](1i32);
+                        ~
+ |     Factory::phantom(1i32);
+ |     Factory::bounded[_](DoesNotImplementTrait());
+error: cannot infer type arguments: [_].
+--> static-method-infer-type-argument.dora:24:5
+ |     Factory::same[_, Bool](1i32, true);
+ |     Factory::phantom[_](1i32);
+ |     Factory::phantom(1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~
+ |     Factory::bounded[_](DoesNotImplementTrait());
+ | }
+error: type `DoesNotImplementTrait` does not implement trait `Trait`.
+--> static-method-infer-type-argument.dora:25:5
+ |     Factory::phantom[_](1i32);
+ |     Factory::phantom(1i32);
+ |     Factory::bounded[_](DoesNotImplementTrait());
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+14 errors found.

@@ -1088,10 +1088,11 @@ fn check_expr_call_fct(
 
 fn check_expr_call_static_method(
     ck: &mut TypeCheck,
+    expected_ty: SourceType,
     expr_id: ExprId,
     object_type: SourceType,
     method_name: String,
-    fct_type_params: SourceTypeArray,
+    fct_type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
 ) -> SourceType {
     let interned_method_name = ck.sa.interner.intern(&method_name);
@@ -1128,40 +1129,80 @@ fn check_expr_call_static_method(
         let candidate = &candidates[0];
         let fct_id = candidate.fct_id;
         let fct = ck.sa.fct(fct_id);
+        let (fct_type_params, type_variables) =
+            read_call_type_params_with_inference(ck, &fct_type_param_refs);
+        let type_param_definition = fct.type_param_definition(ck.sa);
+        let (fct_type_params, type_variables) = if fct_type_params.is_empty() {
+            assert!(type_variables.is_empty());
+            ck.create_implicit_type_variables(type_param_definition.own_type_params_len(), expr_id)
+        } else {
+            (fct_type_params, type_variables)
+        };
 
         let type_params = TypeArgs::from_parts(
             ck.sa,
-            fct.type_param_definition(ck.sa),
+            type_param_definition,
+            &candidate.container_type_params,
+            &fct_type_params,
+            Some(candidate.object_type.clone()),
+        );
+        check_type_param_arity(ck.sa, fct, &type_params, ck.file_id, || {
+            ck.expr_span(expr_id)
+        });
+
+        let expected_len = type_param_definition.own_type_params_len();
+        let mut recovered_type_params = fct_type_params
+            .iter()
+            .take(expected_len)
+            .collect::<Vec<_>>();
+        recovered_type_params.resize(expected_len, SourceType::Error);
+        let fct_type_params = SourceTypeArray::with(recovered_type_params);
+
+        let type_params = TypeArgs::from_parts(
+            ck.sa,
+            type_param_definition,
             &candidate.container_type_params,
             &fct_type_params,
             Some(candidate.object_type.clone()),
         );
 
-        let type_params_ok = check_type_params(
+        let return_type = specialize_type(ck.sa, fct.return_type(), &type_params);
+        ck.unify_types(return_type, expected_ty);
+
+        let expected = build_expected_call_args(
+            fct.params.regular_params(),
+            fct.params.variadic_param(),
+            |ty| replace_type(ck.sa, ty, &type_params),
+        );
+        check_call_arguments_with_inference(ck, call_expr_id, &expected);
+
+        if !ck.report_unresolved_type_variables(&type_variables, &fct_type_params) {
+            ck.body.set_ty(expr_id, ty_error());
+            return ty_error();
+        }
+
+        let fct_type_params = ck.resolve_type_array(fct_type_params);
+        let type_params = TypeArgs::from_parts(
+            ck.sa,
+            type_param_definition,
+            &candidate.container_type_params,
+            &fct_type_params,
+            Some(candidate.object_type.clone()),
+        );
+        if !check_type_param_bounds(
             ck.sa,
             ck.element,
-            &ck.type_param_definition,
+            ck.type_param_definition,
             fct,
-            &type_params,
             ck.file_id,
             || ck.expr_span(expr_id),
             |ty| specialize_type(ck.sa, ty, &type_params),
-        );
+        ) {
+            ck.body.set_ty(expr_id, ty_error());
+            return ty_error();
+        }
 
-        let expected = type_params_ok.then(|| {
-            build_expected_call_args(
-                fct.params.regular_params(),
-                fct.params.variadic_param(),
-                |ty| replace_type(ck.sa, ty, &type_params),
-            )
-        });
-        check_call_arguments_with_expected(ck, call_expr_id, expected.as_ref());
-
-        let ty = if type_params_ok {
-            specialize_type(ck.sa, fct.return_type(), &type_params)
-        } else {
-            ty_error()
-        };
+        let ty = specialize_type(ck.sa, fct.return_type(), &type_params);
 
         let call_type = Rc::new(CallType::Fct(fct_id, type_params));
         ck.body.insert_call_type(expr_id, call_type.clone());
@@ -1819,17 +1860,15 @@ fn check_expr_call_path(
 
     let defer_type_params =
         matches!(&resolution, PathResolution::Symbol(SymbolKind::Module(_))) || is_enum_variant;
-    let (type_params, container_type_params) = if defer_type_params {
-        (SourceTypeArray::empty(), SourceTypeArray::empty())
+    let container_type_params = if defer_type_params {
+        SourceTypeArray::empty()
     } else {
-        (
-            read_call_type_params(ck, &type_param_refs),
-            read_call_type_params(ck, &container_type_param_refs),
-        )
+        read_call_type_params(ck, &container_type_param_refs)
     };
 
     // Handle Self specially - it's not a symbol
     if let PathResolution::Self_ = resolution {
+        let type_params = read_call_type_params(ck, &type_param_refs);
         return check_expr_call_self_static_method(
             ck,
             expr_id,
@@ -1841,6 +1880,7 @@ fn check_expr_call_path(
 
     // Handle Self::T where T is an associated type
     if let PathResolution::SelfAssocType(alias_id) = resolution {
+        let type_params = read_call_type_params(ck, &type_param_refs);
         return check_expr_call_self_assoc_type_static_method(
             ck,
             expr_id,
@@ -1858,6 +1898,7 @@ fn check_expr_call_path(
         assoc_id,
     } = resolution
     {
+        let type_params = read_call_type_params(ck, &type_param_refs);
         return check_expr_call_generic_assoc_static_method(
             ck,
             expr_id,
@@ -1894,10 +1935,11 @@ fn check_expr_call_path(
             ) {
                 check_expr_call_static_method(
                     ck,
+                    expected_ty,
                     expr_id,
                     SourceType::Class(cls_id, container_type_params),
                     method_name,
-                    type_params,
+                    type_param_refs,
                     call_expr_id,
                 )
             } else {
@@ -1932,10 +1974,11 @@ fn check_expr_call_path(
 
                 check_expr_call_static_method(
                     ck,
+                    expected_ty,
                     expr_id,
                     object_ty,
                     method_name,
-                    type_params,
+                    type_param_refs,
                     call_expr_id,
                 )
             } else {
@@ -1991,10 +2034,11 @@ fn check_expr_call_path(
 
                     check_expr_call_static_method(
                         ck,
+                        expected_ty,
                         expr_id,
                         object_ty,
                         method_name,
-                        type_params,
+                        type_param_refs,
                         call_expr_id,
                     )
                 } else {
@@ -2003,14 +2047,17 @@ fn check_expr_call_path(
             }
         }
 
-        SymbolKind::TypeParam(id) => check_expr_call_generic_static_method(
-            ck,
-            expr_id,
-            id,
-            method_name,
-            type_params,
-            call_expr_id,
-        ),
+        SymbolKind::TypeParam(id) => {
+            let type_params = read_call_type_params(ck, &type_param_refs);
+            check_expr_call_generic_static_method(
+                ck,
+                expr_id,
+                id,
+                method_name,
+                type_params,
+                call_expr_id,
+            )
+        }
 
         SymbolKind::Module(module_id) => {
             let table = ck.sa.module_table(module_id);
@@ -2040,10 +2087,11 @@ fn check_expr_call_path(
             let alias_ty = ck.sa.alias(alias_id).ty();
             check_expr_call_static_method(
                 ck,
+                expected_ty,
                 expr_id,
                 alias_ty,
                 method_name,
-                type_params,
+                type_param_refs,
                 call_expr_id,
             )
         }
