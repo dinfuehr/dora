@@ -51,7 +51,6 @@ use package::graph::{
 };
 use package::interface::{
     AotShapeKey,
-    InlinedFunctionId,
     InlinedLocation,
     JumpTable,
     RelocationEntry,

@@ -1,7 +1,6 @@
 use package::bytecode_graph_builder::{BytecodeGraphBuilder, compute_inline_return_type};
 use package::compilation::{CompilationInfo, FunctionCompilationInfo, TraitObjectThunk};
 use package::graph::{Block, Graph, Inst};
-use package::graph::ty::Type;
 use package::interface::InlinedFunctionId;
 use package::ssa_construction::SsaConstruction;
 

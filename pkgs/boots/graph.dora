@@ -377,7 +377,7 @@ impl Iterator for InsertionOrderIterator {
             self.idx += 1i64;
             Some(block)
         } else {
-            None[Block]
+            None
         }
     }
 }
@@ -402,7 +402,7 @@ impl Iterator for PostOrderIterator {
             self.idx += 1i64;
             Some(block)
         } else {
-            None[Block]
+            None
         }
     }
 }
@@ -427,7 +427,7 @@ impl Iterator for ReversePostOrderIterator {
             self.idx = self.idx - 1;
             Some(block)
         } else {
-            None[Block]
+            None
         }
     }
 }
@@ -452,7 +452,7 @@ impl Iterator for BlockIterator {
             self.idx = self.idx + 1;
             Some(block)
         } else {
-            None[Block]
+            None
         }
     }
 }
@@ -2762,7 +2762,7 @@ impl Iterator for UseIterator {
             self.current = input.next_use;
             Some(input)
         } else {
-            None[Input]
+            None
         }
     }
 }
@@ -3587,7 +3587,7 @@ impl Iterator for InstIterator {
             self.current = inst.next;
             Some(inst)
         } else {
-            None[Inst]
+            None
         }
     }
 }
@@ -3610,7 +3610,7 @@ impl Iterator for PhiInstIterator {
             self.current = inst.next;
             Some(inst)
         } else {
-            None[Inst]
+            None
         }
     }
 }
@@ -3633,7 +3633,7 @@ impl Iterator for BackwardInstIterator {
             self.current = inst.previous;
             Some(inst)
         } else {
-            None[Inst]
+            None
         }
     }
 }
@@ -3766,7 +3766,7 @@ impl Iterator for InstSetIter {
             let id = InstId(it.to_int32());
             Some(self.graph.get_inst_by_id(id))
         } else {
-            None[Inst]
+            None
         }
     }
 }

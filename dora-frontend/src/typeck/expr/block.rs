@@ -6,7 +6,7 @@ pub(super) fn check_expr_block(
     ck: &mut TypeCheck,
     _expr_id: ExprId,
     expr: &BlockExpr,
-    _expected_ty: SourceType,
+    expected_ty: SourceType,
 ) -> SourceType {
     ck.symtable.push_level();
 
@@ -15,7 +15,7 @@ pub(super) fn check_expr_block(
     }
 
     let ty = if let Some(expr_id) = expr.expr {
-        check_expr(ck, expr_id, SourceType::Any)
+        check_expr(ck, expr_id, expected_ty)
     } else {
         SourceType::Unit
     };

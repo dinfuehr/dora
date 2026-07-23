@@ -1,6 +1,6 @@
 use std::BitSet;
 
-use package::bytecode::{BytecodeBody, BytecodeType};
+use package::bytecode::BytecodeType;
 use package::bytecode_graph_builder::{BytecodeAnalysis, BytecodeGraphBuilder};
 use package::calling_convention as cc;
 use package::calling_convention::ArgumentPassingMode;
@@ -9,7 +9,6 @@ use package::graph;
 use package::graph::{Block, Graph, Inst, InstExtraData};
 use package::graph::ty::Type;
 use package::interface as iface;
-use package::interface::InlinedFunctionId;
 
 impl BytecodeGraphBuilder {
     pub static fn new_for_trait_object_thunk(
@@ -96,7 +95,7 @@ impl BytecodeGraphBuilder {
             Some(self.trait_object_payload_address(receiver))
         } else {
             match cc::argument_passing_mode(self.ci, thunk.actual_object_ty) {
-                ArgumentPassingMode::None => None[Inst],
+                ArgumentPassingMode::None => None,
                 ArgumentPassingMode::Register(register_ty) => {
                     let value = graph::create_load_inst(
                         receiver,

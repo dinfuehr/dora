@@ -546,7 +546,7 @@ impl Iterator for BytecodeIterator {
         if self.pos < self.length {
             Some(self.read_instruction())
         } else {
-            None[BytecodeInstructionInfo]
+            None
         }
     }
 }

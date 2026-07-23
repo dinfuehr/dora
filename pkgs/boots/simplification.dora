@@ -355,7 +355,7 @@ impl SimplificationPass {
                 if ty == Type::UInt8 {
                     Some(self.graph.ensure_const_bool_inst(lhs >= rhs))
                 } else {
-                    None[Inst]
+                    None
                 }
             }
 
@@ -386,7 +386,7 @@ impl SimplificationPass {
             Type::Int32 => {
                 let (value, overflow) = value.to_int32().overflowing_neg();
                 if checked && overflow {
-                    None[Inst]
+                    None
                 } else {
                     Some(self.graph.ensure_const_int32_inst(value))
                 }
@@ -395,7 +395,7 @@ impl SimplificationPass {
             Type::Int64 => {
                 let (value, overflow) = value.overflowing_neg();
                 if checked && overflow {
-                    None[Inst]
+                    None
                 } else {
                     Some(self.graph.ensure_const_int64_inst(value))
                 }
@@ -424,7 +424,7 @@ impl SimplificationPass {
                 {
                     Some(self.graph.ensure_const_int32_inst(result))
                 } else {
-                    None[Inst]
+                    None
                 }
             }
 
@@ -432,7 +432,7 @@ impl SimplificationPass {
                 if fold_checked_int64(op, lhs, rhs) is Some(result) {
                     Some(self.graph.ensure_const_int64_inst(result))
                 } else {
-                    None[Inst]
+                    None
                 }
             }
 
@@ -471,12 +471,12 @@ fn fold_checked_int32(op: Op, lhs: Int32, rhs: Int32): Option[Int32] {
         Op::CheckedSub => checked_result_int32(lhs.overflowing_sub(rhs)),
         Op::CheckedMul => checked_result_int32(lhs.overflowing_mul(rhs)),
         Op::CheckedDiv => if rhs == 0i32 {
-            None[Int32]
+            None
         } else {
             checked_result_int32(lhs.overflowing_div(rhs))
         }
         Op::CheckedMod => if rhs == 0i32 {
-            None[Int32]
+            None
         } else {
             checked_result_int32(lhs.overflowing_mod(rhs))
         }
@@ -490,12 +490,12 @@ fn fold_checked_int64(op: Op, lhs: Int64, rhs: Int64): Option[Int64] {
         Op::CheckedSub => checked_result_int64(lhs.overflowing_sub(rhs)),
         Op::CheckedMul => checked_result_int64(lhs.overflowing_mul(rhs)),
         Op::CheckedDiv => if rhs == 0 {
-            None[Int64]
+            None
         } else {
             checked_result_int64(lhs.overflowing_div(rhs))
         }
         Op::CheckedMod => if rhs == 0 {
-            None[Int64]
+            None
         } else {
             checked_result_int64(lhs.overflowing_mod(rhs))
         }
@@ -506,7 +506,7 @@ fn fold_checked_int64(op: Op, lhs: Int64, rhs: Int64): Option[Int64] {
 fn checked_result_int64(result: (Int64, Bool)): Option[Int64] {
     let (value, overflow) = result;
     if overflow {
-        None[Int64]
+        None
     } else {
         Some(value)
     }
@@ -515,7 +515,7 @@ fn checked_result_int64(result: (Int64, Bool)): Option[Int64] {
 fn checked_result_int32(result: (Int32, Bool)): Option[Int32] {
     let (value, overflow) = result;
     if overflow {
-        None[Int32]
+        None
     } else {
         Some(value)
     }

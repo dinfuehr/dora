@@ -70,12 +70,7 @@ use package::interface::{
     THREAD_LOCAL_DATA_TLAB_END_OFFSET,
     THREAD_LOCAL_DATA_TLAB_TOP_OFFSET,
 };
-use package::interface::{
-    GLOBAL_STATE_INITIALIZED,
-    InlinedFunctionId,
-    InlinedLocation,
-    PTR_SIZE,
-};
+use package::interface::{GLOBAL_STATE_INITIALIZED, InlinedLocation, PTR_SIZE};
 use package::interface as iface;
 use package::interface::{
     Arm64LoadWidth,

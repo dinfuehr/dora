@@ -78,7 +78,7 @@ impl Iterator for SparseSetIter {
             self.idx += 1;
             Some(a)
         } else {
-            None[Int32]
+            None
         }
     }
 }

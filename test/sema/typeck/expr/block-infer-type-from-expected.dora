@@ -1,0 +1,34 @@
+//= ok
+
+enum Phantom[T] { New(Int32) }
+
+fn nestedBlock(): Option[Int32] {
+    {
+        None
+    }
+}
+
+fn ifBranches(value: Bool): Option[Int64] {
+    if value {
+        Some(1i64)
+    } else {
+        None
+    }
+}
+
+fn matchArms(value: Bool): Option[String] {
+    match value {
+        true => {
+            Some("value")
+        }
+        false => {
+            None
+        }
+    }
+}
+
+fn phantom(): Phantom[String] {
+    {
+        Phantom::New(1i32)
+    }
+}

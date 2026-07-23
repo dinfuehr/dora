@@ -3063,7 +3063,7 @@ mod imm_encoding {
         if (imm & !(mask << 12i32)) == 0 {
             Some((true, imm.to_int32() >> 12i32))
         } else {
-            None[(Bool, Int32)]
+            None
         }
     }
 }

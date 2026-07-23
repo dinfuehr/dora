@@ -108,7 +108,7 @@ impl Label {
         if self.offset != -1 {
             Some(self.offset)
         } else {
-            None[Int64]
+            None
         }
     }
 
@@ -283,7 +283,7 @@ impl[T: RegisterType, V] RegMap[T, V] {
         let idx = available.count_zero_bits_trailing();
 
         if idx == 64i32 {
-            None[T]
+            None
         } else {
             self.in_use = self.in_use | (1 << idx);
             self.data(idx.to_int64()) = Some(value);
@@ -403,7 +403,7 @@ impl[T: RegisterType] RegSet[T] {
         let idx = self.value.count_zero_bits_trailing();
 
         if idx == 64i32 {
-            None[T]
+            None
         } else {
             self.value = self.value & !(1 << idx);
             return Some(T::from_int32(idx));
@@ -414,7 +414,7 @@ impl[T: RegisterType] RegSet[T] {
         let idx = self.value.count_zero_bits_leading();
 
         if idx == 64i32 {
-            None[T]
+            None
         } else {
             let idx = 63i32 - idx;
             self.value = self.value & !(1 << idx);
@@ -426,7 +426,7 @@ impl[T: RegisterType] RegSet[T] {
         let idx = self.value.count_zero_bits_trailing();
 
         if idx == 64i32 {
-            None[T]
+            None
         } else {
             Some(T::from_int32(idx))
         }
