@@ -1,0 +1,18 @@
+//= ok
+
+enum Phantom[T] {
+    New(Int32),
+}
+
+class Holder {
+    values: Array[Option[Int64]],
+}
+
+fn direct(options: Array[Option[Int32]], phantoms: Array[Phantom[String]]) {
+    options(0) = None;
+    phantoms(0) = Phantom::New(1i32);
+}
+
+fn field(holder: Holder) {
+    holder.values(0) = None;
+}

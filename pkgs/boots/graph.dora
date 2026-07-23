@@ -337,7 +337,7 @@ fn remove_unreachable_inst(graph: Graph, inst: Inst) {
     assert(inst.has_id());
     let id = inst._id;
     assert(graph.inst_by_id(id.to_int64()).get_or_panic() === inst);
-    graph.inst_by_id(id.to_int64()) = None[Inst];
+    graph.inst_by_id(id.to_int64()) = None;
     inst._id = -id;
     inst.block = None;
     assert(!inst.has_id());
@@ -670,7 +670,7 @@ impl Block {
 
     pub fn remove() {
         let graph = self.get_graph();
-        graph.blocks(self.id().to_int64()) = None[Block];
+        graph.blocks(self.id().to_int64()) = None;
         self._id = -self._id;
         self.graph = None;
     }
@@ -1712,7 +1712,7 @@ impl Inst {
         self.block = None;
         assert(self.has_id());
         let id = self._id;
-        block.get_graph().inst_by_id(id.to_int64()) = None[Inst];
+        block.get_graph().inst_by_id(id.to_int64()) = None;
         self._id = -id;
         assert(!self.has_id());
     }

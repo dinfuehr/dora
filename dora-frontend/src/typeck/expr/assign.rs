@@ -403,13 +403,11 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
     crate::typeck::expr::check_call_arguments(ck, call_expr);
     let call_expr_id = lhs_id;
 
-    let value_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
-    ck.body.set_ty(sema_expr.rhs, value_type.clone());
-
     let mut array_assignment = ArrayAssignment::new();
     let index_type;
     let item_type;
     let rhs_type;
+    let value_type;
 
     if sema_expr.op == ast::AssignOp::Assign {
         (index_type, item_type) = check_index_trait_on_ty(
@@ -419,8 +417,11 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
             object_type.clone(),
             false,
         );
+        value_type = check_expr(ck, sema_expr.rhs, item_type.clone());
         rhs_type = item_type.clone();
     } else {
+        value_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
+
         let (index_get_index, index_get_item) = check_index_trait_on_ty(
             ck,
             expr_id,
@@ -462,6 +463,8 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
             value_type.clone(),
         );
     }
+
+    ck.body.set_ty(sema_expr.rhs, value_type.clone());
 
     let call_args = ck.call_args(call_expr_id);
     let arg_index_type = if let Some(arg) = call_args.first() {
@@ -536,13 +539,11 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
     check_method_call_arguments(ck, method_call_expr);
     let call_expr_id = lhs_id;
 
-    let value_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
-    ck.body.set_ty(sema_expr.rhs, value_type.clone());
-
     let mut array_assignment = ArrayAssignment::new();
     let index_type;
     let item_type;
     let rhs_type;
+    let value_type;
 
     if sema_expr.op == ast::AssignOp::Assign {
         (index_type, item_type) = check_index_trait_on_ty(
@@ -552,8 +553,11 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
             field_type.clone(),
             false,
         );
+        value_type = check_expr(ck, sema_expr.rhs, item_type.clone());
         rhs_type = item_type.clone();
     } else {
+        value_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
+
         let (index_get_index, index_get_item) =
             check_index_trait_on_ty(ck, expr_id, &mut array_assignment, field_type.clone(), true);
 
@@ -590,6 +594,8 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
             value_type.clone(),
         );
     }
+
+    ck.body.set_ty(sema_expr.rhs, value_type.clone());
 
     let call_args = ck.call_args(call_expr_id);
     let arg_index_type = if let Some(arg) = call_args.first() {

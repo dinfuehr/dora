@@ -1,0 +1,17 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> index-set-infer-rhs-from-expected-err.dora:10:26
+ | 
+ | fn direct(values: Array[Box[Bool]]) {
+ |     values(0) = Box::New(1i32);
+                            ~~~~
+ | }
+ | 
+error: Argument expects value of type `Bool` but got `Int32`.
+--> index-set-infer-rhs-from-expected-err.dora:14:33
+ | 
+ | fn field(holder: Holder) {
+ |     holder.values(0) = Box::New(2i32);
+                                   ~~~~
+ | }
+ | 
+2 errors found.

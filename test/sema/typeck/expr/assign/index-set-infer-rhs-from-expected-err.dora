@@ -1,0 +1,15 @@
+enum Box[T] {
+    New(T),
+}
+
+class Holder {
+    values: Array[Box[Bool]],
+}
+
+fn direct(values: Array[Box[Bool]]) {
+    values(0) = Box::New(1i32);
+}
+
+fn field(holder: Holder) {
+    holder.values(0) = Box::New(2i32);
+}

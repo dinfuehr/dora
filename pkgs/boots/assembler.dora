@@ -312,7 +312,7 @@ impl[T: RegisterType, V] RegMap[T, V] {
         assert(value < 64i32);
         self.in_use = self.in_use & !(1 << value);
         let result = self.data(value.to_int64());
-        self.data(value.to_int64()) = None[V];
+        self.data(value.to_int64()) = None;
         result
     }
 }
