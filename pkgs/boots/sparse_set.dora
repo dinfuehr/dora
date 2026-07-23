@@ -76,7 +76,7 @@ impl Iterator for SparseSetIter {
         if self.idx < self.sparse_set.members.to_int64() {
             let a = self.sparse_set.dense(self.idx);
             self.idx += 1;
-            Some[Int32](a)
+            Some(a)
         } else {
             None[Int32]
         }

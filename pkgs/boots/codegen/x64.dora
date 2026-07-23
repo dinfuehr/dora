@@ -190,7 +190,7 @@ impl CodeGenX64 {
             gc_points = GcPointTable::new(),
             comments = CommentTable::new(),
             deferred = Vec[(): ()]::new(),
-            argument_locations = None[ArgumentLocations],
+            argument_locations = None,
             has_avx2 = config.has_avx2,
         )
     }
@@ -1157,7 +1157,7 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn set_argument_locations(arguments: ArgumentLocations) {
-        self.argument_locations = Some[ArgumentLocations](arguments);
+        self.argument_locations = Some(arguments);
     }
 
     fn emit_breakpoint() {
@@ -1186,7 +1186,7 @@ impl CodeGen for CodeGenX64 {
                 self.emit_comment("slow path for stack limit check");
                 self.asm.bind_label(lbl_stack_overflow);
                 let iloc = InlinedLocation(
-                    inlined_function_id = None[InlinedFunctionId],
+                    inlined_function_id = None,
                     location = self.ci.loc,
                 );
                 self.emit_runtime_function_call(RuntimeFunction::StackOverflowTrampoline);
@@ -4428,7 +4428,7 @@ impl CodeGen for CodeGenX64 {
                 let pos = self.asm.position();
                 self.gc_points.insert(pos, gc_point);
                 let iloc = InlinedLocation(
-                    inlined_function_id = None[InlinedFunctionId],
+                    inlined_function_id = None,
                     location = self.ci.loc,
                 );
                 self.locations.insert(pos, iloc);

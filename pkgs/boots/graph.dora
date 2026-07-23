@@ -53,24 +53,24 @@ pub class Graph {
 impl Graph {
     pub static fn new(): Graph {
         let blocks = Vec[Option[Block]]::new();
-        blocks.push(None[Block]);
+        blocks.push(None);
 
         let insts = Vec[Option[Inst]]::new();
-        insts.push(None[Inst]);
+        insts.push(None);
 
         Graph(
-            entry_block = None[Block],
-            exit_block = None[Block],
+            entry_block = None,
+            exit_block = None,
             blocks,
             inst_by_id = insts,
-            post_order = None[Vec[Block]],
-            linear_order = None[Vec[Block]],
-            stack_size = None[Int32],
+            post_order = None,
+            linear_order = None,
+            stack_size = None,
             consts_by_val_int64 = HashMap[Int64, Inst]::new(),
             consts_by_val_int32 = HashMap[Int32, Inst]::new(),
             consts_by_val_uint8 = HashMap[UInt8, Inst]::new(),
-            const_true = None[Inst],
-            const_false = None[Inst],
+            const_true = None,
+            const_false = None,
             inlinable_calls = Vec[(Inst, FunctionInliningInfo)]::new(),
             inlined_bytecode_size = 0i32,
         )
@@ -82,7 +82,7 @@ impl Graph {
 
         block.graph = Some(self);
         block._id = self.next_block_id().0;
-        self.blocks.push(Some[Block](block));
+        self.blocks.push(Some(block));
     }
 
     pub fn get_block_with_id(id: Int32): Block {
@@ -113,7 +113,7 @@ impl Graph {
         let id = self.inst_by_id.size().to_int32();
         assert(id > 0i32);
         inst._id = id;
-        self.inst_by_id.push(Some[Inst](inst));
+        self.inst_by_id.push(Some(inst));
     }
 
     pub fn inst_count(): Int32 {
@@ -229,7 +229,7 @@ impl Graph {
         }
 
         let inst = create_bool_const(true);
-        self.const_true = Some[Inst](inst);
+        self.const_true = Some(inst);
         self.append_entry_block(inst);
         inst
     }
@@ -240,7 +240,7 @@ impl Graph {
         }
 
         let inst = create_bool_const(false);
-        self.const_false = Some[Inst](inst);
+        self.const_false = Some(inst);
         self.append_entry_block(inst);
         inst
     }
@@ -339,7 +339,7 @@ fn remove_unreachable_inst(graph: Graph, inst: Inst) {
     assert(graph.inst_by_id(id.to_int64()).get_or_panic() === inst);
     graph.inst_by_id(id.to_int64()) = None[Inst];
     inst._id = -id;
-    inst.block = None[Block];
+    inst.block = None;
     assert(!inst.has_id());
 }
 
@@ -375,7 +375,7 @@ impl Iterator for InsertionOrderIterator {
         if self.idx < self.blocks.size() {
             let block = self.blocks(self.idx).get_or_panic();
             self.idx += 1i64;
-            Some[Block](block)
+            Some(block)
         } else {
             None[Block]
         }
@@ -400,7 +400,7 @@ impl Iterator for PostOrderIterator {
         if self.idx < self.post_order.size() {
             let block = self.post_order(self.idx);
             self.idx += 1i64;
-            Some[Block](block)
+            Some(block)
         } else {
             None[Block]
         }
@@ -425,7 +425,7 @@ impl Iterator for ReversePostOrderIterator {
         if self.idx != -1 {
             let block = self.post_order(self.idx);
             self.idx = self.idx - 1;
-            Some[Block](block)
+            Some(block)
         } else {
             None[Block]
         }
@@ -450,7 +450,7 @@ impl Iterator for BlockIterator {
         if self.idx < self.order.size() {
             let block = self.order(self.idx);
             self.idx = self.idx + 1;
-            Some[Block](block)
+            Some(block)
         } else {
             None[Block]
         }
@@ -495,18 +495,18 @@ impl Block {
             _id = 0i32,
             phis = InstLinkedList::new(),
             instructions = InstLinkedList::new(),
-            label = None[Label],
-            graph = None[Graph],
-            name = None[String],
-            bytecode_position = None[Int32],
-            dominator = None[Block],
+            label = None,
+            graph = None,
+            name = None,
+            bytecode_position = None,
+            dominator = None,
             dominated_blocks = Vec[Block]::new(),
-            live_in = None[InstSet],
-            tracker_in = None[RegisterTrackers],
-            tracker_out = None[RegisterTrackers],
+            live_in = None,
+            tracker_in = None,
+            tracker_out = None,
             predecessors = Vec[Edge]::new(),
             successors = Vec[Edge]::new(),
-            loop_data = None[LoopData],
+            loop_data = None,
             post_order_idx = -1i32,
             linear_order_idx = -1i32,
         )
@@ -526,7 +526,7 @@ impl Block {
     }
 
     pub fn set_name(name: String) {
-        self.name = Some[String](name);
+        self.name = Some(name);
     }
 
     pub fn get_name(): Option[String] {
@@ -796,7 +796,7 @@ impl LoopData {
             header,
             back_edges = Vec[Edge]::new(),
             blocks = BitVec::new(),
-            parent = None[LoopData],
+            parent = None,
             depth = 0,
             subloops = Vec[LoopData]::new(),
         )
@@ -830,7 +830,7 @@ impl LoopData {
     pub fn set_loop_parent(parent: LoopData) {
         assert(self.parent.is_none());
         assert(self.depth == 0);
-        self.parent = Some[LoopData](parent);
+        self.parent = Some(parent);
         self.increase_loop_depth();
     }
 
@@ -871,9 +871,9 @@ impl Input {
             idx,
             value,
             used_by,
-            previous_use = None[Input],
-            next_use = None[Input],
-            linear_order_idx_in_actual_user = None[Int32],
+            previous_use = None,
+            next_use = None,
+            linear_order_idx_in_actual_user = None,
             is_last_use = false,
         )
     }
@@ -1100,9 +1100,9 @@ impl Op {
 
     pub fn get_bool_const(): Option[Bool] {
         match self {
-            Op::TrueConst => Some[Bool](true),
-            Op::FalseConst => Some[Bool](false),
-            _ => None[Bool],
+            Op::TrueConst => Some(true),
+            Op::FalseConst => Some(false),
+            _ => None,
         }
     }
 
@@ -1282,20 +1282,20 @@ impl Inst {
     pub static fn new(): Inst {
         Inst(
             _id = 0i32,
-            block = None[Block],
-            linear_index = None[Int32],
-            _op = None[Op],
-            inlined_location = None[InlinedLocation],
+            block = None,
+            linear_index = None,
+            _op = None,
+            inlined_location = None,
             aux = 0,
             emit_at_use_site = false,
             is_immutable = false,
-            previous = None[Inst],
-            next = None[Inst],
+            previous = None,
+            next = None,
             ty = Type::Unit,
             extra = InstExtraData::None,
-            location_data = None[LocationData],
-            use_list_head = None[Input],
-            use_list_tail = None[Input],
+            location_data = None,
+            use_list_head = None,
+            use_list_tail = None,
             inputs = Vec[Input]::new(),
         )
     }
@@ -1343,7 +1343,7 @@ impl Inst {
 
     pub fn set_inlined_location(loc: InlinedLocation) {
         assert(self.inlined_location.is_none());
-        self.inlined_location = Some[InlinedLocation](loc);
+        self.inlined_location = Some(loc);
     }
 
     pub fn get_block(): Block {
@@ -1386,10 +1386,10 @@ impl Inst {
 
     pub fn get_int_const(): Option[Int64] {
         match self.op() {
-            Op::Int32Const => Some[Int64](self.get_value_as_int32().to_int64()),
-            Op::Int64Const => Some[Int64](self.get_value_as_int64()),
-            Op::UInt8Const => Some[Int64](self.get_value_as_uint8().to_int64()),
-            _ => None[Int64],
+            Op::Int32Const => Some(self.get_value_as_int32().to_int64()),
+            Op::Int64Const => Some(self.get_value_as_int64()),
+            Op::UInt8Const => Some(self.get_value_as_uint8().to_int64()),
+            _ => None,
         }
     }
 
@@ -1431,111 +1431,108 @@ impl Inst {
 
     pub fn get_maybe_value_type(): Option[Type] {
         match self.op() {
-            Op::NullConst => Some[Type](Type::Ptr),
-            Op::TrueConst => Some[Type](Type::Bool),
-            Op::FalseConst => Some[Type](Type::Bool),
-            Op::UInt8Const => Some[Type](Type::UInt8),
-            Op::Int32Const => Some[Type](Type::Int32),
-            Op::Int64Const => Some[Type](Type::Int64),
-            Op::Float32Const => Some[Type](Type::Float32),
-            Op::Float64Const => Some[Type](Type::Float64),
-            Op::StringConst => Some[Type](Type::Ptr),
-            Op::EnsureGlobalInitialized => None[Type],
-            Op::LoadGlobal => Some[Type](self.ty),
-            Op::GetGlobalAddress => Some[Type](Type::Address),
-            Op::StoreGlobal => Some[Type](self.ty),
-            Op::MarkGlobalInitialized => None[Type],
-            Op::Undef => None[Type],
-            Op::CheckArrayBounds => Some[Type](Type::Unit),
-            Op::Goto => None[Type],
-            Op::If => None[Type],
-            Op::Switch => None[Type],
-            Op::Return => None[Type],
-            Op::InlineReturn => None[Type],
-            Op::Abort => None[Type],
-            Op::Assert => None[Type],
-            Op::Safepoint => None[Type],
-            Op::Neg => Some[Type](self.ty),
-            Op::CheckedNeg => Some[Type](self.ty),
-            Op::IsNegOverflowing => Some[Type](Type::Bool),
-            Op::Not => Some[Type](self.ty),
-            Op::Add => Some[Type](self.ty),
-            Op::CheckedAdd => Some[Type](self.ty),
-            Op::IsAddOverflowing => Some[Type](Type::Bool),
-            Op::Sub => Some[Type](self.ty),
-            Op::CheckedSub => Some[Type](self.ty),
-            Op::IsSubOverflowing => Some[Type](Type::Bool),
-            Op::Mul => Some[Type](self.ty),
-            Op::CheckedMul => Some[Type](self.ty),
-            Op::IsMulOverflowing => Some[Type](Type::Bool),
-            Op::Div => Some[Type](self.ty),
-            Op::CheckedDiv => Some[Type](self.ty),
-            Op::IsDivOverflowing => Some[Type](Type::Bool),
-            Op::Mod => Some[Type](self.ty),
-            Op::CheckedMod => Some[Type](self.ty),
-            Op::IsModOverflowing => Some[Type](Type::Bool),
-            Op::And => Some[Type](self.ty),
-            Op::Or => Some[Type](self.ty),
-            Op::Xor => Some[Type](self.ty),
-            Op::Shl => Some[Type](self.ty),
-            Op::Shr => Some[Type](self.ty),
-            Op::Sar => Some[Type](self.ty),
-            Op::Invoke => Some[Type](self.ty),
-            Op::InvokeVirtual => Some[Type](self.ty),
-            Op::InvokeLambda => Some[Type](self.ty),
-            Op::Equal => Some[Type](Type::Bool),
-            Op::NotEqual => Some[Type](Type::Bool),
-            Op::Greater => Some[Type](Type::Bool),
-            Op::UnsignedGreater => Some[Type](Type::Bool),
-            Op::GreaterOrEqual => Some[Type](Type::Bool),
-            Op::UnsignedGreaterOrEqual => Some[Type](Type::Bool),
-            Op::Less => Some[Type](Type::Bool),
-            Op::UnsignedLess => Some[Type](Type::Bool),
-            Op::LessOrEqual => Some[Type](Type::Bool),
-            Op::UnsignedLessOrEqual => Some[Type](Type::Bool),
-            Op::Phi => Some[Type](self.ty),
-            Op::CheckDivZero => None[Type],
-            Op::CheckShiftAmount => None[Type],
-            Op::LoadArray => Some[Type](self.ty),
-            Op::StoreArray => None[Type],
-            Op::GetElementPtr => Some[Type](Type::Address),
-            Op::Arg => Some[Type](self.ty),
-            Op::LocalGet => Some[Type](self.ty),
-            Op::LocalSet => None[Type],
-            Op::Move => Some[Type](self.ty),
-            Op::LoadReg => Some[Type](self.ty),
-            Op::StoreReg => Some[Type](self.ty),
-            Op::Rematerialize => Some[Type](self.ty),
-            Op::NewObject => Some[Type](Type::Ptr),
-            Op::NewArray => Some[Type](Type::Ptr),
-            Op::AllocateStack => Some[Type](Type::Address),
-            Op::Load => Some[Type](self.ty),
-            Op::Store
-            | Op::StoreWb
-            | Op::StoreArrayWb
-            | Op::StoreArrayAddressWb => None[Type],
-            Op::ThreadCurrent => Some[Type](Type::Ptr),
-            Op::Convert => Some[Type](self.ty),
-            Op::CompareOrdering => Some[Type](Type::Int32),
-            Op::Bitcast => Some[Type](self.ty),
-            Op::RoundDown => Some[Type](self.ty),
-            Op::RoundUp => Some[Type](self.ty),
-            Op::RoundToZero => Some[Type](self.ty),
-            Op::RoundHalfEven => Some[Type](self.ty),
-            Op::Abs => Some[Type](self.ty),
-            Op::Sqrt => Some[Type](self.ty),
-            Op::Unreachable => None[Type],
-            Op::RotateLeft => Some[Type](self.ty),
-            Op::RotateRight => Some[Type](self.ty),
-            Op::Debug => None[Type],
-            Op::AtomicLoad => Some[Type](self.ty),
-            Op::AtomicStore => None[Type],
-            Op::AtomicCompareExchange => Some[Type](self.ty),
-            Op::AtomicExchange => Some[Type](self.ty),
-            Op::AtomicFetchAdd => Some[Type](self.ty),
-            Op::CountBits => Some[Type](Type::Int32),
-            Op::CountLeadingZeros => Some[Type](Type::Int32),
-            Op::CountTrailingZeros => Some[Type](Type::Int32),
+            Op::NullConst => Some(Type::Ptr),
+            Op::TrueConst => Some(Type::Bool),
+            Op::FalseConst => Some(Type::Bool),
+            Op::UInt8Const => Some(Type::UInt8),
+            Op::Int32Const => Some(Type::Int32),
+            Op::Int64Const => Some(Type::Int64),
+            Op::Float32Const => Some(Type::Float32),
+            Op::Float64Const => Some(Type::Float64),
+            Op::StringConst => Some(Type::Ptr),
+            Op::EnsureGlobalInitialized => None,
+            Op::LoadGlobal => Some(self.ty),
+            Op::GetGlobalAddress => Some(Type::Address),
+            Op::StoreGlobal => Some(self.ty),
+            Op::MarkGlobalInitialized => None,
+            Op::Undef => None,
+            Op::CheckArrayBounds => Some(Type::Unit),
+            Op::Goto => None,
+            Op::If => None,
+            Op::Switch => None,
+            Op::Return => None,
+            Op::InlineReturn => None,
+            Op::Abort => None,
+            Op::Assert => None,
+            Op::Safepoint => None,
+            Op::Neg => Some(self.ty),
+            Op::CheckedNeg => Some(self.ty),
+            Op::IsNegOverflowing => Some(Type::Bool),
+            Op::Not => Some(self.ty),
+            Op::Add => Some(self.ty),
+            Op::CheckedAdd => Some(self.ty),
+            Op::IsAddOverflowing => Some(Type::Bool),
+            Op::Sub => Some(self.ty),
+            Op::CheckedSub => Some(self.ty),
+            Op::IsSubOverflowing => Some(Type::Bool),
+            Op::Mul => Some(self.ty),
+            Op::CheckedMul => Some(self.ty),
+            Op::IsMulOverflowing => Some(Type::Bool),
+            Op::Div => Some(self.ty),
+            Op::CheckedDiv => Some(self.ty),
+            Op::IsDivOverflowing => Some(Type::Bool),
+            Op::Mod => Some(self.ty),
+            Op::CheckedMod => Some(self.ty),
+            Op::IsModOverflowing => Some(Type::Bool),
+            Op::And => Some(self.ty),
+            Op::Or => Some(self.ty),
+            Op::Xor => Some(self.ty),
+            Op::Shl => Some(self.ty),
+            Op::Shr => Some(self.ty),
+            Op::Sar => Some(self.ty),
+            Op::Invoke => Some(self.ty),
+            Op::InvokeVirtual => Some(self.ty),
+            Op::InvokeLambda => Some(self.ty),
+            Op::Equal => Some(Type::Bool),
+            Op::NotEqual => Some(Type::Bool),
+            Op::Greater => Some(Type::Bool),
+            Op::UnsignedGreater => Some(Type::Bool),
+            Op::GreaterOrEqual => Some(Type::Bool),
+            Op::UnsignedGreaterOrEqual => Some(Type::Bool),
+            Op::Less => Some(Type::Bool),
+            Op::UnsignedLess => Some(Type::Bool),
+            Op::LessOrEqual => Some(Type::Bool),
+            Op::UnsignedLessOrEqual => Some(Type::Bool),
+            Op::Phi => Some(self.ty),
+            Op::CheckDivZero => None,
+            Op::CheckShiftAmount => None,
+            Op::LoadArray => Some(self.ty),
+            Op::StoreArray => None,
+            Op::GetElementPtr => Some(Type::Address),
+            Op::Arg => Some(self.ty),
+            Op::LocalGet => Some(self.ty),
+            Op::LocalSet => None,
+            Op::Move => Some(self.ty),
+            Op::LoadReg => Some(self.ty),
+            Op::StoreReg => Some(self.ty),
+            Op::Rematerialize => Some(self.ty),
+            Op::NewObject => Some(Type::Ptr),
+            Op::NewArray => Some(Type::Ptr),
+            Op::AllocateStack => Some(Type::Address),
+            Op::Load => Some(self.ty),
+            Op::Store | Op::StoreWb | Op::StoreArrayWb | Op::StoreArrayAddressWb => None,
+            Op::ThreadCurrent => Some(Type::Ptr),
+            Op::Convert => Some(self.ty),
+            Op::CompareOrdering => Some(Type::Int32),
+            Op::Bitcast => Some(self.ty),
+            Op::RoundDown => Some(self.ty),
+            Op::RoundUp => Some(self.ty),
+            Op::RoundToZero => Some(self.ty),
+            Op::RoundHalfEven => Some(self.ty),
+            Op::Abs => Some(self.ty),
+            Op::Sqrt => Some(self.ty),
+            Op::Unreachable => None,
+            Op::RotateLeft => Some(self.ty),
+            Op::RotateRight => Some(self.ty),
+            Op::Debug => None,
+            Op::AtomicLoad => Some(self.ty),
+            Op::AtomicStore => None,
+            Op::AtomicCompareExchange => Some(self.ty),
+            Op::AtomicExchange => Some(self.ty),
+            Op::AtomicFetchAdd => Some(self.ty),
+            Op::CountBits => Some(Type::Int32),
+            Op::CountLeadingZeros => Some(Type::Int32),
+            Op::CountTrailingZeros => Some(Type::Int32),
         }
     }
 
@@ -1728,7 +1725,7 @@ impl Inst {
         assert(block.instructions.first_inst() === self);
         block.instructions.remove_inst(self);
         new_block.instructions.append_inst(self);
-        self.block = Some[Block](new_block);
+        self.block = Some(new_block);
     }
 
     pub fn register_uses() {
@@ -2274,38 +2271,38 @@ pub class LocationData {
 impl LocationData {
     pub static fn new(inst: Inst): LocationData {
         let count = inst.get_inputs().size();
-        let inputs = Array[Option[Operand]]::fill(count, None[Operand]);
+        let inputs = Array[Option[Operand]]::fill(count, None);
 
         LocationData(
             inputs,
             temps = Vec[Operand]::new(),
-            output = None[Operand],
+            output = None,
             output_overlaps = true,
             hint = Location::None,
             needs_spill_slot = false,
-            spill_slot = None[Int32],
-            stack_slot = None[Int32],
+            spill_slot = None,
+            stack_slot = None,
             needs_register_snapshot = false,
-            snapshot = None[RegisterTrackers],
-            live_values = None[InstSet],
+            snapshot = None,
+            live_values = None,
         )
     }
 
     pub static fn new_with(inputs: Int64): LocationData {
-        let inputs = Array[Option[Operand]]::fill(inputs, None[Operand]);
+        let inputs = Array[Option[Operand]]::fill(inputs, None);
 
         LocationData(
             inputs,
             temps = Vec[Operand]::new(),
-            output = None[Operand],
+            output = None,
             output_overlaps = true,
             hint = Location::None,
             needs_spill_slot = false,
-            spill_slot = None[Int32],
-            stack_slot = None[Int32],
+            spill_slot = None,
+            stack_slot = None,
             needs_register_snapshot = false,
-            snapshot = None[RegisterTrackers],
-            live_values = None[InstSet],
+            snapshot = None,
+            live_values = None,
         )
     }
 
@@ -2325,7 +2322,7 @@ impl LocationData {
 
     pub fn set_input(idx: Int64, operand: Operand) {
         assert(self.inputs(idx).is_none());
-        self.inputs(idx) = Some[Operand](operand);
+        self.inputs(idx) = Some(operand);
     }
 
     pub fn output_overlaps(): Bool {
@@ -2362,7 +2359,7 @@ impl LocationData {
     }
 
     pub fn init_input(idx: Int64, value: Operand) {
-        self.inputs(idx) = Some[Operand](value);
+        self.inputs(idx) = Some(value);
     }
 
     pub fn has_temp(): Bool {
@@ -2422,7 +2419,7 @@ impl LocationData {
 
     pub fn set_register_snapshot(snapshot: RegisterTrackers) {
         assert(self.snapshot.is_none());
-        self.snapshot = Some[RegisterTrackers](snapshot);
+        self.snapshot = Some(snapshot);
     }
 
     pub fn get_register_snapshot(): RegisterTrackers {
@@ -2430,7 +2427,7 @@ impl LocationData {
     }
 
     pub fn set_live_values(set: InstSet) {
-        self.live_values = Some[InstSet](set);
+        self.live_values = Some(set);
     }
 
     pub fn get_live_values(): InstSet {
@@ -2763,7 +2760,7 @@ impl Iterator for UseIterator {
     fn next(): Option[Input] {
         if self.current is Some(input) {
             self.current = input.next_use;
-            Some[Input](input)
+            Some(input)
         } else {
             None[Input]
         }
@@ -2798,7 +2795,7 @@ pub fn create_move_inst(ty: Type, dest: Location, source: Location): Inst {
 
     let loc = LocationData::new_with(1);
     loc.output = Some(Operand(policy = Policy::None, location = dest));
-    loc.inputs(0) = Some[Operand](Operand(policy = Policy::None, location = source));
+    loc.inputs(0) = Some(Operand(policy = Policy::None, location = source));
     inst.set_location_data(loc);
 
     inst
@@ -3473,7 +3470,7 @@ class InstLinkedList {
 
 impl InstLinkedList {
     static fn new(): InstLinkedList {
-        InstLinkedList(first = None[Inst], last = None[Inst])
+        InstLinkedList(first = None, last = None)
     }
 
     fn is_empty(): Bool {
@@ -3492,8 +3489,8 @@ impl InstLinkedList {
         let first = self.first.get_or_panic();
         first.previous = Some(inst);
 
-        inst.previous = None[Inst];
-        inst.next = Some[Inst](first);
+        inst.previous = None;
+        inst.next = Some(first);
 
         self.first = Some(inst);
     }
@@ -3554,7 +3551,7 @@ impl InstLinkedList {
         self.last = Some(location);
         location.next = None;
         next.previous = None;
-        InstLinkedList(first = Some[Inst](next), last = Some[Inst](last))
+        InstLinkedList(first = Some(next), last = Some(last))
     }
 
     fn remove_inst(inst: Inst) {
@@ -3588,7 +3585,7 @@ impl Iterator for InstIterator {
     fn next(): Option[Inst] {
         if self.current is Some(inst) {
             self.current = inst.next;
-            Some[Inst](inst)
+            Some(inst)
         } else {
             None[Inst]
         }
@@ -3611,7 +3608,7 @@ impl Iterator for PhiInstIterator {
     fn next(): Option[Inst] {
         if self.current is Some(inst) {
             self.current = inst.next;
-            Some[Inst](inst)
+            Some(inst)
         } else {
             None[Inst]
         }
@@ -3634,7 +3631,7 @@ impl Iterator for BackwardInstIterator {
     fn next(): Option[Inst] {
         if self.current is Some(inst) {
             self.current = inst.previous;
-            Some[Inst](inst)
+            Some(inst)
         } else {
             None[Inst]
         }
@@ -3767,7 +3764,7 @@ impl Iterator for InstSetIter {
 
         if it is Some(it) {
             let id = InstId(it.to_int32());
-            Some[Inst](self.graph.get_inst_by_id(id))
+            Some(self.graph.get_inst_by_id(id))
         } else {
             None[Inst]
         }

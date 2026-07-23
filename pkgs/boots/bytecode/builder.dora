@@ -330,25 +330,17 @@ impl BytecodeBuilder {
 
     pub fn emit_jump_if_false(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.is_bound());
-        self.emit_jmp_forward(
-            opc::BYTECODE_OPCODE_JUMP_IF_FALSE,
-            Some[BytecodeRegister](opnd),
-            lbl,
-        );
+        self.emit_jmp_forward(opc::BYTECODE_OPCODE_JUMP_IF_FALSE, Some(opnd), lbl);
     }
 
     pub fn emit_jump_if_true(opnd: BytecodeRegister, lbl: BytecodeLabel) {
         assert(!lbl.is_bound());
-        self.emit_jmp_forward(
-            opc::BYTECODE_OPCODE_JUMP_IF_TRUE,
-            Some[BytecodeRegister](opnd),
-            lbl,
-        );
+        self.emit_jmp_forward(opc::BYTECODE_OPCODE_JUMP_IF_TRUE, Some(opnd), lbl);
     }
 
     pub fn emit_jump(lbl: BytecodeLabel) {
         assert(!lbl.is_bound());
-        self.emit_jmp_forward(opc::BYTECODE_OPCODE_JUMP, None[BytecodeRegister], lbl);
+        self.emit_jmp_forward(opc::BYTECODE_OPCODE_JUMP, None, lbl);
     }
 
     pub fn emit_invoke_direct(

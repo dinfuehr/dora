@@ -202,7 +202,7 @@ impl StoreEliminationPass {
         );
 
         if inst.op() == Op::StoreWb {
-            return None[StackSlot];
+            return None;
         }
 
         let object = inst.get_input(0).get_value();
@@ -210,7 +210,7 @@ impl StoreEliminationPass {
         let ty = inst.get_operation_type();
 
         if object.op() == Op::AllocateStack {
-            return Some[StackSlot](StackSlot(object = object, offset, ty));
+            return Some(StackSlot(object = object, offset, ty));
         }
 
         if object.op() == Op::Add && object.get_value_type() == Type::Address {
@@ -218,7 +218,7 @@ impl StoreEliminationPass {
             let delta = object.get_input(1).get_value();
 
             if base.op() == Op::AllocateStack && delta.op() == Op::Int64Const {
-                return Some[StackSlot](
+                return Some(
                     StackSlot(
                         object = base,
                         offset = offset + delta.get_value_as_int64().to_int32(),
@@ -228,7 +228,7 @@ impl StoreEliminationPass {
             }
         }
 
-        None[StackSlot]
+        None
     }
 
     fn process_store_global(inst: Inst, data: StoreData) {

@@ -544,7 +544,7 @@ impl Iterator for BytecodeIterator {
 
     fn next(): Option[BytecodeInstructionInfo] {
         if self.pos < self.length {
-            Some[BytecodeInstructionInfo](self.read_instruction())
+            Some(self.read_instruction())
         } else {
             None[BytecodeInstructionInfo]
         }

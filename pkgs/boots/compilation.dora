@@ -37,10 +37,10 @@ impl CompilationInfo {
             options,
             inline = true,
             optimize = true,
-            display_name = None[String],
+            display_name = None,
             inlined_functions = Vec[iface::InlinedFunction]::new(),
             byte_writer = ByteWriter::new(),
-            html_writer = None[HtmlWriter],
+            html_writer = None,
             max_inlinable_function_bytecode_size = 100i32,
             max_total_inlined_bytecode_size = 400i32,
         )
@@ -74,7 +74,7 @@ impl CompilationInfo {
 
     pub fn init_html_writer() {
         if self.options.emit_html {
-            self.html_writer = Some[HtmlWriter](create_html_writer(self));
+            self.html_writer = Some(create_html_writer(self));
         }
     }
 

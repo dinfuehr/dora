@@ -40,7 +40,7 @@ fn select_next_call_site(
     for (call, info) in graph.inlinable_calls {
         if call.has_id() && info.has_force_inline_annotation {
             graph.inlinable_calls.remove_at(i);
-            return Some[(Inst, FunctionInliningInfo)]((call, info));
+            return Some((call, info));
         }
 
         i += 1;
@@ -51,13 +51,13 @@ fn select_next_call_site(
     for (call, info) in graph.inlinable_calls {
         if call.has_id() {
             graph.inlinable_calls.remove_at(i);
-            return Some[(Inst, FunctionInliningInfo)]((call, info));
+            return Some((call, info));
         }
 
         i += 1;
     }
 
-    None[(Inst, FunctionInliningInfo)]
+    None
 }
 
 fn inline(

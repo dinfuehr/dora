@@ -60,9 +60,9 @@ pub fn compute_inline_return_type(
     );
 
     match cc::argument_passing_mode(ci, return_type) {
-        ArgumentPassingMode::None | ArgumentPassingMode::Stack => None[Type],
+        ArgumentPassingMode::None | ArgumentPassingMode::Stack => None,
         ArgumentPassingMode::Register(register_ty) => {
-            Some[Type](bytecode_graph_ty(ci, fct.signature.type_params, register_ty))
+            Some(bytecode_graph_ty(ci, fct.signature.type_params, register_ty))
         }
     }
 }
@@ -102,24 +102,24 @@ impl BytecodeGraphBuilder {
             ci,
             graph,
             fct_id = fct.fct_id,
-            inlined_function_id = None[InlinedFunctionId],
-            bc = Some[BytecodeBody](fct.bc),
+            inlined_function_id = None,
+            bc = Some(fct.bc),
             type_params = fct.signature.type_params,
             return_type = fct.signature.return_type,
             signature = fct.signature,
             analysis,
-            current_block = None[Block],
+            current_block = None,
             offset = 0i32,
-            blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None[Block]),
+            blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None),
             aggregate_registers = Array[Option[Inst]]::fill(
                 fct.bc.registers.size(),
-                None[Inst],
+                None,
             ),
-            entry_block = None[Block],
-            exit_block = None[Block],
-            return_value_arg_inst = None[Inst],
-            inline_return_type = None[Type],
-            trait_object_thunk = None[TraitObjectThunk],
+            entry_block = None,
+            exit_block = None,
+            return_value_arg_inst = None,
+            inline_return_type = None,
+            trait_object_thunk = None,
         )
     }
 
@@ -137,24 +137,24 @@ impl BytecodeGraphBuilder {
             ci,
             graph,
             fct_id = fct.fct_id,
-            inlined_function_id = Some[InlinedFunctionId](inlined_function_id),
-            bc = Some[BytecodeBody](fct.bc),
+            inlined_function_id = Some(inlined_function_id),
+            bc = Some(fct.bc),
             type_params = fct.signature.type_params,
             return_type = fct.signature.return_type,
             signature = fct.signature,
             analysis,
-            current_block = None[Block],
+            current_block = None,
             offset = 0i32,
-            blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None[Block]),
+            blocks = Array[Option[Block]]::fill(fct.bc.code.size(), None),
             aggregate_registers = Array[Option[Inst]]::fill(
                 fct.bc.registers.size(),
-                None[Inst],
+                None,
             ),
-            entry_block = Some[Block](entry_block),
-            exit_block = Some[Block](exit_block),
-            return_value_arg_inst = None[Inst],
+            entry_block = Some(entry_block),
+            exit_block = Some(exit_block),
+            return_value_arg_inst = None,
             inline_return_type,
-            trait_object_thunk = None[TraitObjectThunk],
+            trait_object_thunk = None,
         )
     }
 
@@ -165,10 +165,10 @@ impl BytecodeGraphBuilder {
 
     pub fn run_inline(call_inst: Inst) {
         let entry_block = self.entry_block.get_or_panic();
-        self.current_block = Some[Block](entry_block);
+        self.current_block = Some(entry_block);
         self.setup_aggregate_registers(entry_block);
         self.connect_arguments(entry_block, call_inst);
-        self.current_block = None[Block];
+        self.current_block = None;
         self.connect_entry_block();
         self.emit_block_bodies();
     }
@@ -176,7 +176,7 @@ impl BytecodeGraphBuilder {
     fn setup_entry_block() {
         let entry_block = self.create_entry_block();
         self.setup_arguments(entry_block);
-        self.current_block = None[Block];
+        self.current_block = None;
         self.emit_safepoint(entry_block);
 
         let first = self.ensure_block_at(0);
@@ -190,7 +190,7 @@ impl BytecodeGraphBuilder {
         self.graph.add_block(entry_block);
         entry_block.set_name("entry");
         self.graph.set_entry_block(entry_block);
-        self.current_block = Some[Block](entry_block);
+        self.current_block = Some(entry_block);
         entry_block
     }
 
@@ -212,7 +212,7 @@ impl BytecodeGraphBuilder {
                 let layout = self.compute_aggregate_layout(ty);
                 let slot = graph::create_allocate_stack_inst(layout);
                 block.append_inst(slot);
-                self.aggregate_registers(reg_idx.to_int64()) = Some[Inst](slot);
+                self.aggregate_registers(reg_idx.to_int64()) = Some(slot);
 
                 if !layout.refs.is_empty() {
                     let zero = graph::create_null_const();
@@ -267,14 +267,11 @@ impl BytecodeGraphBuilder {
         if self.return_passing_mode() is ArgumentPassingMode::Stack {
             let arg = graph::create_arg_inst(arg_idx, Type::Address);
             block.append_inst(arg);
-            self.return_value_arg_inst = Some[Inst](arg);
+            self.return_value_arg_inst = Some(arg);
             arg_idx += 1i32;
         }
 
-        let arguments = Array[Option[Inst]]::fill(
-            self.signature.params.size(),
-            None[Inst],
-        );
+        let arguments = Array[Option[Inst]]::fill(self.signature.params.size(), None);
         for idx in std::range(0, self.signature.params.size()) {
             let param_ty = self.specialize_ty(self.signature.params(idx));
             let passing_mode = cc::argument_passing_mode(self.ci, param_ty);
@@ -282,7 +279,7 @@ impl BytecodeGraphBuilder {
                 let arg_ty = self.argument_graph_ty_for_passing_mode(passing_mode);
                 let arg = graph::create_arg_inst(arg_idx, arg_ty);
                 block.append_inst(arg);
-                arguments(idx) = Some[Inst](arg);
+                arguments(idx) = Some(arg);
                 arg_idx += 1i32;
             }
         }
@@ -316,7 +313,7 @@ impl BytecodeGraphBuilder {
 
         if cc::argument_passing_mode(self.ci, ret_ty) is ArgumentPassingMode::Stack {
             let arg = call_inst.get_input(arg_idx).get_value();
-            self.return_value_arg_inst = Some[Inst](arg);
+            self.return_value_arg_inst = Some(arg);
             arg_idx += 1;
         }
 
@@ -392,7 +389,7 @@ impl BytecodeGraphBuilder {
 
     fn emit_block_body(start: Int64) {
         let block = self.ensure_block_at(start);
-        self.current_block = Some[Block](block);
+        self.current_block = Some(block);
 
         for inst in BytecodeIterator::new_at_pos(self.bc().code, start) {
             if inst.start > start && self.analysis.starts.contains(inst.start) {
@@ -409,7 +406,7 @@ impl BytecodeGraphBuilder {
             }
         }
 
-        self.current_block = None[Block];
+        self.current_block = None;
     }
 
     fn current(): Block {
@@ -424,7 +421,7 @@ impl BytecodeGraphBuilder {
             block.get_or_panic()
         } else {
             let block = self.create_block();
-            self.blocks(pos) = Some[Block](block);
+            self.blocks(pos) = Some(block);
             block
         }
     }
@@ -1727,7 +1724,7 @@ impl BytecodeGraphBuilder {
         let passing_mode = cc::argument_passing_mode(self.ci, dest_ty);
         let return_ty = self.return_graph_ty(passing_mode);
         let return_address = if passing_mode is ArgumentPassingMode::Stack {
-            Some[Inst](self.aggregate_register(dest))
+            Some(self.aggregate_register(dest))
         } else {
             None[Inst]
         };
@@ -1842,8 +1839,8 @@ impl BytecodeGraphBuilder {
     fn prepare_call_argument(reg: BytecodeRegister): Option[Inst] {
         let bytecode_ty = self.reg(reg);
         match cc::argument_passing_mode(self.ci, bytecode_ty) {
-            ArgumentPassingMode::None => None[Inst],
-            ArgumentPassingMode::Stack => Some[Inst](self.aggregate_register(reg)),
+            ArgumentPassingMode::None => None,
+            ArgumentPassingMode::Stack => Some(self.aggregate_register(reg)),
             ArgumentPassingMode::Register(register_ty) => {
                 let register_ty = self.graph_ty(register_ty);
                 let arg = if cc::is_address_backed_aggregate(bytecode_ty) {
@@ -1860,7 +1857,7 @@ impl BytecodeGraphBuilder {
                 } else {
                     self.emit_local_get(reg)
                 };
-                Some[Inst](arg)
+                Some(arg)
             }
         }
     }

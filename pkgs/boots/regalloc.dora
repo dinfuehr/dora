@@ -62,10 +62,10 @@ impl SimpleRegisterAllocator {
             graph,
             codegen,
             ci,
-            registers = None[RegisterTracker[Register]],
-            float_registers = None[RegisterTracker[FloatRegister]],
+            registers = None,
+            float_registers = None,
             current_stack_size = 0i32,
-            current_inst = None[Inst],
+            current_inst = None,
             currently_live = InstSet::new(graph),
         )
     }
@@ -296,7 +296,7 @@ impl SimpleRegisterAllocator {
         }
 
         self.reset_protected_registers();
-        self.current_inst = None[Inst];
+        self.current_inst = None;
     }
 
     fn reset_protected_registers() {
@@ -519,7 +519,7 @@ impl SimpleRegisterAllocator {
 
         if policy.is_any_float_reg() {
             let hint = if hint.is_float_register() {
-                Some[FloatRegister](hint.get_float_register())
+                Some(hint.get_float_register())
             } else {
                 None[FloatRegister]
             };
@@ -531,7 +531,7 @@ impl SimpleRegisterAllocator {
             );
         } else if policy.is_any_reg() {
             let hint = if hint.is_register() {
-                Some[Register](hint.get_register())
+                Some(hint.get_register())
             } else {
                 None[Register]
             };

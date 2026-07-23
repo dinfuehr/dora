@@ -15,7 +15,7 @@ pub fn create_graph(
     let graph = Graph::new();
 
     BytecodeGraphBuilder::new(ci, graph, fct, analysis).run();
-    SsaConstruction::new(ci, graph, fct, None[Type], None[Block]).run();
+    SsaConstruction::new(ci, graph, fct, None, None).run();
 
     graph
 }
@@ -53,11 +53,5 @@ pub fn add_to_graph(
     );
     builder.run_inline(call_inst);
 
-    SsaConstruction::new(
-        ci,
-        graph,
-        fct,
-        inline_return_type,
-        Some[Block](exit_block),
-    ).run()
+    SsaConstruction::new(ci, graph, fct, inline_return_type, Some(exit_block)).run()
 }

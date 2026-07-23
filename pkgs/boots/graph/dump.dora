@@ -430,7 +430,7 @@ fn dump_inst_name(inst: Inst): String {
 }
 
 pub fn assert_graph(graph: Graph, output: String) {
-    let graph_output = dump_graph(None[CompilationInfo], graph, Architecture::Arm64);
+    let graph_output = dump_graph(None, graph, Architecture::Arm64);
 
     if !compare_strings(graph_output, output) {
         println("got: \"${graph_output}\"");

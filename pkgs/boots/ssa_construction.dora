@@ -106,16 +106,16 @@ impl SsaConstruction {
 
     fn compute_return_value(): Option[Inst] {
         if self.inline_return_type.is_none() {
-            return None[Inst];
+            return None;
         }
 
         let exit_block = self.exit_block.get_or_panic();
         if !exit_block.has_id() {
-            return None[Inst];
+            return None;
         }
 
         if exit_block.predecessors.is_empty() {
-            return None[Inst];
+            return None;
         }
 
         if exit_block.predecessors.size() == 1i64 {
@@ -130,7 +130,7 @@ impl SsaConstruction {
         }
 
         exit_block.append_phi(phi);
-        Some[Inst](self.try_remove_trivial_phi(phi))
+        Some(self.try_remove_trivial_phi(phi))
     }
 
     fn finish() {

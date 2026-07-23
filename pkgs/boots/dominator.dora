@@ -143,7 +143,7 @@ pub fn compute_post_order(graph: Graph) {
 fn compute_dominators(graph: Graph) {
     let blocks = graph.block_count().to_int64();
     let filled = BitSet::new(blocks);
-    let dominators = Array[Option[Block]]::fill(blocks, None[Block]);
+    let dominators = Array[Option[Block]]::fill(blocks, None);
 
     let entry = graph.get_entry_block().id().to_int64();
     filled.insert(entry);

@@ -17,10 +17,7 @@ class LoadEliminationPass {
 
 impl LoadEliminationPass {
     static fn new(graph: Graph): LoadEliminationPass {
-        let per_block_data = Array[Option[LoadData]]::fill(
-            graph.blocks.size(),
-            None[LoadData],
-        );
+        let per_block_data = Array[Option[LoadData]]::fill(graph.blocks.size(), None);
 
         LoadEliminationPass(
             graph = graph,
@@ -35,7 +32,7 @@ impl LoadEliminationPass {
         for block in self.graph.reverse_post_order_iterator() {
             let data = self.merge_predecessors(block);
             self.process_block(block, data);
-            self.per_block_data(block.id().to_int64()) = Some[LoadData](data);
+            self.per_block_data(block.id().to_int64()) = Some(data);
         }
 
         self.remove_dead_created_phis();
@@ -48,7 +45,7 @@ impl LoadEliminationPass {
             return LoadData::new();
         }
 
-        let predecessor_data = Array[Option[LoadData]]::fill(p, None[LoadData]);
+        let predecessor_data = Array[Option[LoadData]]::fill(p, None);
         let mut i = 0;
 
         for pred_edge in block.predecessors {
@@ -139,13 +136,13 @@ impl LoadEliminationPass {
 
                 values.push(value);
             } else {
-                return None[Inst];
+                return None;
             }
 
             i += 1;
         }
 
-        Some[Inst](self.create_merged_value(block, first_value, values, same_value))
+        Some(self.create_merged_value(block, first_value, values, same_value))
     }
 
     fn merge_field_value(
@@ -170,13 +167,13 @@ impl LoadEliminationPass {
 
                 values.push(value);
             } else {
-                return None[Inst];
+                return None;
             }
 
             i += 1;
         }
 
-        Some[Inst](self.create_merged_value(block, first_value, values, same_value))
+        Some(self.create_merged_value(block, first_value, values, same_value))
     }
 
     fn merge_immutable_value(
@@ -201,13 +198,13 @@ impl LoadEliminationPass {
 
                 values.push(value);
             } else {
-                return None[Inst];
+                return None;
             }
 
             i += 1;
         }
 
-        Some[Inst](self.create_merged_value(block, first_value, values, same_value))
+        Some(self.create_merged_value(block, first_value, values, same_value))
     }
 
     fn create_merged_value(

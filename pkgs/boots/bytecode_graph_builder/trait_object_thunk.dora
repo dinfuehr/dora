@@ -21,21 +21,21 @@ impl BytecodeGraphBuilder {
             ci,
             graph,
             fct_id = thunk.fct_id,
-            inlined_function_id = None[InlinedFunctionId],
-            bc = None[BytecodeBody],
+            inlined_function_id = None,
+            bc = None,
             type_params = thunk.signature.type_params,
             return_type = thunk.signature.return_type,
             signature = thunk.signature,
             analysis = BytecodeAnalysis(BitSet::new(0i64)),
-            current_block = None[Block],
+            current_block = None,
             offset = 0i32,
-            blocks = Array[Option[Block]]::fill(0i64, None[Block]),
-            aggregate_registers = Array[Option[Inst]]::fill(0i64, None[Inst]),
-            entry_block = None[Block],
-            exit_block = None[Block],
-            return_value_arg_inst = None[Inst],
-            inline_return_type = None[Type],
-            trait_object_thunk = Some[TraitObjectThunk](thunk),
+            blocks = Array[Option[Block]]::fill(0i64, None),
+            aggregate_registers = Array[Option[Inst]]::fill(0i64, None),
+            entry_block = None,
+            exit_block = None,
+            return_value_arg_inst = None,
+            inline_return_type = None,
+            trait_object_thunk = Some(thunk),
         )
     }
 
@@ -85,7 +85,7 @@ impl BytecodeGraphBuilder {
             }
         }
 
-        self.current_block = None[Block];
+        self.current_block = None;
     }
 
     fn unwrap_trait_object_receiver(
@@ -93,7 +93,7 @@ impl BytecodeGraphBuilder {
         receiver: Inst,
     ): Option[Inst] {
         if thunk.receiver_by_reference {
-            Some[Inst](self.trait_object_payload_address(receiver))
+            Some(self.trait_object_payload_address(receiver))
         } else {
             match cc::argument_passing_mode(self.ci, thunk.actual_object_ty) {
                 ArgumentPassingMode::None => None[Inst],
@@ -106,10 +106,10 @@ impl BytecodeGraphBuilder {
                         false,
                     );
                     self.current().append_inst(value);
-                    Some[Inst](value)
+                    Some(value)
                 }
                 ArgumentPassingMode::Stack => {
-                    Some[Inst](self.trait_object_payload_address(receiver))
+                    Some(self.trait_object_payload_address(receiver))
                 }
             }
         }

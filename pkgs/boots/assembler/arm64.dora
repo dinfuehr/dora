@@ -3057,11 +3057,11 @@ mod imm_encoding {
     pub fn imm12(mut imm: Int64): Option[(Bool, Int32)] {
         let mask = 0xF_FF;
         if (imm & !mask) == 0 {
-            return Some[(Bool, Int32)]((false, imm.to_int32()));
+            return Some((false, imm.to_int32()));
         }
 
         if (imm & !(mask << 12i32)) == 0 {
-            Some[(Bool, Int32)]((true, imm.to_int32() >> 12i32))
+            Some((true, imm.to_int32() >> 12i32))
         } else {
             None[(Bool, Int32)]
         }
@@ -4518,27 +4518,17 @@ mod tests {
         assert(imm_encoding::logical((1 << 32i32) - 1, 32).is_none());
 
         let result = imm_encoding::logical(0x55555555, 32);
-        assert(Some[Int32](0b0_000000_111100i32) == result);
+        assert(Some(0b0_000000_111100i32) == result);
         assert(
-            Some[Int32](0b0_000000_111100i32) ==
-            imm_encoding::logical(0x5555555555555555, 64)
+            Some(0b0_000000_111100i32) == imm_encoding::logical(0x5555555555555555, 64)
         );
+        assert(Some(0b0_000001_111100i32) == imm_encoding::logical(0xaaaaaaaa, 32));
         assert(
-            Some[Int32](0b0_000001_111100i32) == imm_encoding::logical(0xaaaaaaaa, 32)
+            Some(0b0_000001_111100i32) == imm_encoding::logical(0xaaaaaaaaaaaaaaaa, 64)
         );
-        assert(
-            Some[Int32](0b0_000001_111100i32) ==
-            imm_encoding::logical(0xaaaaaaaaaaaaaaaa, 64)
-        );
-        assert(
-            Some[Int32](0b0_000000_111000i32) == imm_encoding::logical(0x11111111, 32)
-        );
-        assert(
-            Some[Int32](0b0_000001_111000i32) == imm_encoding::logical(0x88888888, 32)
-        );
-        assert(
-            Some[Int32](0b0_000001_111001i32) == imm_encoding::logical(0x99999999, 32)
-        );
+        assert(Some(0b0_000000_111000i32) == imm_encoding::logical(0x11111111, 32));
+        assert(Some(0b0_000001_111000i32) == imm_encoding::logical(0x88888888, 32));
+        assert(Some(0b0_000001_111001i32) == imm_encoding::logical(0x99999999, 32));
     }
 
     @Test

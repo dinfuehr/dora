@@ -157,7 +157,7 @@ fn compile_graph(
 
         if ci.options.emit_final_graph {
             println("Function ${ci.get_display_name()}: final");
-            println(dump_graph(Some[CompilationInfo](ci), graph, config.architecture));
+            println(dump_graph(Some(ci), graph, config.architecture));
         }
     }
 
@@ -178,7 +178,7 @@ fn compile_graph(
 
     if ci.options.emit_graph_after_each_pass {
         println("Function ${ci.get_display_name()}: after register allocation");
-        println(dump_graph(Some[CompilationInfo](ci), graph, config.architecture));
+        println(dump_graph(Some(ci), graph, config.architecture));
     }
 
     generate_code(graph, codegen, ci)
@@ -193,7 +193,7 @@ fn pass(ci: CompilationInfo, graph: Graph, name: String, action: (): ()) {
 
     if ci.options.emit_graph_after_each_pass {
         println("Function ${ci.get_display_name()}: ${name}");
-        println(dump_graph(Some[CompilationInfo](ci), graph, config.architecture));
+        println(dump_graph(Some(ci), graph, config.architecture));
     }
 
     verify(graph);

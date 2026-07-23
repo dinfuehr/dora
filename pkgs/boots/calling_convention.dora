@@ -53,7 +53,7 @@ pub fn argument_passing_mode(ci: CompilationInfo, ty: BytecodeType): ArgumentPas
                 if register_ty.is_some() {
                     return ArgumentPassingMode::Stack;
                 }
-                register_ty = Some[BytecodeType](field_register_ty);
+                register_ty = Some(field_register_ty);
             }
             ArgumentPassingMode::Stack => return ArgumentPassingMode::Stack,
         }

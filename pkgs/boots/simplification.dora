@@ -61,7 +61,7 @@ impl SimplificationPass {
             Op::CheckDivZero => self.simplify_check_div_zero(inst),
             Op::CheckShiftAmount => self.simplify_check_shift_amount(inst),
 
-            _ => None[Inst],
+            _ => None,
         }
     }
 
@@ -69,10 +69,10 @@ impl SimplificationPass {
         let value = inst.get_input(0).get_value();
 
         if value.op().get_bool_const() is Some(value) {
-            return Some[Inst](self.graph.ensure_const_bool_inst(!value));
+            return Some(self.graph.ensure_const_bool_inst(!value));
         }
 
-        None[Inst]
+        None
     }
 
     fn simplify_neg(inst: Inst, checked: Bool): Option[Inst] {
@@ -83,7 +83,7 @@ impl SimplificationPass {
             return self.fold_neg(ty, value, checked);
         }
 
-        None[Inst]
+        None
     }
 
     fn simplify_wrapping_binary(inst: Inst): Option[Inst] {
@@ -96,49 +96,49 @@ impl SimplificationPass {
         if lhs.get_int_const() is Some(lhs_value) &&
             rhs.get_int_const() is Some(rhs_value)
         {
-            return Some[Inst](self.fold_wrapping_binary(op, ty, lhs_value, rhs_value));
+            return Some(self.fold_wrapping_binary(op, ty, lhs_value, rhs_value));
         }
 
         match op {
             Op::Add => {
                 if !is_int32_or_int64 {
-                    return None[Inst];
+                    return None;
                 }
 
                 if rhs.is_zero_const() {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 if lhs.is_zero_const() {
-                    return Some[Inst](rhs);
+                    return Some(rhs);
                 }
             }
 
             Op::Sub => {
                 if !is_int32_or_int64 {
-                    return None[Inst];
+                    return None;
                 }
 
                 if rhs.is_zero_const() {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 if lhs === rhs {
-                    return Some[Inst](self.ensure_zero_int_inst(ty));
+                    return Some(self.ensure_zero_int_inst(ty));
                 }
             }
 
             Op::Mul => {
                 if !is_int32_or_int64 {
-                    return None[Inst];
+                    return None;
                 }
 
                 if rhs.is_one_const() {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 if lhs.is_one_const() {
-                    return Some[Inst](rhs);
+                    return Some(rhs);
                 }
                 if rhs.is_zero_const() || lhs.is_zero_const() {
-                    return Some[Inst](self.ensure_zero_int_inst(ty));
+                    return Some(self.ensure_zero_int_inst(ty));
                 }
             }
 
@@ -146,16 +146,16 @@ impl SimplificationPass {
                 assert(is_int32_or_int64);
 
                 if lhs === rhs {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 if rhs.is_zero_const() || lhs.is_zero_const() {
-                    return Some[Inst](self.ensure_zero_int_inst(ty));
+                    return Some(self.ensure_zero_int_inst(ty));
                 }
                 if rhs.is_all_ones_const() {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 if lhs.is_all_ones_const() {
-                    return Some[Inst](rhs);
+                    return Some(rhs);
                 }
             }
 
@@ -163,13 +163,13 @@ impl SimplificationPass {
                 assert(is_int32_or_int64);
 
                 if lhs === rhs {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 if rhs.is_zero_const() {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 if lhs.is_zero_const() {
-                    return Some[Inst](rhs);
+                    return Some(rhs);
                 }
             }
 
@@ -177,20 +177,20 @@ impl SimplificationPass {
                 assert(is_int32_or_int64);
 
                 if lhs === rhs {
-                    return Some[Inst](self.ensure_zero_int_inst(ty));
+                    return Some(self.ensure_zero_int_inst(ty));
                 }
                 if rhs.is_zero_const() {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 if lhs.is_zero_const() {
-                    return Some[Inst](rhs);
+                    return Some(rhs);
                 }
             }
 
             _ => unreachable[()](),
         }
 
-        None[Inst]
+        None
     }
 
     fn simplify_checked_binary(inst: Inst): Option[Inst] {
@@ -203,60 +203,60 @@ impl SimplificationPass {
             rhs.get_int_const() is Some(rhs_value)
         {
             if self.fold_checked_binary(op, ty, lhs_value, rhs_value) is Some(inst) {
-                return Some[Inst](inst);
+                return Some(inst);
             }
         }
 
         match op {
             Op::CheckedAdd => {
                 if rhs.is_zero_const() {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 if lhs.is_zero_const() {
-                    return Some[Inst](rhs);
+                    return Some(rhs);
                 }
             }
 
             Op::CheckedSub => {
                 if rhs.is_zero_const() {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 // x - x never overflows.
                 if lhs === rhs {
-                    return Some[Inst](self.ensure_zero_int_inst(ty));
+                    return Some(self.ensure_zero_int_inst(ty));
                 }
             }
 
             Op::CheckedMul => {
                 if rhs.is_one_const() {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
                 if lhs.is_one_const() {
-                    return Some[Inst](rhs);
+                    return Some(rhs);
                 }
                 if rhs.is_zero_const() || lhs.is_zero_const() {
-                    return Some[Inst](self.ensure_zero_int_inst(ty));
+                    return Some(self.ensure_zero_int_inst(ty));
                 }
             }
 
             Op::CheckedDiv => {
                 // x / x is not folded to 1 because it traps for x == 0.
                 if rhs.is_one_const() {
-                    return Some[Inst](lhs);
+                    return Some(lhs);
                 }
             }
 
             Op::CheckedMod => {
                 // x % x is not folded to 0 because it traps for x == 0.
                 if rhs.is_one_const() {
-                    return Some[Inst](self.ensure_zero_int_inst(ty));
+                    return Some(self.ensure_zero_int_inst(ty));
                 }
             }
 
             _ => unreachable[()](),
         }
 
-        None[Inst]
+        None
     }
 
     fn simplify_compare(inst: Inst): Option[Inst] {
@@ -272,7 +272,7 @@ impl SimplificationPass {
                 | Op::LessOrEqual
                 | Op::UnsignedGreaterOrEqual
                 | Op::UnsignedLessOrEqual => {
-                    return Some[Inst](self.graph.ensure_const_true_inst());
+                    return Some(self.graph.ensure_const_true_inst());
                 }
 
                 Op::NotEqual
@@ -280,7 +280,7 @@ impl SimplificationPass {
                 | Op::Less
                 | Op::UnsignedGreater
                 | Op::UnsignedLess => {
-                    return Some[Inst](self.graph.ensure_const_false_inst());
+                    return Some(self.graph.ensure_const_false_inst());
                 }
 
                 _ => unreachable[()](),
@@ -299,7 +299,7 @@ impl SimplificationPass {
             return self.fold_int_compare(op, ty, lhs_value, rhs_value);
         }
 
-        None[Inst]
+        None
     }
 
     fn simplify_check_div_zero(inst: Inst): Option[Inst] {
@@ -310,7 +310,7 @@ impl SimplificationPass {
             self.changed = true;
         }
 
-        None[Inst]
+        None
     }
 
     fn simplify_check_shift_amount(inst: Inst): Option[Inst] {
@@ -325,37 +325,35 @@ impl SimplificationPass {
             self.changed = true;
         }
 
-        None[Inst]
+        None
     }
 
     fn fold_bool_compare(op: Op, lhs: Bool, rhs: Bool): Option[Inst] {
         match op {
-            Op::Equal => Some[Inst](self.graph.ensure_const_bool_inst(lhs == rhs)),
-            Op::NotEqual => Some[Inst](self.graph.ensure_const_bool_inst(lhs != rhs)),
-            _ => None[Inst],
+            Op::Equal => Some(self.graph.ensure_const_bool_inst(lhs == rhs)),
+            Op::NotEqual => Some(self.graph.ensure_const_bool_inst(lhs != rhs)),
+            _ => None,
         }
     }
 
     fn fold_int_compare(op: Op, ty: Type, lhs: Int64, rhs: Int64): Option[Inst] {
         match op {
-            Op::Equal => Some[Inst](self.graph.ensure_const_bool_inst(lhs == rhs)),
-            Op::NotEqual => Some[Inst](self.graph.ensure_const_bool_inst(lhs != rhs)),
-            Op::Greater => Some[Inst](self.graph.ensure_const_bool_inst(lhs > rhs)),
-            Op::GreaterOrEqual => Some[Inst](
-                self.graph.ensure_const_bool_inst(lhs >= rhs)
-            ),
-            Op::Less => Some[Inst](self.graph.ensure_const_bool_inst(lhs < rhs)),
-            Op::LessOrEqual => Some[Inst](self.graph.ensure_const_bool_inst(lhs <= rhs)),
+            Op::Equal => Some(self.graph.ensure_const_bool_inst(lhs == rhs)),
+            Op::NotEqual => Some(self.graph.ensure_const_bool_inst(lhs != rhs)),
+            Op::Greater => Some(self.graph.ensure_const_bool_inst(lhs > rhs)),
+            Op::GreaterOrEqual => Some(self.graph.ensure_const_bool_inst(lhs >= rhs)),
+            Op::Less => Some(self.graph.ensure_const_bool_inst(lhs < rhs)),
+            Op::LessOrEqual => Some(self.graph.ensure_const_bool_inst(lhs <= rhs)),
 
             Op::UnsignedGreater => {
                 assert(ty == Type::UInt8);
-                Some[Inst](self.graph.ensure_const_bool_inst(lhs > rhs))
+                Some(self.graph.ensure_const_bool_inst(lhs > rhs))
             }
 
             Op::UnsignedGreaterOrEqual => {
                 assert(ty == Type::UInt8 || ty == Type::Int32);
                 if ty == Type::UInt8 {
-                    Some[Inst](self.graph.ensure_const_bool_inst(lhs >= rhs))
+                    Some(self.graph.ensure_const_bool_inst(lhs >= rhs))
                 } else {
                     None[Inst]
                 }
@@ -363,15 +361,15 @@ impl SimplificationPass {
 
             Op::UnsignedLess => {
                 assert(ty == Type::UInt8);
-                Some[Inst](self.graph.ensure_const_bool_inst(lhs < rhs))
+                Some(self.graph.ensure_const_bool_inst(lhs < rhs))
             }
 
             Op::UnsignedLessOrEqual => {
                 assert(ty == Type::UInt8);
-                Some[Inst](self.graph.ensure_const_bool_inst(lhs <= rhs))
+                Some(self.graph.ensure_const_bool_inst(lhs <= rhs))
             }
 
-            _ => None[Inst],
+            _ => None,
         }
     }
 
@@ -390,7 +388,7 @@ impl SimplificationPass {
                 if checked && overflow {
                     None[Inst]
                 } else {
-                    Some[Inst](self.graph.ensure_const_int32_inst(value))
+                    Some(self.graph.ensure_const_int32_inst(value))
                 }
             }
 
@@ -399,7 +397,7 @@ impl SimplificationPass {
                 if checked && overflow {
                     None[Inst]
                 } else {
-                    Some[Inst](self.graph.ensure_const_int64_inst(value))
+                    Some(self.graph.ensure_const_int64_inst(value))
                 }
             }
 
@@ -424,7 +422,7 @@ impl SimplificationPass {
             Type::Int32 => {
                 if fold_checked_int32(op, lhs.to_int32(), rhs.to_int32()) is Some(result)
                 {
-                    Some[Inst](self.graph.ensure_const_int32_inst(result))
+                    Some(self.graph.ensure_const_int32_inst(result))
                 } else {
                     None[Inst]
                 }
@@ -432,13 +430,13 @@ impl SimplificationPass {
 
             Type::Int64 => {
                 if fold_checked_int64(op, lhs, rhs) is Some(result) {
-                    Some[Inst](self.graph.ensure_const_int64_inst(result))
+                    Some(self.graph.ensure_const_int64_inst(result))
                 } else {
                     None[Inst]
                 }
             }
 
-            _ => None[Inst],
+            _ => None,
         }
     }
 }
@@ -482,7 +480,7 @@ fn fold_checked_int32(op: Op, lhs: Int32, rhs: Int32): Option[Int32] {
         } else {
             checked_result_int32(lhs.overflowing_mod(rhs))
         }
-        _ => None[Int32],
+        _ => None,
     }
 }
 
@@ -501,7 +499,7 @@ fn fold_checked_int64(op: Op, lhs: Int64, rhs: Int64): Option[Int64] {
         } else {
             checked_result_int64(lhs.overflowing_mod(rhs))
         }
-        _ => None[Int64],
+        _ => None,
     }
 }
 
@@ -510,7 +508,7 @@ fn checked_result_int64(result: (Int64, Bool)): Option[Int64] {
     if overflow {
         None[Int64]
     } else {
-        Some[Int64](value)
+        Some(value)
     }
 }
 
@@ -519,7 +517,7 @@ fn checked_result_int32(result: (Int32, Bool)): Option[Int32] {
     if overflow {
         None[Int32]
     } else {
-        Some[Int32](value)
+        Some(value)
     }
 }
 
