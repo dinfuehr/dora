@@ -176,27 +176,36 @@ pub(super) fn check_call_arguments_with_expected(
     call_expr_id: ExprId,
     expected: Option<&ExpectedCallArgs>,
 ) {
-    check_call_arguments_with_expected_inner(ck, call_expr_id, expected, false);
+    check_call_arguments_with_expected_inner(ck, call_expr_id, expected, None);
 }
 
-fn check_call_arguments_with_inference(
+fn check_call_arguments_with_inference<S>(
     ck: &mut TypeCheck,
     call_expr_id: ExprId,
     expected: &ExpectedCallArgs,
-) {
-    check_call_arguments_with_expected_inner(ck, call_expr_id, Some(expected), true);
+    mut specialize: S,
+) where
+    S: FnMut(&mut TypeCheck, SourceType) -> SourceType,
+{
+    check_call_arguments_with_expected_inner(
+        ck,
+        call_expr_id,
+        Some(expected),
+        Some(&mut specialize),
+    );
 }
 
 fn check_call_arguments_with_expected_inner(
     ck: &mut TypeCheck,
     call_expr_id: ExprId,
     expected: Option<&ExpectedCallArgs>,
-    infer_type_params: bool,
+    mut specialize_for_inference: Option<&mut dyn FnMut(&mut TypeCheck, SourceType) -> SourceType>,
 ) {
     let Some(expected) = expected else {
         check_call_arguments_any(ck, call_expr_id);
         return;
     };
+    let infer_type_params = specialize_for_inference.is_some();
 
     // First pass: type check all arguments
     let arg_ids = ck
@@ -204,7 +213,6 @@ fn check_call_arguments_with_expected_inner(
         .iter()
         .map(|arg| arg.expr)
         .collect::<Vec<_>>();
-    let mut inference_matches = Vec::with_capacity(arg_ids.len());
 
     for (idx, arg_id) in arg_ids.iter().enumerate() {
         let param_ty = if idx < expected.regular_types.len() {
@@ -214,6 +222,11 @@ fn check_call_arguments_with_expected_inner(
         } else {
             SourceType::Any
         };
+        let param_ty = if let Some(specialize) = specialize_for_inference.as_deref_mut() {
+            specialize(ck, param_ty)
+        } else {
+            param_ty
+        };
         let expected_ty = if infer_type_params {
             ck.expected_type_for_inference(param_ty.clone())
         } else {
@@ -221,8 +234,9 @@ fn check_call_arguments_with_expected_inner(
         };
 
         let ty = check_expr(ck, *arg_id, expected_ty);
-        let type_matches = !infer_type_params || ck.unify_types(param_ty, ty.clone());
-        inference_matches.push(type_matches);
+        if infer_type_params {
+            ck.unify_types(param_ty, ty.clone());
+        }
         ck.body.set_ty(*arg_id, ty);
     }
 
@@ -252,8 +266,13 @@ fn check_call_arguments_with_expected_inner(
     {
         let arg_id = call_args[idx].0;
         let arg_ty = ck.body.ty(arg_id);
+        let param_ty = if let Some(specialize) = specialize_for_inference.as_deref_mut() {
+            specialize(ck, param_ty.clone())
+        } else {
+            param_ty.clone()
+        };
         let type_matches = if infer_type_params {
-            inference_matches[idx]
+            ck.unify_types(param_ty.clone(), arg_ty.clone())
         } else {
             arg_allows(ck.sa, param_ty.clone(), arg_ty.clone(), None)
         };
@@ -287,8 +306,13 @@ fn check_call_arguments_with_expected_inner(
         for idx in no_regular_params..call_args.len() {
             let arg_id = call_args[idx].0;
             let arg_ty = ck.body.ty(arg_id);
+            let variadic_ty = if let Some(specialize) = specialize_for_inference.as_deref_mut() {
+                specialize(ck, variadic_ty.clone())
+            } else {
+                variadic_ty.clone()
+            };
             let type_matches = if infer_type_params {
-                inference_matches[idx]
+                ck.unify_types(variadic_ty.clone(), arg_ty.clone())
             } else {
                 arg_allows(ck.sa, variadic_ty.clone(), arg_ty.clone(), None)
             };
@@ -1053,9 +1077,13 @@ fn check_expr_call_fct(
     let expected = build_expected_call_args(
         fct.params.regular_params(),
         fct.params.variadic_param(),
-        |ty| specialize_ty_for_call(ck.sa, ty, ck.element, &type_args),
+        |ty| ty,
     );
-    check_call_arguments_with_inference(ck, call_expr_id, &expected);
+    check_call_arguments_with_inference(ck, call_expr_id, &expected, |ck, ty| {
+        let sa = ck.sa;
+        let type_param_definition = sa.fct(fct_id).type_param_definition(sa);
+        specialize_call_type_with_inference(ck, type_param_definition, &type_params, ty)
+    });
 
     if !ck.report_unresolved_type_variables(&type_variables, &type_params) {
         ck.body.set_ty(expr_id, ty_error());
@@ -1166,15 +1194,28 @@ fn check_expr_call_static_method(
             Some(candidate.object_type.clone()),
         );
 
-        let return_type = specialize_type(ck.sa, fct.return_type(), &type_params);
+        let return_type =
+            specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &type_params);
         ck.unify_types(return_type, expected_ty);
 
         let expected = build_expected_call_args(
             fct.params.regular_params(),
             fct.params.variadic_param(),
-            |ty| replace_type(ck.sa, ty, &type_params),
+            |ty| ty,
         );
-        check_call_arguments_with_inference(ck, call_expr_id, &expected);
+        check_call_arguments_with_inference(ck, call_expr_id, &expected, |ck, ty| {
+            let resolved_type_params = ck.resolve_type_array(fct_type_params.clone());
+            let sa = ck.sa;
+            let type_param_definition = sa.fct(fct_id).type_param_definition(sa);
+            let type_args = TypeArgs::from_parts(
+                sa,
+                type_param_definition,
+                &candidate.container_type_params,
+                &resolved_type_params,
+                Some(candidate.object_type.clone()),
+            );
+            specialize_ty_for_call(sa, ty, ck.element, &type_args)
+        });
 
         if !ck.report_unresolved_type_variables(&type_variables, &fct_type_params) {
             ck.body.set_ty(expr_id, ty_error());
@@ -1202,7 +1243,7 @@ fn check_expr_call_static_method(
             return ty_error();
         }
 
-        let ty = specialize_type(ck.sa, fct.return_type(), &type_params);
+        let ty = specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &type_params);
 
         let call_type = Rc::new(CallType::Fct(fct_id, type_params));
         ck.body.insert_call_type(expr_id, call_type.clone());
@@ -1371,6 +1412,17 @@ fn report_wrong_type_for_ctor_argument(
     );
 }
 
+fn specialize_call_type_with_inference(
+    ck: &mut TypeCheck,
+    type_param_definition: &TypeParamDefinition,
+    type_params: &SourceTypeArray,
+    ty: SourceType,
+) -> SourceType {
+    let resolved_type_params = ck.resolve_type_array(type_params.clone());
+    let type_args = TypeArgs::from_own(ck.sa, type_param_definition, &resolved_type_params);
+    specialize_ty_for_call(ck.sa, ty, ck.element, &type_args)
+}
+
 fn check_expr_call_ctor_with_named_fields(
     ck: &mut TypeCheck,
     element_with_fields: &dyn ElementWithFields,
@@ -1435,14 +1487,17 @@ fn check_expr_call_ctor_with_named_fields(
         }
     }
 
-    let type_params = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
-
     for &field_id in element_with_fields.field_ids() {
         let field = ck.sa.field(field_id);
         if let Some(name) = field.name {
             if let Some(arg_index) = args_by_name.remove(&name) {
                 let arg_id = call_args[arg_index].1;
-                let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &type_params);
+                let def_ty = specialize_call_type_with_inference(
+                    ck,
+                    type_param_definition,
+                    &type_params,
+                    field.ty(),
+                );
                 let expected_ty = ck.expected_type_for_inference(def_ty.clone());
                 let arg_ty = check_expr(ck, arg_id, expected_ty);
                 ck.body.set_ty(arg_id, arg_ty.clone());
@@ -1513,8 +1568,6 @@ fn check_expr_call_ctor_with_unnamed_fields(
     type_params: SourceTypeArray,
     call_expr_id: ExprId,
 ) -> bool {
-    let type_params = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
-
     let fields = element_with_fields.field_ids().len();
     let call_args = ck
         .call_args(call_expr_id)
@@ -1527,7 +1580,12 @@ fn check_expr_call_ctor_with_unnamed_fields(
     for (idx, arg_id, name) in call_args.iter().copied().take(provided) {
         let field_id = element_with_fields.field_ids()[idx];
         let field = ck.sa.field(field_id);
-        let def_ty = specialize_ty_for_call(ck.sa, field.ty(), ck.element, &type_params);
+        let def_ty = specialize_call_type_with_inference(
+            ck,
+            type_param_definition,
+            &type_params,
+            field.ty(),
+        );
         let expected_ty = ck.expected_type_for_inference(def_ty.clone());
         let arg_ty = check_expr(ck, arg_id, expected_ty);
         ck.body.set_ty(arg_id, arg_ty.clone());

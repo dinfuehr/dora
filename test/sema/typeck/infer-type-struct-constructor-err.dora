@@ -6,6 +6,11 @@ trait Trait {}
 struct DoesNotImplementTrait
 struct Bounded[T: Trait](T)
 
+trait HasItem { type Item; }
+struct ItemOwner
+impl HasItem for ItemOwner { type Item = Int32; }
+struct Associated[T: HasItem](T, T::Item)
+
 fn expectedConflict(): Box[Bool] {
     Box[_](1i32)
 }
@@ -15,4 +20,5 @@ fn main() {
     let _conflict = Same[_](1i32, true);
     let _invalidBound = Bounded[_](DoesNotImplementTrait());
     let _wrongArity = Box[Int32, Bool](unknown);
+    let _wrongAssociatedType = Associated(ItemOwner(), true);
 }

@@ -11,6 +11,11 @@ struct ImplementsTrait
 impl Trait for ImplementsTrait {}
 struct Bounded[T: Trait](T)
 
+trait HasItem { type Item; }
+struct ItemOwner
+impl HasItem for ItemOwner { type Item = Int32; }
+struct Associated[T: HasItem](T, T::Item)
+
 mod foo {
     pub struct Box[T](pub T)
 }
@@ -22,6 +27,7 @@ fn takeNested(_value: Nested[Int32]) {}
 fn takeNamed(_value: Named[Bool]) {}
 fn takeBounded(_value: Bounded[ImplementsTrait]) {}
 fn takeQualified(_value: foo::Box[Int64]) {}
+fn takeAssociated(_value: Associated[ItemOwner]) {}
 
 fn main() {
     let box = Box[_](1i32);
@@ -49,4 +55,7 @@ fn main() {
 
     let qualified = foo::Box[_](1i64);
     takeQualified(qualified);
+
+    let associated = Associated(ItemOwner(), 1);
+    takeAssociated(associated);
 }

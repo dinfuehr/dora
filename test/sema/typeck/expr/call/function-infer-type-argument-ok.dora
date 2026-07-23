@@ -4,11 +4,27 @@ trait Trait {}
 class ImplementsTrait
 impl Trait for ImplementsTrait {}
 
+trait HasItem { type Item; }
+class ItemOwner
+impl HasItem for ItemOwner { type Item = Int32; }
+
+trait HasLeaf { type Leaf; }
+class LeafOwner
+impl HasLeaf for LeafOwner { type Leaf = Int32; }
+trait HasNestedItem { type Item: HasLeaf; }
+class NestedItemOwner
+impl HasNestedItem for NestedItemOwner { type Item = LeafOwner; }
+
 fn identity[T](value: T): T { value }
 fn same[T](first: T, _second: T): T { first }
 fn sameVariadic[T](first: T, _rest: T...): T { first }
 fn nested[T](first: Option[T], _second: T): Option[T] { first }
 fn nestedVec[T](first: Option[Vec[T]], _second: T): Option[Vec[T]] { first }
+fn associated[T: HasItem](_owner: T, item: T::Item): T::Item { item }
+fn nestedAssociated[T: HasNestedItem](
+    _owner: T,
+    item: [T::Item as HasLeaf]::Leaf
+): [T::Item as HasLeaf]::Leaf { item }
 fn bounded[T: Trait](value: T): T { value }
 fn nothing[T](): Option[T] { None }
 
@@ -37,6 +53,8 @@ fn main() {
     takeOption(nestedOption);
     let nestedVecOption = nestedVec(None, true);
     takeNestedVec(nestedVecOption);
+    takeInt32(associated(ItemOwner(), 1));
+    takeInt32(nestedAssociated(NestedItemOwner(), 1));
     takeBounded(bounded[_](ImplementsTrait()));
 
     let qualified = foo::bar::baz[_, _](1, true);

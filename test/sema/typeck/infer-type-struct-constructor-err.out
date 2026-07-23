@@ -1,5 +1,5 @@
 error: Argument expects value of type `Bool` but got `Int32`.
---> infer-type-struct-constructor-err.dora:10:12
+--> infer-type-struct-constructor-err.dora:15:12
  | 
  | fn expectedConflict(): Box[Bool] {
  |     Box[_](1i32)
@@ -7,7 +7,7 @@ error: Argument expects value of type `Bool` but got `Int32`.
  | }
  | 
 error: cannot infer type.
---> infer-type-struct-constructor-err.dora:14:31
+--> infer-type-struct-constructor-err.dora:19:31
  | 
  | fn main() {
  |     let _unresolved = Phantom[_]();
@@ -15,7 +15,7 @@ error: cannot infer type.
  |     let _conflict = Same[_](1i32, true);
  |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
 error: Argument expects value of type `Int32` but got `Bool`.
---> infer-type-struct-constructor-err.dora:15:35
+--> infer-type-struct-constructor-err.dora:20:35
  | fn main() {
  |     let _unresolved = Phantom[_]();
  |     let _conflict = Same[_](1i32, true);
@@ -23,27 +23,35 @@ error: Argument expects value of type `Int32` but got `Bool`.
  |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
  |     let _wrongArity = Box[Int32, Bool](unknown);
 error: type `DoesNotImplementTrait` does not implement trait `Trait`.
---> infer-type-struct-constructor-err.dora:16:25
+--> infer-type-struct-constructor-err.dora:21:25
  |     let _unresolved = Phantom[_]();
  |     let _conflict = Same[_](1i32, true);
  |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  |     let _wrongArity = Box[Int32, Bool](unknown);
- | }
+ |     let _wrongAssociatedType = Associated(ItemOwner(), true);
 error: expected 1 type parameters but got 2.
---> infer-type-struct-constructor-err.dora:17:23
+--> infer-type-struct-constructor-err.dora:22:23
  |     let _conflict = Same[_](1i32, true);
  |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
  |     let _wrongArity = Box[Int32, Bool](unknown);
                          ~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _wrongAssociatedType = Associated(ItemOwner(), true);
  | }
- | 
 error: unknown identifier `unknown`.
---> infer-type-struct-constructor-err.dora:17:40
+--> infer-type-struct-constructor-err.dora:22:40
  |     let _conflict = Same[_](1i32, true);
  |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
  |     let _wrongArity = Box[Int32, Bool](unknown);
                                           ~~~~~~~
+ |     let _wrongAssociatedType = Associated(ItemOwner(), true);
+ | }
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-type-struct-constructor-err.dora:23:56
+ |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
+ |     let _wrongArity = Box[Int32, Bool](unknown);
+ |     let _wrongAssociatedType = Associated(ItemOwner(), true);
+                                                          ~~~~
  | }
  | 
-6 errors found.
+7 errors found.

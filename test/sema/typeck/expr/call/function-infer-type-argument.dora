@@ -1,10 +1,26 @@
 trait Trait {}
 class DoesNotImplementTrait
 
+trait HasItem { type Item; }
+class ItemOwner
+impl HasItem for ItemOwner { type Item = Int32; }
+
+trait HasLeaf { type Leaf; }
+class LeafOwner
+impl HasLeaf for LeafOwner { type Leaf = Int32; }
+trait HasNestedItem { type Item: HasLeaf; }
+class NestedItemOwner
+impl HasNestedItem for NestedItemOwner { type Item = LeafOwner; }
+
 fn identity[T](value: T): T { value }
 fn same[T](first: T, _second: T): T { first }
 fn sameWithPhantom[A, B](first: A, _second: A): A { first }
 fn bounded[T: Trait](value: T): T { value }
+fn associated[T: HasItem](_owner: T, item: T::Item): T::Item { item }
+fn nestedAssociated[T: HasNestedItem](
+    _owner: T,
+    item: [T::Item as HasLeaf]::Leaf
+): [T::Item as HasLeaf]::Leaf { item }
 
 mod foo {
     pub mod bar {
@@ -27,4 +43,8 @@ fn f() {
     foo::bar::phantom[_](1i32);
     foo::bar::phantom(1i32);
     bounded[_](DoesNotImplementTrait());
+    associated(ItemOwner(), true);
+    associated[Bool](true, 1);
+    nestedAssociated(NestedItemOwner(), true);
+    nestedAssociated[Bool](true, 1);
 }

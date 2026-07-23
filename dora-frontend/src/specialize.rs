@@ -200,7 +200,11 @@ pub fn specialize_ty_for_call(
             assert!(assoc.parent.is_trait());
             let specialized_ty = specialize_ty_for_call(sa, *ty, caller_element, type_params);
 
-            if specialized_ty.is_type_param() {
+            if matches!(specialized_ty, SourceType::Any | SourceType::TypeVar(_)) {
+                SourceType::Any
+            } else if specialized_ty.is_error() {
+                SourceType::Error
+            } else if specialized_ty.is_type_param() {
                 SourceType::GenericAssoc {
                     ty: Box::new(specialized_ty),
                     trait_ty,
@@ -245,7 +249,9 @@ pub fn specialize_ty_for_call(
                 let ty = specialize_type(sa, ty, &type_args);
                 specialize_ty_for_call(sa, ty, caller_element, type_params)
             } else {
-                unimplemented!()
+                // This is reachable when an inferred or explicit type argument doesn't implement
+                // the trait defining this associated type. Bounds are checked after inference.
+                SourceType::Error
             }
         }
 
@@ -289,9 +295,9 @@ pub fn specialize_ty_for_call(
             type_params,
         ))),
 
-        SourceType::Any | SourceType::Ptr => {
-            unreachable!()
-        }
+        SourceType::Any => SourceType::Any,
+
+        SourceType::Ptr => unreachable!(),
     }
 }
 
