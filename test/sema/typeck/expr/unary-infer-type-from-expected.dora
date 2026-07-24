@@ -1,0 +1,23 @@
+//= ok
+
+struct Wrapper[T](Int32)
+
+impl[T] std::traits::Neg for Wrapper[T] {
+    fn neg(): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Not for Wrapper[T] {
+    fn not(): Wrapper[T] {
+        self
+    }
+}
+
+fn consume(_value: Wrapper[String]) {}
+
+fn test() {
+    let _negative: Wrapper[String] = -Wrapper(1i32);
+    let _not: Wrapper[Bool] = !Wrapper(2i32);
+    consume(-Wrapper(3i32));
+}

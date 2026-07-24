@@ -29,7 +29,8 @@ pub(super) fn check_expr_un(
         }
     }
 
-    let opnd_ty = check_expr(ck, sema_expr.expr, SourceType::Any);
+    // Both `Neg` and `Not` return `Self`, so pass the expected result type to the operand.
+    let opnd_ty = check_expr(ck, sema_expr.expr, expected_ty);
 
     match sema_expr.op {
         ast::UnOp::Neg => check_expr_un_trait(

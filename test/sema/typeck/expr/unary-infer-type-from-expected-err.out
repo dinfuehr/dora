@@ -1,0 +1,17 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> unary-infer-type-from-expected-err.dora:16:14
+ | 
+ | fn negative(): Wrapper[Bool] {
+ |     -Wrapper(1i32)
+                ~~~~
+ | }
+ | 
+error: Argument expects value of type `String` but got `Bool`.
+--> unary-infer-type-from-expected-err.dora:20:14
+ | 
+ | fn not(): Wrapper[String] {
+ |     !Wrapper(true)
+                ~~~~
+ | }
+ | 
+2 errors found.
