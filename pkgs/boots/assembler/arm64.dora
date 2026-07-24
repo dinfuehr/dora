@@ -494,6 +494,10 @@ impl AssemblerArm64 {
         self.emit(encoding::exception(0b001i32, imm16, 0i32, 0i32));
     }
 
+    pub fn dmb_ishst() {
+        self.emit(0xd5033abfi32);
+    }
+
     pub fn cas(cmp: Register, new: Register, addr: Register) {
         self.emit(
             encoding::ldst_exclusive(
@@ -4665,6 +4669,19 @@ mod tests {
             0xeb41081fi32,
             // cmp w2, w3, lsl #1
             0x6b03045fi32,
+        );
+    }
+
+    @Test
+    fn test_dmb_ishst() {
+        let asm = AssemblerArm64::new();
+        asm.dmb_ishst();
+        let buffer = asm.finalize_testing();
+
+        assert_asm32(
+            buffer,
+            // dmb ishst
+            0xd5033abfi32,
         );
     }
 

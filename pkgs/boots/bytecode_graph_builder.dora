@@ -1979,6 +1979,7 @@ impl BytecodeGraphBuilder {
         self.current().append_inst(obj_inst);
 
         self.emit_local_set(dest, obj_inst);
+        self.emit_object_initialization_fence(obj_inst);
     }
 
     fn emit_new_object(
@@ -2020,6 +2021,8 @@ impl BytecodeGraphBuilder {
 
             field_id += 1i32;
         }
+
+        self.emit_object_initialization_fence(obj_inst);
     }
 
     fn emit_new_lambda(
@@ -2048,6 +2051,8 @@ impl BytecodeGraphBuilder {
             let offset = iface::OBJECT_HEADER_LENGTH;
             self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
         }
+
+        self.emit_object_initialization_fence(obj_inst);
     }
 
     fn emit_new_trait_object(
@@ -2077,6 +2082,8 @@ impl BytecodeGraphBuilder {
             let offset = iface::OBJECT_HEADER_LENGTH;
             self.store_field(arg_ty, obj_inst, InstExtraData::None, offset, arg, true);
         }
+
+        self.emit_object_initialization_fence(obj_inst);
     }
 
     fn emit_new_struct(
@@ -2206,6 +2213,8 @@ impl BytecodeGraphBuilder {
 
                     field_id += 1i32;
                 }
+
+                self.emit_object_initialization_fence(obj_inst);
             }
         }
     }
@@ -2321,6 +2330,12 @@ impl BytecodeGraphBuilder {
         self.current().append_inst(obj_inst);
 
         self.emit_local_set(dest, obj_inst);
+        self.emit_object_initialization_fence(obj_inst);
+    }
+
+    fn emit_object_initialization_fence(obj: Inst) {
+        let inst = graph::create_object_initialization_fence_inst(obj);
+        self.current().append_inst(inst);
     }
 
     fn load_global_into(dest: BytecodeRegister, id: GlobalId) {

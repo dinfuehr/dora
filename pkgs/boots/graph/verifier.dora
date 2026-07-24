@@ -315,6 +315,11 @@ impl GraphVerifier {
                 assert(inst.has_class_info());
             }
 
+            Op::ObjectInitializationFence => {
+                self.assert_input_count(inst, 1i64);
+                assert(inst.get_input(0).get_value().get_value_type() == Type::Ptr);
+            }
+
             Op::AllocateStack => {
                 self.assert_no_inputs(inst);
                 assert(inst.has_record_layout());

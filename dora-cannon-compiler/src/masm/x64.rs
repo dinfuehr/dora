@@ -1250,8 +1250,8 @@ impl MacroAssembler {
         }
     }
 
-    pub fn fence(&mut self) {
-        self.asm.mfence();
+    pub fn object_initialization_fence(&mut self) {
+        // This is intentionally a no-op: x64 TSO already provides StoreStore ordering.
     }
 
     pub fn compute_remembered_bit(&mut self, dest: Reg, size: Reg) {

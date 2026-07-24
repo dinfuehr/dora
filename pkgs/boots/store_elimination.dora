@@ -336,6 +336,7 @@ fn is_memory_barrier(op: Op): Bool {
         | Op::StoreArray
         | Op::NewObject
         | Op::NewArray
+        | Op::ObjectInitializationFence
         | Op::Load
         | Op::Store
         | Op::StoreWb

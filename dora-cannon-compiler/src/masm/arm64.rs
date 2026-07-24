@@ -1217,8 +1217,8 @@ impl MacroAssembler {
         }
     }
 
-    pub fn fence(&mut self) {
-        self.asm.dmb_ish();
+    pub fn object_initialization_fence(&mut self) {
+        self.asm.dmb_ishst();
     }
 
     pub fn compute_remembered_bit(&mut self, dest: Reg, size: Reg) {

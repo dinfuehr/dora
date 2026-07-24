@@ -398,6 +398,7 @@ fn dump_inst_name(inst: Inst): String {
         Op::Rematerialize => "Rematerialize(${inst.get_extra_inst()})",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
+        Op::ObjectInitializationFence => "ObjectInitializationFence",
         Op::AllocateStack => "AllocateStack",
         Op::Load => "Load.${inst.get_value_type()}(${inst.get_offset()})",
         Op::Store => "Store.${inst.get_operation_type()}(${inst.get_offset()})",

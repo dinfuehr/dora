@@ -780,6 +780,10 @@ impl AssemblerArm64 {
         self.dmb(0b1011);
     }
 
+    pub fn dmb_ishst(&mut self) {
+        self.dmb(0b1010);
+    }
+
     pub fn dmb(&mut self, imm: u32) {
         self.emit_u32(cls::system_cls(0, 0b00, 0b011, 0b0011, imm, 0b101, 0b11111));
     }
@@ -4677,5 +4681,10 @@ mod tests {
     #[test]
     fn test_dmb_ish() {
         assert_emit!(0xd5033bbf; dmb_ish());
+    }
+
+    #[test]
+    fn test_dmb_ishst() {
+        assert_emit!(0xd5033abf; dmb_ishst());
     }
 }

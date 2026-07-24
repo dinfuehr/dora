@@ -33,7 +33,7 @@ impl LateEscapeAnalysisPass {
 
     fn process_allocation(allocation: Inst) {
         if self.can_remove_allocation(allocation) {
-            self.remove_stores(allocation);
+            self.remove_initialization(allocation);
             assert(!allocation.has_uses());
             allocation.remove();
         }
@@ -41,7 +41,7 @@ impl LateEscapeAnalysisPass {
 
     fn can_remove_allocation(allocation: Inst): Bool {
         for input in allocation.uses() {
-            if !self.is_removable_store(input.get_used_by(), input.get_idx()) {
+            if !self.is_removable_initialization(input.get_used_by(), input.get_idx()) {
                 return false;
             }
         }
@@ -49,14 +49,14 @@ impl LateEscapeAnalysisPass {
         true
     }
 
-    fn is_removable_store(inst: Inst, idx: Int32): Bool {
-        is_store_op(inst.op()) && idx == 0
+    fn is_removable_initialization(inst: Inst, idx: Int32): Bool {
+        (is_store_op(inst.op()) || inst.op() == Op::ObjectInitializationFence) && idx == 0
     }
 
-    fn remove_stores(allocation: Inst) {
+    fn remove_initialization(allocation: Inst) {
         while allocation.first_use() is Some(input) {
             let inst = input.get_used_by();
-            assert(self.is_removable_store(inst, input.get_idx()));
+            assert(self.is_removable_initialization(inst, input.get_idx()));
             assert(!inst.has_uses());
             inst.remove();
         }

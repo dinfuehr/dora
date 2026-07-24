@@ -1208,6 +1208,10 @@ impl<'a> BaselineAssembler<'a> {
         self.fill_zero(obj, false, size as usize);
     }
 
+    pub fn object_initialization_fence(&mut self) {
+        self.masm.object_initialization_fence();
+    }
+
     pub fn initialize_array_header(
         &mut self,
         obj: Reg,

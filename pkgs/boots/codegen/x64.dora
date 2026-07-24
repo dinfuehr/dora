@@ -3080,6 +3080,10 @@ impl CodeGen for CodeGenX64 {
         self.emit_array_initialization(obj, size, length, shape_key, REG_TEMP, tmp);
     }
 
+    fn emit_object_initialization_fence(_inst: Inst) {
+        // This is intentionally a no-op: x64 TSO already provides StoreStore ordering.
+    }
+
     fn emit_load_global(inst: Inst) {
         let loc = inst.get_location_data();
 

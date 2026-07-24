@@ -1928,6 +1928,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let shape_key = self.layout.class_shape_key(cls_id, type_params);
         self.asm
             .initialize_object(REG_RESULT, layout.size, shape_key);
+        self.asm.object_initialization_fence();
     }
 
     fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
@@ -1973,6 +1974,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             let argument = self.reg(argument);
             self.asm.store_field(obj_reg, field.offset, argument, ty);
         }
+
+        self.asm.object_initialization_fence();
     }
 
     fn emit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
@@ -2029,6 +2032,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         if element_size > 0 {
             self.emit_array_initialization(REG_RESULT, length_reg, element_size as i32);
         }
+
+        self.asm.object_initialization_fence();
     }
 
     fn emit_array_initialization(&mut self, object_start: Reg, array_length: Reg, size: i32) {
@@ -2168,6 +2173,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                     self.asm.copy_bytecode_ty(ty, dest, src);
                     field_idx += 1;
                 }
+
+                self.asm.object_initialization_fence();
             }
         }
     }
@@ -2254,6 +2261,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let src = self.reg(src);
 
         self.asm.copy_bytecode_ty(object_ty, dest, src);
+        self.asm.object_initialization_fence();
     }
 
     fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
@@ -2329,6 +2337,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 environment_ty,
             );
         }
+
+        self.asm.object_initialization_fence();
     }
 
     fn emit_array_length(&mut self, dest: Register, arr: Register) {

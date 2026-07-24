@@ -339,6 +339,11 @@ fn emit_inst(codegen: CodeGen, inst: Inst) {
             codegen.emit_new_array(inst);
         }
 
+        Op::ObjectInitializationFence => {
+            codegen.emit_comment("ObjectInitializationFence");
+            codegen.emit_object_initialization_fence(inst);
+        }
+
         Op::EnsureGlobalInitialized => {
             codegen.emit_comment("EnsureGlobalInitialized");
             codegen.emit_ensure_global_initialized(inst);
@@ -768,6 +773,8 @@ pub trait CodeGen {
     fn emit_new_object(inst: Inst);
 
     fn emit_new_array(inst: Inst);
+
+    fn emit_object_initialization_fence(inst: Inst);
 
     fn emit_load_global(inst: Inst);
 

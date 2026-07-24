@@ -1007,6 +1007,7 @@ pub enum Op {
 
     NewObject,
     NewArray,
+    ObjectInitializationFence,
 
     AllocateStack,
     Load,
@@ -1203,6 +1204,7 @@ pub fn op_name(op: Op): String {
         Op::Rematerialize => "Rematerialize",
         Op::NewObject => "NewObject",
         Op::NewArray => "NewArray",
+        Op::ObjectInitializationFence => "ObjectInitializationFence",
         Op::AllocateStack => "AllocateStack",
         Op::Load => "Load",
         Op::Store => "Store",
@@ -1508,6 +1510,7 @@ impl Inst {
             Op::Rematerialize => Some(self.ty),
             Op::NewObject => Some(Type::Ptr),
             Op::NewArray => Some(Type::Ptr),
+            Op::ObjectInitializationFence => None,
             Op::AllocateStack => Some(Type::Address),
             Op::Load => Some(self.ty),
             Op::Store | Op::StoreWb | Op::StoreArrayWb | Op::StoreArrayAddressWb => None,
@@ -2117,6 +2120,7 @@ impl Inst {
             Op::Rematerialize => true,
             Op::NewObject => false,
             Op::NewArray => false,
+            Op::ObjectInitializationFence => true,
             Op::AllocateStack => false,
             Op::Load => false,
             Op::Store | Op::StoreWb | Op::StoreArrayWb | Op::StoreArrayAddressWb => true,
@@ -3252,6 +3256,13 @@ pub fn create_new_object_inst(extra: InstExtraData): Inst {
     inst._op = Some(Op::NewObject);
     inst.extra = extra;
 
+    inst
+}
+
+pub fn create_object_initialization_fence_inst(obj: Inst): Inst {
+    let inst = Inst::new();
+    inst._op = Some(Op::ObjectInitializationFence);
+    inst.add_input(obj);
     inst
 }
 

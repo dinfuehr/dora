@@ -1,5 +1,7 @@
 //= boots
-//= compile-args "--emit-graph=object_only_stores;object_load_eliminated;object_escape_keeps_allocation"
+//= compile-args "--emit-graph=object_only_stores;object_load_eliminated;object_escape_keeps_allocation;uninitialized_context_escape"
+
+// Object initialization fences should track their allocation through escape analysis.
 
 class Box {
     value: Int,
@@ -9,6 +11,8 @@ fn main() {
     object_only_stores(1, 2);
     assert(object_load_eliminated(3) == 3);
     assert(object_escape_keeps_allocation(3) == 3);
+    let closure = uninitialized_context_escape(4);
+    assert(closure() == 4);
 }
 
 fn object_only_stores(first: Int, second: Int) {
@@ -20,6 +24,7 @@ fn object_only_stores(first: Int, second: Int) {
 // CHECK: Function object_only_stores: final
 // CHECK-NOT: NewObject
 // CHECK-NOT: Store.Int64(8)
+// CHECK-NOT: ObjectInitializationFence
 // CHECK: Ret.Void
 
 fn object_load_eliminated(value: Int): Int {
@@ -33,6 +38,7 @@ fn object_load_eliminated(value: Int): Int {
 // CHECK-NOT: NewObject
 // CHECK-NOT: Load.Int64(8)
 // CHECK-NOT: Store.Int64(8)
+// CHECK-NOT: ObjectInitializationFence
 // CHECK: Ret.Int64 [[VALUE]]
 
 fn object_escape_keeps_allocation(value: Int): Int {
@@ -48,5 +54,20 @@ fn object_escape_keeps_allocation(value: Int): Int {
 // CHECK: Function object_escape_keeps_allocation: final
 // CHECK: NewObject
 // CHECK: Store.Int64(8)
+// CHECK: ObjectInitializationFence
+// CHECK: Store.Int64(8)
 // CHECK: Invoke.Int64
 // CHECK: Ret.Int64
+
+fn uninitialized_context_escape(value: Int): (): Int {
+    ||: Int { value }
+}
+
+// CHECK: Function uninitialized_context_escape: final
+// CHECK: NewObject
+// CHECK: ObjectInitializationFence
+// CHECK: Store.Int64(8)
+// CHECK: NewObject
+// CHECK: StoreWb(8)
+// CHECK: ObjectInitializationFence
+// CHECK: Ret.Ptr

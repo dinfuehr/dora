@@ -312,6 +312,11 @@ impl LocationAnnotation {
                 needs_register_snapshot(inst);
             }
 
+            Op::ObjectInitializationFence => {
+                let loc = inst.get_location_data();
+                loc.set_input(0, Operand::new(Policy::None, Location::None));
+            }
+
             Op::LoadGlobal => {
                 if inst.get_operation_type().is_any_float() {
                     use_output_float_register(inst, InputOutputOverlap::NoOverlap);
