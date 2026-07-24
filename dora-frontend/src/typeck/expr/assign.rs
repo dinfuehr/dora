@@ -420,8 +420,6 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
         value_type = check_expr(ck, sema_expr.rhs, item_type.clone());
         rhs_type = item_type.clone();
     } else {
-        value_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
-
         let (index_get_index, index_get_item) = check_index_trait_on_ty(
             ck,
             expr_id,
@@ -429,6 +427,9 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
             object_type.clone(),
             true,
         );
+
+        let expected_value_type = compound_assign_rhs_type(sema_expr.op, index_get_item.clone());
+        value_type = check_expr(ck, sema_expr.rhs, expected_value_type);
 
         let (index_set_index, index_set_item) = check_index_trait_on_ty(
             ck,
@@ -524,6 +525,15 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
     ck.body.insert_array_assignment(expr_id, array_assignment);
 }
 
+fn compound_assign_rhs_type(op: ast::AssignOp, item_type: SourceType) -> SourceType {
+    match op {
+        ast::AssignOp::ShiftLAssign
+        | ast::AssignOp::LogicalShiftRAssign
+        | ast::AssignOp::ArithShiftRAssign => SourceType::Int32,
+        _ => item_type,
+    }
+}
+
 fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
     let lhs_id = sema_expr.lhs;
     let method_call_expr = ck.expr(lhs_id).as_method_call();
@@ -556,10 +566,11 @@ fn check_expr_assign_method_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr:
         value_type = check_expr(ck, sema_expr.rhs, item_type.clone());
         rhs_type = item_type.clone();
     } else {
-        value_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
-
         let (index_get_index, index_get_item) =
             check_index_trait_on_ty(ck, expr_id, &mut array_assignment, field_type.clone(), true);
+
+        let expected_value_type = compound_assign_rhs_type(sema_expr.op, index_get_item.clone());
+        value_type = check_expr(ck, sema_expr.rhs, expected_value_type);
 
         let (index_set_index, index_set_item) = check_index_trait_on_ty(
             ck,

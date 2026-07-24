@@ -1,0 +1,17 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> index-compound-assign-infer-rhs-from-expected-err.dora:14:25
+ | 
+ | fn direct(values: Array[Addend[Bool]]) {
+ |     values(0) += Addend(1i32);
+                           ~~~~
+ | }
+ | 
+error: Argument expects value of type `Bool` but got `Int32`.
+--> index-compound-assign-infer-rhs-from-expected-err.dora:18:32
+ | 
+ | fn field(holder: Holder) {
+ |     holder.values(0) += Addend(2i32);
+                                  ~~~~
+ | }
+ | 
+2 errors found.

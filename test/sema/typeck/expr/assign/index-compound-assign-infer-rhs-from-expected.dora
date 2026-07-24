@@ -1,0 +1,21 @@
+//= ok
+
+struct Addend[T](Int32)
+
+impl[T] std::traits::Add for Addend[T] {
+    fn add(_rhs: Addend[T]): Addend[T] {
+        self
+    }
+}
+
+class Holder {
+    values: Array[Addend[Bool]],
+}
+
+fn direct(values: Array[Addend[String]]) {
+    values(0) += Addend(1i32);
+}
+
+fn field(holder: Holder) {
+    holder.values(0) += Addend(2i32);
+}
