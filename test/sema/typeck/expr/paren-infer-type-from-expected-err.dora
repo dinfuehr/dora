@@ -1,0 +1,7 @@
+enum Box[T] {
+    New(T),
+}
+
+fn test(): Box[Bool] {
+    ((Box::New(1i32)))
+}

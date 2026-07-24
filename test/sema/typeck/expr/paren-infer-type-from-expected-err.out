@@ -1,0 +1,9 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> paren-infer-type-from-expected-err.dora:6:16
+ | 
+ | fn test(): Box[Bool] {
+ |     ((Box::New(1i32)))
+                  ~~~~
+ | }
+ | 
+1 error found.

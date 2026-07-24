@@ -1,0 +1,13 @@
+//= ok
+
+enum Phantom[T] {
+    New(Int32),
+}
+
+fn consume(_value: Option[Bool]) {}
+
+fn test() {
+    let _option: Option[Int64] = (None);
+    let _phantom: Phantom[String] = ((Phantom::New(1i32)));
+    consume(((None)));
+}
