@@ -559,18 +559,18 @@ impl BytecodeBuilder {
 
     fn emit_int32_fixed(val: Int32) {
         assert(val >= 0);
-        self.emit_byte(val & 0xFFi32);
-        self.emit_byte((val >>> 8i32) & 0xFFi32);
-        self.emit_byte((val >>> 16i32) & 0xFFi32);
-        self.emit_byte((val >>> 24i32) & 0xFFi32);
+        self.emit_byte(val & 0xFF);
+        self.emit_byte((val >>> 8) & 0xFF);
+        self.emit_byte((val >>> 16) & 0xFF);
+        self.emit_byte((val >>> 24) & 0xFF);
     }
 
     fn emit_int32_variable(mut value: Int32) {
         while true {
-            let mut byte = value & 0x7Fi32;
-            value = value >> 7i32;
+            let mut byte = value & 0x7F;
+            value = value >> 7;
             if value != 0 {
-                byte = byte | 0x80i32;
+                byte = byte | 0x80;
             }
 
             self.code.push(byte.to_uint8());
@@ -584,10 +584,10 @@ impl BytecodeBuilder {
     fn patch_int32(idx: Int32, val: Int32) {
         assert(val >= 0);
         let idx = idx.to_int64();
-        self.code(idx) = (val & 0xFFi32).to_uint8();
-        self.code(idx + 1i64) = ((val >>> 8i32) & 0xFFi32).to_uint8();
-        self.code(idx + 2i64) = ((val >>> 16i32) & 0xFFi32).to_uint8();
-        self.code(idx + 3i64) = ((val >>> 24i32) & 0xFFi32).to_uint8();
+        self.code(idx) = (val & 0xFF).to_uint8();
+        self.code(idx + 1i64) = ((val >>> 8) & 0xFF).to_uint8();
+        self.code(idx + 2i64) = ((val >>> 16) & 0xFF).to_uint8();
+        self.code(idx + 3i64) = ((val >>> 24) & 0xFF).to_uint8();
     }
 }
 

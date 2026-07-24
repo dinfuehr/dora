@@ -330,7 +330,7 @@ impl AssemblerArm64 {
     pub fn adrp_imm(rd: Register, imm: Int64) {
         assert(encoding::fits_i33(imm));
         assert(imm & 0xF_FF == 0);
-        let imm = (imm >> 12i32).to_int32();
+        let imm = (imm >> 12).to_int32();
         self.emit(encoding::pcrel(1i32, imm, rd));
     }
 
@@ -2848,7 +2848,7 @@ pub fn fits_movz(mut imm: Int64, register_size: Int64): Option[(Int64, Int64)] {
             }
         }
 
-        imm = imm >> 16i32;
+        imm = imm >> 16;
     }
 
     Some((value, shift))
@@ -2977,7 +2977,7 @@ mod imm_encoding {
         assert(reg_size == 32 || reg_size == 64);
 
         if reg_size == 32 {
-            assert(imm < (1 << 32i32));
+            assert(imm < (1 << 32));
         }
 
         if imm == 0 || imm == !0 {
@@ -3037,12 +3037,12 @@ mod imm_encoding {
         assert(rotation < size);
 
         let immr = rotation;
-        let mut nimms = !(size - 1) << 1i32;
+        let mut nimms = !(size - 1) << 1;
         nimms = nimms | (ones - 1);
 
-        let n = ((nimms >> 6i32) & 1) ^ 1;
+        let n = ((nimms >> 6) & 1) ^ 1;
 
-        let result = n << 12i32 | immr << 6i32 | nimms & 0x3f;
+        let result = n << 12 | immr << 6 | nimms & 0x3f;
         Some(result.to_int32())
     }
 
@@ -3060,8 +3060,8 @@ mod imm_encoding {
             return Some((false, imm.to_int32()));
         }
 
-        if (imm & !(mask << 12i32)) == 0 {
-            Some((true, imm.to_int32() >> 12i32))
+        if (imm & !(mask << 12)) == 0 {
+            Some((true, imm.to_int32() >> 12))
         } else {
             None
         }
@@ -3099,16 +3099,16 @@ mod encoding {
             rd.encoding_sp()
         };
 
-        sf << 31i32 |
-        op << 30i32 |
-        s.to_int32() << 29i32 |
-        0b01011i32 << 24i32 |
-        opt << 22i32 |
-        1i32 << 21i32 |
-        rm.encoding_zero() << 16i32 |
-        option.encoding() << 13i32 |
-        imm3 << 10i32 |
-        rn.encoding_sp() << 5i32 |
+        sf << 31 |
+        op << 30 |
+        s.to_int32() << 29 |
+        0b01011i32 << 24 |
+        opt << 22 |
+        1i32 << 21 |
+        rm.encoding_zero() << 16 |
+        option.encoding() << 13 |
+        imm3 << 10 |
+        rn.encoding_sp() << 5 |
         rd
     }
 
@@ -3131,14 +3131,14 @@ mod encoding {
         assert(rn.is_gpr_or_zero());
         assert(rd.is_gpr_or_zero());
 
-        0b01011i32 << 24i32 |
-        sf << 31i32 |
-        op << 30i32 |
-        s << 29i32 |
-        shift.encoding() << 22i32 |
-        rm.encoding() << 16i32 |
-        imm6 << 10i32 |
-        rn.encoding_zero() << 5i32 |
+        0b01011i32 << 24 |
+        sf << 31 |
+        op << 30 |
+        s << 29 |
+        shift.encoding() << 22 |
+        rm.encoding() << 16 |
+        imm6 << 10 |
+        rn.encoding_zero() << 5 |
         rd.encoding_zero()
     }
 
@@ -3165,13 +3165,13 @@ mod encoding {
             rd.encoding_sp()
         };
 
-        0b10001i32 << 24i32 |
-        sf << 31i32 |
-        op << 30i32 |
-        s.to_int32() << 29i32 |
-        shift << 22i32 |
-        imm12 << 10i32 |
-        rn.encoding_sp() << 5i32 |
+        0b10001i32 << 24 |
+        sf << 31 |
+        op << 30 |
+        s.to_int32() << 29 |
+        shift << 22 |
+        imm12 << 10 |
+        rn.encoding_sp() << 5 |
         rd
     }
 
@@ -3196,16 +3196,16 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rt.is_gpr());
 
-        size << 30i32 |
-        0b111i32 << 27i32 |
-        v << 26i32 |
-        a << 23i32 |
-        r << 22i32 |
-        1i32 << 21i32 |
-        rs.encoding() << 16i32 |
-        o3 << 15i32 |
-        opc << 12i32 |
-        rn.encoding() << 5i32 |
+        size << 30 |
+        0b111i32 << 27 |
+        v << 26 |
+        a << 23 |
+        r << 22 |
+        1i32 << 21 |
+        rs.encoding() << 16 |
+        o3 << 15 |
+        opc << 12 |
+        rn.encoding() << 5 |
         rt.encoding()
     }
 
@@ -3226,13 +3226,13 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rd.is_gpr());
 
-        sf << 31i32 |
-        opc << 29i32 |
-        0b100110i32 << 23i32 |
-        n << 22i32 |
-        (immr & 0x3Fi32) << 16i32 |
-        (imms & 0x3Fi32) << 10i32 |
-        rn.encoding() << 5i32 |
+        sf << 31 |
+        opc << 29 |
+        0b100110i32 << 23 |
+        n << 22 |
+        (immr & 0x3F) << 16 |
+        (imms & 0x3F) << 10 |
+        rn.encoding() << 5 |
         rd.encoding()
     }
 
@@ -3241,17 +3241,17 @@ mod encoding {
         assert(fits_bit(op));
         assert(fits_i19(imm19));
         assert(rt.is_gpr());
-        let imm = imm19 & 0x7FFFFi32;
+        let imm = imm19 & 0x7FFFF;
 
-        sf << 31i32 | 0b011010i32 << 25i32 | op << 24i32 | imm << 5i32 | rt.encoding()
+        sf << 31 | 0b011010 << 25 | op << 24 | imm << 5 | rt.encoding()
     }
 
     pub fn cond_branch_imm(cond: Cond, imm19: Int32): Int32 {
         assert(fits_i19(imm19));
 
-        let imm = imm19 & 0x7FFFFi32;
+        let imm = imm19 & 0x7FFFF;
 
-        0b01010100i32 << 24i32 | imm << 5i32 | cond.encoding()
+        0b01010100i32 << 24 | imm << 5 | cond.encoding()
     }
 
     pub fn csel(
@@ -3272,14 +3272,14 @@ mod encoding {
         assert(rn.is_gpr_or_zero());
         assert(rd.is_gpr());
 
-        0b11010100i32 << 21i32 |
-        sf << 31i32 |
-        op << 30i32 |
-        s << 29i32 |
-        rm.encoding_zero() << 16i32 |
-        cond.encoding() << 12i32 |
-        op2 << 10i32 |
-        rn.encoding_zero() << 5i32 |
+        0b11010100i32 << 21 |
+        sf << 31 |
+        op << 30 |
+        s << 29 |
+        rm.encoding_zero() << 16 |
+        cond.encoding() << 12 |
+        op2 << 10 |
+        rn.encoding_zero() << 5 |
         rd.encoding()
     }
 
@@ -3298,13 +3298,13 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rd.is_gpr());
 
-        sf << 31i32 |
-        1i32 << 30i32 |
-        s << 29i32 |
-        0b11010110i32 << 21i32 |
-        opcode2 << 16i32 |
-        opcode << 10i32 |
-        rn.encoding() << 5i32 |
+        sf << 31 |
+        1i32 << 30 |
+        s << 29 |
+        0b11010110i32 << 21 |
+        opcode2 << 16 |
+        opcode << 10 |
+        rn.encoding() << 5 |
         rd.encoding()
     }
 
@@ -3323,12 +3323,12 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rd.is_gpr());
 
-        sf << 31i32 |
-        s << 29i32 |
-        0b11010110i32 << 21i32 |
-        rm.encoding() << 16i32 |
-        opcode << 10i32 |
-        rn.encoding() << 5i32 |
+        sf << 31 |
+        s << 29 |
+        0b11010110i32 << 21 |
+        rm.encoding() << 16 |
+        opcode << 10 |
+        rn.encoding() << 5 |
         rd.encoding()
     }
 
@@ -3351,14 +3351,14 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rd.is_gpr());
 
-        sf << 31i32 |
-        op54 << 29i32 |
-        0b11011i32 << 24i32 |
-        op31 << 21i32 |
-        rm.encoding() << 16i32 |
-        o0 << 15i32 |
-        ra.encoding_zero() << 10i32 |
-        rn.encoding() << 5i32 |
+        sf << 31 |
+        op54 << 29 |
+        0b11011i32 << 24 |
+        op31 << 21 |
+        rm.encoding() << 16 |
+        o0 << 15 |
+        ra.encoding_zero() << 10 |
+        rn.encoding() << 5 |
         rd.encoding()
     }
 
@@ -3368,7 +3368,7 @@ mod encoding {
         assert(op2 == 0);
         assert(fits_u2(ll));
 
-        0b11010100i32 << 24i32 | opc << 21i32 | imm16 << 5i32 | op2 << 2i32 | ll
+        0b11010100i32 << 24 | opc << 21 | imm16 << 5 | op2 << 2 | ll
     }
 
     pub fn fp_compare(
@@ -3386,15 +3386,15 @@ mod encoding {
         assert(fits_u2(op));
         assert(fits_u5(opcode2));
 
-        m << 31i32 |
-        s << 29i32 |
-        0b11110i32 << 24i32 |
-        ty << 22i32 |
-        1i32 << 21i32 |
-        rm.encoding() << 16i32 |
-        op << 14i32 |
-        0b1000i32 << 10i32 |
-        rn.encoding() << 5i32 |
+        m << 31 |
+        s << 29 |
+        0b11110i32 << 24 |
+        ty << 22 |
+        1i32 << 21 |
+        rm.encoding() << 16 |
+        op << 14 |
+        0b1000i32 << 10 |
+        rn.encoding() << 5 |
         opcode2
     }
 
@@ -3411,14 +3411,14 @@ mod encoding {
         assert(fits_u2(ty));
         assert(fits_u6(opcode));
 
-        m << 31i32 |
-        s << 29i32 |
-        0b11110i32 << 24i32 |
-        ty << 22i32 |
-        1i32 << 21i32 |
-        opcode << 15i32 |
-        0b10000i32 << 10i32 |
-        rn.encoding() << 5i32 |
+        m << 31 |
+        s << 29 |
+        0b11110i32 << 24 |
+        ty << 22 |
+        1i32 << 21 |
+        opcode << 15 |
+        0b10000i32 << 10 |
+        rn.encoding() << 5 |
         rd.encoding()
     }
 
@@ -3436,15 +3436,15 @@ mod encoding {
         assert(fits_bit(ty));
         assert(fits_u4(opcode));
 
-        m << 31i32 |
-        s << 29i32 |
-        0b11110i32 << 24i32 |
-        ty << 22i32 |
-        1i32 << 21i32 |
-        rm.encoding() << 16i32 |
-        opcode << 12i32 |
-        0b10i32 << 10i32 |
-        rn.encoding() << 5i32 |
+        m << 31 |
+        s << 29 |
+        0b11110i32 << 24 |
+        ty << 22 |
+        1i32 << 21 |
+        rm.encoding() << 16 |
+        opcode << 12 |
+        0b10i32 << 10 |
+        rn.encoding() << 5 |
         rd.encoding()
     }
 
@@ -3465,14 +3465,14 @@ mod encoding {
         assert(fits_u5(rn));
         assert(fits_u5(rd));
 
-        sf << 31i32 |
-        s << 29i32 |
-        0b11110i32 << 24i32 |
-        ty << 22i32 |
-        1i32 << 21i32 |
-        rmode << 19i32 |
-        opcode << 16i32 |
-        rn << 5i32 |
+        sf << 31 |
+        s << 29 |
+        0b11110i32 << 24 |
+        ty << 22 |
+        1i32 << 21 |
+        rmode << 19 |
+        opcode << 16 |
+        rn << 5 |
         rd
     }
 
@@ -3497,15 +3497,15 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(rt.is_gpr_or_zero());
 
-        size << 30i32 |
-        0b001000i32 << 24i32 |
-        o2 << 23i32 |
-        l << 22i32 |
-        o1 << 21i32 |
-        rs.encoding_zero() << 16i32 |
-        o0 << 15i32 |
-        rt2.encoding_zero() << 10i32 |
-        rn.encoding_sp() << 5i32 |
+        size << 30 |
+        0b001000i32 << 24 |
+        o2 << 23 |
+        l << 22 |
+        o1 << 21 |
+        rs.encoding_zero() << 16 |
+        o0 << 15 |
+        rt2.encoding_zero() << 10 |
+        rn.encoding_sp() << 5 |
         rt.encoding_zero()
     }
 
@@ -3526,13 +3526,13 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(rt.is_gpr());
 
-        opc << 30i32 |
-        0b101i32 << 27i32 |
-        1i32 << 24i32 |
-        l << 22i32 |
-        (imm7 & 0x7Fi32) << 15i32 |
-        rt2.encoding() << 10i32 |
-        rn.encoding_sp() << 5i32 |
+        opc << 30 |
+        0b101i32 << 27 |
+        1i32 << 24 |
+        l << 22 |
+        (imm7 & 0x7F) << 15 |
+        rt2.encoding() << 10 |
+        rn.encoding_sp() << 5 |
         rt.encoding()
     }
 
@@ -3553,14 +3553,14 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(rt.is_gpr_or_zero());
 
-        opc << 30i32 |
-        0b101i32 << 27i32 |
-        v << 26i32 |
-        0b001i32 << 23i32 |
-        l << 22i32 |
-        (imm7 & 0x7Fi32) << 15i32 |
-        rt2.encoding_zero() << 10i32 |
-        rn.encoding_sp() << 5i32 |
+        opc << 30 |
+        0b101i32 << 27 |
+        v << 26 |
+        0b001i32 << 23 |
+        l << 22 |
+        (imm7 & 0x7F) << 15 |
+        rt2.encoding_zero() << 10 |
+        rn.encoding_sp() << 5 |
         rt.encoding_zero()
     }
 
@@ -3579,14 +3579,14 @@ mod encoding {
         assert(fits_i7(imm7));
         assert(rn.is_gpr_or_sp());
 
-        opc << 30i32 |
-        0b101i32 << 27i32 |
-        v << 26i32 |
-        0b001i32 << 23i32 |
-        l << 22i32 |
-        (imm7 & 0x7Fi32) << 15i32 |
-        rt2.encoding() << 10i32 |
-        rn.encoding_sp() << 5i32 |
+        opc << 30 |
+        0b101i32 << 27 |
+        v << 26 |
+        0b001i32 << 23 |
+        l << 22 |
+        (imm7 & 0x7F) << 15 |
+        rt2.encoding() << 10 |
+        rn.encoding_sp() << 5 |
         rt.encoding()
     }
 
@@ -3607,14 +3607,14 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(rt.is_gpr_or_zero());
 
-        opc << 30i32 |
-        0b101i32 << 27i32 |
-        v << 26i32 |
-        0b011i32 << 23i32 |
-        l << 22i32 |
-        (imm7 & 0x7Fi32) << 15i32 |
-        rt2.encoding_zero() << 10i32 |
-        rn.encoding_sp() << 5i32 |
+        opc << 30 |
+        0b101i32 << 27 |
+        v << 26 |
+        0b011i32 << 23 |
+        l << 22 |
+        (imm7 & 0x7F) << 15 |
+        rt2.encoding_zero() << 10 |
+        rn.encoding_sp() << 5 |
         rt.encoding_zero()
     }
 
@@ -3633,14 +3633,14 @@ mod encoding {
         assert(fits_i7(imm7));
         assert(rn.is_gpr_or_sp());
 
-        opc << 30i32 |
-        0b101i32 << 27i32 |
-        v << 26i32 |
-        0b011i32 << 23i32 |
-        l << 22i32 |
-        (imm7 & 0x7Fi32) << 15i32 |
-        rt2.encoding() << 10i32 |
-        rn.encoding_sp() << 5i32 |
+        opc << 30 |
+        0b101i32 << 27 |
+        v << 26 |
+        0b011i32 << 23 |
+        l << 22 |
+        (imm7 & 0x7F) << 15 |
+        rt2.encoding() << 10 |
+        rn.encoding_sp() << 5 |
         rt.encoding()
     }
 
@@ -3657,11 +3657,11 @@ mod encoding {
         assert(rn.is_gpr());
         assert(rd.is_gpr());
 
-        sf << 31i32 |
-        opc << 29i32 |
-        0b100100i32 << 23i32 |
-        n_immr_imms << 10i32 |
-        rn.encoding() << 5i32 |
+        sf << 31 |
+        opc << 29 |
+        0b100100i32 << 23 |
+        n_immr_imms << 10 |
+        rn.encoding() << 5 |
         rd.encoding()
     }
 
@@ -3683,14 +3683,14 @@ mod encoding {
         assert(rn.is_gpr_or_zero());
         assert(rd.is_gpr());
 
-        0b01010i32 << 24i32 |
-        sf << 31i32 |
-        opc << 29i32 |
-        shift.encoding() << 22i32 |
-        n << 21i32 |
-        rm.encoding_zero() << 16i32 |
-        imm6 << 10i32 |
-        rn.encoding_zero() << 5i32 |
+        0b01010i32 << 24 |
+        sf << 31 |
+        opc << 29 |
+        shift.encoding() << 22 |
+        n << 21 |
+        rm.encoding_zero() << 16 |
+        imm6 << 10 |
+        rn.encoding_zero() << 5 |
         rd.encoding()
     }
 
@@ -3710,12 +3710,7 @@ mod encoding {
         assert(fits_u16(imm16));
         assert(rd.is_gpr());
 
-        0b100101i32 << 23i32 |
-        sf << 31i32 |
-        opc << 29i32 |
-        hw << 21i32 |
-        imm16 << 5i32 |
-        rd.encoding()
+        0b100101i32 << 23 | sf << 31 | opc << 29 | hw << 21 | imm16 << 5 | rd.encoding()
     }
 
     pub fn ldst_regimm(
@@ -3733,12 +3728,12 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(fits_u5(rt));
 
-        0b111001i32 << 24i32 |
-        size << 30i32 |
-        v << 26i32 |
-        opc << 22i32 |
-        imm12 << 10i32 |
-        rn.encoding_sp() << 5i32 |
+        0b111001i32 << 24 |
+        size << 30 |
+        v << 26 |
+        opc << 22 |
+        imm12 << 10 |
+        rn.encoding_sp() << 5 |
         rt
     }
 
@@ -3760,16 +3755,16 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(fits_u5(rt));
 
-        size << 30i32 |
-        0b111i32 << 27i32 |
-        1i32 << 21i32 |
-        0b10i32 << 10i32 |
-        v << 26i32 |
-        opc << 22i32 |
-        rm.encoding_zero() << 16i32 |
-        option.ldst_encoding() << 13i32 |
-        s << 12i32 |
-        rn.encoding_sp() << 5i32 |
+        size << 30 |
+        0b111i32 << 27 |
+        1i32 << 21 |
+        0b10i32 << 10 |
+        v << 26 |
+        opc << 22 |
+        rm.encoding_zero() << 16 |
+        option.ldst_encoding() << 13 |
+        s << 12 |
+        rn.encoding_sp() << 5 |
         rt
     }
 
@@ -3788,14 +3783,14 @@ mod encoding {
         assert(rn.is_gpr_or_sp());
         assert(fits_u5(rt));
 
-        let imm = imm9 & 0x1FFi32;
+        let imm = imm9 & 0x1FF;
 
-        size << 30i32 |
-        0b111i32 << 27i32 |
-        v << 26i32 |
-        opc << 22i32 |
-        imm << 12i32 |
-        rn.encoding_sp() << 5i32 |
+        size << 30 |
+        0b111i32 << 27 |
+        v << 26 |
+        opc << 22 |
+        imm << 12 |
+        rn.encoding_sp() << 5 |
         rt
     }
 
@@ -3812,14 +3807,14 @@ mod encoding {
         assert(fits_u2(size));
         assert(fits_u5(opcode));
 
-        q << 30i32 |
-        u << 29i32 |
-        0b01110i32 << 24i32 |
-        size << 22i32 |
-        0b11000i32 << 17i32 |
-        opcode << 12i32 |
-        0b10i32 << 10i32 |
-        rn.encoding() << 5i32 |
+        q << 30 |
+        u << 29 |
+        0b01110i32 << 24 |
+        size << 22 |
+        0b11000i32 << 17 |
+        opcode << 12 |
+        0b10i32 << 10 |
+        rn.encoding() << 5 |
         rd.encoding()
     }
 
@@ -3828,10 +3823,10 @@ mod encoding {
         assert(fits_bit(op));
         assert(rd.is_gpr());
 
-        let immlo = imm & 3i32;
-        let immhi = (imm >> 2i32) & 0x7FFFFi32;
+        let immlo = imm & 3;
+        let immhi = (imm >> 2) & 0x7FFFF;
 
-        1i32 << 28i32 | op << 31i32 | immlo << 29i32 | immhi << 5i32 | rd.encoding()
+        1i32 << 28 | op << 31 | immlo << 29 | immhi << 5 | rd.encoding()
     }
 
     pub fn simd_2regs_misc(
@@ -3847,20 +3842,20 @@ mod encoding {
         assert(fits_u2(size));
         assert(fits_u5(opcode));
 
-        q << 30i32 |
-        u << 29i32 |
-        0b01110i32 << 24i32 |
-        size << 22i32 |
-        0b10000i32 << 17i32 |
-        opcode << 12i32 |
-        0b10i32 << 10i32 |
-        rn.encoding() << 5i32 |
+        q << 30 |
+        u << 29 |
+        0b01110i32 << 24 |
+        size << 22 |
+        0b10000i32 << 17 |
+        opcode << 12 |
+        0b10i32 << 10 |
+        rn.encoding() << 5 |
         rd.encoding()
     }
 
     pub fn system(imm: Int32): Int32 {
         assert(fits_u7(imm));
-        0xD503201Fi32 | imm << 5i32
+        0xD503201Fi32 | imm << 5
     }
 
     pub fn test_and_branch(
@@ -3873,25 +3868,20 @@ mod encoding {
         assert(rt.is_gpr_or_zero());
         assert(fits_u6(bit));
 
-        let imm14 = imm14 & 0x3FFFi32;
+        let imm14 = imm14 & 0x3FFF;
 
-        let b5 = (bit >> 5i32) & 1i32;
-        let b40 = bit & 0x1Fi32;
+        let b5 = (bit >> 5) & 1;
+        let b40 = bit & 0x1F;
         let op = is_non_zero.to_int32();
 
-        b5 << 31i32 |
-        0b011011i32 << 25i32 |
-        op << 24i32 |
-        b40 << 19i32 |
-        imm14 << 5i32 |
-        rt.encoding()
+        b5 << 31 | 0b011011 << 25 | op << 24 | b40 << 19 | imm14 << 5 | rt.encoding()
     }
 
     pub fn uncond_branch_imm(op: Int32, imm26: Int32): Int32 {
         assert(fits_bit(op));
         assert(fits_i26(imm26));
 
-        0b101i32 << 26i32 | op << 31i32 | (imm26 & 0x3FFFFFFi32)
+        0b101i32 << 26 | op << 31 | (imm26 & 0x3FFFFFF)
     }
 
     pub fn uncond_branch_reg(
@@ -3906,12 +3896,7 @@ mod encoding {
         assert(fits_u6(op3));
         assert(fits_u5(op4));
 
-        0b1101011i32 << 25i32 |
-        opc << 21i32 |
-        op2 << 16i32 |
-        op3 << 10i32 |
-        rn.encoding() << 5i32 |
-        op4
+        0b1101011i32 << 25 | opc << 21 | op2 << 16 | op3 << 10 | rn.encoding() << 5 | op4
     }
 
     fn fits_bit(value: Int32): Bool {
@@ -3943,7 +3928,7 @@ mod encoding {
     }
 
     pub fn fits_i33(value: Int64): Bool {
-        -(1 << 32i32) <= value && value < (1 << 32i32)
+        -(1 << 32) <= value && value < (1 << 32)
     }
 
     fn fits_signed(value: Int32, bits: Int32): Bool {
@@ -4515,7 +4500,7 @@ mod tests {
         assert(imm_encoding::logical(!0, 64).is_none());
 
         assert(imm_encoding::logical(0, 32).is_none());
-        assert(imm_encoding::logical((1 << 32i32) - 1, 32).is_none());
+        assert(imm_encoding::logical((1 << 32) - 1, 32).is_none());
 
         let result = imm_encoding::logical(0x55555555, 32);
         assert(Some(0b0_000000_111100i32) == result);
@@ -6221,16 +6206,16 @@ mod tests {
         let (value, shift) = fits_movz(0, 64).get_or_panic();
         assert(value == 0 && shift == 0);
 
-        let (value, shift) = fits_movz(1 << 16i32, 64).get_or_panic();
+        let (value, shift) = fits_movz(1 << 16, 64).get_or_panic();
         assert(value == 1 && shift == 16);
 
-        let (value, shift) = fits_movz(1 << 32i32, 64).get_or_panic();
+        let (value, shift) = fits_movz(1 << 32, 64).get_or_panic();
         assert(value == 1 && shift == 32);
 
-        let (value, shift) = fits_movz(1 << 48i32, 64).get_or_panic();
+        let (value, shift) = fits_movz(1 << 48, 64).get_or_panic();
         assert(value == 1 && shift == 48);
 
-        assert(fits_movz(1 | (1 << 16i32), 64).is_none());
+        assert(fits_movz(1 | (1 << 16), 64).is_none());
     }
 
     @Test
@@ -6238,15 +6223,15 @@ mod tests {
         let (value, shift) = fits_movn(-1, 64).get_or_panic();
         assert(value == 0 && shift == 0);
 
-        let (value, shift) = fits_movn(!(1 << 16i32), 64).get_or_panic();
+        let (value, shift) = fits_movn(!(1 << 16), 64).get_or_panic();
         assert(value == 1 && shift == 16);
 
-        let (value, shift) = fits_movn(!(1 << 32i32), 64).get_or_panic();
+        let (value, shift) = fits_movn(!(1 << 32), 64).get_or_panic();
         assert(value == 1 && shift == 32);
 
-        let (value, shift) = fits_movn(!(1 << 48i32), 64).get_or_panic();
+        let (value, shift) = fits_movn(!(1 << 48), 64).get_or_panic();
         assert(value == 1 && shift == 48);
 
-        assert(fits_movn(!(1 | (1 << 16i32)), 64).is_none());
+        assert(fits_movn(!(1 | (1 << 16)), 64).is_none());
     }
 }

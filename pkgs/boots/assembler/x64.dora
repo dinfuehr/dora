@@ -68,7 +68,7 @@ pub let XMM15: FloatRegister = FloatRegister(15u8);
 
 impl FloatRegister {
     pub fn low_bits(): Int32 {
-        self.0.to_int32() & 0b111i32
+        self.0.to_int32() & 0b111
     }
 
     pub fn needs_rex_bit(): Bool {
@@ -2359,9 +2359,9 @@ impl AssemblerX64 {
         // x - extension of sib index field
         // b - extension of modrm-rm/sib base/opcode reg field
         let opcode = 0x40i32 |
-        w.to_int32() << 3i32 |
-        r.to_int32() << 2i32 |
-        x.to_int32() << 1i32 |
+        w.to_int32() << 3 |
+        r.to_int32() << 2 |
+        x.to_int32() << 1 |
         b.to_int32();
         self.emit_byte(opcode.to_uint8());
     }
@@ -2369,9 +2369,7 @@ impl AssemblerX64 {
     fn emit_address(reg_or_opcode: Int32, address: Address) {
         assert(reg_or_opcode < 8);
 
-        self.emit_byte(
-            (reg_or_opcode << 3i32 | address.bytes(0i64).to_int32()).to_uint8()
-        );
+        self.emit_byte((reg_or_opcode << 3 | address.bytes(0i64).to_int32()).to_uint8());
 
         let mut i = 1i64;
 
@@ -2457,14 +2455,14 @@ impl AssemblerX64 {
         assert(fits_bit(w));
         self.emit_byte(0xC4u8);
 
-        let byte = (!r).to_int32() << 7i32 |
-        (!x).to_int32() << 6i32 |
-        (!b).to_int32() << 5i32 |
+        let byte = (!r).to_int32() << 7 |
+        (!x).to_int32() << 6 |
+        (!b).to_int32() << 5 |
         mmmmm;
         self.emit_byte(byte.to_uint8());
 
-        let vvvv = !vvvv & 0b1111i32;
-        let byte = w << 7i32 | vvvv << 3i32 | l << 2i32 | pp;
+        let vvvv = !vvvv & 0b1111;
+        let byte = w << 7 | vvvv << 3 | l << 2 | pp;
         self.emit_byte(byte.to_uint8());
     }
 
@@ -2479,8 +2477,8 @@ impl AssemblerX64 {
         assert(fits_bit(l));
         self.emit_byte(0xC5u8);
 
-        let vvvv = !vvvv & 0b1111i32;
-        let byte = (!r).to_int32() << 7i32 | vvvv << 3i32 | l << 2i32 | pp;
+        let vvvv = !vvvv & 0b1111;
+        let byte = (!r).to_int32() << 7 | vvvv << 3 | l << 2 | pp;
         self.emit_byte(byte.to_uint8());
     }
 
@@ -2498,14 +2496,14 @@ impl AssemblerX64 {
 
     fn emit_mod_rm(mode: Int32, reg: Int32, rm: Int32) {
         assert(mode < 4 && reg < 8 && rm < 8);
-        self.emit_byte((mode << 6i32 | reg << 3i32 | rm).to_uint8());
+        self.emit_byte((mode << 6 | reg << 3 | rm).to_uint8());
     }
 
     fn emit_sib(scale: Int32, index: Int32, base: Int32) {
         assert(scale < 4);
         assert(index < 8);
         assert(base < 8);
-        self.emit_byte((scale << 6i32 | index << 3i32 | base).to_uint8());
+        self.emit_byte((scale << 6 | index << 3 | base).to_uint8());
     }
 
     fn emit_byte(value: UInt8) {
@@ -2655,7 +2653,7 @@ pub struct Immediate(pub Int64)
 
 impl Immediate {
     fn is_int8(): Bool {
-        let limit = 1i64 << 7i32;
+        let limit = 1i64 << 7;
         -limit <= self.0 && self.0 < limit
     }
 
@@ -2664,12 +2662,12 @@ impl Immediate {
     }
 
     fn is_int32(): Bool {
-        let limit = 1i64 << 31i32;
+        let limit = 1i64 << 31;
         -limit <= self.0 && self.0 < limit
     }
 
     fn is_uint32(): Bool {
-        let limit = 1i64 << 32i32;
+        let limit = 1i64 << 32;
         0i64 <= self.0 && self.0 < limit
     }
 
@@ -2725,10 +2723,10 @@ impl Address {
         assert(0i32 <= mode && mode < 4);
 
         if reg.needs_rex_bit() {
-            self.rex = (self.rex.to_int32() | 0x41i32).to_uint8();
+            self.rex = (self.rex.to_int32() | 0x41).to_uint8();
         }
 
-        self.bytes(0i64) = (mode << 6i32 | reg.low_bits()).to_uint8();
+        self.bytes(0i64) = (mode << 6 | reg.low_bits()).to_uint8();
         self.length = self.length + 1i64;
     }
 
@@ -2736,15 +2734,15 @@ impl Address {
         assert(self.length == 1i64);
 
         if base.needs_rex_bit() {
-            self.rex = (self.rex.to_int32() | 0x41i32).to_uint8();
+            self.rex = (self.rex.to_int32() | 0x41).to_uint8();
         }
 
         if index.needs_rex_bit() {
-            self.rex = (self.rex.to_int32() | 0x42i32).to_uint8();
+            self.rex = (self.rex.to_int32() | 0x42).to_uint8();
         }
 
         self.bytes(1i64) =
-        (scale.value() << 6i32 | index.low_bits() << 3i32 | base.low_bits()).to_uint8();
+        (scale.value() << 6 | index.low_bits() << 3 | base.low_bits()).to_uint8();
         self.length = self.length + 1i64;
     }
 
@@ -2757,9 +2755,9 @@ impl Address {
     fn set_disp32(imm: Int32) {
         assert(self.length == 1i64 || self.length == 2i64);
         self.bytes(self.length) = imm.to_uint8();
-        self.bytes(self.length + 1i64) = (imm >> 8i32).to_uint8();
-        self.bytes(self.length + 2i64) = (imm >> 16i32).to_uint8();
-        self.bytes(self.length + 3i64) = (imm >> 24i32).to_uint8();
+        self.bytes(self.length + 1i64) = (imm >> 8).to_uint8();
+        self.bytes(self.length + 2i64) = (imm >> 16).to_uint8();
+        self.bytes(self.length + 3i64) = (imm >> 24).to_uint8();
         self.length = self.length + 4i64;
     }
 
@@ -2849,11 +2847,11 @@ impl Address {
     }
 
     pub fn rex_x(): Bool {
-        (self.rex.to_int32() & 0x2i32) != 0
+        (self.rex.to_int32() & 0x2) != 0
     }
 
     pub fn rex_b(): Bool {
-        (self.rex.to_int32() & 0x1i32) != 0
+        (self.rex.to_int32() & 0x1) != 0
     }
 }
 
@@ -2979,12 +2977,12 @@ fn test_negate_condition_codes() {
 }
 
 fn assert_neg_cond_code(cond: Condition) {
-    assert(cond.to_int32() ^ 1i32 == cond.negate().to_int32());
+    assert(cond.to_int32() ^ 1 == cond.negate().to_int32());
 }
 
 impl Register {
     fn low_bits(): Int32 {
-        self.0.to_int32() & 0b111i32
+        self.0.to_int32() & 0b111
     }
 
     fn needs_rex_bit(): Bool {
@@ -3693,7 +3691,7 @@ mod tests {
     fn movl_ai() {
         let asm = AssemblerX64::new(false);
         asm.movl_ai(Address::offset(RAX, 0i32), Immediate(1i64));
-        asm.movl_ai(Address::offset(R8, 0i32), Immediate((1i64 << 32i32) - 1i64));
+        asm.movl_ai(Address::offset(R8, 0i32), Immediate((1i64 << 32) - 1i64));
         asm.movl_ai(Address::offset(RDI, 0i32), Immediate(Int32::max_value().to_int64()));
         asm.movl_ai(Address::offset(R15, 0i32), Immediate(Int32::min_value().to_int64()));
 

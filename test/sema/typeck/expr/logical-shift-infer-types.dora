@@ -1,0 +1,47 @@
+//= ok
+
+struct Wrapper[T](Int32)
+
+impl[T] std::traits::Shl for Wrapper[T] {
+    fn shl(_rhs: Int32): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Shr for Wrapper[T] {
+    fn shr(_rhs: Int32): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Sar for Wrapper[T] {
+    fn sar(_rhs: Int32): Wrapper[T] {
+        self
+    }
+}
+
+fn logical_or(value: Bool): Bool {
+    value || unreachable()
+}
+
+fn logical_and(value: Bool): Bool {
+    value && unreachable()
+}
+
+fn shift_int32(value: Int32) {
+    let _left = value << 1;
+    let _arithmetic_right = value >> 2;
+    let _logical_right = value >>> 3;
+}
+
+fn shift_left(): Wrapper[String] {
+    Wrapper(1i32) << 1
+}
+
+fn shift_arithmetic_right(): Wrapper[String] {
+    Wrapper(2i32) >> 2
+}
+
+fn shift_logical_right(): Wrapper[String] {
+    Wrapper(3i32) >>> 3
+}

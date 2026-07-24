@@ -427,25 +427,25 @@ impl CodepointIterator {
         }
 
         if ch <= 0xDFu8 {
-            let cp = (ch.to_int32() & 0x1Fi32) << 6i32 |
-            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32);
+            let cp = (ch.to_int32() & 0x1F) << 6 |
+            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3F);
             self.start = self.start + 2i64;
             return cp.to_char_unchecked();
         }
 
         if ch <= 0xEFu8 {
-            let cp = (ch.to_int32() & 0xFi32) << 12i32 |
-            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32) << 6i32 |
-            (self.value.get_byte(self.start + 2i64).to_int32() & 0x3Fi32);
+            let cp = (ch.to_int32() & 0xF) << 12 |
+            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3F) << 6 |
+            (self.value.get_byte(self.start + 2i64).to_int32() & 0x3F);
             self.start = self.start + 3i64;
             return cp.to_char_unchecked();
         }
 
         if ch <= 0xF7u8 {
-            let cp = (ch.to_int32() & 0x03i32) << 18i32 |
-            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32) << 12i32 |
-            (self.value.get_byte(self.start + 2i64).to_int32() & 0x3Fi32) << 6i32 |
-            (self.value.get_byte(self.start + 3i64).to_int32() & 0x3Fi32);
+            let cp = (ch.to_int32() & 0x03) << 18 |
+            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3F) << 12 |
+            (self.value.get_byte(self.start + 2i64).to_int32() & 0x3F) << 6 |
+            (self.value.get_byte(self.start + 3i64).to_int32() & 0x3F);
             self.start = self.start + 4i64;
             return cp.to_char_unchecked();
         }
@@ -465,23 +465,23 @@ impl CodepointIterator {
         }
 
         if ch <= 0xDFu8 {
-            let cp = (ch.to_int32() & 0x1Fi32) << 6i32 |
-            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32);
+            let cp = (ch.to_int32() & 0x1F) << 6 |
+            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3F);
             return cp.to_char_unchecked();
         }
 
         if ch <= 0xEFu8 {
-            let cp = (ch.to_int32() & 0xFi32) << 12i32 |
-            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32) << 6i32 |
-            (self.value.get_byte(self.start + 2i64).to_int32() & 0x3Fi32);
+            let cp = (ch.to_int32() & 0xF) << 12 |
+            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3F) << 6 |
+            (self.value.get_byte(self.start + 2i64).to_int32() & 0x3F);
             return cp.to_char_unchecked();
         }
 
         if ch <= 0xF7u8 {
-            let cp = (ch.to_int32() & 0x03i32) << 18i32 |
-            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3Fi32) << 12i32 |
-            (self.value.get_byte(self.start + 2i64).to_int32() & 0x3Fi32) << 6i32 |
-            (self.value.get_byte(self.start + 3i64).to_int32() & 0x3Fi32);
+            let cp = (ch.to_int32() & 0x03) << 18 |
+            (self.value.get_byte(self.start + 1i64).to_int32() & 0x3F) << 12 |
+            (self.value.get_byte(self.start + 2i64).to_int32() & 0x3F) << 6 |
+            (self.value.get_byte(self.start + 3i64).to_int32() & 0x3F);
             return cp.to_char_unchecked();
         }
 

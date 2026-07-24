@@ -74,24 +74,24 @@ fn is_valid_utf8(data: Array[UInt8]): Bool {
         let mut min = 0i32;
         let mut max = 0i32;
 
-        if by & 0x80i32 == 0i32 {
+        if by & 0x80 == 0i32 {
             bytes = 0;
             i = i + 1i64;
             continue;
-        } else if by & 0xC0i32 == 0x80i32 {
+        } else if by & 0xC0 == 0x80i32 {
             return false;
-        } else if by & 0xE0i32 == 0xC0i32 {
-            codepoint = by & 0x1Fi32;
+        } else if by & 0xE0 == 0xC0i32 {
+            codepoint = by & 0x1F;
             bytes = 1;
             min = 0x80;
             max = 0x7FFi32;
-        } else if by & 0xF0i32 == 0xE0i32 {
-            codepoint = by & 0xFi32;
+        } else if by & 0xF0 == 0xE0i32 {
+            codepoint = by & 0xF;
             bytes = 2i32;
             min = 0x800i32;
             max = 0xFFFFi32;
-        } else if by & 0xF8i32 == 0xF0i32 {
-            codepoint = by & 0x7i32;
+        } else if by & 0xF8 == 0xF0i32 {
+            codepoint = by & 0x7;
             bytes = 3;
             min = 0x10000;
             max = 0x10FFFFi32;
@@ -107,11 +107,11 @@ fn is_valid_utf8(data: Array[UInt8]): Bool {
 
             let by = data(i).to_int32();
 
-            if by & 0xC0i32 != 0x80i32 {
+            if by & 0xC0 != 0x80i32 {
                 return false;
             }
 
-            codepoint = (codepoint << 6i32) | (by & 0x3Fi32);
+            codepoint = (codepoint << 6) | (by & 0x3F);
         }
 
         if codepoint < min || codepoint > max {

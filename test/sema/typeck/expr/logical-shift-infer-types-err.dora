@@ -1,0 +1,31 @@
+fn identity[T](value: T): T {
+    value
+}
+
+struct Wrapper[T](T)
+
+impl[T] std::traits::Shl for Wrapper[T] {
+    fn shl(_rhs: Int32): Wrapper[T] {
+        self
+    }
+}
+
+fn logical_or() {
+    true || identity(1i32);
+}
+
+fn logical_and() {
+    false && identity("value");
+}
+
+fn shift_rhs(value: Int64) {
+    let _result = value << identity(true);
+}
+
+fn shift_literal_overflow(value: Int64) {
+    let _result = value << 2147483648;
+}
+
+fn shift_lhs(): Wrapper[Bool] {
+    Wrapper(1i32) << 1
+}

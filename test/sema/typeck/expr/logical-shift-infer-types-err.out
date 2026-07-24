@@ -1,0 +1,41 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> logical-shift-infer-types-err.dora:14:22
+ | 
+ | fn logical_or() {
+ |     true || identity(1i32);
+                        ~~~~
+ | }
+ | 
+error: Argument expects value of type `Bool` but got `String`.
+--> logical-shift-infer-types-err.dora:18:23
+ | 
+ | fn logical_and() {
+ |     false && identity("value");
+                         ~~~~~~~
+ | }
+ | 
+error: Argument expects value of type `Int32` but got `Bool`.
+--> logical-shift-infer-types-err.dora:22:37
+ | 
+ | fn shift_rhs(value: Int64) {
+ |     let _result = value << identity(true);
+                                       ~~~~
+ | }
+ | 
+error: number does not fit into type Int32.
+--> logical-shift-infer-types-err.dora:26:28
+ | 
+ | fn shift_literal_overflow(value: Int64) {
+ |     let _result = value << 2147483648;
+                              ~~~~~~~~~~
+ | }
+ | 
+error: Argument expects value of type `Bool` but got `Int32`.
+--> logical-shift-infer-types-err.dora:30:13
+ | 
+ | fn shift_lhs(): Wrapper[Bool] {
+ |     Wrapper(1i32) << 1
+               ~~~~
+ | }
+ | 
+5 errors found.

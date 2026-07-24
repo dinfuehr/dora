@@ -495,7 +495,7 @@ impl ByteReader {
         let by3 = self.read_uint8().to_int32();
         let by4 = self.read_uint8().to_int32();
 
-        (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
+        (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }
 
     pub fn read_id(): Int32 {
@@ -512,13 +512,13 @@ impl ByteReader {
         let by7 = self.read_uint8().to_int64();
         let by8 = self.read_uint8().to_int64();
 
-        (by8 << 56i32) |
-        (by7 << 48i32) |
-        (by6 << 40i32) |
-        (by5 << 32i32) |
-        (by4 << 24i32) |
-        (by3 << 16i32) |
-        (by2 << 8i32) |
+        (by8 << 56) |
+        (by7 << 48) |
+        (by6 << 40) |
+        (by5 << 32) |
+        (by4 << 24) |
+        (by3 << 16) |
+        (by2 << 8) |
         by1
     }
 

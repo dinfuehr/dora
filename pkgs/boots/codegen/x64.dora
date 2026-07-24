@@ -158,7 +158,7 @@ let CALLEE_SAVED_FREGS: RegSet[FloatRegister] = if config.is_windows {
 };
 
 fn msb(reg: FloatRegister): Bool {
-    ((reg.0.to_int64() >> 3i32) & 1) != 0
+    ((reg.0.to_int64() >> 3) & 1) != 0
 }
 
 pub class CodeGenX64 {
@@ -680,7 +680,7 @@ impl CodeGenX64 {
         let mut metadata_part = 0xFF_FF_FF_FCi32;
 
         if size < iface::LARGE_OBJECT_SIZE {
-            metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
+            metadata_part = metadata_part | 1 << METADATA_REMEMBERED_BIT;
         }
 
         self.load_shape(tmp1, tmp2, shape_key);
@@ -1061,10 +1061,10 @@ impl CodeGenX64 {
 
     fn emit_float_neg(dest: FloatRegister, src: FloatRegister, ty: Type) {
         let value = if ty == Type::Float32 {
-            1 << 31i32
+            1 << 31
         } else {
             assert(ty == Type::Float64);
-            1 << 63i32
+            1 << 63
         };
 
         let label = self.emit_const(EmbeddedConstant::Int128(value, 0));
@@ -4047,12 +4047,12 @@ impl CodeGen for CodeGenX64 {
 
         match inst.get_value_type() {
             Type::Float32 => {
-                let lower = !(1i32 << 31i32);
+                let lower = !(1i32 << 31);
                 self.andps_ri128(dest, src, lower.to_int64(), 0);
             }
 
             Type::Float64 => {
-                let lower = !(1 << 63i32);
+                let lower = !(1 << 63);
                 self.andps_ri128(dest, src, lower, 0);
             }
 

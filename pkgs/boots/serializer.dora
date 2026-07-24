@@ -430,14 +430,14 @@ impl ByteWriter {
 
     pub fn emit_int64(value: Int64) {
         self.emit_int32(value.to_int32());
-        self.emit_int32((value >> 32i32).to_int32());
+        self.emit_int32((value >> 32).to_int32());
     }
 
     pub fn emit_int32(value: Int32) {
         self.buffer.push(value.to_uint8());
-        self.buffer.push((value >> 8i32).to_uint8());
-        self.buffer.push((value >> 16i32).to_uint8());
-        self.buffer.push((value >> 24i32).to_uint8());
+        self.buffer.push((value >> 8).to_uint8());
+        self.buffer.push((value >> 16).to_uint8());
+        self.buffer.push((value >> 24).to_uint8());
     }
 
     pub fn emit_byte(value: UInt8) {

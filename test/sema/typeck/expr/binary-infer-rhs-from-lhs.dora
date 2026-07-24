@@ -1,0 +1,15 @@
+//= ok
+
+fn arithmetic(value: Int32) {
+    let _add = value + 1;
+    let _sub = value - 2;
+    let _mul = value * 3;
+    let _div = value / 4;
+    let _modulo = value % 5;
+}
+
+fn bitwise(value: Int32) {
+    let _and = value & 1;
+    let _or = value | 2;
+    let _xor = value ^ 3;
+}

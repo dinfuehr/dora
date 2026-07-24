@@ -519,8 +519,8 @@ impl BytecodeIterator {
 
         while true {
             let byte = self.read_byte();
-            result = result | ((byte & 0x7Fi32) << shift);
-            if byte & 0x80i32 == 0 {
+            result = result | ((byte & 0x7F) << shift);
+            if byte & 0x80 == 0 {
                 break;
             }
             shift = shift + 7i32;
@@ -535,7 +535,7 @@ impl BytecodeIterator {
         let by3 = self.read_byte();
         let by4 = self.read_byte();
 
-        (by4 << 24i32) | (by3 << 16i32) | (by2 << 8i32) | by1
+        (by4 << 24) | (by3 << 16) | (by2 << 8) | by1
     }
 }
 

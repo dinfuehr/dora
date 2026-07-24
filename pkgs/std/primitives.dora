@@ -396,17 +396,17 @@ impl Char {
         if val < 0x80i32 {
             bytes.set(offset, val.to_uint8());
         } else if val < 0x800i32 {
-            bytes.set(offset, (0xC0i32 | ((val >> 6i32) & 0x1Fi32)).to_uint8());
-            bytes.set(offset + 1i64, (0x80i32 | (val & 0x3Fi32)).to_uint8());
+            bytes.set(offset, (0xC0i32 | ((val >> 6) & 0x1F)).to_uint8());
+            bytes.set(offset + 1i64, (0x80i32 | (val & 0x3F)).to_uint8());
         } else if val < 0x10000i32 {
-            bytes.set(offset, (0xE0i32 | ((val >> 12i32) & 0x0Fi32)).to_uint8());
-            bytes.set(offset + 1i64, (0x80i32 | ((val >> 6i32) & 0x3Fi32)).to_uint8());
-            bytes.set(offset + 2i64, (0x80i32 | (val & 0x3Fi32)).to_uint8());
+            bytes.set(offset, (0xE0i32 | ((val >> 12) & 0x0F)).to_uint8());
+            bytes.set(offset + 1i64, (0x80i32 | ((val >> 6) & 0x3F)).to_uint8());
+            bytes.set(offset + 2i64, (0x80i32 | (val & 0x3F)).to_uint8());
         } else {
-            bytes.set(offset, (0xF0i32 | ((val >> 18i32) & 0x07i32)).to_uint8());
-            bytes.set(offset + 1i64, (0x80i32 | ((val >> 12i32) & 0x3Fi32)).to_uint8());
-            bytes.set(offset + 2i64, (0x80i32 | ((val >> 6i32) & 0x3Fi32)).to_uint8());
-            bytes.set(offset + 3i64, (0x80i32 | (val & 0x3Fi32)).to_uint8());
+            bytes.set(offset, (0xF0i32 | ((val >> 18) & 0x07)).to_uint8());
+            bytes.set(offset + 1i64, (0x80i32 | ((val >> 12) & 0x3F)).to_uint8());
+            bytes.set(offset + 2i64, (0x80i32 | ((val >> 6) & 0x3F)).to_uint8());
+            bytes.set(offset + 3i64, (0x80i32 | (val & 0x3F)).to_uint8());
         }
     }
 
@@ -582,7 +582,7 @@ impl Int64 {
     }
 
     pub fn hash(): Int32 {
-        (self >>> 32i32 | self).to_int32()
+        (self >>> 32 | self).to_int32()
     }
 
     pub static fn bits(): Int32 {

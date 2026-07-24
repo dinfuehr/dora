@@ -2581,11 +2581,11 @@ impl Hash for Location {
     fn hash(): Int32 {
         match self {
             Location::None => 1i32,
-            Location::Reg(reg) => reg.to_int32() << 1i32,
-            Location::FloatReg(reg) => reg.to_int32() << 1i32,
+            Location::Reg(reg) => reg.to_int32() << 1,
+            Location::FloatReg(reg) => reg.to_int32() << 1,
             Location::Stack(
                 slot
-            ) => slot.get_offset() << 2i32 + slot.is_fp().to_int32() << 1i32 + 1i32,
+            ) => slot.get_offset() << 2 + slot.is_fp().to_int32() << 1 + 1i32,
         }
     }
 }

@@ -31,9 +31,10 @@ pub(super) fn check_expr_bin(
         return SourceType::Bool;
     }
 
-    // These operator traits take `Self` and return `Self`, so the expected result type also
-    // applies to both operands.
-    let expected_operand_ty = match sema_expr.op {
+    // Arithmetic, bitwise and shift operator traits return `Self`, so the expected result type
+    // applies to the left-hand operand.
+    let expected_lhs_ty = match sema_expr.op {
+        ast::BinOp::Or => SourceType::Bool,
         ast::BinOp::Add
         | ast::BinOp::Sub
         | ast::BinOp::Mul
@@ -41,18 +42,34 @@ pub(super) fn check_expr_bin(
         | ast::BinOp::Mod
         | ast::BinOp::BitOr
         | ast::BinOp::BitAnd
-        | ast::BinOp::BitXor => expected_ty,
-        _ => SourceType::Any,
+        | ast::BinOp::BitXor
+        | ast::BinOp::ShiftL
+        | ast::BinOp::ArithShiftR
+        | ast::BinOp::LogicalShiftR => expected_ty,
+        ast::BinOp::Cmp(_) => SourceType::Any,
+        ast::BinOp::And => unreachable!(),
     };
 
-    let lhs_type = check_expr(ck, sema_expr.lhs, expected_operand_ty.clone());
+    let lhs_type = check_expr(ck, sema_expr.lhs, expected_lhs_ty.clone());
 
-    // Comparisons take two operands of the same type, so use the resolved left-hand type to
-    // infer the right-hand expression.
-    let expected_rhs_ty = if matches!(sema_expr.op, ast::BinOp::Cmp(_)) {
-        lhs_type.clone()
-    } else {
-        expected_operand_ty
+    let expected_rhs_ty = match sema_expr.op {
+        ast::BinOp::Or => SourceType::Bool,
+        ast::BinOp::Cmp(_) => {
+            // Comparisons take two operands of the same type.
+            lhs_type.clone()
+        }
+        ast::BinOp::ShiftL | ast::BinOp::ArithShiftR | ast::BinOp::LogicalShiftR => {
+            SourceType::Int32
+        }
+        ast::BinOp::Add
+        | ast::BinOp::Sub
+        | ast::BinOp::Mul
+        | ast::BinOp::Div
+        | ast::BinOp::Mod
+        | ast::BinOp::BitOr
+        | ast::BinOp::BitAnd
+        | ast::BinOp::BitXor => lhs_type.clone(),
+        ast::BinOp::And => unreachable!(),
     };
     let rhs_type = check_expr(ck, sema_expr.rhs, expected_rhs_ty);
 

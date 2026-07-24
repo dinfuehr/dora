@@ -321,8 +321,8 @@ impl CodeGenArm64 {
             if fits_movn is Some((value, shift)) {
                 self.asm.movn(dest, value.to_int32(), shift.to_int32());
             } else {
-                self.asm.movz_w(dest, imm & 0xFF_FFi32, 0i32);
-                self.asm.movk_w(dest, (imm >> 16i32) & 0xFF_FFi32, 16i32);
+                self.asm.movz_w(dest, imm & 0xFF_FF, 0i32);
+                self.asm.movk_w(dest, (imm >> 16) & 0xFF_FF, 16i32);
             }
         }
     }
@@ -627,13 +627,13 @@ impl CodeGenArm64 {
         let mut metadata_part = 0xFF_FF_FF_FCi32;
 
         if size < iface::LARGE_OBJECT_SIZE {
-            metadata_part = metadata_part | 1i32 << METADATA_REMEMBERED_BIT;
+            metadata_part = metadata_part | 1 << METADATA_REMEMBERED_BIT;
         }
 
         self.load_shape(tmp, REG_TEMP2, shape_key);
         self.asm.str_imm_w(tmp, obj, 0i32);
-        self.asm.movz_w(tmp, metadata_part >>> 16i32, 16i32);
-        self.asm.movk_w(tmp, metadata_part & 0xFFFFi32, 0i32);
+        self.asm.movz_w(tmp, metadata_part >>> 16, 16i32);
+        self.asm.movk_w(tmp, metadata_part & 0xFFFF, 0i32);
         self.asm.str_imm_w(tmp, obj, OBJECT_METADATA_OFFSET);
 
         if size > OBJECT_HEADER_LENGTH {

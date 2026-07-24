@@ -445,7 +445,7 @@ impl BitVec {
             return false;
         }
 
-        let entry_idx = idx >> 5i32;
+        let entry_idx = idx >> 5;
         let value = self.data.get(entry_idx);
         let value_idx = idx & 0x1F;
 
@@ -459,7 +459,7 @@ impl BitVec {
 
         self.ensure_capacity(idx + 1i64);
 
-        let entry_idx = idx >> 5i32;
+        let entry_idx = idx >> 5;
         let mut value = self.data.get(entry_idx);
         let value_idx = idx & 0x1F;
 
@@ -483,7 +483,7 @@ impl BitVec {
             return false;
         }
 
-        let entry_idx = idx >> 5i32;
+        let entry_idx = idx >> 5;
         let mut value = self.data.get(entry_idx);
         let value_idx = idx & 0x1F;
 
