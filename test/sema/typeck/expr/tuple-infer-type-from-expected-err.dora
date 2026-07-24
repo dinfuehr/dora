@@ -1,0 +1,11 @@
+enum Box[T] {
+    New(T),
+}
+
+fn test(): (Box[Bool], (Box[String], Option[Int32])) {
+    (Box::New(1i32), (Box::New(true), None))
+}
+
+fn mismatched_arity(): (Box[Bool], Box[String]) {
+    (Box::New(2i32), Box::New(false), Box::New(3i32))
+}

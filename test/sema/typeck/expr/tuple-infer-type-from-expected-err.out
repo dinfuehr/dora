@@ -1,0 +1,35 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> tuple-infer-type-from-expected-err.dora:6:15
+ | 
+ | fn test(): (Box[Bool], (Box[String], Option[Int32])) {
+ |     (Box::New(1i32), (Box::New(true), None))
+                 ~~~~
+ | }
+ | 
+error: Argument expects value of type `String` but got `Bool`.
+--> tuple-infer-type-from-expected-err.dora:6:32
+ | 
+ | fn test(): (Box[Bool], (Box[String], Option[Int32])) {
+ |     (Box::New(1i32), (Box::New(true), None))
+                                  ~~~~
+ | }
+ | 
+error: `return` expects value of type `(Box[Bool], Box[String])` but got `(Box[Bool], Box[String], Box[Int32])`.
+--> tuple-infer-type-from-expected-err.dora:9:49 - 11:2
+error: Argument expects value of type `Bool` but got `Int32`.
+--> tuple-infer-type-from-expected-err.dora:10:15
+ | 
+ | fn mismatched_arity(): (Box[Bool], Box[String]) {
+ |     (Box::New(2i32), Box::New(false), Box::New(3i32))
+                 ~~~~
+ | }
+ | 
+error: Argument expects value of type `String` but got `Bool`.
+--> tuple-infer-type-from-expected-err.dora:10:31
+ | 
+ | fn mismatched_arity(): (Box[Bool], Box[String]) {
+ |     (Box::New(2i32), Box::New(false), Box::New(3i32))
+                                 ~~~~~
+ | }
+ | 
+5 errors found.
