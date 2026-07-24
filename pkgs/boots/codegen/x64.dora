@@ -668,6 +668,7 @@ impl CodeGenX64 {
         obj: Register,
         size: Int32,
         shape_key: AotShapeKey,
+        zero_initialize: Bool,
         tmp1: Register,
         tmp2: Register,
         ftmp: FloatRegister,
@@ -690,7 +691,7 @@ impl CodeGenX64 {
             Immediate(metadata_part.to_int64()),
         );
 
-        if size > OBJECT_HEADER_LENGTH {
+        if zero_initialize && size > OBJECT_HEADER_LENGTH {
             let size = size.to_int64();
             assert(size % PTR_SIZE.to_int64() == 0);
             self.asm.lea(tmp1, AsmAddress::offset(obj, OBJECT_HEADER_LENGTH));
@@ -3059,7 +3060,15 @@ impl CodeGen for CodeGenX64 {
         let live = get_live_values_without_current_inst(inst);
         self.emit_object_allocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
-        self.emit_object_initialization(obj, size, shape_key, REG_TEMP, tmp, FREG_TEMP);
+        self.emit_object_initialization(
+            obj,
+            size,
+            shape_key,
+            inst.should_zero_initialize_object(),
+            REG_TEMP,
+            tmp,
+            FREG_TEMP,
+        );
     }
 
     fn emit_new_array(inst: Inst) {

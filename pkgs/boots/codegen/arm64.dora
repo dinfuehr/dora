@@ -622,6 +622,7 @@ impl CodeGenArm64 {
         obj: Register,
         size: Int32,
         shape_key: AotShapeKey,
+        zero_initialize: Bool,
         tmp: Register,
     ) {
         let mut metadata_part = 0xFF_FF_FF_FCi32;
@@ -636,7 +637,7 @@ impl CodeGenArm64 {
         self.asm.movk_w(tmp, metadata_part & 0xFFFF, 0i32);
         self.asm.str_imm_w(tmp, obj, OBJECT_METADATA_OFFSET);
 
-        if size > OBJECT_HEADER_LENGTH {
+        if zero_initialize && size > OBJECT_HEADER_LENGTH {
             assert(size % PTR_SIZE == 0);
             self.asm.add_imm(tmp, obj, OBJECT_HEADER_LENGTH);
             self.zero_memory(
@@ -2609,7 +2610,13 @@ impl CodeGen for CodeGenArm64 {
         let live = get_live_values_without_current_inst(inst);
         self.emit_object_allocate(obj, size, REG_TEMP, tmp, snapshot, live, location);
 
-        self.emit_object_initialization(obj, size, shape_key, REG_TEMP);
+        self.emit_object_initialization(
+            obj,
+            size,
+            shape_key,
+            inst.should_zero_initialize_object(),
+            REG_TEMP,
+        );
     }
 
     fn emit_new_array(inst: Inst) {

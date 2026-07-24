@@ -1431,6 +1431,11 @@ impl Inst {
         self.is_immutable
     }
 
+    pub fn should_zero_initialize_object(): Bool {
+        assert(self.op() == Op::NewObject);
+        self.aux != 0
+    }
+
     pub fn get_maybe_value_type(): Option[Type] {
         match self.op() {
             Op::NullConst => Some(Type::Ptr),
@@ -3251,10 +3256,14 @@ pub fn create_invoke_lambda_inst(
     inst
 }
 
-pub fn create_new_object_inst(extra: InstExtraData): Inst {
+pub fn create_new_object_inst(extra: InstExtraData, zero_initialize: Bool): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::NewObject);
     inst.extra = extra;
+
+    if zero_initialize {
+        inst.aux = 1;
+    }
 
     inst
 }

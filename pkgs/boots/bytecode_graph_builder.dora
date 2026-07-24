@@ -1974,7 +1974,7 @@ impl BytecodeGraphBuilder {
         let type_params = self.specialize_array(type_params);
         let info = ClassInfo(class_id, type_params);
         let info = InstExtraData::ClassInfo(info);
-        let obj_inst = graph::create_new_object_inst(info);
+        let obj_inst = graph::create_new_object_inst(info, true);
         self.set_current_inlined_location(obj_inst);
         self.current().append_inst(obj_inst);
 
@@ -1995,7 +1995,7 @@ impl BytecodeGraphBuilder {
         let type_params = self.specialize_array(type_params);
         let info = ClassInfo(class_id, type_params);
         let info = InstExtraData::ClassInfo(info);
-        let obj_inst = graph::create_new_object_inst(info);
+        let obj_inst = graph::create_new_object_inst(info, false);
         self.set_current_inlined_location(obj_inst);
         self.current().append_inst(obj_inst);
 
@@ -2035,7 +2035,7 @@ impl BytecodeGraphBuilder {
         let type_params = self.specialize_array(type_params);
         let info = FunctionInfo(fct_id, type_params);
         let info = InstExtraData::FunctionInfo(info);
-        let obj_inst = graph::create_new_object_inst(info);
+        let obj_inst = graph::create_new_object_inst(info, false);
         self.set_current_inlined_location(obj_inst);
         self.current().append_inst(obj_inst);
 
@@ -2069,7 +2069,7 @@ impl BytecodeGraphBuilder {
         let actual_object_ty = self.specialize_ty(actual_object_ty);
         let info = TraitObjectInfo(trait_ty, actual_object_ty);
         let info = InstExtraData::TraitObjectInfo(info);
-        let obj_inst = graph::create_new_object_inst(info);
+        let obj_inst = graph::create_new_object_inst(info, false);
         self.set_current_inlined_location(obj_inst);
         self.current().append_inst(obj_inst);
 
@@ -2172,7 +2172,7 @@ impl BytecodeGraphBuilder {
 
                 let data = AllocationData(shape_key, size);
                 let info = InstExtraData::AllocationData(data);
-                let obj_inst = graph::create_new_object_inst(info);
+                let obj_inst = graph::create_new_object_inst(info, false);
                 self.set_current_inlined_location(obj_inst);
                 self.current().append_inst(obj_inst);
 
