@@ -1,0 +1,7 @@
+fn string_identity(value: String): String {
+    value
+}
+
+fn byte_array_identity(value: Array[UInt8]): Array[UInt8] {
+    value
+}

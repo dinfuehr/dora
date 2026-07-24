@@ -1,0 +1,20 @@
+fn string_identity:
+  0: Ret r0
+
+  Registers:
+   0 => class String
+
+  Constants:
+
+  Locations:
+
+fn byte_array_identity:
+  0: Ret r0
+
+  Registers:
+   0 => class Array[UInt8]
+
+  Constants:
+
+  Locations:
+
