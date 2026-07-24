@@ -1,0 +1,21 @@
+struct Wrapper[T](T)
+
+impl[T] std::traits::Add for Wrapper[T] {
+    fn add(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::BitOr for Wrapper[T] {
+    fn bitor(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+fn add(): Wrapper[Bool] {
+    Wrapper(1i32) + Wrapper(2i32)
+}
+
+fn bitor(): Wrapper[String] {
+    Wrapper(true) | Wrapper(false)
+}

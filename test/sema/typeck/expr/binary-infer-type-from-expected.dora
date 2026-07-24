@@ -1,0 +1,62 @@
+//= ok
+
+struct Wrapper[T](Int32)
+
+impl[T] std::traits::Add for Wrapper[T] {
+    fn add(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Sub for Wrapper[T] {
+    fn sub(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Mul for Wrapper[T] {
+    fn mul(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Div for Wrapper[T] {
+    fn div(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::Mod for Wrapper[T] {
+    fn modulo(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::BitAnd for Wrapper[T] {
+    fn bitand(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::BitOr for Wrapper[T] {
+    fn bitor(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+impl[T] std::traits::BitXor for Wrapper[T] {
+    fn bitxor(_rhs: Wrapper[T]): Wrapper[T] {
+        self
+    }
+}
+
+fn test() {
+    let _add: Wrapper[String] = Wrapper(1i32) + Wrapper(2i32);
+    let _sub: Wrapper[String] = Wrapper(3i32) - Wrapper(4i32);
+    let _mul: Wrapper[String] = Wrapper(5i32) * Wrapper(6i32);
+    let _div: Wrapper[String] = Wrapper(7i32) / Wrapper(8i32);
+    let _modulo: Wrapper[String] = Wrapper(9i32) % Wrapper(10i32);
+    let _bitand: Wrapper[String] = Wrapper(11i32) & Wrapper(12i32);
+    let _bitor: Wrapper[String] = Wrapper(13i32) | Wrapper(14i32);
+    let _bitxor: Wrapper[String] = Wrapper(15i32) ^ Wrapper(16i32);
+}

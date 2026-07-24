@@ -22,7 +22,7 @@ pub(super) fn check_expr_bin(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     sema_expr: &BinExpr,
-    _expected_ty: SourceType,
+    expected_ty: SourceType,
 ) -> SourceType {
     if sema_expr.op == ast::BinOp::And {
         ck.symtable.push_level();
@@ -31,8 +31,22 @@ pub(super) fn check_expr_bin(
         return SourceType::Bool;
     }
 
-    let lhs_type = check_expr(ck, sema_expr.lhs, SourceType::Any);
-    let rhs_type = check_expr(ck, sema_expr.rhs, SourceType::Any);
+    // These operator traits take `Self` and return `Self`, so the expected result type also
+    // applies to both operands.
+    let expected_operand_ty = match sema_expr.op {
+        ast::BinOp::Add
+        | ast::BinOp::Sub
+        | ast::BinOp::Mul
+        | ast::BinOp::Div
+        | ast::BinOp::Mod
+        | ast::BinOp::BitOr
+        | ast::BinOp::BitAnd
+        | ast::BinOp::BitXor => expected_ty,
+        _ => SourceType::Any,
+    };
+
+    let lhs_type = check_expr(ck, sema_expr.lhs, expected_operand_ty.clone());
+    let rhs_type = check_expr(ck, sema_expr.rhs, expected_operand_ty);
 
     if lhs_type.is_error() || rhs_type.is_error() {
         ck.body.set_ty(expr_id, ty_error());

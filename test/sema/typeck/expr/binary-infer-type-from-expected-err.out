@@ -1,0 +1,33 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> binary-infer-type-from-expected-err.dora:16:13
+ | 
+ | fn add(): Wrapper[Bool] {
+ |     Wrapper(1i32) + Wrapper(2i32)
+               ~~~~
+ | }
+ | 
+error: Argument expects value of type `Bool` but got `Int32`.
+--> binary-infer-type-from-expected-err.dora:16:29
+ | 
+ | fn add(): Wrapper[Bool] {
+ |     Wrapper(1i32) + Wrapper(2i32)
+                               ~~~~
+ | }
+ | 
+error: Argument expects value of type `String` but got `Bool`.
+--> binary-infer-type-from-expected-err.dora:20:13
+ | 
+ | fn bitor(): Wrapper[String] {
+ |     Wrapper(true) | Wrapper(false)
+               ~~~~
+ | }
+ | 
+error: Argument expects value of type `String` but got `Bool`.
+--> binary-infer-type-from-expected-err.dora:20:29
+ | 
+ | fn bitor(): Wrapper[String] {
+ |     Wrapper(true) | Wrapper(false)
+                               ~~~~~
+ | }
+ | 
+4 errors found.
