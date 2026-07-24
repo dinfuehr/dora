@@ -788,6 +788,11 @@ impl BytecodeBody {
         registers: Vec<BytecodeType>,
         locations: Vec<(BytecodeOffset, Location)>,
     ) -> BytecodeBody {
+        assert!(
+            registers.iter().all(|ty| !matches!(ty, BytecodeType::Ptr)),
+            "bytecode registers must use their value type instead of Ptr"
+        );
+
         BytecodeBody {
             code,
             const_pool,

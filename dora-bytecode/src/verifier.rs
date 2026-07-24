@@ -92,6 +92,11 @@ impl<'a> Verifier<'a> {
             .type_params
             .type_param_count();
         for ty in self.bytecode.registers() {
+            assert_ne!(
+                ty,
+                &BytecodeType::Ptr,
+                "bytecode registers must use their value type instead of Ptr"
+            );
             verify_type(ty, type_param_count);
         }
         for entry in self.bytecode.const_pool_entries() {
@@ -276,10 +281,7 @@ impl<'a> Verifier<'a> {
 
             BytecodeInstruction::ConstString { dest, idx } => {
                 assert!(matches!(self.const_pool(idx), ConstPoolEntry::String(_)));
-                assert!(matches!(
-                    self.ty(dest),
-                    BytecodeType::Class(..) | BytecodeType::Ptr
-                ));
+                assert!(matches!(self.ty(dest), BytecodeType::Class(..)));
             }
 
             BytecodeInstruction::TestIdentity { dest, lhs, rhs } => {

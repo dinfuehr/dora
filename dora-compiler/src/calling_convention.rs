@@ -1,6 +1,6 @@
 use dora_bytecode::{BytecodeType, Program};
 
-use crate::{register_ty, specialize_ty_in_program};
+use crate::specialize_ty_in_program;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArgumentPassingMode {
@@ -25,7 +25,7 @@ pub fn argument_passing_mode(program: &Program, ty: &BytecodeType) -> ArgumentPa
         | BytecodeType::Assoc { .. }
         | BytecodeType::TypeParam(..)
         | BytecodeType::This => panic!("unexpected generic type {ty:?}"),
-        _ => return ArgumentPassingMode::Register(register_ty(ty.clone())),
+        _ => return ArgumentPassingMode::Register(ty.clone()),
     };
 
     let mut register_ty = None;

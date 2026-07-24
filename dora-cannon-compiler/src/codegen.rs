@@ -15,8 +15,8 @@ use dora_compiler::{
     AllocationSize, AnyReg, AotEnumLayout, AotLayout, AotShapeKey, ArgumentPassingMode,
     CodeDescriptor, CompilationData, GLOBAL_INITIALIZED, GcPoint, Header, Intrinsic, MachineMode,
     Reg, RuntimeFunction, TraitObjectThunkCompilationData, Trap, align_i32, argument_passing_mode,
-    find_trait_impl_in_program, ptr_width, ptr_width_usize, register_ty,
-    specialize_ty_array_in_program, specialize_ty_in_program,
+    find_trait_impl_in_program, ptr_width, ptr_width_usize, specialize_ty_array_in_program,
+    specialize_ty_in_program,
 };
 
 macro_rules! comment {
@@ -140,7 +140,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             actual_object_ty
         );
 
-        let mut registers = signature.params.iter().map(register_ty).collect::<Vec<_>>();
+        let mut registers = signature.params.to_vec();
         let receiver_reg = if receiver_by_reference {
             let receiver_reg = Register(registers.len());
             let ty = BytecodeType::Ref(Box::new(actual_object_ty.clone()));
@@ -151,14 +151,13 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 ArgumentPassingMode::None => None,
                 ArgumentPassingMode::Register(_) | ArgumentPassingMode::Stack => {
                     let receiver_reg = Register(registers.len());
-                    let ty = register_ty(actual_object_ty.clone());
-                    registers.push(ty);
+                    registers.push(actual_object_ty.clone());
                     Some(receiver_reg)
                 }
             }
         };
         let result_reg = Register(registers.len());
-        registers.push(register_ty(signature.return_type.clone()));
+        registers.push(signature.return_type.clone());
 
         CannonCodeGen {
             program,
@@ -313,7 +312,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let mut stacksize: i32 = start;
 
         for (index, ty) in self.registers.iter().enumerate() {
-            let ty = register_bty(self.specialize_ty(ty.clone()));
+            let ty = self.specialize_ty(ty.clone());
             let size = self.layout.size(ty.clone());
             let align = self.layout.align(ty);
             stacksize = align_i32(stacksize + size, align);
@@ -346,7 +345,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     fn compute_reference_objects(&mut self) {
         assert!(self.references.is_empty());
         for (idx, ty) in self.registers.iter().enumerate() {
-            let ty = register_bty(self.specialize_ty(ty.clone()));
+            let ty = self.specialize_ty(ty.clone());
             let offset = self.register_offset(Register(idx));
             self.layout.add_ref_fields(&mut self.references, offset, ty);
         }
@@ -386,10 +385,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             let param_ty = if param_ty.is_unit() {
                 continue;
             } else {
-                assert_eq!(
-                    self.specialize_register_type(dest),
-                    register_bty(param_ty.clone())
-                );
+                assert_eq!(self.specialize_register_type(dest), param_ty.clone());
                 param_ty
             };
 
@@ -1245,7 +1241,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 };
                 assert_eq!(variant_idx, some_idx);
                 let expected = self.specialize_register_type(dest);
-                assert!(expected == BytecodeType::Ptr || expected.is_trait_object());
+                assert!(expected.is_reference_type());
 
                 self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Ptr);
                 let pos = self
@@ -1277,11 +1273,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                 let field = &layout.fields[element_idx as usize + 1];
 
-                let bty = register_ty(field.ty.clone());
-                assert_eq!(bty, self.specialize_register_type(dest));
-
                 let bytecode_type = self.specialize_register_type(dest);
-                assert_eq!(bytecode_type, register_ty(field.ty.clone()));
+                assert_eq!(bytecode_type, field.ty);
                 let dest = self.register_offset(dest);
                 let dest = RegOrOffset::Offset(dest);
                 let src = RegOrOffset::RegWithOffset(REG_TMP1, field.offset);
@@ -1358,7 +1351,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                     .clone();
 
                 let bytecode_type = self.specialize_register_type(dest);
-                assert_eq!(bytecode_type, register_ty(field.ty.clone()));
+                assert_eq!(bytecode_type, field.ty);
                 let dest = self.reg(dest);
                 let src = self.reg(obj).offset(field.offset);
                 self.asm.copy_bytecode_ty(bytecode_type, dest, src);
@@ -1387,7 +1380,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
                 let bytecode_type = self.specialize_register_type(dest);
-                assert_eq!(bytecode_type, register_ty(field.ty.clone()));
+                assert_eq!(bytecode_type, field.ty);
                 let dest = self.reg(dest);
                 let src = RegOrOffset::RegWithOffset(obj_reg, field.offset);
                 self.asm.copy_bytecode_ty(bytecode_type, dest, src);
@@ -1433,7 +1426,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                     .clone();
 
                 let bytecode_type = self.specialize_register_type(src);
-                assert_eq!(bytecode_type, register_ty(field.ty.clone()));
+                assert_eq!(bytecode_type, field.ty);
                 let dest = self.reg(obj).offset(field.offset);
                 let src = self.reg(src);
                 self.asm.copy_bytecode_ty(bytecode_type, dest, src);
@@ -1462,7 +1455,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
                 let bytecode_type = self.specialize_register_type(src);
-                assert_eq!(bytecode_type, register_ty(field.ty.clone()));
+                assert_eq!(bytecode_type, field.ty);
 
                 let src_reg = self.reg(src);
                 self.asm
@@ -1842,7 +1835,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_const_string(&mut self, dest: Register, idx: ConstPoolIdx, lit_value: &str) {
         let bytecode_type = self.specialize_register_type(dest);
-        assert_eq!(bytecode_type, BytecodeType::Ptr);
+        assert!(bytecode_type.is_class());
 
         let _ = lit_value;
         self.asm.load_string_const(REG_RESULT, self.fct_id, idx);
@@ -1921,7 +1914,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let bytecode_type = self.specialize_register_type(lhs);
 
         match bytecode_type {
-            BytecodeType::Ptr | BytecodeType::Address | BytecodeType::TraitObject(..) => {
+            BytecodeType::Ptr
+            | BytecodeType::Address
+            | BytecodeType::TraitObject(..)
+            | BytecodeType::Class(..)
+            | BytecodeType::Lambda(..) => {
                 self.emit_load_register(lhs, REG_RESULT.into());
                 self.emit_load_register(rhs, REG_TMP1.into());
 
@@ -1934,10 +1931,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
-            | BytecodeType::Class(..)
             | BytecodeType::TypeParam(_)
             | BytecodeType::Struct(..)
-            | BytecodeType::Lambda(..)
             | BytecodeType::This
             | BytecodeType::Float32
             | BytecodeType::Float64
@@ -2051,7 +2046,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     ) {
         assert!(self.reg_ty(object).is_trait_object());
         let bytecode_type = self.specialize_register_type(dest);
-        assert_eq!(bytecode_type, register_bty(value_ty.clone()));
+        assert_eq!(bytecode_type, value_ty);
 
         let obj_reg = REG_TMP1;
         self.emit_load_register(object, obj_reg.into());
@@ -2292,7 +2287,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 } else {
                     assert_eq!(1, arguments.len());
                     let ty = self.specialize_register_type(arguments[0]);
-                    assert!(ty.is_ptr() || ty.is_trait_object());
+                    assert!(ty.is_reference_type());
                     self.emit_load_register(arguments[0], REG_RESULT.into());
                     self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
                 }
@@ -2642,8 +2637,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
             | BytecodeType::TypeParam(_)
-            | BytecodeType::Class(_, _)
-            | BytecodeType::Lambda(..)
             | BytecodeType::This
             | BytecodeType::Ref(..) => {
                 unreachable!()
@@ -2657,7 +2650,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             | BytecodeType::Float64
             | BytecodeType::Ptr
             | BytecodeType::Address
-            | BytecodeType::TraitObject(..) => {
+            | BytecodeType::TraitObject(..)
+            | BytecodeType::Class(..)
+            | BytecodeType::Lambda(..) => {
                 let register = result_reg_mode(self.mode(dest_type.clone()));
                 self.asm
                     .load_array_elem(self.mode(dest_type), register, REG_RESULT, REG_TMP1);
@@ -4125,13 +4120,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             return;
         }
 
-        let bytecode_type: BytecodeType = register_bty(ty.clone());
-
         self.emit_load_register(arguments[0], REG_RESULT.into());
         self.emit_load_register(arguments[1], REG_TMP1.into());
 
         self.asm
-            .array_address(REG_TMP1, REG_RESULT, REG_TMP1, self.size(bytecode_type));
+            .array_address(REG_TMP1, REG_RESULT, REG_TMP1, self.size(ty.clone()));
 
         self.asm.zero_ty(ty, RegOrOffset::Reg(REG_TMP1));
     }
@@ -4358,7 +4351,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn specialize_register_type(&self, reg: Register) -> BytecodeType {
-        register_bty(self.reg_ty(reg))
+        self.reg_ty(reg)
     }
 
     fn reg_ty(&self, reg: Register) -> BytecodeType {
@@ -5091,13 +5084,6 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     fn visit_ret(&mut self, opnd: Register) {
         comment!(self, format!("Ret {}", opnd));
         self.emit_return_generic(opnd);
-    }
-}
-
-pub fn register_bty(ty: BytecodeType) -> BytecodeType {
-    match ty {
-        BytecodeType::Class(_, _) | BytecodeType::Lambda(..) => BytecodeType::Ptr,
-        _ => ty,
     }
 }
 

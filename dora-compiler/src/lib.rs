@@ -125,13 +125,6 @@ pub struct TraitObjectThunkCompilationData<'a> {
     pub options: CompilationOptions,
 }
 
-pub fn register_ty(ty: BytecodeType) -> BytecodeType {
-    match ty {
-        BytecodeType::Class(_, _) | BytecodeType::Lambda(..) => BytecodeType::Ptr,
-        _ => ty,
-    }
-}
-
 pub fn get_bytecode<'a>(
     program: &'a Program,
     program_fct: &'a FunctionData,

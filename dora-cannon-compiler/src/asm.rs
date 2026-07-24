@@ -301,7 +301,6 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
             | BytecodeType::TypeParam(_)
-            | BytecodeType::Lambda(..)
             | BytecodeType::This
             | BytecodeType::Ref(..) => {
                 unreachable!()
@@ -335,7 +334,8 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::Ptr
             | BytecodeType::Address
             | BytecodeType::TraitObject(..)
-            | BytecodeType::Class(..) => {
+            | BytecodeType::Class(..)
+            | BytecodeType::Lambda(..) => {
                 let value_reg = self.masm.get_scratch();
                 let mode = MachineMode::Ptr;
 
@@ -403,7 +403,6 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::TypeAlias(..)
             | BytecodeType::Assoc { .. }
             | BytecodeType::TypeParam(_)
-            | BytecodeType::Lambda(..)
             | BytecodeType::This
             | BytecodeType::Ref(..) => {
                 unreachable!()
@@ -423,7 +422,8 @@ impl<'a> BaselineAssembler<'a> {
             BytecodeType::Ptr
             | BytecodeType::Address
             | BytecodeType::TraitObject(..)
-            | BytecodeType::Class(..) => {
+            | BytecodeType::Class(..)
+            | BytecodeType::Lambda(..) => {
                 let mode = self.mode(ty.clone());
 
                 let value_reg = self.get_scratch();
