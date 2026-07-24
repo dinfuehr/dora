@@ -60,7 +60,6 @@ variants = [
     "InvokeLambda",
     "InvokeGenericStatic",
     "InvokeGenericDirect",
-    "NewObjectUninitialized",
     "NewObject",
     "NewArray",
     "NewTuple",

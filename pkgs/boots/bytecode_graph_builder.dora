@@ -729,10 +729,6 @@ impl BytecodeGraphBuilder {
             BytecodeInstruction::InvokeGenericDirect(dest, idx, arguments) => {
                 self.emit_invoke_generic(dest, idx, arguments)
             }
-            BytecodeInstruction::NewObjectUninitialized(dest, idx) => {
-                self.emit_new_object_uninitialized(dest, idx);
-                false
-            }
             BytecodeInstruction::NewObject(dest, idx, arguments) => {
                 self.emit_new_object(dest, idx, arguments);
                 false
@@ -1965,23 +1961,6 @@ impl BytecodeGraphBuilder {
         self.emit_bytecode_call(dest, callee_id, combined_type_params, arguments)
     }
 
-    fn emit_new_object_uninitialized(dest: BytecodeRegister, idx: ConstPoolId) {
-        let ConstPoolEntry::Class(
-            class_id,
-            type_params,
-        ) = self.bc().const_pool_entry(idx);
-
-        let type_params = self.specialize_array(type_params);
-        let info = ClassInfo(class_id, type_params);
-        let info = InstExtraData::ClassInfo(info);
-        let obj_inst = graph::create_new_object_inst(info, true);
-        self.set_current_inlined_location(obj_inst);
-        self.current().append_inst(obj_inst);
-
-        self.emit_local_set(dest, obj_inst);
-        self.emit_object_initialization_fence(obj_inst);
-    }
-
     fn emit_new_object(
         dest: BytecodeRegister,
         idx: ConstPoolId,
@@ -1995,7 +1974,11 @@ impl BytecodeGraphBuilder {
         let type_params = self.specialize_array(type_params);
         let info = ClassInfo(class_id, type_params);
         let info = InstExtraData::ClassInfo(info);
-        let obj_inst = graph::create_new_object_inst(info, false);
+        let zero_initialize = iface::is_context_class(class_id);
+        if zero_initialize {
+            assert(arguments.is_empty());
+        }
+        let obj_inst = graph::create_new_object_inst(info, zero_initialize);
         self.set_current_inlined_location(obj_inst);
         self.current().append_inst(obj_inst);
 

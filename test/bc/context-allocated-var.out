@@ -2,15 +2,15 @@ class $Context1:
   x: Int64
 
 fn f:
-  0: NewObjectUninitialized r0, @0 # $Context1
-  3: ConstInt64 r1, @1 # 10
-  6: StoreField r1, r0, @2 # $Context1.x
- 10: ConstInt64 r1, @3 # 11
- 13: StoreField r1, r0, @4 # $Context1.x
- 17: LoadField r3, r0, @5 # $Context1.x
- 21: Mov r1, r3
- 24: NewLambda r4, @6, r0 # $Lambda1
- 29: Ret r4
+  0: NewObject r0, @0 # $Context1
+  4: ConstInt64 r1, @1 # 10
+  7: StoreField r1, r0, @2 # $Context1.x
+ 11: ConstInt64 r1, @3 # 11
+ 14: StoreField r1, r0, @4 # $Context1.x
+ 18: LoadField r3, r0, @5 # $Context1.x
+ 22: Mov r1, r3
+ 25: NewLambda r4, @6, r0 # $Lambda1
+ 30: Ret r4
 
   Registers:
    0 => class $Context1
@@ -30,7 +30,7 @@ fn f:
 
   Locations:
    0 => 1:1
-   24 => 5:5
+   25 => 5:5
 
 fn lamba::$Lambda1:
   0: LoadField r1, r0, @0 # $Lambda[$Context1].context

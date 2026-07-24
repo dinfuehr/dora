@@ -65,7 +65,6 @@ pub enum BytecodeInstruction {
     InvokeGenericStatic(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     InvokeGenericDirect(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
 
-    NewObjectUninitialized(BytecodeRegister, ConstPoolId),
     NewObject(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),
     NewArray(BytecodeRegister, BytecodeRegister, ConstPoolId),
     NewTuple(BytecodeRegister, ConstPoolId, Array[BytecodeRegister]),

@@ -297,6 +297,7 @@ impl Emitter {
                 },
                 is_public: false,
                 is_internal: false,
+                is_context: false,
                 fields: Vec::new(),
             });
         }
@@ -521,6 +522,7 @@ impl Emitter {
                 type_params,
                 is_public: class.visibility.is_public(),
                 is_internal: class.is_internal,
+                is_context: class.is_context,
                 fields,
             });
             self.hidden_self_type_param = None;

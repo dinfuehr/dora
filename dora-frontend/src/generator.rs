@@ -153,7 +153,7 @@ impl<'a> AstBytecodeGen<'a> {
             .builder
             .add_const_cls_types(bc_class_id, bc_type_params.clone());
         self.builder
-            .emit_new_object_uninitialized(context_register, idx, self.loc(self.span));
+            .emit_new_object(context_register, idx, &[], self.loc(self.span));
 
         if has_parent_slot {
             let parent_context_reg = if let Some(parent_context_reg) = last_context_register(self) {

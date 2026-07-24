@@ -165,6 +165,7 @@ pub struct ClassData {
     pub type_params: TypeParamData,
     pub is_public: bool,
     pub is_internal: bool,
+    pub is_context: bool,
     pub fields: Vec<ClassField>,
 }
 

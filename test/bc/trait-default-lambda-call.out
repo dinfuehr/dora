@@ -2,12 +2,12 @@ class $Context1[$Self]:
   self: $Self
 
 fn Foo::foo[$Self]:
-  0: NewObjectUninitialized r1, @0 # $Context1[$Self]
-  3: StoreField r0, r1, @1 # $Context1[$Self].self
-  7: NewLambda r3, @2, r1 # $Lambda1
- 12: Mov r2, r3
- 15: InvokeLambda r4, @3, r2 # lambda
- 20: Ret r4
+  0: NewObject r1, @0 # $Context1[$Self]
+  4: StoreField r0, r1, @1 # $Context1[$Self].self
+  8: NewLambda r3, @2, r1 # $Lambda1
+ 13: Mov r2, r3
+ 16: InvokeLambda r4, @3, r2 # lambda
+ 21: Ret r4
 
   Registers:
    0 => $Self
@@ -24,8 +24,8 @@ fn Foo::foo[$Self]:
 
   Locations:
    0 => 2:5
-   7 => 3:22
-   15 => 4:9
+   8 => 3:22
+   16 => 4:9
 
 fn lamba::$Lambda1[$Self]:
   0: LoadField r1, r0, @0 # $Lambda[$Context1[$Self]].context

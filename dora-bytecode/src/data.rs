@@ -77,7 +77,6 @@ pub enum BytecodeOpcode {
     InvokeLambda,
     InvokeGenericStatic,
     InvokeGenericDirect,
-    NewObjectUninitialized,
     NewObject,
     NewArray,
     NewTuple,
@@ -157,7 +156,6 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::InvokeLambda => opc::BYTECODE_OPCODE_INVOKE_LAMBDA,
             BytecodeOpcode::InvokeGenericStatic => opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC,
             BytecodeOpcode::InvokeGenericDirect => opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT,
-            BytecodeOpcode::NewObjectUninitialized => opc::BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED,
             BytecodeOpcode::NewObject => opc::BYTECODE_OPCODE_NEW_OBJECT,
             BytecodeOpcode::NewArray => opc::BYTECODE_OPCODE_NEW_ARRAY,
             BytecodeOpcode::NewTuple => opc::BYTECODE_OPCODE_NEW_TUPLE,
@@ -241,9 +239,6 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_INVOKE_LAMBDA => Ok(BytecodeOpcode::InvokeLambda),
             opc::BYTECODE_OPCODE_INVOKE_GENERIC_STATIC => Ok(BytecodeOpcode::InvokeGenericStatic),
             opc::BYTECODE_OPCODE_INVOKE_GENERIC_DIRECT => Ok(BytecodeOpcode::InvokeGenericDirect),
-            opc::BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED => {
-                Ok(BytecodeOpcode::NewObjectUninitialized)
-            }
             opc::BYTECODE_OPCODE_NEW_OBJECT => Ok(BytecodeOpcode::NewObject),
             opc::BYTECODE_OPCODE_NEW_ARRAY => Ok(BytecodeOpcode::NewArray),
             opc::BYTECODE_OPCODE_NEW_TUPLE => Ok(BytecodeOpcode::NewTuple),
@@ -342,7 +337,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::InvokeLambda
             | BytecodeOpcode::InvokeGenericStatic
             | BytecodeOpcode::InvokeGenericDirect
-            | BytecodeOpcode::NewObjectUninitialized
             | BytecodeOpcode::NewObject
             | BytecodeOpcode::NewArray
             | BytecodeOpcode::NewEnum
@@ -645,10 +639,6 @@ pub enum BytecodeInstruction {
         arguments: Vec<Register>,
     },
 
-    NewObjectUninitialized {
-        dest: Register,
-        cls: ConstPoolIdx,
-    },
     NewObject {
         dest: Register,
         cls: ConstPoolIdx,

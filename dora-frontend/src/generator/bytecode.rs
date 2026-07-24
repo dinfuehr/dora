@@ -557,16 +557,6 @@ impl BytecodeBuilder {
         self.writer.emit_invoke_generic_direct(dest, idx, arguments);
     }
 
-    pub fn emit_new_object_uninitialized(
-        &mut self,
-        dest: Register,
-        idx: ConstPoolIdx,
-        location: Location,
-    ) {
-        assert!(self.def(dest));
-        self.writer.set_location(location);
-        self.writer.emit_new_object_uninitialized(dest, idx);
-    }
     pub fn emit_new_object(
         &mut self,
         dest: Register,

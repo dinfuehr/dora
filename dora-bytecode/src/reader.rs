@@ -385,11 +385,6 @@ impl<'a> BytecodeReader<'a> {
                 }
             }
 
-            BytecodeOpcode::NewObjectUninitialized => {
-                let dest = self.read_register();
-                let cls = self.read_const_pool_idx();
-                BytecodeInstruction::NewObjectUninitialized { dest, cls }
-            }
             BytecodeOpcode::NewObject => {
                 let dest = self.read_register();
                 let cls = self.read_const_pool_idx();
@@ -866,9 +861,6 @@ where
                     .visit_invoke_generic_direct(dest, fct, arguments);
             }
 
-            BytecodeInstruction::NewObjectUninitialized { dest, cls } => {
-                self.visitor.visit_new_object_uninitialized(dest, cls);
-            }
             BytecodeInstruction::NewObject {
                 dest,
                 cls,
@@ -1216,9 +1208,6 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_new_object_uninitialized(&mut self, _dest: Register, _idx: ConstPoolIdx) {
-        unimplemented!();
-    }
     fn visit_new_object(&mut self, _dest: Register, _idx: ConstPoolIdx, _arguments: Vec<Register>) {
         unimplemented!();
     }

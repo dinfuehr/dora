@@ -403,11 +403,6 @@ impl<'a> Verifier<'a> {
                 arguments,
             } => self.verify_invoke_generic(dest, fct, &arguments),
 
-            BytecodeInstruction::NewObjectUninitialized { dest, cls } => {
-                let (class_id, type_params) = self.class_entry(cls);
-                self.assert_type(dest, &BytecodeType::Class(class_id, type_params));
-            }
-
             BytecodeInstruction::NewObject {
                 dest,
                 cls,
@@ -415,14 +410,18 @@ impl<'a> Verifier<'a> {
             } => {
                 let (class_id, type_params) = self.class_entry(cls);
                 self.assert_type(dest, &BytecodeType::Class(class_id, type_params.clone()));
-                let fields = self
-                    .program
-                    .class(class_id)
-                    .fields
-                    .iter()
-                    .map(|field| specialize_type(&field.ty, &type_params))
-                    .collect::<Vec<_>>();
-                self.assert_argument_types(&arguments, &fields);
+                let class = self.program.class(class_id);
+
+                if class.is_context {
+                    assert!(arguments.is_empty());
+                } else {
+                    let fields = class
+                        .fields
+                        .iter()
+                        .map(|field| specialize_type(&field.ty, &type_params))
+                        .collect::<Vec<_>>();
+                    self.assert_argument_types(&arguments, &fields);
+                }
             }
 
             BytecodeInstruction::NewArray { dest, length, idx } => {

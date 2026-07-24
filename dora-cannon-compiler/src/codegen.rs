@@ -1898,39 +1898,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.emit_epilog();
     }
 
-    fn emit_new_object_uninitialized(&mut self, dest: Register, idx: ConstPoolIdx) {
-        let const_pool_entry = self.bytecode.const_pool(idx);
-
-        let (cls_id, type_params) = match const_pool_entry {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
-            _ => unreachable!(),
-        };
-        assert_eq!(
-            self.bytecode.register_type(dest),
-            BytecodeType::Class(cls_id, type_params.clone())
-        );
-
-        let type_params = self.specialize_ty_array(&type_params);
-        debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
-
-        let alloc_size = self.layout.class_layout(cls_id, &type_params).size as usize;
-        let alloc_size = AllocationSize::Fixed(alloc_size);
-
-        let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
-        self.asm
-            .allocate(REG_RESULT.into(), alloc_size, position, gcpoint);
-
-        // store gc object in temporary storage
-        self.emit_store_register(REG_RESULT.into(), dest);
-
-        let layout = self.layout.class_layout(cls_id, &type_params);
-        let shape_key = self.layout.class_shape_key(cls_id, type_params);
-        self.asm
-            .initialize_object(REG_RESULT, layout.size, shape_key);
-        self.asm.object_initialization_fence();
-    }
-
     fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
         let const_pool_entry = self.bytecode.const_pool(idx);
 
@@ -1966,7 +1933,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let obj_reg = REG_TMP1;
         self.emit_load_register(dest, obj_reg.into());
 
-        assert_eq!(arguments.len(), fields.len());
+        if self.program.class(cls_id).is_context {
+            assert!(arguments.is_empty());
+        } else {
+            assert_eq!(arguments.len(), fields.len());
+        }
 
         // Initialize all class fields.
         for (&argument, field) in arguments.iter().zip(fields.iter()) {
@@ -4747,24 +4718,6 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     ) {
         comment!(self, format!("InvokeGenericStatic {}, {}", dest, idx.0));
         self.emit_invoke_generic(dest, idx, arguments, true);
-    }
-
-    fn visit_new_object_uninitialized(&mut self, dest: Register, idx: ConstPoolIdx) {
-        comment!(self, {
-            let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
-                ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
-                _ => unreachable!(),
-            };
-            let cname = display_ty(
-                self.program,
-                &BytecodeType::Class(cls_id, type_params.clone()),
-            );
-            format!(
-                "NewObjectUninitialized {}, ConstPoolIdx({}) # {}",
-                dest, idx.0, cname
-            )
-        });
-        self.emit_new_object_uninitialized(dest, idx)
     }
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {

@@ -100,6 +100,7 @@ pub class ClassData {
     module_id: ModuleId,
     name: String,
     type_params: TypeParamData,
+    is_context: Bool,
     fields: Array[ClassField],
 }
 

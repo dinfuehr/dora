@@ -341,11 +341,6 @@ impl BytecodeIterator {
                 let arguments = self.read_arguments();
                 BytecodeInstruction::InvokeGenericDirect(dest, fct, arguments)
             }
-            opc::BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED => {
-                let dest = self.read_register();
-                let idx = self.read_const_pool_id();
-                BytecodeInstruction::NewObjectUninitialized(dest, idx)
-            }
             opc::BYTECODE_OPCODE_NEW_OBJECT => {
                 let dest = self.read_register();
                 let idx = self.read_const_pool_id();

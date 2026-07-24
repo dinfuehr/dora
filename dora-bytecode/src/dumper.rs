@@ -492,24 +492,6 @@ impl<'a> BytecodeDumper<'a> {
         writeln!(self.w, " # {}", fct.name).expect("write! failed");
     }
 
-    fn emit_new_object(&mut self, name: &str, r1: Register, idx: ConstPoolIdx) {
-        self.emit_start(name);
-        let (cls_id, cls_type_params) = match self.bc.const_pool(idx) {
-            ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
-            _ => unreachable!(),
-        };
-        let cls = self.prog.class(cls_id);
-        writeln!(
-            self.w,
-            " {}, {} # {}{}",
-            r1,
-            idx,
-            cls.name,
-            fmt_type_params(self.prog, cls_type_params, self.type_params)
-        )
-        .expect("write! failed");
-    }
-
     fn emit_new_object_with_args(
         &mut self,
         name: &str,
@@ -958,9 +940,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_invoke("InvokeGenericDirect", dest, fct, &arguments);
     }
 
-    fn visit_new_object_uninitialized(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_new_object("NewObjectUninitialized", dest, idx);
-    }
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         self.emit_new_object_with_args("NewObject", dest, idx, &arguments);
     }

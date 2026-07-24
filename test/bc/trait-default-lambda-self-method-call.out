@@ -5,12 +5,12 @@ fn Foo::value:
   <no bytecode>
 
 fn Foo::foo[$Self]:
-  0: NewObjectUninitialized r1, @0 # $Context1[$Self]
-  3: StoreField r0, r1, @1 # $Context1[$Self].self
-  7: NewLambda r3, @2, r1 # $Lambda1
- 12: Mov r2, r3
- 15: InvokeLambda r4, @3, r2 # lambda
- 20: Ret r4
+  0: NewObject r1, @0 # $Context1[$Self]
+  4: StoreField r0, r1, @1 # $Context1[$Self].self
+  8: NewLambda r3, @2, r1 # $Lambda1
+ 13: Mov r2, r3
+ 16: InvokeLambda r4, @3, r2 # lambda
+ 21: Ret r4
 
   Registers:
    0 => $Self
@@ -27,8 +27,8 @@ fn Foo::foo[$Self]:
 
   Locations:
    0 => 4:5
-   7 => 5:22
-   15 => 6:9
+   8 => 5:22
+   16 => 6:9
 
 fn lamba::$Lambda1[$Self]:
   0: LoadField r2, r0, @1 # $Lambda[$Context1[$Self]].context

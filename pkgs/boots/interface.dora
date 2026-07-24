@@ -75,6 +75,9 @@ pub fn get_field_offset_raw(data: Array[UInt8]): Int32;
 pub fn get_class_size_raw(data: Array[UInt8]): Int32;
 
 @native
+pub fn is_context_class_raw(id: Int32): Bool;
+
+@native
 pub fn get_class_size_for_lambda_raw(data: Array[UInt8]): Int32;
 
 @native
@@ -207,6 +210,10 @@ pub fn get_class_size(
     writer.emit_int32(cls_id.0);
     encode_bytecode_type_array(writer, type_params);
     get_class_size_raw(writer.to_array())
+}
+
+pub fn is_context_class(cls_id: ClassId): Bool {
+    is_context_class_raw(cls_id.0)
 }
 
 pub fn get_class_shape_key(

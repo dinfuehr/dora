@@ -5,8 +5,8 @@ use std::ptr;
 use dora_runtime_macros::dora_native;
 
 use dora_bytecode::{
-    BytecodeTraitType, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId, FunctionKind,
-    GlobalId, Program, StructId, TraitId, display_fct, display_fct_specialized,
+    BytecodeTraitType, ClassId, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId,
+    FunctionKind, GlobalId, Program, StructId, TraitId, display_fct, display_fct_specialized,
 };
 use dora_compiler::wire::{
     ByteBuffer, ByteReader, decode_bytecode_type, decode_bytecode_type_array,
@@ -245,6 +245,11 @@ extern "C" fn get_class_size(data: Handle<UInt8Array>) -> u32 {
     aot_context
         .layout()
         .class_instance_size(cls_id, &type_params)
+}
+
+#[dora_native("interface::is_context_class_raw")]
+extern "C" fn is_context_class(class_id: ClassId) -> bool {
+    active_aot_context().program().class(class_id).is_context
 }
 
 #[dora_native("interface::get_element_size_raw")]

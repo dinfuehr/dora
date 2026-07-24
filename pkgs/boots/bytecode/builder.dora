@@ -370,10 +370,6 @@ impl BytecodeBuilder {
         self.emit_fct(opc::BYTECODE_OPCODE_INVOKE_STATIC, dest, fct, start, count);
     }
 
-    pub fn emit_new_object_uninitialized(dest: BytecodeRegister, cls: ClassId) {
-        self.emit_val3(opc::BYTECODE_OPCODE_NEW_OBJECT_UNINITIALIZED, dest.0, cls.0);
-    }
-
     pub fn emit_array_length(dest: BytecodeRegister) {
         self.emit_reg1(opc::BYTECODE_OPCODE_ARRAY_LENGTH, dest);
     }

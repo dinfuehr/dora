@@ -749,10 +749,6 @@ impl SsaGen {
             BytecodeInstruction::InvokeGenericDirect(dest, idx, arguments) => {
                 self.emit_invoke_generic(dest, idx, arguments, CallKind::Direct)
             }
-            BytecodeInstruction::NewObjectUninitialized(dest, idx) => {
-                self.emit_new_object_uninitialized(dest, idx);
-                false
-            }
             BytecodeInstruction::NewObject(dest, idx, arguments) => {
                 self.emit_new_object(dest, idx, arguments);
                 false
@@ -2994,19 +2990,6 @@ impl SsaGen {
         let inst = graph::create_thread_current_inst();
         self.current().append_inst(inst);
         self.write_variable(dest, self.current(), inst);
-    }
-
-    fn emit_new_object_uninitialized(dest: BytecodeRegister, idx: ConstPoolId) {
-        let ConstPoolEntry::Class(class_id, type_params) = self.bc.const_pool_entry(idx);
-
-        let type_params = self.specialize_array(type_params);
-        let info = ClassInfo(class_id, type_params);
-        let info = InstExtraData::ClassInfo(info);
-        let objInst = graph::create_new_object_inst(info);
-        self.set_current_inlined_location(objInst);
-        self.current().append_inst(objInst);
-
-        self.write_variable(dest, self.current(), objInst);
     }
 
     fn emit_new_object(

@@ -359,9 +359,6 @@ impl BytecodeWriter {
         self.emit_invoke(BytecodeOpcode::InvokeGenericDirect, dest, idx, arguments);
     }
 
-    pub fn emit_new_object_uninitialized(&mut self, dest: Register, idx: ConstPoolIdx) {
-        self.emit_new(BytecodeOpcode::NewObjectUninitialized, dest, idx);
-    }
     pub fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
         self.emit_new_with_arguments(BytecodeOpcode::NewObject, dest, idx, arguments);
     }
@@ -532,11 +529,6 @@ impl BytecodeWriter {
         let idx = self.const_pool.len();
         self.const_pool.push(value);
         ConstPoolIdx(idx.try_into().expect("overflow"))
-    }
-
-    fn emit_new(&mut self, inst: BytecodeOpcode, r1: Register, idx: ConstPoolIdx) {
-        let values = [r1.to_usize() as u32, idx.0];
-        self.emit_values(inst, &values);
     }
 
     fn emit_new_with_arguments(

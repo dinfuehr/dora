@@ -514,6 +514,7 @@ impl<'a> TypeCheck<'a> {
             Visibility::Public,
             self.type_param_definition_id,
         );
+        class.is_context = true;
         class.needs_self_type_param = self.contexts[context_id.0].needs_self_type_param();
 
         self.contexts[context_id.0].set_class_data(class, fields);
