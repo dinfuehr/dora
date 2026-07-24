@@ -26,10 +26,10 @@ pub(super) fn check_expr_lit_float(
     expr_id: ExprId,
     text: &str,
     negate: bool,
-    _expected_ty: SourceType,
+    expected_ty: SourceType,
 ) -> SourceType {
     let span = ck.expr_span(expr_id);
-    let (ty, value) = check_lit_float_from_text(ck.sa, ck.file_id, text, span, negate);
+    let (ty, value) = check_lit_float_from_text(ck.sa, ck.file_id, text, span, negate, expected_ty);
 
     ck.body.set_ty(expr_id, ty.clone());
     ck.body.set_const_value(expr_id, ConstValue::Float(value));

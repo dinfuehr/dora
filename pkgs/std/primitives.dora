@@ -834,7 +834,7 @@ impl std::string::Stringable for Float32 {
 
 impl std::traits::Default for Float32 {
     static fn default(): Float32 {
-        0.0f32
+        0.0
     }
 }
 

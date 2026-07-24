@@ -935,6 +935,7 @@ pub fn check_lit_float_from_text(
     text: &str,
     span: Span,
     negate: bool,
+    expected_ty: SourceType,
 ) -> (SourceType, f64) {
     let (base, value, suffix) = parse_lit_float(text);
 
@@ -945,7 +946,11 @@ pub fn check_lit_float_from_text(
     let ty = match suffix.as_str() {
         "f32" => SourceType::Float32,
         "f64" => SourceType::Float64,
-        "" => SourceType::Float64,
+        "" => match expected_ty {
+            SourceType::Float32 => SourceType::Float32,
+            SourceType::Float64 => SourceType::Float64,
+            _ => SourceType::Float64,
+        },
         _ => {
             sa.report(file, span, &UNKNOWN_SUFFIX, args!());
             SourceType::Float64

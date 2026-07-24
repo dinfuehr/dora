@@ -138,7 +138,7 @@ fn check_pattern_inner(
                 (false, raw_text.as_str())
             };
             let (value_ty, value) =
-                check_lit_float_from_text(ck.sa, ck.file_id, text, span, negate);
+                check_lit_float_from_text(ck.sa, ck.file_id, text, span, negate, ty.clone());
             ck.body
                 .set_const_value(pattern_id, ConstValue::Float(value));
             ck.body.set_ty(pattern_id, value_ty.clone());

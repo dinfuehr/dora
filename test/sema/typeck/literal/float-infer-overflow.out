@@ -1,0 +1,6 @@
+error: number does not fit into type Float32.
+--> float-infer-overflow.dora:1:19
+ | fn f(): Float32 { 3.5e38 }
+                     ~~~~~~
+ | 
+1 error found.

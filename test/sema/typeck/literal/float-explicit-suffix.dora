@@ -1,0 +1,2 @@
+fn expect_float32(): Float32 { 1.0f64 }
+fn expect_float64(): Float64 { 2.0f32 }

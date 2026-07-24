@@ -44,8 +44,14 @@ impl<'a> ConstCheck<'a> {
             }
             Expr::LitFloat(text) => {
                 let span = self.expr_span(expr_id);
-                let (ty, val) =
-                    check_lit_float_from_text(self.sa, self.const_.file_id, text, span, false);
+                let (ty, val) = check_lit_float_from_text(
+                    self.sa,
+                    self.const_.file_id,
+                    text,
+                    span,
+                    false,
+                    expected_type,
+                );
                 (ty, ConstValue::Float(val))
             }
             Expr::LitBool(value) => (SourceType::Bool, ConstValue::Bool(*value)),
@@ -72,6 +78,7 @@ impl<'a> ConstCheck<'a> {
                             text,
                             span,
                             true,
+                            expected_type,
                         );
                         (ty, ConstValue::Float(val))
                     }

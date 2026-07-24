@@ -1,0 +1,13 @@
+error: `return` expects value of type `Float32` but got `Float64`.
+--> float-explicit-suffix.dora:1:30
+ | fn expect_float32(): Float32 { 1.0f64 }
+                                ~~~~~~~~~~
+ | fn expect_float64(): Float64 { 2.0f32 }
+ | 
+error: `return` expects value of type `Float64` but got `Float32`.
+--> float-explicit-suffix.dora:2:30
+ | fn expect_float32(): Float32 { 1.0f64 }
+ | fn expect_float64(): Float64 { 2.0f32 }
+                                ~~~~~~~~~~
+ | 
+2 errors found.
