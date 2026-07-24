@@ -769,10 +769,6 @@ impl BytecodeGraphBuilder {
                 self.emit_store_array(src, arr, idx);
                 false
             }
-            BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
-                self.emit_load_trait_object_value(dest, src);
-                false
-            }
             BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
                 self.emit_get_field_address(dest, obj, idx);
                 false
@@ -1566,16 +1562,6 @@ impl BytecodeGraphBuilder {
         );
         self.current().append_inst(inst);
         inst
-    }
-
-    fn emit_load_trait_object_value(dest: BytecodeRegister, src: BytecodeRegister) {
-        let src_inst = self.emit_local_get(src);
-        let ty = self.reg(dest);
-
-        if self.is_non_zero_type(ty) {
-            let offset = iface::OBJECT_HEADER_LENGTH;
-            self.load_field_into(dest, src_inst, InstExtraData::None, offset);
-        }
     }
 
     fn emit_ret(opnd: BytecodeRegister) {

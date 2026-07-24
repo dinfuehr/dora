@@ -974,10 +974,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("ArrayLength", dest, arr);
     }
 
-    fn visit_load_trait_object_value(&mut self, dest: Register, object: Register) {
-        self.emit_reg2("LoadTraitObjectValue", dest, object);
-    }
-
     fn visit_get_field_address(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         self.emit_field("GetFieldAddress", dest, obj, field_idx);
     }

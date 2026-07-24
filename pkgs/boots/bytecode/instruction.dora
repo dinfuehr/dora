@@ -78,8 +78,6 @@ pub enum BytecodeInstruction {
     LoadArray(BytecodeRegister, BytecodeRegister, BytecodeRegister),
     StoreArray(BytecodeRegister, BytecodeRegister, BytecodeRegister),
 
-    LoadTraitObjectValue(BytecodeRegister, BytecodeRegister),
-
     GetFieldAddress(BytecodeRegister, BytecodeRegister, ConstPoolId),
     StoreAddress(BytecodeRegister, BytecodeRegister),
     LoadAddress(BytecodeRegister, BytecodeRegister),

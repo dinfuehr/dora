@@ -70,7 +70,6 @@ variants = [
     "ArrayLength",
     "LoadArray",
     "StoreArray",
-    "LoadTraitObjectValue",
     "GetFieldAddress",
     "StoreAddress",
     "LoadAddress",

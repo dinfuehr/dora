@@ -548,11 +548,6 @@ impl<'a> Verifier<'a> {
                 self.assert_type(idx, &BytecodeType::Int64);
             }
 
-            BytecodeInstruction::LoadTraitObjectValue { dest, object } => {
-                assert!(self.ty(object).is_trait_object());
-                self.ty(dest);
-            }
-
             BytecodeInstruction::GetFieldAddress { dest, obj, field } => {
                 self.assert_type(dest, &BytecodeType::Address);
                 let (object_ty, _) = self.field_types(field);

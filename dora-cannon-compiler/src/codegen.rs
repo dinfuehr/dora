@@ -14,9 +14,9 @@ use dora_compiler::cpu::{
 use dora_compiler::{
     AllocationSize, AnyReg, AotEnumLayout, AotLayout, AotShapeKey, ArgumentPassingMode,
     CodeDescriptor, CompilationData, GLOBAL_INITIALIZED, GcPoint, Header, Intrinsic, MachineMode,
-    Reg, RuntimeFunction, Trap, align_i32, argument_passing_mode, find_trait_impl_in_program,
-    ptr_width, ptr_width_usize, register_ty, specialize_ty_array_in_program,
-    specialize_ty_in_program,
+    Reg, RuntimeFunction, TraitObjectThunkCompilationData, Trap, align_i32, argument_passing_mode,
+    find_trait_impl_in_program, ptr_width, ptr_width_usize, register_ty,
+    specialize_ty_array_in_program, specialize_ty_in_program,
 };
 
 macro_rules! comment {
@@ -35,11 +35,22 @@ struct ForwardJump {
     offset: BytecodeOffset,
 }
 
+struct TraitObjectThunkData {
+    actual_object_ty: BytecodeType,
+    receiver_by_reference: bool,
+    callee_fct_id: FunctionId,
+    callee_type_params: BytecodeTypeArray,
+    receiver_reg: Option<Register>,
+    result_reg: Register,
+}
+
 pub struct CannonCodeGen<'a, 'i> {
     program: &'a Program,
     layout: AotLayout<'a>,
     asm: BaselineAssembler<'a>,
-    bytecode: &'a BytecodeBody,
+    bytecode: Option<&'a BytecodeBody>,
+    registers: Vec<BytecodeType>,
+    trait_object_thunk: Option<TraitObjectThunkData>,
 
     location: Location,
     params: BytecodeTypeArray,
@@ -89,7 +100,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             location: compilation_data.loc,
             emit_debug: options.emit_debug,
             asm: BaselineAssembler::new(compilation_data.program),
-            bytecode: compilation_data.bytecode_body,
+            bytecode: Some(compilation_data.bytecode_body),
+            registers: compilation_data.bytecode_body.registers().to_vec(),
+            trait_object_thunk: None,
             emit_code_comments: options.emit_code_comments,
             type_params: signature.type_params,
             offset_to_address: HashMap::new(),
@@ -104,7 +117,156 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         }
     }
 
+    pub(super) fn new_for_trait_object_thunk(
+        compilation_data: TraitObjectThunkCompilationData<'a>,
+        aot_intrinsics: &'i HashMap<FunctionId, Intrinsic>,
+    ) -> CannonCodeGen<'a, 'i> {
+        let TraitObjectThunkCompilationData {
+            program,
+            trait_fct_id,
+            trait_object_ty,
+            actual_object_ty,
+            receiver_by_reference,
+            callee_fct_id,
+            callee_type_params,
+            signature,
+            loc,
+            options,
+        } = compilation_data;
+
+        assert_eq!(signature.params[0], trait_object_ty);
+        assert_eq!(
+            signature.type_params[signature.type_params.len() - 1],
+            actual_object_ty
+        );
+
+        let mut registers = signature.params.iter().map(register_ty).collect::<Vec<_>>();
+        let receiver_reg = if receiver_by_reference {
+            let receiver_reg = Register(registers.len());
+            let ty = BytecodeType::Ref(Box::new(actual_object_ty.clone()));
+            registers.push(ty);
+            Some(receiver_reg)
+        } else {
+            match argument_passing_mode(program, &actual_object_ty) {
+                ArgumentPassingMode::None => None,
+                ArgumentPassingMode::Register(_) | ArgumentPassingMode::Stack => {
+                    let receiver_reg = Register(registers.len());
+                    let ty = register_ty(actual_object_ty.clone());
+                    registers.push(ty);
+                    Some(receiver_reg)
+                }
+            }
+        };
+        let result_reg = Register(registers.len());
+        registers.push(register_ty(signature.return_type.clone()));
+
+        CannonCodeGen {
+            program,
+            layout: AotLayout::new(program),
+            params: signature.params,
+            return_type: signature.return_type,
+            fct_id: trait_fct_id,
+            location: loc,
+            emit_debug: options.emit_debug,
+            asm: BaselineAssembler::new(program),
+            bytecode: None,
+            registers,
+            trait_object_thunk: Some(TraitObjectThunkData {
+                actual_object_ty,
+                receiver_by_reference,
+                callee_fct_id,
+                callee_type_params,
+                receiver_reg,
+                result_reg,
+            }),
+            emit_code_comments: options.emit_code_comments,
+            type_params: signature.type_params,
+            offset_to_address: HashMap::new(),
+            offset_to_label: HashMap::new(),
+            aot_intrinsics,
+            current_offset: BytecodeOffset(0),
+            references: Vec::new(),
+            offsets: Vec::new(),
+            framesize: 0,
+            register_start_offset: 0,
+            slow_paths: Vec::new(),
+        }
+    }
+
+    fn bytecode(&self) -> &'a BytecodeBody {
+        self.bytecode.expect("missing bytecode")
+    }
+
     pub fn generate(mut self) -> CodeDescriptor {
+        self.emit_function_entry();
+
+        let bytecode = self.bytecode();
+        read(bytecode.code(), &mut self);
+
+        // Bytecode execution should never fall off the end and reach this instruction.
+        self.asm.debug();
+
+        self.emit_slow_paths();
+
+        self.asm.code()
+    }
+
+    pub fn generate_trait_object_thunk(mut self) -> CodeDescriptor {
+        self.emit_function_entry();
+
+        let thunk = self
+            .trait_object_thunk
+            .take()
+            .expect("missing trait object thunk");
+        let object_reg = Register(0);
+        let mut arguments = Vec::with_capacity(self.params.len());
+
+        if thunk.receiver_by_reference {
+            let receiver_reg = thunk.receiver_reg.expect("missing receiver register");
+            self.emit_load_trait_object_receiver_ref(
+                receiver_reg,
+                object_reg,
+                thunk.actual_object_ty,
+            );
+            arguments.push(receiver_reg);
+        } else {
+            match self.argument_passing_mode(&thunk.actual_object_ty) {
+                ArgumentPassingMode::None => {}
+                ArgumentPassingMode::Register(_) | ArgumentPassingMode::Stack => {
+                    let receiver_reg = thunk.receiver_reg.expect("missing receiver register");
+                    self.emit_load_trait_object_receiver(
+                        receiver_reg,
+                        object_reg,
+                        thunk.actual_object_ty,
+                    );
+                    arguments.push(receiver_reg);
+                }
+            }
+        }
+
+        for idx in 1..self.params.len() {
+            arguments.push(Register(idx));
+        }
+
+        assert!(
+            self.intrinsic_for_fct_id(thunk.callee_fct_id).is_none(),
+            "trait object thunk target must not be an intrinsic"
+        );
+        self.emit_invoke_direct(
+            thunk.result_reg,
+            thunk.callee_fct_id,
+            thunk.callee_type_params,
+            arguments,
+            self.location,
+        );
+        self.emit_return_generic(thunk.result_reg);
+
+        self.asm.debug();
+        self.emit_slow_paths();
+        self.asm.code()
+    }
+
+    fn emit_function_entry(&mut self) {
         if self.emit_debug {
             self.asm.debug();
         }
@@ -117,15 +279,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.emit_clear_registers();
         self.store_params_in_registers();
         self.emit_safepoint();
-
-        read(self.bytecode.code(), &mut self);
-
-        // Bytecode execution should never fall off the end and reach this instruction.
-        self.asm.debug();
-
-        self.emit_slow_paths();
-
-        self.asm.code()
     }
 
     fn emit_safepoint(&mut self) {
@@ -155,11 +308,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn determine_offsets(&self, start: i32) -> (Vec<Option<i32>>, i32) {
-        let len = self.bytecode.registers().len();
+        let len = self.registers.len();
         let mut offset: Vec<Option<i32>> = vec![None; len];
         let mut stacksize: i32 = start;
 
-        for (index, ty) in self.bytecode.registers().iter().enumerate() {
+        for (index, ty) in self.registers.iter().enumerate() {
             let ty = register_bty(self.specialize_ty(ty.clone()));
             let size = self.layout.size(ty.clone());
             let align = self.layout.align(ty);
@@ -192,7 +345,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn compute_reference_objects(&mut self) {
         assert!(self.references.is_empty());
-        for (idx, ty) in self.bytecode.registers().iter().enumerate() {
+        for (idx, ty) in self.registers.iter().enumerate() {
             let ty = register_bty(self.specialize_ty(ty.clone()));
             let offset = self.register_offset(Register(idx));
             self.layout.add_ref_fields(&mut self.references, offset, ty);
@@ -383,7 +536,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.asm.int_add_checked(
             self.mode(bytecode_type),
@@ -490,7 +645,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.emit_load_register(lhs, REG_TMP1.into());
         self.emit_load_register(rhs, REG_TMP2.into());
 
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
         self.asm
             .int_div_overflowing(mode, REG_RESULT, REG_TMP2, REG_TMP1, REG_TMP2, position);
         self.store_overflowing_result(mode, dest, REG_RESULT, REG_TMP2);
@@ -512,7 +669,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.emit_load_register(lhs, REG_TMP1.into());
         self.emit_load_register(rhs, REG_TMP2.into());
 
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
         self.asm
             .int_mod_overflowing(mode, REG_RESULT, REG_TMP1, REG_TMP1, REG_TMP2, position);
         self.store_overflowing_result(mode, dest, REG_RESULT, REG_TMP1);
@@ -569,7 +728,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
         self.asm.int_sub_checked(
             self.mode(bytecode_type),
             REG_RESULT,
@@ -599,7 +760,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         self.emit_load_register(src, REG_RESULT.into());
 
-        let loc = self.bytecode.offset_location(self.current_offset.to_u32());
+        let loc = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.asm
             .int_neg_checked(self.mode(bytecode_type), REG_RESULT, REG_RESULT, loc);
@@ -609,13 +772,13 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_intrinsic_abs_float(&mut self, dest: Register, src: Register) {
         assert_eq!(
-            self.bytecode.register_type(src),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(src),
+            self.bytecode().register_type(dest)
         );
 
         self.emit_load_register(src, FREG_RESULT.into());
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.bytecode().register_type(dest);
         self.asm
             .float_abs(self.mode(bytecode_type), FREG_RESULT, FREG_RESULT);
 
@@ -646,7 +809,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.asm.int_mul_checked(
             self.mode(bytecode_type),
@@ -683,7 +848,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.asm.int_div_checked(
             self.mode(bytecode_type),
@@ -703,7 +870,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.emit_load_register(lhs, REG_RESULT.into());
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.asm.int_mod_checked(
             self.mode(bytecode_type),
@@ -718,12 +887,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_and(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(rhs)
         );
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(dest)
         );
 
         let bytecode_type = self.specialize_register_type(dest);
@@ -740,12 +909,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_or(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(rhs)
         );
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(dest)
         );
 
         let bytecode_type = self.specialize_register_type(dest);
@@ -762,12 +931,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_xor(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(rhs)
         );
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(dest)
         );
 
         let bytecode_type = self.specialize_register_type(dest);
@@ -784,8 +953,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_not(&mut self, dest: Register, src: Register) {
         assert_eq!(
-            self.bytecode.register_type(src),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(src),
+            self.bytecode().register_type(dest)
         );
 
         let bytecode_type = self.specialize_register_type(dest);
@@ -811,7 +980,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn check_shift_amount(&mut self, shift_reg: Reg, mode: MachineMode) {
         let max_shift = if mode == MachineMode::Int64 { 64 } else { 32 };
-        let location = self.bytecode.offset_location(self.current_offset.to_u32());
+        let location = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
         self.asm
             .cmp_reg_imm(MachineMode::Int32, shift_reg, max_shift);
         self.asm
@@ -823,11 +994,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(dest)
         );
 
-        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
+        assert_eq!(BytecodeType::Int32, self.bytecode().register_type(rhs));
 
         let m = self.mode(bytecode_type);
 
@@ -846,11 +1017,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(dest)
         );
 
-        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
+        assert_eq!(BytecodeType::Int32, self.bytecode().register_type(rhs));
 
         let m = self.mode(bytecode_type);
 
@@ -869,11 +1040,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         assert!(bytecode_type == BytecodeType::Int32 || bytecode_type == BytecodeType::Int64);
 
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(dest)
         );
 
-        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
+        assert_eq!(BytecodeType::Int32, self.bytecode().register_type(rhs));
 
         let m = self.mode(bytecode_type);
 
@@ -888,17 +1059,17 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_rol_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
+        assert_eq!(BytecodeType::Int32, self.bytecode().register_type(rhs));
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(dest)
         );
 
         self.emit_load_register(lhs, REG_RESULT.into());
 
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.bytecode().register_type(dest);
         self.asm
             .int_rol(self.mode(bytecode_type), REG_RESULT, REG_RESULT, REG_TMP1);
 
@@ -906,17 +1077,17 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_ror_int(&mut self, dest: Register, lhs: Register, rhs: Register) {
-        assert_eq!(BytecodeType::Int32, self.bytecode.register_type(rhs));
+        assert_eq!(BytecodeType::Int32, self.bytecode().register_type(rhs));
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(dest)
         );
 
         self.emit_load_register(lhs, REG_RESULT.into());
 
         self.emit_load_register(rhs, REG_TMP1.into());
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.bytecode().register_type(dest);
         self.asm
             .int_ror(self.mode(bytecode_type), REG_RESULT, REG_RESULT, REG_TMP1);
 
@@ -925,15 +1096,15 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_reinterpret(&mut self, dest: Register, src: Register) {
         assert_ne!(
-            self.bytecode.register_type(dest),
-            self.bytecode.register_type(src)
+            self.bytecode().register_type(dest),
+            self.bytecode().register_type(src)
         );
 
-        let src_type = self.bytecode.register_type(src);
+        let src_type = self.bytecode().register_type(src);
         let src_register = result_reg_mode(self.mode(src_type.clone()));
         self.emit_load_register(src, src_register.into());
 
-        let dest_type = self.bytecode.register_type(dest);
+        let dest_type = self.bytecode().register_type(dest);
         let dest_register = result_reg_mode(self.mode(dest_type.clone()));
 
         match dest_type {
@@ -980,7 +1151,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_extend_uint8(&mut self, dest: Register, src: Register, mode: MachineMode) {
-        assert_eq!(self.bytecode.register_type(src), BytecodeType::UInt8);
+        assert_eq!(self.bytecode().register_type(src), BytecodeType::UInt8);
 
         self.emit_load_register(src, REG_RESULT.into());
         self.asm
@@ -1000,8 +1171,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_int_to_int64(&mut self, dest: Register, src: Register) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int64);
-        assert_eq!(self.bytecode.register_type(src), BytecodeType::Int32);
+        assert_eq!(self.bytecode().register_type(dest), BytecodeType::Int64);
+        assert_eq!(self.bytecode().register_type(src), BytecodeType::Int32);
 
         self.emit_load_register(src, REG_RESULT.into());
         self.asm.extend_int_long(REG_RESULT, REG_RESULT);
@@ -1010,8 +1181,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_int64_to_int(&mut self, dest: Register, src: Register) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int32);
-        assert_eq!(self.bytecode.register_type(src), BytecodeType::Int64);
+        assert_eq!(self.bytecode().register_type(dest), BytecodeType::Int32);
+        assert_eq!(self.bytecode().register_type(src), BytecodeType::Int64);
 
         self.emit_load_register(src, REG_RESULT.into());
 
@@ -1019,8 +1190,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_promote_float(&mut self, dest: Register, src: Register) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Float64);
-        assert_eq!(self.bytecode.register_type(src), BytecodeType::Float32);
+        assert_eq!(self.bytecode().register_type(dest), BytecodeType::Float64);
+        assert_eq!(self.bytecode().register_type(src), BytecodeType::Float32);
 
         self.emit_load_register(src, FREG_RESULT.into());
         self.asm.float32_to_float64(FREG_RESULT, FREG_RESULT);
@@ -1028,8 +1199,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_demote_float64(&mut self, dest: Register, src: Register) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Float32);
-        assert_eq!(self.bytecode.register_type(src), BytecodeType::Float64);
+        assert_eq!(self.bytecode().register_type(dest), BytecodeType::Float32);
+        assert_eq!(self.bytecode().register_type(src), BytecodeType::Float64);
 
         self.emit_load_register(src, FREG_RESULT.into());
         self.asm.float64_to_float32(FREG_RESULT, FREG_RESULT);
@@ -1038,8 +1209,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_mov_generic(&mut self, dest: Register, src: Register) {
         assert_eq!(
-            self.bytecode.register_type(src),
-            self.bytecode.register_type(dest)
+            self.bytecode().register_type(src),
+            self.bytecode().register_type(dest)
         );
 
         let bytecode_type = self.specialize_register_type(src);
@@ -1049,7 +1220,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        let (enum_id, type_params, variant_idx, element_idx) = match self.bytecode.const_pool(idx) {
+        let (enum_id, type_params, variant_idx, element_idx) = match self.bytecode().const_pool(idx)
+        {
             ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
                 (*enum_id, type_params.clone(), *variant_idx, *element_idx)
             }
@@ -1076,7 +1248,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 assert!(expected == BytecodeType::Ptr || expected.is_trait_object());
 
                 self.emit_load_register_as(src, REG_RESULT.into(), MachineMode::Ptr);
-                let pos = self.bytecode.offset_location(self.current_offset.to_u32());
+                let pos = self
+                    .bytecode()
+                    .offset_location(self.current_offset.to_u32());
                 self.asm.test_if_nil_bailout(pos, REG_RESULT, Trap::ILLEGAL);
                 self.emit_store_register_as(REG_RESULT.into(), dest, MachineMode::Ptr);
             }
@@ -1096,7 +1270,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 self.asm
                     .cmp_reg_imm(MachineMode::Int32, REG_RESULT, variant_idx as i32);
                 self.asm.jump_if(CondCode::NotEqual, lbl_bailout);
-                let pos = self.bytecode.offset_location(self.current_offset.to_u32());
+                let pos = self
+                    .bytecode()
+                    .offset_location(self.current_offset.to_u32());
                 self.asm.emit_bailout(lbl_bailout, Trap::ILLEGAL, pos);
 
                 let field = &layout.fields[element_idx as usize + 1];
@@ -1115,7 +1291,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
-        let (enum_id, type_params) = match self.bytecode.const_pool(idx) {
+        let (enum_id, type_params) = match self.bytecode().const_pool(idx) {
             ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params.clone()),
             _ => unreachable!(),
         };
@@ -1163,14 +1339,14 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        match self.bytecode.const_pool(field_idx) {
+        match self.bytecode().const_pool(field_idx) {
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                 let struct_id = *struct_id;
                 let type_params = type_params.clone();
                 let field_id = *field_id;
 
                 debug_assert_eq!(
-                    self.bytecode.register_type(obj),
+                    self.bytecode().register_type(obj),
                     BytecodeType::Struct(struct_id, type_params.clone())
                 );
 
@@ -1190,7 +1366,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 assert_eq!(
-                    self.bytecode.register_type(obj),
+                    self.bytecode().register_type(obj),
                     BytecodeType::Class(*cls_id, type_params.clone())
                 );
 
@@ -1205,7 +1381,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 let obj_reg = REG_TMP1;
                 self.emit_load_register(obj, obj_reg.into());
 
-                let pos = self.bytecode.offset_location(self.current_offset.to_u32());
+                let pos = self
+                    .bytecode()
+                    .offset_location(self.current_offset.to_u32());
                 self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
                 let bytecode_type = self.specialize_register_type(dest);
@@ -1236,14 +1414,14 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
-        match self.bytecode.const_pool(field_idx) {
+        match self.bytecode().const_pool(field_idx) {
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                 let struct_id = *struct_id;
                 let type_params = type_params.clone();
                 let field_id = *field_id;
 
                 debug_assert_eq!(
-                    self.bytecode.register_type(obj),
+                    self.bytecode().register_type(obj),
                     BytecodeType::Struct(struct_id, type_params.clone())
                 );
 
@@ -1263,7 +1441,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 assert_eq!(
-                    self.bytecode.register_type(obj),
+                    self.bytecode().register_type(obj),
                     BytecodeType::Class(*cls_id, type_params.clone())
                 );
 
@@ -1278,7 +1456,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 let obj_reg = REG_TMP1;
                 self.emit_load_register(obj, obj_reg.into());
 
-                let pos = self.bytecode.offset_location(self.current_offset.to_u32());
+                let pos = self
+                    .bytecode()
+                    .offset_location(self.current_offset.to_u32());
                 self.asm.test_if_nil_bailout(pos, obj_reg, Trap::NIL);
 
                 let bytecode_type = self.specialize_register_type(src);
@@ -1310,11 +1490,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_get_field_address(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        debug_assert_eq!(self.bytecode.register_type(dest), BytecodeType::Address);
+        debug_assert_eq!(self.bytecode().register_type(dest), BytecodeType::Address);
 
         let obj_type = self.specialize_register_type(obj);
 
-        match self.bytecode.const_pool(field_idx) {
+        match self.bytecode().const_pool(field_idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 // Class field: obj is a pointer to the class object on the heap
                 let type_params = self.specialize_ty_array(&type_params.clone());
@@ -1388,7 +1568,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_store_at_address(&mut self, src: Register, address: Register) {
-        debug_assert_eq!(self.bytecode.register_type(address), BytecodeType::Address);
+        debug_assert_eq!(
+            self.bytecode().register_type(address),
+            BytecodeType::Address
+        );
 
         // Load the address into a register
         self.emit_load_register(address, REG_TMP1.into());
@@ -1405,7 +1588,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_load_address(&mut self, dest: Register, address: Register) {
-        debug_assert_eq!(self.bytecode.register_type(address), BytecodeType::Address);
+        debug_assert_eq!(
+            self.bytecode().register_type(address),
+            BytecodeType::Address
+        );
 
         // Load the address into a register
         self.emit_load_register(address, REG_TMP1.into());
@@ -1422,12 +1608,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_get_field_ref(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        let dest_type = self.bytecode.register_type(dest);
+        let dest_type = self.bytecode().register_type(dest);
         debug_assert!(matches!(dest_type, BytecodeType::Ref(_)));
 
         let obj_type = self.specialize_register_type(obj);
 
-        match self.bytecode.const_pool(field_idx) {
+        match self.bytecode().const_pool(field_idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 // Class field: obj is a pointer to the class object on the heap
                 let type_params = self.specialize_ty_array(&type_params.clone());
@@ -1501,7 +1687,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_store_ref(&mut self, src: Register, reference: Register) {
-        let ref_type = self.bytecode.register_type(reference);
+        let ref_type = self.bytecode().register_type(reference);
         debug_assert!(matches!(ref_type, BytecodeType::Ref(_)));
 
         // Load the reference (address) into a register
@@ -1519,7 +1705,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_load_ref(&mut self, dest: Register, reference: Register) {
-        let ref_type = self.bytecode.register_type(reference);
+        let ref_type = self.bytecode().register_type(reference);
         debug_assert!(matches!(ref_type, BytecodeType::Ref(_)));
 
         // Load the reference (address) into a register
@@ -1539,10 +1725,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     fn emit_load_global(&mut self, dest: Register, global_id: GlobalId) {
         let global_var = self.program.global(global_id);
 
-        assert_eq!(self.bytecode.register_type(dest), global_var.ty.clone());
+        assert_eq!(self.bytecode().register_type(dest), global_var.ty.clone());
 
         if let Some(initializer) = global_var.initial_value {
-            let position = self.bytecode.offset_location(self.current_offset.to_u32());
+            let position = self
+                .bytecode()
+                .offset_location(self.current_offset.to_u32());
             let gcpoint = self.create_gcpoint();
             self.asm
                 .ensure_global(global_id, initializer, position, gcpoint);
@@ -1550,7 +1738,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         self.asm.load_global_value_address(REG_TMP1, global_id);
 
-        let bytecode_type = self.bytecode.register_type(dest);
+        let bytecode_type = self.bytecode().register_type(dest);
 
         let dest = self.reg(dest);
         let src = RegOrOffset::Reg(REG_TMP1);
@@ -1560,11 +1748,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     fn emit_store_global(&mut self, src: Register, global_id: GlobalId) {
         let global_var = self.program.global(global_id);
 
-        assert_eq!(self.bytecode.register_type(src), global_var.ty.clone());
+        assert_eq!(self.bytecode().register_type(src), global_var.ty.clone());
 
         self.asm.load_global_value_address(REG_TMP1, global_id);
 
-        let bytecode_type = self.bytecode.register_type(src);
+        let bytecode_type = self.bytecode().register_type(src);
 
         let dest = RegOrOffset::Reg(REG_TMP1);
         let src = self.reg(src);
@@ -1581,9 +1769,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_load_const(&mut self, dest: Register, const_id: ConstId) {
         let const_data = self.program.const_(const_id);
-        let ty = self.bytecode.register_type(dest);
+        let ty = self.bytecode().register_type(dest);
 
-        assert_eq!(self.bytecode.register_type(dest), const_data.ty.clone());
+        assert_eq!(self.bytecode().register_type(dest), const_data.ty.clone());
 
         match ty {
             BytecodeType::Bool => {
@@ -1616,7 +1804,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_const_bool(&mut self, dest: Register, bool_const: bool) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Bool);
+        assert_eq!(self.bytecode().register_type(dest), BytecodeType::Bool);
 
         if bool_const {
             self.asm.load_true(REG_RESULT);
@@ -1664,11 +1852,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_test_generic(&mut self, dest: Register, lhs: Register, rhs: Register, op: CondCode) {
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(rhs)
         );
 
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Bool);
+        assert_eq!(self.bytecode().register_type(dest), BytecodeType::Bool);
         let bytecode_type = self.specialize_register_type(lhs);
 
         assert!(
@@ -1723,10 +1911,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_test_identity(&mut self, dest: Register, lhs: Register, rhs: Register) {
         assert_eq!(
-            self.bytecode.register_type(lhs),
-            self.bytecode.register_type(rhs)
+            self.bytecode().register_type(lhs),
+            self.bytecode().register_type(rhs)
         );
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Bool);
+        assert_eq!(self.bytecode().register_type(dest), BytecodeType::Bool);
 
         let op = CondCode::Equal;
 
@@ -1768,7 +1956,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_jump_if(&mut self, src: Register, target: BytecodeOffset, op: bool) {
-        assert_eq!(self.bytecode.register_type(src), BytecodeType::Bool);
+        assert_eq!(self.bytecode().register_type(src), BytecodeType::Bool);
 
         self.emit_load_register(src, REG_RESULT.into());
 
@@ -1791,7 +1979,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     fn emit_jump_loop(&mut self, target: BytecodeOffset) {
         assert!(target < self.current_offset);
 
-        let opcode = self.bytecode.read_opcode(target);
+        let opcode = self.bytecode().read_opcode(target);
         assert!(opcode.is_loop_start());
 
         self.emit_safepoint();
@@ -1800,7 +1988,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_switch(&mut self, opnd: Register, idx: ConstPoolIdx) {
-        let const_pool_entry = self.bytecode.const_pool(idx);
+        let const_pool_entry = self.bytecode().const_pool(idx);
 
         let (targets, default_target) = match const_pool_entry {
             ConstPoolEntry::JumpTable {
@@ -1855,11 +2043,13 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         }
     }
 
-    fn emit_load_trait_object_value(&mut self, dest: Register, object: Register) {
-        assert!(self.bytecode.register_type(object).is_trait_object());
-
-        let value_ty = self.type_params[self.type_params.len() - 1].clone();
-
+    fn emit_load_trait_object_receiver(
+        &mut self,
+        dest: Register,
+        object: Register,
+        value_ty: BytecodeType,
+    ) {
+        assert!(self.reg_ty(object).is_trait_object());
         let bytecode_type = self.specialize_register_type(dest);
         assert_eq!(bytecode_type, register_bty(value_ty.clone()));
 
@@ -1869,6 +2059,24 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let dest = self.reg(dest);
         let src = RegOrOffset::RegWithOffset(obj_reg, Header::size());
         self.asm.copy_bytecode_ty(bytecode_type, dest, src);
+    }
+
+    fn emit_load_trait_object_receiver_ref(
+        &mut self,
+        dest: Register,
+        object: Register,
+        value_ty: BytecodeType,
+    ) {
+        assert!(self.reg_ty(object).is_trait_object());
+        assert_eq!(
+            self.reg_ty(dest),
+            BytecodeType::Ref(Box::new(self.specialize_ty(value_ty)))
+        );
+
+        self.emit_load_register(object, REG_TMP1.into());
+        self.asm
+            .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, Header::size() as i64);
+        self.emit_store_register(REG_TMP1.into(), dest);
     }
 
     fn emit_return_generic(&mut self, src: Register) {
@@ -1899,14 +2107,14 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
-        let const_pool_entry = self.bytecode.const_pool(idx);
+        let const_pool_entry = self.bytecode().const_pool(idx);
 
         let (cls_id, type_params) = match const_pool_entry {
             ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params.clone()),
             _ => unreachable!(),
         };
         assert_eq!(
-            self.bytecode.register_type(dest),
+            self.bytecode().register_type(dest),
             BytecodeType::Class(cls_id, type_params.clone())
         );
 
@@ -1917,7 +2125,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let alloc_size = AllocationSize::Fixed(alloc_size);
 
         let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
         self.asm
             .allocate(REG_RESULT.into(), alloc_size, position, gcpoint);
 
@@ -1950,16 +2160,16 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_new_array(&mut self, dest: Register, idx: ConstPoolIdx, length: Register) {
-        assert_eq!(self.bytecode.register_type(length), BytecodeType::Int64);
+        assert_eq!(self.bytecode().register_type(length), BytecodeType::Int64);
 
-        let const_pool_entry = self.bytecode.const_pool(idx);
+        let const_pool_entry = self.bytecode().const_pool(idx);
 
         let (cls_id, type_params) = match const_pool_entry {
             ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
             _ => unreachable!(),
         };
         assert_eq!(
-            self.bytecode.register_type(dest),
+            self.bytecode().register_type(dest),
             BytecodeType::Class(cls_id, type_params.clone())
         );
 
@@ -1989,7 +2199,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         assert!(CALLEE_SAVED_REGS.contains(&size_reg));
 
         let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
         self.asm
             .allocate(REG_RESULT.into(), alloc_size, position, gcpoint);
 
@@ -2030,7 +2242,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
-        let source_type_array = match self.bytecode.const_pool(idx) {
+        let source_type_array = match self.bytecode().const_pool(idx) {
             ConstPoolEntry::Tuple(source_type_array) => source_type_array,
             _ => unreachable!(),
         };
@@ -2053,7 +2265,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
-        let (enum_id, type_params, variant_idx) = match self.bytecode.const_pool(idx) {
+        let (enum_id, type_params, variant_idx) = match self.bytecode().const_pool(idx) {
             ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
                 (*enum_id, type_params, *variant_idx)
             }
@@ -2093,7 +2305,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 let alloc_size = layout.size as usize;
 
                 let gcpoint = self.create_gcpoint();
-                let position = self.bytecode.offset_location(self.current_offset.to_u32());
+                let position = self
+                    .bytecode()
+                    .offset_location(self.current_offset.to_u32());
                 self.asm.allocate(
                     REG_TMP1.into(),
                     AllocationSize::Fixed(alloc_size),
@@ -2151,7 +2365,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
-        let (struct_id, type_params) = match self.bytecode.const_pool(idx) {
+        let (struct_id, type_params) = match self.bytecode().const_pool(idx) {
             ConstPoolEntry::Struct(struct_id, type_params) => (*struct_id, type_params),
             _ => unreachable!(),
         };
@@ -2179,7 +2393,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_new_trait_object(&mut self, dest: Register, idx: ConstPoolIdx, src: Register) {
-        let (trait_ty, actual_object_ty) = match self.bytecode.const_pool(idx) {
+        let (trait_ty, actual_object_ty) = match self.bytecode().const_pool(idx) {
             ConstPoolEntry::TraitObject {
                 trait_ty,
                 actual_object_ty,
@@ -2199,7 +2413,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let alloc_size = align_i32(field_offset + field_size, ptr_width()) as usize;
 
         let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
         self.asm.allocate(
             REG_TMP1.into(),
             AllocationSize::Fixed(alloc_size),
@@ -2236,7 +2452,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: &[Register]) {
-        let (fct_id, type_params) = match self.bytecode.const_pool(idx) {
+        let (fct_id, type_params) = match self.bytecode().const_pool(idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
             _ => unreachable!(),
         };
@@ -2269,7 +2485,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let environment_ty = self.reg_ty(arguments[0]);
 
         let gcpoint = self.create_gcpoint();
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
         let object_reg = REG_TMP1;
 
         self.asm.allocate(
@@ -2313,10 +2531,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_array_length(&mut self, dest: Register, arr: Register) {
-        assert_eq!(self.bytecode.register_type(dest), BytecodeType::Int64);
-        assert!(self.bytecode.register_type(arr).is_class());
+        assert_eq!(self.bytecode().register_type(dest), BytecodeType::Int64);
+        assert!(self.bytecode().register_type(arr).is_class());
 
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.emit_load_register(arr, REG_RESULT.into());
         self.asm
@@ -2332,10 +2552,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
-        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int64);
-        assert!(self.bytecode.register_type(arr).is_class());
+        assert_eq!(self.bytecode().register_type(idx), BytecodeType::Int64);
+        assert!(self.bytecode().register_type(arr).is_class());
 
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
         let array_reg = REG_TMP2;
 
         self.emit_load_register(arr, array_reg.into());
@@ -2361,10 +2583,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_load_array(&mut self, dest: Register, arr: Register, idx: Register) {
-        assert_eq!(self.bytecode.register_type(idx), BytecodeType::Int64);
-        assert!(self.bytecode.register_type(arr).is_class());
+        assert_eq!(self.bytecode().register_type(idx), BytecodeType::Int64);
+        assert!(self.bytecode().register_type(arr).is_class());
 
-        let position = self.bytecode.offset_location(self.current_offset.to_u32());
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.emit_load_register(arr, REG_RESULT.into());
         self.asm
@@ -2448,14 +2672,16 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         fct_idx: ConstPoolIdx,
         arguments: Vec<Register>,
     ) {
-        let (trait_object_ty, fct_id) = match self.bytecode.const_pool(fct_idx) {
+        let (trait_object_ty, fct_id) = match self.bytecode().const_pool(fct_idx) {
             ConstPoolEntry::TraitObjectMethod(trait_object_ty, fct_id) => {
                 (trait_object_ty.clone(), *fct_id)
             }
             _ => unreachable!(),
         };
 
-        let location = self.bytecode.offset_location(self.current_offset.to_u32());
+        let location = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.emit_invoke_virtual(dest, trait_object_ty, fct_id, arguments, location);
     }
@@ -2466,14 +2692,16 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         idx: ConstPoolIdx,
         arguments: Vec<Register>,
     ) {
-        let (params, return_type, is_variadic) = match self.bytecode.const_pool(idx) {
+        let (params, return_type, is_variadic) = match self.bytecode().const_pool(idx) {
             ConstPoolEntry::Lambda(params, return_type, is_variadic) => {
                 (params.clone(), return_type.clone(), *is_variadic)
             }
             _ => unreachable!(),
         };
 
-        let location = self.bytecode.offset_location(self.current_offset.to_u32());
+        let location = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.emit_invoke_lambda(dest, params, return_type, is_variadic, arguments, location);
     }
@@ -2494,7 +2722,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             .copied()
             .expect("lambda invocation requires receiver argument");
 
-        let bytecode_type_self = self.bytecode.register_type(self_register);
+        let bytecode_type_self = self.bytecode().register_type(self_register);
         assert!(matches!(bytecode_type_self, BytecodeType::Lambda(..)));
 
         let argsize = self.emit_invoke_arguments(dest, bytecode_type.clone(), arguments);
@@ -2537,7 +2765,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         let self_register = arguments[0];
 
-        let bytecode_type_self = self.bytecode.register_type(self_register);
+        let bytecode_type_self = self.bytecode().register_type(self_register);
         assert!(bytecode_type_self.is_reference_type());
 
         let trait_id = match &trait_object_ty {
@@ -2588,7 +2816,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         fct_idx: ConstPoolIdx,
         arguments: Vec<Register>,
     ) {
-        let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
+        let (fct_id, type_params) = match self.bytecode().const_pool(fct_idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
         };
@@ -2596,7 +2824,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let location = self.bytecode.offset_location(self.current_offset.to_u32());
+        let location = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.emit_invoke_direct_or_intrinsic(dest, fct_id, type_params, arguments, location);
     }
@@ -2653,7 +2883,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         fct_idx: ConstPoolIdx,
         arguments: Vec<Register>,
     ) {
-        let (fct_id, type_params) = match self.bytecode.const_pool(fct_idx) {
+        let (fct_id, type_params) = match self.bytecode().const_pool(fct_idx) {
             ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params.clone()),
             _ => unreachable!(),
         };
@@ -2661,7 +2891,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let type_params = self.specialize_ty_array(&type_params);
         debug_assert!(type_params.iter().all(|ty| ty.is_concrete_type()));
 
-        let location = self.bytecode.offset_location(self.current_offset.to_u32());
+        let location = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         self.emit_invoke_static_or_intrinsic(dest, fct_id, type_params, arguments, location);
     }
@@ -2741,7 +2973,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         is_static: bool,
     ) {
         let (ty, trait_fct_id, trait_type_params, pure_fct_type_params) =
-            match self.bytecode.const_pool(fct_idx) {
+            match self.bytecode().const_pool(fct_idx) {
                 ConstPoolEntry::Generic {
                     object_type,
                     trait_ty,
@@ -2783,7 +3015,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let (callee_id, container_bindings) =
             find_trait_impl_in_program(self.program, trait_fct_id, trait_ty, ty);
 
-        let pos = self.bytecode.offset_location(self.current_offset.to_u32());
+        let pos = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
 
         let combined_type_params = container_bindings.connect(&pure_fct_type_params);
         assert!(combined_type_params.is_concrete_type());
@@ -3883,7 +4117,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     ) {
         assert_eq!(1, type_params.len());
         assert_eq!(2, arguments.len());
-        assert!(self.bytecode.register_type(dest).is_unit());
+        assert!(self.bytecode().register_type(dest).is_unit());
 
         let ty = type_params[0].clone();
 
@@ -4128,7 +4362,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn reg_ty(&self, reg: Register) -> BytecodeType {
-        let ty = self.bytecode.register_type(reg);
+        let ty = self.registers[reg.0].clone();
         self.specialize_ty(ty)
     }
 }
@@ -4243,7 +4477,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     fn visit_load_enum_element(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
             let (enum_id, type_params, variant_idx, element_idx) =
-                match self.bytecode.const_pool(idx) {
+                match self.bytecode().const_pool(idx) {
                     ConstPoolEntry::EnumElement(enum_id, type_params, variant_idx, element_idx) => {
                         (*enum_id, type_params, *variant_idx, *element_idx)
                     }
@@ -4265,7 +4499,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_load_enum_variant(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let (enum_id, type_params) = match self.bytecode.const_pool(idx) {
+            let (enum_id, type_params) = match self.bytecode().const_pool(idx) {
                 ConstPoolEntry::Enum(enum_id, type_params) => (*enum_id, type_params),
                 _ => unreachable!(),
             };
@@ -4283,7 +4517,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_load_field(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
-            match self.bytecode.const_pool(field_idx) {
+            match self.bytecode().const_pool(field_idx) {
                 ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                     let cname = display_ty(
                         self.program,
@@ -4330,7 +4564,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_store_field(&mut self, src: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
-            let (cls_id, type_params, field_id) = match self.bytecode.const_pool(field_idx) {
+            let (cls_id, type_params, field_id) = match self.bytecode().const_pool(field_idx) {
                 ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                     (*cls_id, type_params, *field_id)
                 }
@@ -4359,7 +4593,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_get_field_address(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
-            match self.bytecode.const_pool(field_idx) {
+            match self.bytecode().const_pool(field_idx) {
                 ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                     let struct_ = self.program.struct_(*struct_id);
                     let struct_name = display_ty(
@@ -4404,7 +4638,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_get_field_ref(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         comment!(self, {
-            match self.bytecode.const_pool(field_idx) {
+            match self.bytecode().const_pool(field_idx) {
                 ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                     let struct_ = self.program.struct_(*struct_id);
                     let struct_name = display_ty(
@@ -4520,7 +4754,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     }
     fn visit_const_char(&mut self, dest: Register, idx: ConstPoolIdx) {
         let value = self
-            .bytecode
+            .bytecode()
             .const_pool(idx)
             .to_char()
             .expect("unexpected const pool entry");
@@ -4534,7 +4768,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     }
     fn visit_const_int32(&mut self, dest: Register, idx: ConstPoolIdx) {
         let value = self
-            .bytecode
+            .bytecode()
             .const_pool(idx)
             .to_int32()
             .expect("unexpected const pool entry");
@@ -4546,7 +4780,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     }
     fn visit_const_int64(&mut self, dest: Register, idx: ConstPoolIdx) {
         let value = self
-            .bytecode
+            .bytecode()
             .const_pool(idx)
             .to_int64()
             .expect("unexpected const pool entry");
@@ -4558,7 +4792,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     }
     fn visit_const_float32(&mut self, dest: Register, idx: ConstPoolIdx) {
         let value = self
-            .bytecode
+            .bytecode()
             .const_pool(idx)
             .to_float32()
             .expect("unexpected const pool entry");
@@ -4570,7 +4804,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     }
     fn visit_const_float64(&mut self, dest: Register, idx: ConstPoolIdx) {
         let value = self
-            .bytecode
+            .bytecode()
             .const_pool(idx)
             .to_float64()
             .expect("unexpected const pool entry");
@@ -4582,7 +4816,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     }
     fn visit_const_string(&mut self, dest: Register, idx: ConstPoolIdx) {
         let value = self
-            .bytecode
+            .bytecode()
             .const_pool(idx)
             .to_string()
             .expect("unexpected const pool entry");
@@ -4722,7 +4956,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_new_object(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, {
-            let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
+            let (cls_id, type_params) = match self.bytecode().const_pool(idx) {
                 ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
                 _ => unreachable!(),
             };
@@ -4737,7 +4971,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_new_array(&mut self, dest: Register, length: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let (cls_id, type_params) = match self.bytecode.const_pool(idx) {
+            let (cls_id, type_params) = match self.bytecode().const_pool(idx) {
                 ConstPoolEntry::Class(cls_id, type_params) => (*cls_id, type_params),
                 _ => unreachable!(),
             };
@@ -4755,7 +4989,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_new_tuple(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, {
-            let subtypes = match self.bytecode.const_pool(idx) {
+            let subtypes = match self.bytecode().const_pool(idx) {
                 ConstPoolEntry::Tuple(subtypes) => subtypes,
                 _ => unreachable!(),
             };
@@ -4770,7 +5004,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_new_enum(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, {
-            let (enum_id, type_params, variant_idx) = match self.bytecode.const_pool(idx) {
+            let (enum_id, type_params, variant_idx) = match self.bytecode().const_pool(idx) {
                 ConstPoolEntry::EnumVariant(enum_id, type_params, variant_idx) => {
                     (*enum_id, type_params, *variant_idx)
                 }
@@ -4792,7 +5026,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_new_struct(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, {
-            let (struct_id, type_params) = match self.bytecode.const_pool(idx) {
+            let (struct_id, type_params) = match self.bytecode().const_pool(idx) {
                 ConstPoolEntry::Struct(enum_id, type_params) => (*enum_id, type_params),
                 _ => unreachable!(),
             };
@@ -4810,7 +5044,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_new_trait_object(&mut self, dest: Register, src: Register, idx: ConstPoolIdx) {
         comment!(self, {
-            let (trait_ty, actual_object_ty) = match self.bytecode.const_pool(idx) {
+            let (trait_ty, actual_object_ty) = match self.bytecode().const_pool(idx) {
                 ConstPoolEntry::TraitObject {
                     trait_ty,
                     actual_object_ty,
@@ -4829,7 +5063,7 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
 
     fn visit_new_lambda(&mut self, dest: Register, idx: ConstPoolIdx, arguments: Vec<Register>) {
         comment!(self, {
-            let (fct_id, _type_params) = match self.bytecode.const_pool(idx) {
+            let (fct_id, _type_params) = match self.bytecode().const_pool(idx) {
                 ConstPoolEntry::Fct(fct_id, type_params) => (*fct_id, type_params),
                 _ => unreachable!(),
             };
@@ -4852,11 +5086,6 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     fn visit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
         comment!(self, format!("StoreArray {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
-    }
-
-    fn visit_load_trait_object_value(&mut self, dest: Register, object: Register) {
-        comment!(self, format!("LoadTraitObjectValue {}, {}", dest, object));
-        self.emit_load_trait_object_value(dest, object);
     }
 
     fn visit_ret(&mut self, opnd: Register) {

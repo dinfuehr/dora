@@ -789,10 +789,6 @@ impl SsaGen {
                 self.emit_store_array(src, arr, idx);
                 false
             }
-            BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
-                self.emit_load_trait_object_value(dest, src);
-                false
-            }
             BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
                 self.emit_get_field_address(dest, obj, idx);
                 false
@@ -1650,17 +1646,6 @@ impl SsaGen {
         );
         self.current().append_inst(inst);
         inst
-    }
-
-    fn emit_load_trait_object_value(dest: BytecodeRegister, src: BytecodeRegister) {
-        let srcInst = self.read_variable(src, self.current());
-        let ty = self.reg(dest);
-
-        if !ty.is_unit() {
-            let offset = iface::OBJECT_HEADER_LENGTH;
-            let value = self.load_field(ty, srcInst, InstExtraData::None, offset);
-            self.write_variable(dest, self.current(), value);
-        }
     }
 
     fn emit_ret(opnd: BytecodeRegister) {

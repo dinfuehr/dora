@@ -400,11 +400,6 @@ impl BytecodeIterator {
                 let idx = self.read_register();
                 BytecodeInstruction::StoreArray(src, arr, idx)
             }
-            opc::BYTECODE_OPCODE_LOAD_TRAIT_OBJECT_VALUE => {
-                let dest = self.read_register();
-                let src = self.read_register();
-                BytecodeInstruction::LoadTraitObjectValue(dest, src)
-            }
             opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS => {
                 let dest = self.read_register();
                 let obj = self.read_register();

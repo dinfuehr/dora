@@ -307,9 +307,6 @@ pub fn dump_instruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::StoreArray(src, arr, index) => {
             dumper.emit_reg3(inst, "StoreArray", src, arr, index);
         }
-        BytecodeInstruction::LoadTraitObjectValue(dest, src) => {
-            dumper.emit_reg2(inst, "LoadTraitObjectValue", dest, src);
-        }
         BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
             dumper.emit_reg2_and_idx(inst, "GetFieldAddress", dest, obj, idx);
         }

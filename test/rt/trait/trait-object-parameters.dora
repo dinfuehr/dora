@@ -4,6 +4,8 @@ trait Calculator {
 
 struct Receiver(Int)
 
+struct WideReceiver(Int, Int)
+
 struct Small(Int)
 
 struct Large(Int, Int)
@@ -14,8 +16,18 @@ impl Calculator for Receiver {
     }
 }
 
+impl Calculator for WideReceiver {
+    fn calculate(text: String, small: Small, large: Large): Int {
+        self.0 + self.1 + text.size() + small.0 + large.0 + large.1
+    }
+}
+
 fn main() {
     let calculator = Receiver(1) as Calculator;
     let result = calculator.calculate("test", Small(2), Large(4, 8));
     assert(result == 19);
+
+    let calculator = WideReceiver(1, 16) as Calculator;
+    let result = calculator.calculate("test", Small(2), Large(4, 8));
+    assert(result == 35);
 }
