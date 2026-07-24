@@ -1,0 +1,27 @@
+use std::traits::{Comparable, Equals, Ordering};
+
+class Wrapper[T](T)
+
+impl[T] Equals for Wrapper[T] {
+    fn equals(_rhs: Wrapper[T]): Bool {
+        true
+    }
+}
+
+impl[T] Comparable for Wrapper[T] {
+    fn cmp(_rhs: Wrapper[T]): Ordering {
+        Ordering::Less
+    }
+}
+
+fn equals() {
+    Wrapper[Bool](true) == Wrapper(1i32);
+}
+
+fn compare() {
+    Wrapper[String]("value") < Wrapper(false);
+}
+
+fn identity() {
+    Wrapper[Int32](1i32) === Wrapper("value");
+}

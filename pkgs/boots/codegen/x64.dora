@@ -794,7 +794,7 @@ impl CodeGenX64 {
 
         self.asm.lea(tmp1, AsmAddress::offset(obj, iface::ARRAY_HEADER_LENGTH));
         self.asm.lea(tmp2, AsmAddress::offset(size, -iface::ARRAY_HEADER_LENGTH));
-        assert(PTR_SIZE % 8i32 == 0i32);
+        assert(PTR_SIZE % 8i32 == 0);
         self.asm.shrq_ri(tmp2, Immediate(3));
         self.zero_memory_dynamic(tmp1, tmp2, FREG_TEMP);
     }
@@ -939,7 +939,7 @@ impl CodeGenX64 {
     }
 
     fn restore_registers_for_call(snapshot: RegisterTrackers, alignment: Int32) {
-        if alignment != 0i32 {
+        if alignment != 0 {
             assert(alignment == PTR_SIZE);
             self.asm.addq_ri(RSP, Immediate(PTR_SIZE.to_int64()));
         }
@@ -1167,7 +1167,7 @@ impl CodeGen for CodeGenX64 {
         self.asm.pushq_r(RBP);
         self.asm.movq_rr(RBP, RSP);
 
-        if stack_size > 0i32 {
+        if stack_size > 0 {
             self.asm.subq_ri(RSP, Immediate(stack_size.to_int64()));
         }
     }
@@ -3051,7 +3051,7 @@ impl CodeGen for CodeGenX64 {
             unreachable[()]();
         };
 
-        assert(size % PTR_SIZE == 0i32);
+        assert(size % PTR_SIZE == 0);
 
         let tmp = loc.get_temp(0).get_register();
         let location = inst.get_inlined_location();

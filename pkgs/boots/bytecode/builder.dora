@@ -553,12 +553,12 @@ impl BytecodeBuilder {
     }
 
     fn emit_byte(val: Int32) {
-        assert(val >= 0i32 && val <= 255i32);
+        assert(val >= 0 && val <= 255);
         self.code.push(val.to_uint8());
     }
 
     fn emit_int32_fixed(val: Int32) {
-        assert(val >= 0i32);
+        assert(val >= 0);
         self.emit_byte(val & 0xFFi32);
         self.emit_byte((val >>> 8i32) & 0xFFi32);
         self.emit_byte((val >>> 16i32) & 0xFFi32);
@@ -569,20 +569,20 @@ impl BytecodeBuilder {
         while true {
             let mut byte = value & 0x7Fi32;
             value = value >> 7i32;
-            if value != 0i32 {
+            if value != 0 {
                 byte = byte | 0x80i32;
             }
 
             self.code.push(byte.to_uint8());
 
-            if value == 0i32 {
+            if value == 0 {
                 break;
             }
         }
     }
 
     fn patch_int32(idx: Int32, val: Int32) {
-        assert(val >= 0i32);
+        assert(val >= 0);
         let idx = idx.to_int64();
         self.code(idx) = (val & 0xFFi32).to_uint8();
         self.code(idx + 1i64) = ((val >>> 8i32) & 0xFFi32).to_uint8();
@@ -599,13 +599,13 @@ impl BytecodeLabel {
     }
 
     fn bind_to(offset: Int32): BytecodeLabel {
-        assert(offset >= 0i32);
+        assert(offset >= 0);
         self.0 = offset;
         self
     }
 
     fn is_bound(): Bool {
-        self.0 >= 0i32
+        self.0 >= 0
     }
 
     fn offset(): Int32 {

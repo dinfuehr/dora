@@ -1211,7 +1211,7 @@ impl BytecodeGraphBuilder {
                     1i32
                 };
                 assert(variant_id != null_idx);
-                assert(field_id == 0i32);
+                assert(field_id == 0);
 
                 self.emit_local_set(dest, src);
             }
@@ -2291,7 +2291,7 @@ impl BytecodeGraphBuilder {
         self.set_current_inlined_location(unaligned_size);
         self.current().append_inst(unaligned_size);
 
-        let size = if element_size % iface::PTR_SIZE != 0i32 {
+        let size = if element_size % iface::PTR_SIZE != 0 {
             let ptr_size_minus_1 = (iface::PTR_SIZE - 1i32).to_int64();
             let tmp = self.graph.ensure_const_int64_inst(ptr_size_minus_1);
 

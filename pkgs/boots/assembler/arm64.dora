@@ -480,7 +480,7 @@ impl AssemblerArm64 {
     }
 
     pub fn bl_imm(diff: Int32) {
-        assert(diff % 4i32 == 0i32);
+        assert(diff % 4i32 == 0);
         let inst = encoding::uncond_branch_imm(1i32, diff / 4i32);
         self.emit(inst);
     }
@@ -1320,34 +1320,34 @@ impl AssemblerArm64 {
     }
 
     pub fn ldp(rt: Register, rt2: Register, rn: Register, imm: Int32) {
-        assert(imm % 8i32 == 0i32);
+        assert(imm % 8i32 == 0);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_pair(0b10i32, 0i32, 1i32, imm, rt2, rn, rt));
     }
 
     pub fn ldp_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
-        assert(imm % 4i32 == 0i32);
+        assert(imm % 4i32 == 0);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_pair(0b00i32, 0i32, 1i32, imm, rt2, rn, rt));
     }
 
     pub fn ldp_post(rt: Register, rt2: Register, rn: Register, imm: Int32) {
-        assert(imm % 8i32 == 0i32);
-        assert(imm != 0i32);
+        assert(imm % 8i32 == 0);
+        assert(imm != 0);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_pair_post(0b10i32, 0i32, 1i32, imm, rt2, rn, rt));
     }
 
     pub fn ldp_post_d(rt: FloatRegister, rt2: FloatRegister, rn: Register, imm: Int32) {
-        assert(imm % 8i32 == 0i32);
-        assert(imm != 0i32);
+        assert(imm % 8i32 == 0);
+        assert(imm != 0);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_pair_post_float(0b01i32, 1i32, 1i32, imm, rt2, rn, rt));
     }
 
     pub fn ldp_post_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
-        assert(imm % 4i32 == 0i32);
-        assert(imm != 0i32);
+        assert(imm % 4i32 == 0);
+        assert(imm != 0);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_pair_post(0b00i32, 0i32, 1i32, imm, rt2, rn, rt));
     }
@@ -1360,10 +1360,10 @@ impl AssemblerArm64 {
         amount: Int32,
     ) {
         assert(rt.is_gpr());
-        let amount = if amount == 0i32 {
+        let amount = if amount == 0 {
             0i32
         } else {
-            assert(amount == 3i32);
+            assert(amount == 3);
             1i32
         };
         self.emit(
@@ -1388,7 +1388,7 @@ impl AssemblerArm64 {
         amount: Int32,
     ) {
         assert(rt.is_gpr());
-        assert(amount == 0i32);
+        assert(amount == 0);
         self.emit(
             encoding::ldst_regoffset(
                 0b00i32,
@@ -1410,11 +1410,11 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        assert(amount == 0i32 || amount == 3i32);
-        let amount = if amount == 0i32 {
+        assert(amount == 0 || amount == 3);
+        let amount = if amount == 0 {
             0i32
         } else {
-            assert(amount == 3i32);
+            assert(amount == 3);
             1i32
         };
         self.emit(
@@ -1439,10 +1439,10 @@ impl AssemblerArm64 {
         amount: Int32,
     ) {
         assert(rt.is_gpr());
-        let amount = if amount == 0i32 {
+        let amount = if amount == 0 {
             0i32
         } else {
-            assert(amount == 1i32);
+            assert(amount == 1);
             1i32
         };
         self.emit(
@@ -1466,10 +1466,10 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        let amount = if amount == 0i32 {
+        let amount = if amount == 0 {
             0i32
         } else {
-            assert(amount == 2i32);
+            assert(amount == 2);
             1i32
         };
         self.emit(
@@ -1494,10 +1494,10 @@ impl AssemblerArm64 {
         amount: Int32,
     ) {
         assert(rt.is_gpr());
-        let amount = if amount == 0i32 {
+        let amount = if amount == 0 {
             0i32
         } else {
-            assert(amount == 2i32);
+            assert(amount == 2);
             1i32
         };
         self.emit(
@@ -1516,7 +1516,7 @@ impl AssemblerArm64 {
 
     pub fn ldr_imm(rt: Register, rn: Register, imm: Int32) {
         assert(rt.is_gpr());
-        assert(imm % 8i32 == 0i32);
+        assert(imm % 8i32 == 0);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_regimm(0b11i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
     }
@@ -1527,27 +1527,27 @@ impl AssemblerArm64 {
     }
 
     pub fn ldr_imm_d(rt: FloatRegister, rn: Register, imm: Int32) {
-        assert(imm % 8i32 == 0i32);
+        assert(imm % 8i32 == 0);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_regimm(0b11i32, 1i32, 0b01i32, imm, rn, rt.encoding()));
     }
 
     pub fn ldrh_imm(rt: Register, rn: Register, imm: Int32) {
         assert(rt.is_gpr());
-        assert(imm % 2i32 == 0i32);
+        assert(imm % 2i32 == 0);
         let imm = imm / 2i32;
         self.emit(encoding::ldst_regimm(0b01i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
     }
 
     pub fn ldr_imm_s(rt: FloatRegister, rn: Register, imm: Int32) {
-        assert(imm % 4i32 == 0i32);
+        assert(imm % 4i32 == 0);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_regimm(0b10i32, 1i32, 0b01i32, imm, rn, rt.encoding()));
     }
 
     pub fn ldr_imm_w(rt: Register, rn: Register, imm: Int32) {
         assert(rt.is_gpr());
-        assert(imm % 4i32 == 0i32);
+        assert(imm % 4i32 == 0);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_regimm(0b10i32, 0i32, 0b01i32, imm, rn, rt.encoding()));
     }
@@ -1725,43 +1725,43 @@ impl AssemblerArm64 {
     }
 
     pub fn movn(rd: Register, imm16: Int32, shift: Int32) {
-        assert(shift % 16i32 == 0i32);
-        assert(shift < 64i32);
+        assert(shift % 16i32 == 0);
+        assert(shift < 64);
         let shift = shift / 16i32;
         self.emit(encoding::move_wide_imm(1i32, 0b00i32, shift, imm16, rd));
     }
 
     pub fn movn_w(rd: Register, imm16: Int32, shift: Int32) {
-        assert(shift % 16i32 == 0i32);
-        assert(shift < 32i32);
+        assert(shift % 16i32 == 0);
+        assert(shift < 32);
         let shift = shift / 16i32;
         self.emit(encoding::move_wide_imm(0i32, 0b00i32, shift, imm16, rd));
     }
 
     pub fn movz(rd: Register, imm16: Int32, shift: Int32) {
-        assert(shift % 16i32 == 0i32);
-        assert(shift < 64i32);
+        assert(shift % 16i32 == 0);
+        assert(shift < 64);
         let shift = shift / 16i32;
         self.emit(encoding::move_wide_imm(1i32, 0b10i32, shift, imm16, rd));
     }
 
     pub fn movz_w(rd: Register, imm16: Int32, shift: Int32) {
-        assert(shift % 16i32 == 0i32);
-        assert(shift < 32i32);
+        assert(shift % 16i32 == 0);
+        assert(shift < 32);
         let shift = shift / 16i32;
         self.emit(encoding::move_wide_imm(0i32, 0b10i32, shift, imm16, rd));
     }
 
     pub fn movk(rd: Register, imm16: Int32, shift: Int32) {
-        assert(shift % 16i32 == 0i32);
-        assert(shift < 64i32);
+        assert(shift % 16i32 == 0);
+        assert(shift < 64);
         let shift = shift / 16i32;
         self.emit(encoding::move_wide_imm(1i32, 0b11i32, shift, imm16, rd));
     }
 
     pub fn movk_w(rd: Register, imm16: Int32, shift: Int32) {
-        assert(shift % 16i32 == 0i32);
-        assert(shift < 32i32);
+        assert(shift % 16i32 == 0);
+        assert(shift < 32);
         let shift = shift / 16i32;
         self.emit(encoding::move_wide_imm(0i32, 0b11i32, shift, imm16, rd));
     }
@@ -2021,55 +2021,55 @@ impl AssemblerArm64 {
     }
 
     pub fn stp(rt: Register, rt2: Register, rn: Register, imm: Int32) {
-        assert(imm % 8i32 == 0i32);
+        assert(imm % 8i32 == 0);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_pair(0b10i32, 0i32, 0i32, imm, rt2, rn, rt));
     }
 
     pub fn stp_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
-        assert(imm % 4i32 == 0i32);
+        assert(imm % 4i32 == 0);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_pair(0b00i32, 0i32, 0i32, imm, rt2, rn, rt));
     }
 
     pub fn stp_post(rt: Register, rt2: Register, rn: Register, imm: Int32) {
-        assert(imm % 8i32 == 0i32);
-        assert(imm != 0i32);
+        assert(imm % 8i32 == 0);
+        assert(imm != 0);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_pair_post(0b10i32, 0i32, 0i32, imm, rt2, rn, rt));
     }
 
     pub fn stp_post_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
-        assert(imm % 4i32 == 0i32);
-        assert(imm != 0i32);
+        assert(imm % 4i32 == 0);
+        assert(imm != 0);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_pair_post(0b00i32, 0i32, 0i32, imm, rt2, rn, rt));
     }
 
     pub fn stp_pre(rt: Register, rt2: Register, rn: Register, imm: Int32) {
-        assert(imm % 8i32 == 0i32);
-        assert(imm != 0i32);
+        assert(imm % 8i32 == 0);
+        assert(imm != 0);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_pair_pre(0b10i32, 0i32, 0i32, imm, rt2, rn, rt));
     }
 
     pub fn stp_pre_d(rt: FloatRegister, rt2: FloatRegister, rn: Register, imm: Int32) {
-        assert(imm % 8i32 == 0i32);
-        assert(imm != 0i32);
+        assert(imm % 8i32 == 0);
+        assert(imm != 0);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_pair_pre_float(0b01i32, 1i32, 0i32, imm, rt2, rn, rt));
     }
 
     pub fn stp_pre_w(rt: Register, rt2: Register, rn: Register, imm: Int32) {
-        assert(imm % 4i32 == 0i32);
-        assert(imm != 0i32);
+        assert(imm % 4i32 == 0);
+        assert(imm != 0);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_pair_pre(0b00i32, 0i32, 0i32, imm, rt2, rn, rt));
     }
 
     pub fn str_imm(rt: Register, rn: Register, imm: Int32) {
         assert(rt.is_gpr_or_zero());
-        assert(imm % 8i32 == 0i32);
+        assert(imm % 8i32 == 0);
         let imm = imm / 8i32;
         self.emit(
             encoding::ldst_regimm(0b11i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
@@ -2084,20 +2084,20 @@ impl AssemblerArm64 {
     }
 
     pub fn str_imm_d(rt: FloatRegister, rn: Register, imm: Int32) {
-        assert(imm % 8i32 == 0i32);
+        assert(imm % 8i32 == 0);
         let imm = imm / 8i32;
         self.emit(encoding::ldst_regimm(0b11i32, 1i32, 0b00i32, imm, rn, rt.encoding()));
     }
 
     pub fn str_imm_s(rt: FloatRegister, rn: Register, imm: Int32) {
-        assert(imm % 4i32 == 0i32);
+        assert(imm % 4i32 == 0);
         let imm = imm / 4i32;
         self.emit(encoding::ldst_regimm(0b10i32, 1i32, 0b00i32, imm, rn, rt.encoding()));
     }
 
     pub fn str_imm_w(rt: Register, rn: Register, imm: Int32) {
         assert(rt.is_gpr_or_zero());
-        assert(imm % 4i32 == 0i32);
+        assert(imm % 4i32 == 0);
         let imm = imm / 4i32;
         self.emit(
             encoding::ldst_regimm(0b10i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
@@ -2106,7 +2106,7 @@ impl AssemblerArm64 {
 
     pub fn strh_imm(rt: Register, rn: Register, imm: Int32) {
         assert(rt.is_gpr_or_zero());
-        assert(imm % 2i32 == 0i32);
+        assert(imm % 2i32 == 0);
         let imm = imm / 2i32;
         self.emit(
             encoding::ldst_regimm(0b01i32, 0i32, 0b00i32, imm, rn, rt.encoding_zero())
@@ -2121,10 +2121,10 @@ impl AssemblerArm64 {
         amount: Int32,
     ) {
         assert(rt.is_gpr_or_zero());
-        let amount = if amount == 0i32 {
+        let amount = if amount == 0 {
             0i32
         } else {
-            assert(amount == 3i32);
+            assert(amount == 3);
             1i32
         };
         self.emit(
@@ -2149,7 +2149,7 @@ impl AssemblerArm64 {
         amount: Int32,
     ) {
         assert(rt.is_gpr_or_zero());
-        assert(amount == 0i32);
+        assert(amount == 0);
         self.emit(
             encoding::ldst_regoffset(
                 0b00i32,
@@ -2172,10 +2172,10 @@ impl AssemblerArm64 {
         amount: Int32,
     ) {
         assert(rt.is_gpr_or_zero());
-        let amount = if amount == 0i32 {
+        let amount = if amount == 0 {
             0i32
         } else {
-            assert(amount == 1i32);
+            assert(amount == 1);
             1i32
         };
         self.emit(
@@ -2199,10 +2199,10 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        let amount = if amount == 0i32 {
+        let amount = if amount == 0 {
             0i32
         } else {
-            assert(amount == 3i32);
+            assert(amount == 3);
             1i32
         };
         self.emit(
@@ -2226,10 +2226,10 @@ impl AssemblerArm64 {
         extend: Extend,
         amount: Int32,
     ) {
-        let amount = if amount == 0i32 {
+        let amount = if amount == 0 {
             0i32
         } else {
-            assert(amount == 2i32);
+            assert(amount == 2);
             1i32
         };
         self.emit(
@@ -2254,10 +2254,10 @@ impl AssemblerArm64 {
         amount: Int32,
     ) {
         assert(rt.is_gpr_or_zero());
-        let amount = if amount == 0i32 {
+        let amount = if amount == 0 {
             0i32
         } else {
-            assert(amount == 2i32);
+            assert(amount == 2);
             1i32
         };
         self.emit(
@@ -3085,7 +3085,7 @@ mod encoding {
     ): Int32 {
         assert(fits_bit(sf));
         assert(fits_bit(op));
-        assert(opt == 0i32);
+        assert(opt == 0);
         assert(rm.is_gpr_or_zero());
         assert(fits_u2(imm3));
         assert(rn.is_gpr_or_sp());
@@ -3365,7 +3365,7 @@ mod encoding {
     pub fn exception(opc: Int32, imm16: Int32, op2: Int32, ll: Int32): Int32 {
         assert(fits_u3(opc));
         assert(fits_u16(imm16));
-        assert(op2 == 0i32);
+        assert(op2 == 0);
         assert(fits_u2(ll));
 
         0b11010100i32 << 24i32 | opc << 21i32 | imm16 << 5i32 | op2 << 2i32 | ll
@@ -3380,8 +3380,8 @@ mod encoding {
         rn: FloatRegister,
         opcode2: Int32,
     ): Int32 {
-        assert(m == 0i32);
-        assert(s == 0i32);
+        assert(m == 0);
+        assert(s == 0);
         assert(fits_bit(ty));
         assert(fits_u2(op));
         assert(fits_u5(opcode2));
@@ -3406,8 +3406,8 @@ mod encoding {
         rn: FloatRegister,
         rd: FloatRegister,
     ): Int32 {
-        assert(m == 0i32);
-        assert(s == 0i32);
+        assert(m == 0);
+        assert(s == 0);
         assert(fits_u2(ty));
         assert(fits_u6(opcode));
 
@@ -3431,8 +3431,8 @@ mod encoding {
         rn: FloatRegister,
         rd: FloatRegister,
     ): Int32 {
-        assert(m == 0i32);
-        assert(s == 0i32);
+        assert(m == 0);
+        assert(s == 0);
         assert(fits_bit(ty));
         assert(fits_u4(opcode));
 
@@ -3704,7 +3704,7 @@ mod encoding {
         assert(fits_bit(sf));
         assert(fits_u2(opc));
         assert(fits_u2(hw));
-        if sf == 0i32 {
+        if sf == 0 {
             assert(fits_bit(hw));
         }
         assert(fits_u16(imm16));
@@ -3915,7 +3915,7 @@ mod encoding {
     }
 
     fn fits_bit(value: Int32): Bool {
-        value >= 0i32 && value < 2i32
+        value >= 0 && value < 2
     }
 
     fn fits_i7(value: Int32): Bool {
@@ -3947,7 +3947,7 @@ mod encoding {
     }
 
     fn fits_signed(value: Int32, bits: Int32): Bool {
-        assert(bits > 0i32 && bits < 32i32);
+        assert(bits > 0 && bits < 32);
         -(1i32 << (bits - 1i32)) <= value && value < (1i32 << (bits - 1i32))
     }
 
@@ -3988,8 +3988,8 @@ mod encoding {
     }
 
     fn fits_unsigned(value: Int32, bits: Int32): Bool {
-        assert(bits > 0i32 && bits < 32i32);
-        value >= 0i32 && value < (1i32 << bits)
+        assert(bits > 0 && bits < 32);
+        value >= 0 && value < (1i32 << bits)
     }
 }
 

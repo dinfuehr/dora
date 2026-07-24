@@ -111,7 +111,7 @@ impl Graph {
 
     fn assign_next_inst_id(inst: Inst) {
         let id = self.inst_by_id.size().to_int32();
-        assert(id > 0i32);
+        assert(id > 0);
         inst._id = id;
         self.inst_by_id.push(Some(inst));
     }
@@ -122,7 +122,7 @@ impl Graph {
 
     fn next_block_id(): BlockId {
         let id = self.blocks.size().to_int32();
-        assert(id > 0i32);
+        assert(id > 0);
 
         BlockId(id)
     }
@@ -518,7 +518,7 @@ impl Block {
     }
 
     pub fn has_id(): Bool {
-        self._id > 0i32
+        self._id > 0
     }
 
     pub fn get_graph(): Graph {
@@ -1301,12 +1301,12 @@ impl Inst {
     }
 
     pub fn id(): InstId {
-        assert(self._id > 0i32);
+        assert(self._id > 0);
         InstId(self._id)
     }
 
     pub fn has_id(): Bool {
-        self._id > 0i32
+        self._id > 0
     }
 
     pub fn op(): Op {
@@ -1395,7 +1395,7 @@ impl Inst {
 
     pub fn is_zero_const(): Bool {
         match self.op() {
-            Op::Int32Const => self.get_value_as_int32() == 0i32,
+            Op::Int32Const => self.get_value_as_int32() == 0,
             Op::Int64Const => self.get_value_as_int64() == 0,
             Op::UInt8Const => self.get_value_as_uint8() == 0u8,
             _ => false,
@@ -1404,7 +1404,7 @@ impl Inst {
 
     pub fn is_one_const(): Bool {
         match self.op() {
-            Op::Int32Const => self.get_value_as_int32() == 1i32,
+            Op::Int32Const => self.get_value_as_int32() == 1,
             Op::Int64Const => self.get_value_as_int64() == 1,
             Op::UInt8Const => self.get_value_as_uint8() == 1u8,
             _ => false,
@@ -1413,7 +1413,7 @@ impl Inst {
 
     pub fn is_all_ones_const(): Bool {
         match self.op() {
-            Op::Int32Const => self.get_value_as_int32() == -1i32,
+            Op::Int32Const => self.get_value_as_int32() == -1,
             Op::Int64Const => self.get_value_as_int64() == -1,
             Op::UInt8Const => self.get_value_as_uint8() == 255u8,
             _ => false,

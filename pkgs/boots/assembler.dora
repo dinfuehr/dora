@@ -171,7 +171,7 @@ impl Equals for Register {
 
 impl RegisterType for Register {
     static fn from_int32(value: Int32): Register {
-        assert(value < 64i32);
+        assert(value < 64);
         Register(value.to_uint8())
     }
 
@@ -212,7 +212,7 @@ impl Hash for FloatRegister {
 
 impl RegisterType for FloatRegister {
     static fn from_int32(value: Int32): FloatRegister {
-        assert(value < 64i32);
+        assert(value < 64);
         FloatRegister(value.to_uint8())
     }
 
@@ -282,7 +282,7 @@ impl[T: RegisterType, V] RegMap[T, V] {
         let available = !self.in_use & self.allocatable;
         let idx = available.count_zero_bits_trailing();
 
-        if idx == 64i32 {
+        if idx == 64 {
             None
         } else {
             self.in_use = self.in_use | (1 << idx);
@@ -309,7 +309,7 @@ impl[T: RegisterType, V] RegMap[T, V] {
 
     pub fn free(reg: T): Option[V] {
         let value = reg.to_int32();
-        assert(value < 64i32);
+        assert(value < 64);
         self.in_use = self.in_use & !(1 << value);
         let result = self.data(value.to_int64());
         self.data(value.to_int64()) = None;
@@ -371,7 +371,7 @@ impl[T: RegisterType] RegSet[T] {
 
     pub fn add(reg: T): Bool {
         let value = reg.to_int32();
-        assert(value < 64i32);
+        assert(value < 64);
         let mask = 1 << value;
         if self.value & mask != 0 {
             false
@@ -383,13 +383,13 @@ impl[T: RegisterType] RegSet[T] {
 
     pub fn contains(reg: T): Bool {
         let value = reg.to_int32();
-        assert(value < 64i32);
+        assert(value < 64);
         (self.value & (1 << value)) != 0
     }
 
     pub fn remove(reg: T): Bool {
         let value = reg.to_int32();
-        assert(value < 64i32);
+        assert(value < 64);
         let contains = (self.value | (1 << value)) != 0;
         self.value = self.value & !(1 << value);
         contains
@@ -402,7 +402,7 @@ impl[T: RegisterType] RegSet[T] {
     pub fn pop_lowest_index(): Option[T] {
         let idx = self.value.count_zero_bits_trailing();
 
-        if idx == 64i32 {
+        if idx == 64 {
             None
         } else {
             self.value = self.value & !(1 << idx);
@@ -413,7 +413,7 @@ impl[T: RegisterType] RegSet[T] {
     pub fn pop_highest_index(): Option[T] {
         let idx = self.value.count_zero_bits_leading();
 
-        if idx == 64i32 {
+        if idx == 64 {
             None
         } else {
             let idx = 63i32 - idx;
@@ -425,7 +425,7 @@ impl[T: RegisterType] RegSet[T] {
     pub fn first(): Option[T] {
         let idx = self.value.count_zero_bits_trailing();
 
-        if idx == 64i32 {
+        if idx == 64 {
             None
         } else {
             Some(T::from_int32(idx))

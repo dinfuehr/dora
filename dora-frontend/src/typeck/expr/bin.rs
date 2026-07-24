@@ -46,7 +46,15 @@ pub(super) fn check_expr_bin(
     };
 
     let lhs_type = check_expr(ck, sema_expr.lhs, expected_operand_ty.clone());
-    let rhs_type = check_expr(ck, sema_expr.rhs, expected_operand_ty);
+
+    // Comparisons take two operands of the same type, so use the resolved left-hand type to
+    // infer the right-hand expression.
+    let expected_rhs_ty = if matches!(sema_expr.op, ast::BinOp::Cmp(_)) {
+        lhs_type.clone()
+    } else {
+        expected_operand_ty
+    };
+    let rhs_type = check_expr(ck, sema_expr.rhs, expected_rhs_ty);
 
     if lhs_type.is_error() || rhs_type.is_error() {
         ck.body.set_ty(expr_id, ty_error());

@@ -50,7 +50,7 @@ impl LateEscapeAnalysisPass {
     }
 
     fn is_removable_store(inst: Inst, idx: Int32): Bool {
-        is_store_op(inst.op()) && idx == 0i32
+        is_store_op(inst.op()) && idx == 0
     }
 
     fn remove_stores(allocation: Inst) {

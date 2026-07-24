@@ -1,0 +1,32 @@
+//= ok
+
+use std::traits::{Comparable, Equals, Ordering};
+
+class Wrapper[T](Int32)
+
+impl[T] Equals for Wrapper[T] {
+    fn equals(_rhs: Wrapper[T]): Bool {
+        true
+    }
+}
+
+impl[T] Comparable for Wrapper[T] {
+    fn cmp(_rhs: Wrapper[T]): Ordering {
+        Ordering::Less
+    }
+}
+
+fn int32_less_than_literal(value: Int32): Bool {
+    value < 1
+}
+
+fn test() {
+    let _eq = Wrapper[String](1i32) == Wrapper(2i32);
+    let _ne = Wrapper[String](3i32) != Wrapper(4i32);
+    let _lt = Wrapper[String](5i32) < Wrapper(6i32);
+    let _le = Wrapper[String](7i32) <= Wrapper(8i32);
+    let _gt = Wrapper[String](9i32) > Wrapper(10i32);
+    let _ge = Wrapper[String](11i32) >= Wrapper(12i32);
+    let _is = Wrapper[String](13i32) === Wrapper(14i32);
+    let _is_not = Wrapper[String](15i32) !== Wrapper(16i32);
+}

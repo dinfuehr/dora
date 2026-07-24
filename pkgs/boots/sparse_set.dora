@@ -48,7 +48,7 @@ impl SparseSet {
     }
 
     pub fn is_empty(): Bool {
-        self.members == 0i32
+        self.members == 0
     }
 
     pub fn clear() {
@@ -93,25 +93,25 @@ mod tests {
 
         set.insert(1i32);
         assert(set.contains(1i32));
-        assert(set.size() == 1i32);
+        assert(set.size() == 1);
 
         set.insert(9i32);
         assert(set.contains(9i32));
-        assert(set.size() == 2i32);
+        assert(set.size() == 2);
 
         set.insert(9i32);
-        assert(set.size() == 2i32);
+        assert(set.size() == 2);
 
         set.remove(8i32);
-        assert(set.size() == 2i32);
+        assert(set.size() == 2);
 
         set.remove(9i32);
         assert(!set.contains(9i32));
-        assert(set.size() == 1i32);
+        assert(set.size() == 1);
 
         set.remove(1i32);
         assert(!set.contains(1i32));
-        assert(set.size() == 0i32);
+        assert(set.size() == 0);
         assert(set.is_empty());
     }
 

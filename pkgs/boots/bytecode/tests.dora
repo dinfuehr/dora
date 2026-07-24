@@ -33,7 +33,7 @@ fn test_bytecode_ret_int() {
 
     match instructions(0).op {
         BytecodeInstruction::Ret(opnd) => {
-            assert(opnd.0 == 17i32);
+            assert(opnd.0 == 17);
         }
         _ => unreachable[()](),
     }
@@ -50,7 +50,7 @@ fn test_bytecode_ret_wide() {
 
     match instructions(0).op {
         BytecodeInstruction::Ret(opnd) => {
-            assert(opnd.0 == 256i32);
+            assert(opnd.0 == 256);
         }
         _ => unreachable[()](),
     }
@@ -67,7 +67,7 @@ fn test_bytecode_mov() {
 
     match instructions(0).op {
         BytecodeInstruction::Mov(dest, src) => {
-            assert(dest.0 == 0i32 && src.0 == 1i32);
+            assert(dest.0 == 0 && src.0 == 1);
         }
         _ => unreachable[()](),
     }
@@ -84,7 +84,7 @@ fn test_bytecode_mov_wide() {
 
     match instructions(0).op {
         BytecodeInstruction::Mov(dest, src) => {
-            assert(dest.0 == 256i32 && src.0 == 255i32);
+            assert(dest.0 == 256 && src.0 == 255);
         }
         _ => unreachable[()](),
     }
@@ -101,7 +101,7 @@ fn test_bytecode_const_byte() {
 
     match instructions(0).op {
         BytecodeInstruction::ConstUInt8(dest, value) => {
-            assert(dest.0 == 127i32 && value == 255u8);
+            assert(dest.0 == 127 && value == 255u8);
         }
         _ => unreachable[()](),
     }
@@ -118,7 +118,7 @@ fn test_bytecode_const_byte_wide() {
 
     match instructions(0).op {
         BytecodeInstruction::ConstUInt8(dest, value) => {
-            assert(dest.0 == 128i32 && value == 255u8);
+            assert(dest.0 == 128 && value == 255u8);
         }
         _ => unreachable[()](),
     }
@@ -135,7 +135,7 @@ fn test_bytecode_const_string() {
 
     match instructions(0).op {
         BytecodeInstruction::ConstString(dest, idx) => {
-            assert(dest.0 == 7i32 && idx.0 == 0i32);
+            assert(dest.0 == 7 && idx.0 == 0);
         }
         _ => unreachable[()](),
     }
@@ -156,7 +156,7 @@ fn test_bytecode_sub_float32() {
 
     match instructions(0).op {
         BytecodeInstruction::Sub(dest, lhs, rhs) => {
-            assert(dest.0 == 2i32 && lhs.0 == 9i32 && rhs.0 == 127i32);
+            assert(dest.0 == 2 && lhs.0 == 9 && rhs.0 == 127);
         }
         _ => unreachable[()](),
     }
@@ -174,7 +174,7 @@ fn test_bytecode_jump_back() {
 
     match instructions(0).op {
         BytecodeInstruction::JumpLoop(distance) => {
-            assert(distance == 0i32);
+            assert(distance == 0);
         }
         _ => unreachable[()](),
     }
@@ -186,7 +186,7 @@ fn test_bytecode_jump_back_wide() {
     let r0 = writer.add_register(BytecodeType::Unit);
     let lbl = writer.define_label();
     let mut i = 0i32;
-    while i < 128i32 {
+    while i < 128 {
         writer.emit_ret(r0);
         i = i + 1i32;
     }
@@ -198,7 +198,7 @@ fn test_bytecode_jump_back_wide() {
 
     match instructions(128).op {
         BytecodeInstruction::JumpLoop(distance) => {
-            assert(distance == 256i32);
+            assert(distance == 256);
         }
         _ => unreachable[()](),
     }
@@ -217,7 +217,7 @@ fn test_bytecode_jump() {
 
     match instructions(0).op {
         BytecodeInstruction::Jump(distance) => {
-            assert(distance == 5i32);
+            assert(distance == 5);
         }
         _ => unreachable[()](),
     }
@@ -230,7 +230,7 @@ fn test_bytecode_jump_far() {
     let lbl = writer.create_label();
     writer.emit_jump(lbl);
     let mut i = 0i32;
-    while i < 256i32 {
+    while i < 256 {
         writer.emit_ret(r0);
         i = i + 1i32;
     }
@@ -242,7 +242,7 @@ fn test_bytecode_jump_far() {
 
     match instructions(0).op {
         BytecodeInstruction::Jump(distance) => {
-            assert(distance == 517i32);
+            assert(distance == 517);
         }
         _ => unreachable[()](),
     }
@@ -261,7 +261,7 @@ fn test_bytecode_cond_jump() {
 
     match instructions(0).op {
         BytecodeInstruction::JumpIfTrue(opnd, distance) => {
-            assert(opnd == BytecodeRegister(9i32) && distance == 6i32);
+            assert(opnd == BytecodeRegister(9i32) && distance == 6);
         }
         _ => unreachable[()](),
     }
@@ -274,7 +274,7 @@ fn test_bytecode_cond_jump_far() {
     let lbl = writer.create_label();
     writer.emit_jump_if_false(BytecodeRegister(9i32), lbl);
     let mut i = 0i32;
-    while i < 256i32 {
+    while i < 256 {
         writer.emit_ret(r0);
         i = i + 1i32;
     }
@@ -286,7 +286,7 @@ fn test_bytecode_cond_jump_far() {
 
     match instructions(0).op {
         BytecodeInstruction::JumpIfFalse(opnd, distance) => {
-            assert(opnd == BytecodeRegister(9i32) && distance == 518i32);
+            assert(opnd == BytecodeRegister(9i32) && distance == 518);
         }
         _ => unreachable[()](),
     }
@@ -305,7 +305,7 @@ fn test_bytecode_cond_jump_wide() {
 
     match instructions(0).op {
         BytecodeInstruction::JumpIfTrue(opnd, distance) => {
-            assert(opnd == BytecodeRegister(128i32) && distance == 7i32);
+            assert(opnd == BytecodeRegister(128i32) && distance == 7);
         }
         _ => unreachable[()](),
     }

@@ -520,7 +520,7 @@ impl BytecodeIterator {
         while true {
             let byte = self.read_byte();
             result = result | ((byte & 0x7Fi32) << shift);
-            if byte & 0x80i32 == 0i32 {
+            if byte & 0x80i32 == 0 {
                 break;
             }
             shift = shift + 7i32;

@@ -32,8 +32,8 @@ pub fn generate_code(
     ci: CompilationInfo,
 ): CodeDescriptor {
     let stack_size = graph.get_stack_size();
-    assert(stack_size >= 0i32);
-    assert(stack_size % STACK_FRAME_ALIGNMENT.to_int32() == 0i32);
+    assert(stack_size >= 0);
+    assert(stack_size % STACK_FRAME_ALIGNMENT.to_int32() == 0);
 
     if ci.options.emit_debug {
         codegen.emit_breakpoint();

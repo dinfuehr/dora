@@ -1,1 +1,5 @@
-fn f(x: Int32): Bool { x == 0 }
+//= ok
+
+fn f(x: Int32): Bool {
+    x == 0
+}

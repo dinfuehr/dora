@@ -470,12 +470,12 @@ fn fold_checked_int32(op: Op, lhs: Int32, rhs: Int32): Option[Int32] {
         Op::CheckedAdd => checked_result_int32(lhs.overflowing_add(rhs)),
         Op::CheckedSub => checked_result_int32(lhs.overflowing_sub(rhs)),
         Op::CheckedMul => checked_result_int32(lhs.overflowing_mul(rhs)),
-        Op::CheckedDiv => if rhs == 0i32 {
+        Op::CheckedDiv => if rhs == 0 {
             None
         } else {
             checked_result_int32(lhs.overflowing_div(rhs))
         }
-        Op::CheckedMod => if rhs == 0i32 {
+        Op::CheckedMod => if rhs == 0 {
             None
         } else {
             checked_result_int32(lhs.overflowing_mod(rhs))

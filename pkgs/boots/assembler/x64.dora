@@ -72,7 +72,7 @@ impl FloatRegister {
     }
 
     pub fn needs_rex_bit(): Bool {
-        self.0.to_int32() > 7i32
+        self.0.to_int32() > 7
     }
 }
 
@@ -1054,7 +1054,7 @@ impl AssemblerX64 {
     }
 
     pub fn setcc_r(condition: Condition, dest: Register) {
-        if dest.needs_rex_bit() || dest.low_bits() > 3i32 {
+        if dest.needs_rex_bit() || dest.low_bits() > 3 {
             self.emit_rex(false, false, false, dest.needs_rex_bit());
         }
 
@@ -2367,7 +2367,7 @@ impl AssemblerX64 {
     }
 
     fn emit_address(reg_or_opcode: Int32, address: Address) {
-        assert(reg_or_opcode < 8i32);
+        assert(reg_or_opcode < 8);
 
         self.emit_byte(
             (reg_or_opcode << 3i32 | address.bytes(0i64).to_int32()).to_uint8()
@@ -2422,7 +2422,7 @@ impl AssemblerX64 {
         assert(fits_u2(pp));
         assert(fits_bit(l));
 
-        if x || b || mmmmm != 0b00001i32 || w != 0i32 {
+        if x || b || mmmmm != 0b00001 || w != 0 {
             // 0xC4 ...
             self.emit_vex3(r, x, b, mmmmm, w, vvvv, l, pp);
         } else {
@@ -2497,14 +2497,14 @@ impl AssemblerX64 {
     }
 
     fn emit_mod_rm(mode: Int32, reg: Int32, rm: Int32) {
-        assert(mode < 4i32 && reg < 8i32 && rm < 8i32);
+        assert(mode < 4 && reg < 8 && rm < 8);
         self.emit_byte((mode << 6i32 | reg << 3i32 | rm).to_uint8());
     }
 
     fn emit_sib(scale: Int32, index: Int32, base: Int32) {
-        assert(scale < 4i32);
-        assert(index < 8i32);
-        assert(base < 8i32);
+        assert(scale < 4);
+        assert(index < 8);
+        assert(base < 8);
         self.emit_byte((scale << 6i32 | index << 3i32 | base).to_uint8());
     }
 
@@ -2722,7 +2722,7 @@ impl Address {
 
     fn set_modrm(mode: Int32, reg: Register) {
         assert(self.length == 0i64);
-        assert(0i32 <= mode && mode < 4i32);
+        assert(0i32 <= mode && mode < 4);
 
         if reg.needs_rex_bit() {
             self.rex = (self.rex.to_int32() | 0x41i32).to_uint8();
@@ -2766,9 +2766,9 @@ impl Address {
     pub static fn offset(base: Register, offset: Int32): Address {
         let address = Address::new();
 
-        let mode = if offset == 0i32 && base != RBP && base != R13 {
+        let mode = if offset == 0 && base != RBP && base != R13 {
             0b00i32
-        } else if -128i32 <= offset && offset < 128i32 {
+        } else if -128i32 <= offset && offset < 128 {
             0b01i32
         } else {
             0b10i32
@@ -2780,11 +2780,11 @@ impl Address {
             address.set_sib(ScaleFactor::One, RSP, base);
         }
 
-        if mode == 0b00i32 {
+        if mode == 0b00 {
             // nothing to do
-        } else if mode == 0b01i32 {
+        } else if mode == 0b01 {
             address.set_disp8(offset);
-        } else if mode == 0b10i32 {
+        } else if mode == 0b10 {
             address.set_disp32(offset);
         } else {
             unreachable[()]();
@@ -2813,9 +2813,9 @@ impl Address {
     ): Address {
         let address = Address::new();
 
-        let mode = if disp == 0i32 && base != RBP && base != R13 {
+        let mode = if disp == 0 && base != RBP && base != R13 {
             0b00i32
-        } else if -128i32 <= disp && disp < 128i32 {
+        } else if -128i32 <= disp && disp < 128 {
             0b01i32
         } else {
             0b10i32
@@ -2826,11 +2826,11 @@ impl Address {
 
         address.set_sib(factor, index, base);
 
-        if mode == 0b00i32 {
+        if mode == 0b00 {
             // nothing to do
-        } else if mode == 0b01i32 {
+        } else if mode == 0b01 {
             address.set_disp8(disp);
-        } else if mode == 0b10i32 {
+        } else if mode == 0b10 {
             address.set_disp32(disp);
         } else {
             unreachable[()]();
@@ -2849,11 +2849,11 @@ impl Address {
     }
 
     pub fn rex_x(): Bool {
-        (self.rex.to_int32() & 0x2i32) != 0i32
+        (self.rex.to_int32() & 0x2i32) != 0
     }
 
     pub fn rex_b(): Bool {
-        (self.rex.to_int32() & 0x1i32) != 0i32
+        (self.rex.to_int32() & 0x1i32) != 0
     }
 }
 
@@ -2895,55 +2895,55 @@ fn fits_u5(value: Int32): Bool {
 }
 
 fn fits_unsigned(value: Int32, bits: Int32): Bool {
-    assert(bits > 0i32 && bits < 32i32);
-    value >= 0i32 && value < (1i32 << bits)
+    assert(bits > 0 && bits < 32);
+    value >= 0 && value < (1i32 << bits)
 }
 
 @Test
 fn test_condition_codes() {
-    assert(Condition::Overflow.to_int32() == 0b0000i32);
+    assert(Condition::Overflow.to_int32() == 0b0000);
 
-    assert(Condition::NoOverflow.to_int32() == 0b0001i32);
+    assert(Condition::NoOverflow.to_int32() == 0b0001);
 
-    assert(Condition::Below.to_int32() == 0b0010i32);
-    assert(Condition::NeitherAboveNorEqual.to_int32() == 0b0010i32);
+    assert(Condition::Below.to_int32() == 0b0010);
+    assert(Condition::NeitherAboveNorEqual.to_int32() == 0b0010);
 
-    assert(Condition::NotBelow.to_int32() == 0b0011i32);
-    assert(Condition::AboveOrEqual.to_int32() == 0b0011i32);
+    assert(Condition::NotBelow.to_int32() == 0b0011);
+    assert(Condition::AboveOrEqual.to_int32() == 0b0011);
 
-    assert(Condition::Equal.to_int32() == 0b0100i32);
-    assert(Condition::Zero.to_int32() == 0b0100i32);
+    assert(Condition::Equal.to_int32() == 0b0100);
+    assert(Condition::Zero.to_int32() == 0b0100);
 
-    assert(Condition::NotEqual.to_int32() == 0b0101i32);
-    assert(Condition::NotZero.to_int32() == 0b0101i32);
+    assert(Condition::NotEqual.to_int32() == 0b0101);
+    assert(Condition::NotZero.to_int32() == 0b0101);
 
-    assert(Condition::BelowOrEqual.to_int32() == 0b0110i32);
-    assert(Condition::NotAbove.to_int32() == 0b0110i32);
+    assert(Condition::BelowOrEqual.to_int32() == 0b0110);
+    assert(Condition::NotAbove.to_int32() == 0b0110);
 
-    assert(Condition::NeitherBelowNorEqual.to_int32() == 0b0111i32);
-    assert(Condition::Above.to_int32() == 0b0111i32);
+    assert(Condition::NeitherBelowNorEqual.to_int32() == 0b0111);
+    assert(Condition::Above.to_int32() == 0b0111);
 
-    assert(Condition::Sign.to_int32() == 0b1000i32);
+    assert(Condition::Sign.to_int32() == 0b1000);
 
-    assert(Condition::NoSign.to_int32() == 0b1001i32);
+    assert(Condition::NoSign.to_int32() == 0b1001);
 
-    assert(Condition::Parity.to_int32() == 0b1010i32);
-    assert(Condition::ParityEven.to_int32() == 0b1010i32);
+    assert(Condition::Parity.to_int32() == 0b1010);
+    assert(Condition::ParityEven.to_int32() == 0b1010);
 
-    assert(Condition::NoParity.to_int32() == 0b1011i32);
-    assert(Condition::ParityOdd.to_int32() == 0b1011i32);
+    assert(Condition::NoParity.to_int32() == 0b1011);
+    assert(Condition::ParityOdd.to_int32() == 0b1011);
 
-    assert(Condition::Less.to_int32() == 0b1100i32);
-    assert(Condition::NeitherGreaterNorEqual.to_int32() == 0b1100i32);
+    assert(Condition::Less.to_int32() == 0b1100);
+    assert(Condition::NeitherGreaterNorEqual.to_int32() == 0b1100);
 
-    assert(Condition::NotLess.to_int32() == 0b1101i32);
-    assert(Condition::GreaterOrEqual.to_int32() == 0b1101i32);
+    assert(Condition::NotLess.to_int32() == 0b1101);
+    assert(Condition::GreaterOrEqual.to_int32() == 0b1101);
 
-    assert(Condition::LessOrEqual.to_int32() == 0b1110i32);
-    assert(Condition::NotGreater.to_int32() == 0b1110i32);
+    assert(Condition::LessOrEqual.to_int32() == 0b1110);
+    assert(Condition::NotGreater.to_int32() == 0b1110);
 
-    assert(Condition::NeitherLessNorEqual.to_int32() == 0b1111i32);
-    assert(Condition::Greater.to_int32() == 0b1111i32);
+    assert(Condition::NeitherLessNorEqual.to_int32() == 0b1111);
+    assert(Condition::Greater.to_int32() == 0b1111);
 }
 
 @Test
@@ -3002,23 +3002,23 @@ mod tests {
 
     @Test
     fn registers() {
-        assert(RAX.low_bits() == 0i32 && !RAX.needs_rex_bit());
-        assert(RCX.low_bits() == 1i32 && !RCX.needs_rex_bit());
-        assert(RDX.low_bits() == 2i32 && !RDX.needs_rex_bit());
-        assert(RBX.low_bits() == 3i32 && !RBX.needs_rex_bit());
-        assert(RSP.low_bits() == 4i32 && !RSP.needs_rex_bit());
-        assert(RBP.low_bits() == 5i32 && !RBP.needs_rex_bit());
-        assert(RSI.low_bits() == 6i32 && !RSI.needs_rex_bit());
-        assert(RDI.low_bits() == 7i32 && !RDI.needs_rex_bit());
+        assert(RAX.low_bits() == 0 && !RAX.needs_rex_bit());
+        assert(RCX.low_bits() == 1 && !RCX.needs_rex_bit());
+        assert(RDX.low_bits() == 2 && !RDX.needs_rex_bit());
+        assert(RBX.low_bits() == 3 && !RBX.needs_rex_bit());
+        assert(RSP.low_bits() == 4 && !RSP.needs_rex_bit());
+        assert(RBP.low_bits() == 5 && !RBP.needs_rex_bit());
+        assert(RSI.low_bits() == 6 && !RSI.needs_rex_bit());
+        assert(RDI.low_bits() == 7 && !RDI.needs_rex_bit());
 
-        assert(R8.low_bits() == 0i32 && R8.needs_rex_bit());
-        assert(R9.low_bits() == 1i32 && R9.needs_rex_bit());
-        assert(R10.low_bits() == 2i32 && R10.needs_rex_bit());
-        assert(R11.low_bits() == 3i32 && R11.needs_rex_bit());
-        assert(R12.low_bits() == 4i32 && R12.needs_rex_bit());
-        assert(R13.low_bits() == 5i32 && R13.needs_rex_bit());
-        assert(R14.low_bits() == 6i32 && R14.needs_rex_bit());
-        assert(R15.low_bits() == 7i32 && R15.needs_rex_bit());
+        assert(R8.low_bits() == 0 && R8.needs_rex_bit());
+        assert(R9.low_bits() == 1 && R9.needs_rex_bit());
+        assert(R10.low_bits() == 2 && R10.needs_rex_bit());
+        assert(R11.low_bits() == 3 && R11.needs_rex_bit());
+        assert(R12.low_bits() == 4 && R12.needs_rex_bit());
+        assert(R13.low_bits() == 5 && R13.needs_rex_bit());
+        assert(R14.low_bits() == 6 && R14.needs_rex_bit());
+        assert(R15.low_bits() == 7 && R15.needs_rex_bit());
     }
 
     @Test

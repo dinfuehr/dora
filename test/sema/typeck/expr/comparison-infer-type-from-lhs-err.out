@@ -1,0 +1,25 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> comparison-infer-type-from-lhs-err.dora:18:36
+ | 
+ | fn equals() {
+ |     Wrapper[Bool](true) == Wrapper(1i32);
+                                      ~~~~
+ | }
+ | 
+error: Argument expects value of type `String` but got `Bool`.
+--> comparison-infer-type-from-lhs-err.dora:22:40
+ | 
+ | fn compare() {
+ |     Wrapper[String]("value") < Wrapper(false);
+                                          ~~~~~
+ | }
+ | 
+error: Argument expects value of type `Int32` but got `String`.
+--> comparison-infer-type-from-lhs-err.dora:26:38
+ | 
+ | fn identity() {
+ |     Wrapper[Int32](1i32) === Wrapper("value");
+                                        ~~~~~~~
+ | }
+ | 
+3 errors found.

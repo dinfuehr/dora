@@ -637,7 +637,7 @@ impl CodeGenArm64 {
         self.asm.str_imm_w(tmp, obj, OBJECT_METADATA_OFFSET);
 
         if size > OBJECT_HEADER_LENGTH {
-            assert(size % PTR_SIZE == 0i32);
+            assert(size % PTR_SIZE == 0);
             self.asm.add_imm(tmp, obj, OBJECT_HEADER_LENGTH);
             self.zero_memory(
                 tmp,
@@ -670,7 +670,7 @@ impl CodeGenArm64 {
 
         self.asm.add_imm(tmp1, obj, iface::ARRAY_HEADER_LENGTH);
         self.asm.sub_imm(tmp2, size, iface::ARRAY_HEADER_LENGTH);
-        assert(PTR_SIZE % 8i32 == 0i32);
+        assert(PTR_SIZE % 8i32 == 0);
         self.asm.lsr_imm(tmp2, tmp2, 3i32);
         self.zero_memory_dynamic(tmp1, tmp2);
     }
@@ -1123,7 +1123,7 @@ impl CodeGen for CodeGenArm64 {
         self.asm.stp_pre(REG_FP, REG_LR, REG_SP, -16i32);
         self.asm.mov(REG_FP, REG_SP);
 
-        if stack_size > 0i32 {
+        if stack_size > 0 {
             if arm64::fits_add_sub_imm(stack_size.to_int64()) {
                 self.asm.sub_imm(REG_SP, REG_SP, stack_size);
             } else {
@@ -2601,7 +2601,7 @@ impl CodeGen for CodeGenArm64 {
             unreachable[()]();
         };
 
-        assert(size % PTR_SIZE == 0i32);
+        assert(size % PTR_SIZE == 0);
 
         let tmp = loc.get_temp(0).get_register();
         let location = inst.get_inlined_location();

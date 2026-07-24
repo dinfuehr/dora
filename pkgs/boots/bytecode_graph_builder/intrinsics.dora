@@ -15,7 +15,7 @@ struct OverflowingResult {
 
 impl BytecodeGraphBuilder {
     pub fn is_intrinsic(intrinsic: Int32): Bool {
-        intrinsic >= 0i32 && intrinsic != opc::INTRINSIC_OPTION_GET_OR_PANIC
+        intrinsic >= 0 && intrinsic != opc::INTRINSIC_OPTION_GET_OR_PANIC
     }
 
     pub fn emit_intrinsic(
