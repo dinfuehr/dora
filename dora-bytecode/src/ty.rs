@@ -14,7 +14,6 @@ pub enum BytecodeType {
     Int64,
     Float32,
     Float64,
-    Ptr,
     Address,
     This,
     Tuple(BytecodeTypeArray),
@@ -38,13 +37,6 @@ impl BytecodeType {
     pub fn is_any_float(&self) -> bool {
         match self {
             BytecodeType::Float32 | BytecodeType::Float64 => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_ptr(&self) -> bool {
-        match self {
-            BytecodeType::Ptr => true,
             _ => false,
         }
     }
@@ -129,7 +121,6 @@ impl BytecodeType {
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64
-            | BytecodeType::Ptr
             | BytecodeType::Address => true,
             BytecodeType::Class(_, params)
             | BytecodeType::Enum(_, params)
@@ -153,7 +144,6 @@ impl BytecodeType {
 
     pub fn is_reference_type(&self) -> bool {
         match self {
-            BytecodeType::Ptr => true,
             BytecodeType::Class(..) => true,
             BytecodeType::TraitObject(..) => true,
             BytecodeType::Lambda(..) => true,

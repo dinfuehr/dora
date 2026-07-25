@@ -81,9 +81,6 @@ pub fn encode_bytecode_type(ty: &BytecodeType, buffer: &mut ByteBuffer) {
         BytecodeType::Float64 => {
             buffer.emit_u8(opc::BYTECODE_TYPE_FLOAT64);
         }
-        BytecodeType::Ptr => {
-            buffer.emit_u8(opc::BYTECODE_TYPE_PTR);
-        }
         BytecodeType::Address => {
             buffer.emit_u8(opc::BYTECODE_TYPE_ADDRESS);
         }
@@ -216,7 +213,6 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
         opc::BYTECODE_TYPE_INT64 => BytecodeType::Int64,
         opc::BYTECODE_TYPE_FLOAT32 => BytecodeType::Float32,
         opc::BYTECODE_TYPE_FLOAT64 => BytecodeType::Float64,
-        opc::BYTECODE_TYPE_PTR => BytecodeType::Ptr,
         opc::BYTECODE_TYPE_ADDRESS => BytecodeType::Address,
         opc::BYTECODE_TYPE_THIS => BytecodeType::This,
         opc::BYTECODE_TYPE_CLASS => {

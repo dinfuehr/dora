@@ -866,7 +866,6 @@ impl BytecodeGraphBuilder {
                 // No need to clear any reference.
             }
             BytecodeType::Class(..)
-            | BytecodeType::Ptr
             | BytecodeType::Lambda(..)
             | BytecodeType::TraitObject(..) => {
                 self.clear_array_element_pointer(array, index);

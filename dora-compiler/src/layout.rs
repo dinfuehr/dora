@@ -208,8 +208,7 @@ impl<'a> AotLayout<'a> {
             BytecodeType::Int64 => 8,
             BytecodeType::Float32 => 4,
             BytecodeType::Float64 => 8,
-            BytecodeType::Ptr
-            | BytecodeType::Address
+            BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
             | BytecodeType::Lambda(..)
@@ -242,8 +241,7 @@ impl<'a> AotLayout<'a> {
             BytecodeType::Int64 => MachineMode::Int64,
             BytecodeType::Float32 => MachineMode::Float32,
             BytecodeType::Float64 => MachineMode::Float64,
-            BytecodeType::Ptr
-            | BytecodeType::Address
+            BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
             | BytecodeType::Lambda(..)
@@ -276,8 +274,7 @@ impl<'a> AotLayout<'a> {
             BytecodeType::Int64 => 8,
             BytecodeType::Float32 => 4,
             BytecodeType::Float64 => 8,
-            BytecodeType::Ptr
-            | BytecodeType::Address
+            BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
             | BytecodeType::Lambda(..)
@@ -338,10 +335,9 @@ impl<'a> AotLayout<'a> {
             | BytecodeType::Address
             | BytecodeType::Unit => {}
 
-            BytecodeType::Ptr
-            | BytecodeType::Class(..)
-            | BytecodeType::Lambda(..)
-            | BytecodeType::TraitObject(..) => refs.push(offset),
+            BytecodeType::Class(..) | BytecodeType::Lambda(..) | BytecodeType::TraitObject(..) => {
+                refs.push(offset)
+            }
 
             BytecodeType::Ref(..) => {
                 // Ref points to local stack memory, not GC-managed heap objects.
@@ -359,10 +355,9 @@ impl<'a> AotLayout<'a> {
     pub fn array_shape_size(&self, element_ty: &BytecodeType) -> InstanceSize {
         match element_ty {
             BytecodeType::Unit => InstanceSize::UnitArray,
-            BytecodeType::Ptr
-            | BytecodeType::Class(..)
-            | BytecodeType::TraitObject(..)
-            | BytecodeType::Lambda(..) => InstanceSize::ObjArray,
+            BytecodeType::Class(..) | BytecodeType::TraitObject(..) | BytecodeType::Lambda(..) => {
+                InstanceSize::ObjArray
+            }
 
             BytecodeType::Tuple(subtypes) => {
                 let tuple = self.tuple_layout(subtypes.clone());

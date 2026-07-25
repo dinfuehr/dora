@@ -1148,7 +1148,7 @@ fn compute_record_layout(
                     }
                 }
             }
-            BytecodeType::Ptr | _ => {
+            _ => {
                 unimplemented[()]();
             }
         }
@@ -1240,7 +1240,6 @@ pub fn is_reference(ci: CompilationInfo, ty: BytecodeType): Bool {
         | BytecodeType::Struct(..)
         | BytecodeType::Tuple(_) => false,
         BytecodeType::Class(..)
-        | BytecodeType::Ptr
         | BytecodeType::Lambda(..)
         | BytecodeType::TraitObject(..) => true,
         BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Bool](),

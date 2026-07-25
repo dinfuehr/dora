@@ -58,7 +58,11 @@ fn compile_program_entries_aot(
         compile_transitive_closure(ctx.as_ref(), &tc)
     };
     let mut strings = AotStringTable::new();
-    let runtime_functions = compile_aot_runtime_trampolines(&mut strings, inputs.target_arch);
+    let runtime_functions = compile_aot_runtime_trampolines(
+        &mut strings,
+        inputs.target_arch,
+        inputs.known_elements.classes.string_class_id,
+    );
 
     build_aot_compilation(
         ctx.as_ref(),
@@ -111,7 +115,11 @@ pub fn compile_boots_compiler_aot(
         compile_transitive_closure(ctx.as_ref(), &tc)
     };
     let mut strings = AotStringTable::new();
-    let runtime_functions = compile_aot_runtime_trampolines(&mut strings, inputs.target_arch);
+    let runtime_functions = compile_aot_runtime_trampolines(
+        &mut strings,
+        inputs.target_arch,
+        inputs.known_elements.classes.string_class_id,
+    );
 
     build_aot_compilation(
         ctx.as_ref(),
@@ -857,6 +865,7 @@ fn build_aot_compilation(
 fn compile_aot_runtime_trampolines(
     strings: &mut AotStringTable,
     target_arch: TargetArch,
+    string_class_id: ClassId,
 ) -> Vec<AotFunction> {
     let mut runtime_functions = Vec::new();
 
@@ -896,7 +905,7 @@ fn compile_aot_runtime_trampolines(
         "dora_native_gc_alloc".to_string(),
         function_info,
         BytecodeTypeArray::new(vec![BytecodeType::Int64, BytecodeType::Bool]),
-        BytecodeType::Ptr,
+        BytecodeType::Address,
         AotCodeKind::AllocationFailureTrampoline,
         target_arch,
     ));
@@ -915,7 +924,10 @@ fn compile_aot_runtime_trampolines(
         "dora_aot_fatal_error_trampoline",
         "dora_native_fatal_error".to_string(),
         function_info,
-        BytecodeTypeArray::one(BytecodeType::Ptr),
+        BytecodeTypeArray::one(BytecodeType::Class(
+            string_class_id,
+            BytecodeTypeArray::empty(),
+        )),
         BytecodeType::Unit,
         AotCodeKind::FatalErrorTrampoline,
         target_arch,

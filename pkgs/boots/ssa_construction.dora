@@ -350,7 +350,6 @@ impl SsaConstruction {
             BytecodeType::Int64 => Type::Int64,
             BytecodeType::Float64 => Type::Float64,
             BytecodeType::Class(..)
-            | BytecodeType::Ptr
             | BytecodeType::Address
             | BytecodeType::Lambda(..)
             | BytecodeType::TraitObject(..) => Type::Ptr,

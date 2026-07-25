@@ -244,7 +244,6 @@ impl Stringable for ConstPoolId {
 
 pub enum BytecodeType {
     Unit,
-    Ptr,
     Address,
     UInt8,
     Bool,
@@ -277,17 +276,9 @@ impl BytecodeType {
         }
     }
 
-    pub fn is_ptr(): Bool {
-        match self {
-            BytecodeType::Ptr => true,
-            _ => false,
-        }
-    }
-
     pub fn is_generic(): Bool {
         match self {
             BytecodeType::Unit
-            | BytecodeType::Ptr
             | BytecodeType::Address
             | BytecodeType::UInt8
             | BytecodeType::Bool
@@ -351,13 +342,6 @@ impl Equals for BytecodeType {
             BytecodeType::Unit => {
                 match other {
                     BytecodeType::Unit => true,
-                    _ => false,
-                }
-            }
-
-            BytecodeType::Ptr => {
-                match other {
-                    BytecodeType::Ptr => true,
                     _ => false,
                 }
             }
@@ -511,7 +495,6 @@ impl Hash for BytecodeType {
     fn hash(): Int32 {
         match self {
             BytecodeType::Unit => opc::BYTECODE_TYPE_UNIT,
-            BytecodeType::Ptr => opc::BYTECODE_TYPE_PTR,
             BytecodeType::Address => opc::BYTECODE_TYPE_ADDRESS,
             BytecodeType::UInt8 => opc::BYTECODE_TYPE_U_INT8,
             BytecodeType::Bool => opc::BYTECODE_TYPE_BOOL,
@@ -564,7 +547,6 @@ impl Stringable for BytecodeType {
     fn to_string(): String {
         match self {
             BytecodeType::Unit => "Unit",
-            BytecodeType::Ptr => "Ptr",
             BytecodeType::Address => "Address",
             BytecodeType::UInt8 => "UInt8",
             BytecodeType::Bool => "Bool",

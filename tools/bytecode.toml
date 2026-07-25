@@ -91,7 +91,6 @@ variants = [
     "Int64",
     "Float32",
     "Float64",
-    "Ptr",
     "Address",
     "Tuple",
     "Enum",

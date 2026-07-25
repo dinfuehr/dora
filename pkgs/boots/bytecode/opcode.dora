@@ -83,19 +83,18 @@ pub const BYTECODE_TYPE_INT32: Int32 = 4;
 pub const BYTECODE_TYPE_INT64: Int32 = 5;
 pub const BYTECODE_TYPE_FLOAT32: Int32 = 6;
 pub const BYTECODE_TYPE_FLOAT64: Int32 = 7;
-pub const BYTECODE_TYPE_PTR: Int32 = 8;
-pub const BYTECODE_TYPE_ADDRESS: Int32 = 9;
-pub const BYTECODE_TYPE_TUPLE: Int32 = 10;
-pub const BYTECODE_TYPE_ENUM: Int32 = 11;
-pub const BYTECODE_TYPE_STRUCT: Int32 = 12;
-pub const BYTECODE_TYPE_TYPE_PARAM: Int32 = 13;
-pub const BYTECODE_TYPE_CLASS: Int32 = 14;
-pub const BYTECODE_TYPE_TRAIT_OBJECT: Int32 = 15;
-pub const BYTECODE_TYPE_LAMBDA: Int32 = 16;
-pub const BYTECODE_TYPE_TYPE_ALIAS: Int32 = 17;
-pub const BYTECODE_TYPE_ASSOC: Int32 = 18;
-pub const BYTECODE_TYPE_THIS: Int32 = 19;
-pub const BYTECODE_TYPE_REF: Int32 = 20;
+pub const BYTECODE_TYPE_ADDRESS: Int32 = 8;
+pub const BYTECODE_TYPE_TUPLE: Int32 = 9;
+pub const BYTECODE_TYPE_ENUM: Int32 = 10;
+pub const BYTECODE_TYPE_STRUCT: Int32 = 11;
+pub const BYTECODE_TYPE_TYPE_PARAM: Int32 = 12;
+pub const BYTECODE_TYPE_CLASS: Int32 = 13;
+pub const BYTECODE_TYPE_TRAIT_OBJECT: Int32 = 14;
+pub const BYTECODE_TYPE_LAMBDA: Int32 = 15;
+pub const BYTECODE_TYPE_TYPE_ALIAS: Int32 = 16;
+pub const BYTECODE_TYPE_ASSOC: Int32 = 17;
+pub const BYTECODE_TYPE_THIS: Int32 = 18;
+pub const BYTECODE_TYPE_REF: Int32 = 19;
 
 pub const CONST_POOL_OPCODE_STRING: Int32 = 0;
 pub const CONST_POOL_OPCODE_FLOAT32: Int32 = 1;
@@ -574,9 +573,6 @@ pub fn bytecode_type_name(opcode: Int32): String {
     }
     if opcode == BYTECODE_TYPE_FLOAT64 {
         return "Float64";
-    }
-    if opcode == BYTECODE_TYPE_PTR {
-        return "Ptr";
     }
     if opcode == BYTECODE_TYPE_ADDRESS {
         return "Address";

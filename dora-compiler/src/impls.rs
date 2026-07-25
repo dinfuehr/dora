@@ -144,7 +144,6 @@ pub fn ty_implements_trait_in_program(
 
         BytecodeType::TypeAlias(..)
         | BytecodeType::Assoc { .. }
-        | BytecodeType::Ptr
         | BytecodeType::Address
         | BytecodeType::This
         | BytecodeType::Ref(..) => unreachable!(),

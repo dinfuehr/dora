@@ -1914,8 +1914,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let bytecode_type = self.specialize_register_type(lhs);
 
         match bytecode_type {
-            BytecodeType::Ptr
-            | BytecodeType::Address
+            BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
             | BytecodeType::Lambda(..) => {
@@ -2648,7 +2647,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             | BytecodeType::Int64
             | BytecodeType::Float32
             | BytecodeType::Float64
-            | BytecodeType::Ptr
             | BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)

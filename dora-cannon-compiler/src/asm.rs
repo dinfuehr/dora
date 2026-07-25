@@ -176,8 +176,7 @@ impl<'a> BaselineAssembler<'a> {
                 unreachable!()
             }
 
-            BytecodeType::Ptr
-            | BytecodeType::Address
+            BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
             | BytecodeType::Lambda(..)
@@ -331,8 +330,7 @@ impl<'a> BaselineAssembler<'a> {
                 self.store_mem(mode, Mem::Base(host_reg, host_offset), (*value_reg).into());
             }
 
-            BytecodeType::Ptr
-            | BytecodeType::Address
+            BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
             | BytecodeType::Lambda(..) => {
@@ -419,8 +417,7 @@ impl<'a> BaselineAssembler<'a> {
                 self.store_mem(mode, Mem::Base(element_reg, offset), (*value_reg).into());
             }
 
-            BytecodeType::Ptr
-            | BytecodeType::Address
+            BytecodeType::Address
             | BytecodeType::TraitObject(..)
             | BytecodeType::Class(..)
             | BytecodeType::Lambda(..) => {
@@ -1337,8 +1334,7 @@ impl<'a> BaselineAssembler<'a> {
                 }
             }
 
-            BytecodeType::Ptr
-            | BytecodeType::Address
+            BytecodeType::Address
             | BytecodeType::UInt8
             | BytecodeType::Bool
             | BytecodeType::Char

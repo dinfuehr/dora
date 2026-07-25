@@ -352,9 +352,6 @@ pub fn encode_bytecode_type(writer: ByteWriter, ty: BytecodeType) {
         BytecodeType::Float64 => {
             writer.emit_byte(opc::BYTECODE_TYPE_FLOAT64.to_uint8());
         }
-        BytecodeType::Ptr => {
-            writer.emit_byte(opc::BYTECODE_TYPE_PTR.to_uint8());
-        }
         BytecodeType::Address => {
             writer.emit_byte(opc::BYTECODE_TYPE_ADDRESS.to_uint8());
         }

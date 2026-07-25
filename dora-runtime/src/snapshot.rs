@@ -459,10 +459,7 @@ impl<'a> SnapshotGenerator<'a> {
             BytecodeType::Struct(..) => self.process_struct_value(value_address, ty),
             BytecodeType::Enum(..) => self.process_enum_value(value_address, ty),
 
-            BytecodeType::Class(..)
-            | BytecodeType::TraitObject(..)
-            | BytecodeType::Lambda(..)
-            | BytecodeType::Ptr => {
+            BytecodeType::Class(..) | BytecodeType::TraitObject(..) | BytecodeType::Lambda(..) => {
                 let field_value = value_address.load::<Address>();
 
                 if field_value.is_non_null() {

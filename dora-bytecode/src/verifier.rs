@@ -92,11 +92,6 @@ impl<'a> Verifier<'a> {
             .type_params
             .type_param_count();
         for ty in self.bytecode.registers() {
-            assert_ne!(
-                ty,
-                &BytecodeType::Ptr,
-                "bytecode registers must use their value type instead of Ptr"
-            );
             verify_type(ty, type_param_count);
         }
         for entry in self.bytecode.const_pool_entries() {
@@ -1193,7 +1188,6 @@ fn verify_type(ty: &BytecodeType, type_param_count: usize) {
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64
-        | BytecodeType::Ptr
         | BytecodeType::Address
         | BytecodeType::This
         | BytecodeType::TypeAlias(_) => {}

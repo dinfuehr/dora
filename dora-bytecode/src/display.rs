@@ -221,7 +221,6 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
             BytecodeType::Float32 => write!(f, "Float32"),
             BytecodeType::Float64 => write!(f, "Float64"),
             BytecodeType::Bool => write!(f, "Bool"),
-            BytecodeType::Ptr => write!(f, "Ptr"),
             BytecodeType::Address => write!(f, "Address"),
             BytecodeType::Class(id, type_params) => {
                 let cls = self.prog.class(*id);

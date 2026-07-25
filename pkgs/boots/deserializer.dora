@@ -216,8 +216,6 @@ pub fn decode_bytecode_type(reader: ByteReader): BytecodeType {
         BytecodeType::Float32
     } else if opcode == opc::BYTECODE_TYPE_FLOAT64 {
         BytecodeType::Float64
-    } else if opcode == opc::BYTECODE_TYPE_PTR {
-        BytecodeType::Ptr
     } else if opcode == opc::BYTECODE_TYPE_ADDRESS {
         BytecodeType::Address
     } else if opcode == opc::BYTECODE_TYPE_STRUCT {

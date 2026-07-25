@@ -63,7 +63,6 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64
-        | BytecodeType::Ptr
         | BytecodeType::Address => ty,
 
         BytecodeType::Ref(inner) => BytecodeType::Ref(Box::new(specialize_bty(
@@ -200,7 +199,6 @@ pub fn specialize_ty_in_program(
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64
-        | BytecodeType::Ptr
         | BytecodeType::Address => ty,
 
         BytecodeType::Ref(inner) => BytecodeType::Ref(Box::new(specialize_ty_in_program(
@@ -318,7 +316,6 @@ pub fn specialize_bty_for_trait_object(
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64
-        | BytecodeType::Ptr
         | BytecodeType::Address => ty,
 
         BytecodeType::Ref(inner) => BytecodeType::Ref(Box::new(specialize_bty_for_trait_object(

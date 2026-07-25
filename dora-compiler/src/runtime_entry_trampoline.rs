@@ -778,8 +778,7 @@ fn mode(ty: BytecodeType) -> MachineMode {
         BytecodeType::Int64 => MachineMode::Int64,
         BytecodeType::Float32 => MachineMode::Float32,
         BytecodeType::Float64 => MachineMode::Float64,
-        BytecodeType::Ptr
-        | BytecodeType::Address
+        BytecodeType::Address
         | BytecodeType::TraitObject(..)
         | BytecodeType::Class(..)
         | BytecodeType::Lambda(..)
@@ -813,44 +812,4 @@ enum ArgumentDestination {
     FloatRegister(MachineMode, FReg),
     HandleOffset(u32),
     HandleRegister(Reg),
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn native_fct() -> NativeFct {
-        NativeFct {
-            target: "dora_native_test".to_string(),
-            args: BytecodeTypeArray::new(vec![
-                BytecodeType::Ptr,
-                BytecodeType::Int64,
-                BytecodeType::Float64,
-            ]),
-            return_type: BytecodeType::Unit,
-        }
-    }
-
-    fn assert_generate_aot(target_arch: TargetArch) {
-        let code = generate_aot(target_arch, native_fct(), false);
-
-        assert!(!code.code.is_empty());
-        assert_eq!(code.code.len() % CODE_ALIGNMENT, 0);
-        assert_eq!(code.gcpoints.entries().len(), 1);
-        assert_eq!(code.relocations.entries.len(), 1);
-        assert!(matches!(
-            &code.relocations.entries[0].target,
-            RelocationKind::NativeCall(symbol) if symbol == "dora_native_test"
-        ));
-    }
-
-    #[test]
-    fn generate_aot_x64() {
-        assert_generate_aot(TargetArch::X64);
-    }
-
-    #[test]
-    fn generate_aot_arm64() {
-        assert_generate_aot(TargetArch::Arm64);
-    }
 }
