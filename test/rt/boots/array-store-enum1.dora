@@ -11,6 +11,7 @@ fn main() {
     std::force_collect();
 }
 
+@Equals
 enum Foo { A, B, C }
 
 fn f(x: Array[Foo], idx: Int64, value: Foo) {

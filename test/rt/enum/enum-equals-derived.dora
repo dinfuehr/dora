@@ -1,0 +1,18 @@
+fn main() {
+    assert(Color::Red == Color::Red);
+    assert(Color::Red != Color::Blue);
+    assert(equals[Color](Color::Blue, Color::Blue));
+    assert(!equals[Color](Color::Red, Color::Blue));
+    assert(Color::Red.equals(Color::Red));
+}
+
+@Equals
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+fn equals[T: std::Equals](lhs: T, rhs: T): Bool {
+    lhs == rhs
+}

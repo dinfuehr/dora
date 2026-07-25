@@ -3677,7 +3677,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             | Intrinsic::Float32Eq
             | Intrinsic::Float64Eq
             | Intrinsic::CharEq
-            | Intrinsic::UInt8Eq => {
+            | Intrinsic::UInt8Eq
+            | Intrinsic::EnumEq => {
                 assert_eq!(arguments.len(), 2);
                 let lhs_reg = arguments[0];
                 let rhs_reg = arguments[1];
@@ -3814,7 +3815,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             | Intrinsic::ArraySet
             | Intrinsic::StrLen
             | Intrinsic::StrGet
-            | Intrinsic::EnumEq
             | Intrinsic::EnumNe
             | Intrinsic::Float32IsNan
             | Intrinsic::Float64IsNan => {

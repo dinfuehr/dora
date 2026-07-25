@@ -1,0 +1,10 @@
+@Equals
+enum Color { Red, Green, Blue }
+
+fn equals[T: std::Equals](lhs: T, rhs: T): Bool {
+    lhs == rhs
+}
+
+fn direct(lhs: Color, rhs: Color): Bool {
+    lhs == rhs
+}

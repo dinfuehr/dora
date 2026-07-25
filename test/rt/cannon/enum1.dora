@@ -16,6 +16,7 @@ fn ne(x: Foo, y: Foo): Bool {
     return x != y;
 }
 
+@Equals
 enum Foo {
     A,
     B

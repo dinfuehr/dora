@@ -76,6 +76,7 @@ impl FloatRegister {
     }
 }
 
+@Equals
 enum JumpDistance {
     Near,
     Far,
@@ -2684,6 +2685,7 @@ impl Immediate {
     }
 }
 
+@Equals
 pub enum ScaleFactor {
     One,
     Two,

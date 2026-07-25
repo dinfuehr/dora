@@ -179,8 +179,31 @@ fn collect_aot_intrinsics(program: &Program) -> HashMap<FunctionId, Intrinsic> {
     let mut intrinsics = HashMap::new();
 
     add_intrinsic_functions(program, STDLIB_INTRINSICS, &mut intrinsics);
+    add_derived_enum_equals_intrinsics(program, &mut intrinsics);
 
     intrinsics
+}
+
+fn add_derived_enum_equals_intrinsics(
+    program: &Program,
+    intrinsics: &mut HashMap<FunctionId, Intrinsic>,
+) {
+    let equals_trait_id = resolve_path(program, "std::traits::Equals")
+        .and_then(|element| element.trait_id())
+        .expect("std::traits::Equals missing");
+
+    for impl_ in &program.impls {
+        if impl_.trait_ty.trait_id != equals_trait_id || !impl_.extended_ty.is_enum() {
+            continue;
+        }
+
+        for &method_id in &impl_.methods {
+            let method = program.fct(method_id);
+            if method.is_internal && method.is_force_inline && method.bytecode.is_none() {
+                intrinsics.insert(method_id, Intrinsic::EnumEq);
+            }
+        }
+    }
 }
 
 fn add_intrinsic_functions(

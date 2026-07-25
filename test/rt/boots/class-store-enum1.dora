@@ -15,6 +15,7 @@ fn main() {
 }
 
 class Foo { bar: Bar }
+@Equals
 enum Bar { A, B, C }
 
 fn f(x: Foo, y: Bar) {

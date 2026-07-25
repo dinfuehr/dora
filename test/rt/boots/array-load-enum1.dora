@@ -7,6 +7,7 @@ fn main() {
     assert(f(arr, 48) == Foo::A);
 }
 
+@Equals
 enum Foo { A, B, C }
 
 fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }

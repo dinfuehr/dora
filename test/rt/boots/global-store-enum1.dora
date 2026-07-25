@@ -6,6 +6,7 @@ fn main() {
     assert(g == Foo::B);
 }
 
+@Equals
 enum Foo { A, B, C }
 
 fn setg(value: Foo) {

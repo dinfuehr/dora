@@ -1,7 +1,19 @@
-use crate::sema::Sema;
+use std::collections::HashMap;
 
-pub fn check(sa: &Sema) {
-    for (_id, enum_) in sa.enums.iter() {
+use dora_parser::ast::SyntaxNodeBase;
+
+use crate::element_collector::Annotations;
+use crate::error::diagnostics::INVALID_EQUALS_ANNOTATION_USAGE;
+use crate::sema::{
+    Element, ElementId, FctDefinition, FctParent, ImplDefinition, Intrinsic, Param, Params, Sema,
+    TypeParamDefinition, TypeRefArena,
+};
+use crate::{SourceType, TraitType, args};
+
+pub fn check(sa: &mut Sema) {
+    let mut derive_equals = Vec::new();
+
+    for (enum_id, enum_) in sa.enums.iter() {
         let mut simple_enumeration = true;
 
         for &variant_id in enum_.variant_ids() {
@@ -12,7 +24,140 @@ pub fn check(sa: &Sema) {
         }
 
         assert!(enum_.simple_enumeration.set(simple_enumeration).is_ok());
+
+        if enum_.derive_equals {
+            if simple_enumeration {
+                derive_equals.push(enum_id);
+            } else {
+                let span = enum_
+                    .ast(sa)
+                    .modifier_list()
+                    .and_then(|list| {
+                        list.items().find(|modifier| {
+                            modifier
+                                .ident()
+                                .is_some_and(|ident| ident.text() == "Equals")
+                        })
+                    })
+                    .map(|modifier| modifier.span())
+                    .unwrap_or(enum_.span);
+                sa.report(
+                    enum_.file_id,
+                    span,
+                    &INVALID_EQUALS_ANNOTATION_USAGE,
+                    args!(),
+                );
+            }
+        }
     }
+
+    for enum_id in derive_equals {
+        if !has_equals_impl(sa, enum_id) {
+            create_equals_impl(sa, enum_id);
+        }
+    }
+}
+
+fn has_equals_impl(sa: &Sema, enum_id: crate::sema::EnumDefinitionId) -> bool {
+    let equals_trait_id = sa.known.traits.equals();
+
+    sa.impls.iter().any(|(_, impl_)| {
+        impl_.trait_id() == Some(equals_trait_id) && impl_.extended_ty().enum_id() == Some(enum_id)
+    })
+}
+
+fn create_equals_impl(sa: &mut Sema, enum_id: crate::sema::EnumDefinitionId) {
+    let (package_id, module_id, file_id, span, enum_type_param_definition) = {
+        let enum_ = sa.enum_(enum_id);
+        (
+            enum_.package_id,
+            enum_.module_id,
+            enum_.file_id,
+            enum_.span,
+            enum_.type_param_definition(sa).clone(),
+        )
+    };
+    let enum_type_params = enum_type_param_definition.identity_type_params(sa);
+    let enum_ty = SourceType::Enum(enum_id, enum_type_params);
+    let impl_type_param_definition_id = sa.type_param_definitions.alloc(enum_type_param_definition);
+    let equals_trait_id = sa.known.traits.equals();
+    let trait_ty = TraitType::from_trait_id(equals_trait_id);
+
+    let impl_ = ImplDefinition::new_synthetic(
+        package_id,
+        module_id,
+        file_id,
+        span,
+        impl_type_param_definition_id,
+        trait_ty,
+        enum_ty.clone(),
+    );
+    let impl_id = sa.impls.alloc(impl_);
+    assert!(sa.impls[impl_id].id.set(impl_id).is_ok());
+    sa.impls[impl_id].set_type_refs(TypeRefArena::new());
+
+    let method_type_param_definition =
+        TypeParamDefinition::new(sa, Some(impl_type_param_definition_id));
+    let method_type_param_definition_id = sa
+        .type_param_definitions
+        .alloc(method_type_param_definition);
+    let method_name = sa.interner.intern("equals");
+    let mut modifiers = Annotations::default();
+    modifiers.is_internal = true;
+    modifiers.is_force_inline = true;
+    let params = Params::new(
+        vec![
+            Param::new_ty(SourceType::This),
+            Param::new_ty(enum_ty.clone()),
+        ],
+        true,
+        false,
+    );
+    let method = FctDefinition::new_no_source(
+        package_id,
+        module_id,
+        file_id,
+        span,
+        span,
+        None,
+        modifiers,
+        method_name,
+        method_type_param_definition_id,
+        params,
+        SourceType::Bool,
+        FctParent::Impl(impl_id),
+        false,
+    );
+    let method_id = sa.fcts.alloc(method);
+    sa.fcts[method_id].id = Some(method_id);
+    sa.fcts[method_id].set_type_refs(TypeRefArena::new());
+    assert!(sa.fcts[method_id].intrinsic.set(Intrinsic::EnumEq).is_ok());
+
+    let trait_method_id = sa
+        .trait_(equals_trait_id)
+        .get_method(method_name, false)
+        .expect("Equals::equals missing");
+    assert!(sa.impls[impl_id].methods.set(vec![method_id]).is_ok());
+    assert!(sa.impls[impl_id].aliases.set(Vec::new()).is_ok());
+    assert!(
+        sa.impls[impl_id]
+            .children
+            .set(vec![ElementId::Fct(method_id)])
+            .is_ok()
+    );
+    assert!(
+        sa.impls[impl_id]
+            .trait_method_map
+            .set(HashMap::from([(trait_method_id, method_id)]))
+            .is_ok()
+    );
+    assert!(
+        sa.impls[impl_id]
+            .trait_alias_map
+            .set(HashMap::new())
+            .is_ok()
+    );
+    sa.impls[impl_id].set_super_trait_witnesses(HashMap::new());
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+@Equals
 enum Foo { A, B }
 
 fn main() {

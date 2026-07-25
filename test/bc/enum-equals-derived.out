@@ -1,0 +1,30 @@
+fn equals[T]:
+  0: InvokeGenericDirect r2, @0, r0, r1 # std::traits::Equals::equals
+  6: Ret r2
+
+  Registers:
+   0 => T
+   1 => T
+   2 => Bool
+
+  Constants:
+   0 => Generic std::traits::Equals::equals on T as Equals
+
+  Locations:
+   0 => 5:5
+
+fn direct:
+  0: TestEq r2, r0, r1
+  4: Ret r2
+
+  Registers:
+   0 => enum Color
+   1 => enum Color
+   2 => Bool
+
+  Constants:
+
+  Locations:
+
+fn <impl Equals for Color>::equals:
+  <no bytecode>

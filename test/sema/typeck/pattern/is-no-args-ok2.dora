@@ -1,4 +1,5 @@
 //= ok
+@Equals
 enum Foo { A, B }
 fn isA(x: Foo): Bool {
     x is Foo && Foo == x

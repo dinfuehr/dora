@@ -33,6 +33,7 @@ pub struct EnumDefinition {
     pub children: OnceCell<Vec<ElementId>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub simple_enumeration: OnceCell<bool>,
+    pub derive_equals: bool,
     pub name_to_value: OnceCell<HashMap<Name, u32>>,
 }
 
@@ -63,6 +64,7 @@ impl EnumDefinition {
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             simple_enumeration: OnceCell::new(),
+            derive_equals: modifiers.is_equals,
             name_to_value: OnceCell::new(),
         }
     }

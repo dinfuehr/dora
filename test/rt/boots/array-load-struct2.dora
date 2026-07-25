@@ -17,6 +17,7 @@ fn main() {
 }
 
 struct Foo(Int64, Bar)
+@Equals
 enum Bar { A, B, C }
 
 fn f(x: Array[Foo], idx: Int64): Foo { x(idx) }

@@ -1,5 +1,6 @@
 use std::{Hash, Stringable};
 
+@Equals
 pub enum Type {
     Unit,
     Bool,

@@ -817,6 +817,11 @@ pub static INVALID_TEST_ANNOTATION_USAGE: DiagnosticDescriptor = DiagnosticDescr
     level: ErrorLevel::Error,
 };
 
+pub static INVALID_EQUALS_ANNOTATION_USAGE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "@Equals is only supported for simple enums.",
+    level: ErrorLevel::Error,
+};
+
 pub static GLOBAL_INITIALIZER_NOT_SUPPORTED: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "global variables do no support initial assignment for now.",
     level: ErrorLevel::Error,

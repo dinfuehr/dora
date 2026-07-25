@@ -4,6 +4,7 @@ fn main() {
     assert(foo == Foo::A);
 }
 
+@Equals
 enum Foo { A, B, C }
 
 fn f(): Foo {

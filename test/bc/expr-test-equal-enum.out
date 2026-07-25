@@ -12,3 +12,6 @@ fn f:
 
   Locations:
 
+fn <impl Equals for Foo>::equals:
+  <no bytecode>
+

@@ -373,7 +373,9 @@ impl BytecodeGraphBuilder {
                 let result = self.emit_intrinsic_un(args(0), Op::CheckedNeg);
                 self.emit_local_set(dest, result);
             }
-            opc::INTRINSIC_INT64_EQ | opc::INTRINSIC_INT32_EQ => {
+            opc::INTRINSIC_INT64_EQ
+            | opc::INTRINSIC_INT32_EQ
+            | opc::INTRINSIC_ENUM_EQ => {
                 assert(args.size() == 2);
                 let result = self.emit_intrinsic_bin(args(0), args(1), Op::Equal);
                 self.emit_local_set(dest, result);

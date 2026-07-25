@@ -6,6 +6,7 @@ fn main() {
 }
 
 struct Foo { a: Int64, bar: Bar }
+@Equals
 enum Bar { A, B, C }
 
 fn getbar(x: Foo): Bar {

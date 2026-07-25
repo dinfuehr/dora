@@ -32,6 +32,7 @@ pub trait Zero {
     static fn zero(): Self; // should be `let` instead of `fn`
 }
 
+@Equals
 pub enum Ordering {
     Less,
     Equal,

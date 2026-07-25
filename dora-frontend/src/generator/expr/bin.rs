@@ -428,6 +428,7 @@ pub(super) fn gen_intrinsic_bin(
         Intrinsic::UInt8Eq
         | Intrinsic::BoolEq
         | Intrinsic::CharEq
+        | Intrinsic::EnumEq
         | Intrinsic::Int32Eq
         | Intrinsic::Int64Eq
         | Intrinsic::Float32Eq

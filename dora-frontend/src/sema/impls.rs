@@ -34,7 +34,7 @@ pub struct ImplDefinition {
     pub package_id: PackageDefinitionId,
     pub module_id: ModuleDefinitionId,
     pub file_id: SourceFileId,
-    pub syntax_node_ptr: ast::SyntaxNodePtr,
+    pub syntax_node_ptr: Option<ast::SyntaxNodePtr>,
     pub declaration_span: Span,
     pub span: Span,
     pub type_param_definition_id: TypeParamDefinitionId,
@@ -66,7 +66,7 @@ impl ImplDefinition {
             package_id,
             module_id,
             file_id,
-            syntax_node_ptr,
+            syntax_node_ptr: Some(syntax_node_ptr),
             type_param_definition_id,
             declaration_span: ast.declaration_span(),
             span: ast.span(),
@@ -90,13 +90,43 @@ impl ImplDefinition {
         }
     }
 
+    pub fn new_synthetic(
+        package_id: PackageDefinitionId,
+        module_id: ModuleDefinitionId,
+        file_id: SourceFileId,
+        span: Span,
+        type_param_definition_id: TypeParamDefinitionId,
+        trait_ty: TraitType,
+        extended_ty: SourceType,
+    ) -> ImplDefinition {
+        ImplDefinition {
+            id: OnceCell::new(),
+            package_id,
+            module_id,
+            file_id,
+            syntax_node_ptr: None,
+            declaration_span: span,
+            span,
+            type_param_definition_id,
+            parsed_trait_ty: ParsedTraitType::new_ty(Some(trait_ty)),
+            parsed_extended_ty: ParsedType::new_ty(extended_ty),
+            type_refs: OnceCell::new(),
+            methods: OnceCell::new(),
+            aliases: OnceCell::new(),
+            children: OnceCell::new(),
+            trait_method_map: OnceCell::new(),
+            trait_alias_map: OnceCell::new(),
+            super_trait_witnesses: OnceCell::new(),
+        }
+    }
+
     pub fn id(&self) -> ImplDefinitionId {
         self.id.get().expect("id missing").clone()
     }
 
     pub fn ast(&self, sa: &Sema) -> ast::AstImpl {
         let file = sa.file(self.file_id()).ast();
-        file.syntax_by_ptr::<ast::AstImpl>(self.syntax_node_ptr)
+        file.syntax_by_ptr::<ast::AstImpl>(self.syntax_node_ptr.expect("ast missing"))
     }
 
     pub fn trait_id(&self) -> Option<TraitDefinitionId> {

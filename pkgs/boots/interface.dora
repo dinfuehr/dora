@@ -467,6 +467,7 @@ pub class EnumVariantData {
     pub fields: Array[BytecodeType],
 }
 
+@Equals
 pub enum Architecture {
     X64,
     Arm64,

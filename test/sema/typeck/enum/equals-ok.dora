@@ -1,4 +1,5 @@
 //= ok
+@Equals
 enum A { V1, V2 }
 fn f(x: A, y: A): Bool {
     x == y

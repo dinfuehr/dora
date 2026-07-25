@@ -914,6 +914,7 @@ impl Stringable for Input {
     }
 }
 
+@Equals
 pub enum Op {
     NullConst,
 
@@ -2610,6 +2611,7 @@ impl Stringable for Location {
     }
 }
 
+@Equals
 pub enum Policy {
     None,
     SameAsFirstInput,

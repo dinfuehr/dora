@@ -9,13 +9,11 @@ use crate::error::diagnostics::{
 };
 use crate::replace_type;
 use crate::sema::{
-    BinExpr, CallType, Element, Expr, ExprId, Intrinsic, TraitDefinitionId, find_impl,
-    implements_trait,
+    BinExpr, CallType, Element, Expr, ExprId, TraitDefinitionId, find_impl, implements_trait,
 };
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
-use crate::typeck::is_simple_enum;
 use crate::{SourceType, SourceTypeArray, TypeArgs, ty::error as ty_error};
 
 pub(super) fn check_expr_bin(
@@ -413,19 +411,15 @@ fn check_expr_bin_cmp(
         }
 
         ast::CmpOp::Eq | ast::CmpOp::Ne => {
-            if is_simple_enum(ck.sa, lhs_type.clone()) {
-                check_expr_cmp_enum(ck, expr_id, cmp, lhs_type, rhs_type)
-            } else {
-                check_expr_bin_trait(
-                    ck,
-                    expr_id,
-                    ast::BinOp::Cmp(cmp),
-                    ck.sa.known.traits.equals(),
-                    "equals",
-                    lhs_type,
-                    rhs_type,
-                );
-            }
+            check_expr_bin_trait(
+                ck,
+                expr_id,
+                ast::BinOp::Cmp(cmp),
+                ck.sa.known.traits.equals(),
+                "equals",
+                lhs_type,
+                rhs_type,
+            );
         }
 
         ast::CmpOp::Ge | ast::CmpOp::Gt | ast::CmpOp::Le | ast::CmpOp::Lt => {
@@ -444,37 +438,6 @@ fn check_expr_bin_cmp(
     ck.body.set_ty(expr_id, SourceType::Bool);
 
     SourceType::Bool
-}
-
-fn check_expr_cmp_enum(
-    ck: &mut TypeCheck,
-    expr_id: ExprId,
-    op: ast::CmpOp,
-    lhs_type: SourceType,
-    rhs_type: SourceType,
-) {
-    if lhs_type.allows(ck.sa, rhs_type.clone()) {
-        let intrinsic = match op {
-            ast::CmpOp::Eq => Intrinsic::EnumEq,
-            ast::CmpOp::Ne => Intrinsic::EnumNe,
-            _ => unreachable!(),
-        };
-        let call_type = CallType::Intrinsic(intrinsic);
-        ck.body
-            .insert_or_replace_call_type(expr_id, Rc::new(call_type));
-
-        ck.body.set_ty(expr_id, SourceType::Bool);
-    } else {
-        let lhs_type = ck.ty_name(&lhs_type);
-        let rhs_type = ck.ty_name(&rhs_type);
-        ck.report(
-            ck.expr_span(expr_id),
-            &BIN_OP_TYPE,
-            args!["equals".to_string(), lhs_type, rhs_type],
-        );
-
-        ck.body.set_ty(expr_id, ty_error());
-    }
 }
 
 fn check_type(

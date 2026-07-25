@@ -1021,17 +1021,6 @@ pub fn check_lit_str_from_text(sa: &Sema, file_id: SourceFileId, text: &str, spa
     result
 }
 
-pub(super) fn is_simple_enum(sa: &Sema, ty: SourceType) -> bool {
-    match ty {
-        SourceType::Enum(enum_id, _) => {
-            let enum_ = &sa.enum_(enum_id);
-            enum_.is_simple_enum()
-        }
-
-        _ => false,
-    }
-}
-
 struct VarAccessPerScope {
     id: NestedScopeId,
     next_field_id: usize,
