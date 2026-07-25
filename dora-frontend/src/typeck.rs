@@ -579,8 +579,9 @@ impl<'a> TypeCheck<'a> {
 
         // Only functions can use `self`.
         let hidden_self_ty = if self.is_lambda {
-            assert_eq!(SourceType::Ptr, self.param_types[0].ty());
-            SourceType::Ptr
+            let ty = self.param_types[0].ty();
+            assert!(ty.is_lambda());
+            ty
         } else {
             let ty = self.self_ty.clone().expect("self expected");
             // For mutating methods on value types, self is passed by reference.

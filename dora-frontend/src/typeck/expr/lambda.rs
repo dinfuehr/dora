@@ -89,7 +89,10 @@ pub(super) fn check_expr_lambda(
         is_variadic,
     );
 
-    let param = Param::new_ty(SourceType::Ptr);
+    // The hidden receiver represents the lambda object while type checking.
+    // It is replaced with the concrete `$Lambda[Context]` class once context
+    // classes have been created.
+    let param = Param::new_ty(ty.clone());
     let mut lambda_params = vec![param];
     lambda_params.append(&mut params);
 

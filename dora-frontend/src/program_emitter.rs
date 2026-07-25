@@ -1096,7 +1096,6 @@ impl Emitter {
                 Box::new(self.convert_ty(sa, *return_type)),
                 is_variadic,
             ),
-            SourceType::Ptr => BytecodeType::Ptr,
             SourceType::This => self
                 .hidden_self_type_param
                 .map(BytecodeType::TypeParam)

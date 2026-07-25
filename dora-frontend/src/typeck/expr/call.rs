@@ -2190,7 +2190,6 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
         | SourceType::Float64
         | SourceType::Enum(..)
         | SourceType::TraitObject(..) => def == arg,
-        SourceType::Ptr => panic!("ptr should not occur in fct definition."),
         SourceType::This => {
             if let Some(real) = self_ty.clone() {
                 arg_allows(sa, real, arg, self_ty)

@@ -904,7 +904,6 @@ fn check_expr_assign_unnamed_field(
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Bool
-        | SourceType::Ptr
         | SourceType::This
         | SourceType::TraitObject(..)
         | SourceType::Enum(..)

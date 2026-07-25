@@ -34,7 +34,6 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
     match impl_.extended_ty() {
         SourceType::Alias(..) => unimplemented!(),
         SourceType::Any
-        | SourceType::Ptr
         | SourceType::This
         | SourceType::TypeVar(..)
         | SourceType::Assoc { .. }
@@ -720,11 +719,7 @@ fn trait_and_impl_arg_ty_compatible(
             }
         }
 
-        SourceType::Alias(..)
-        | SourceType::Any
-        | SourceType::Ptr
-        | SourceType::Ref(..)
-        | SourceType::TypeVar(..) => {
+        SourceType::Alias(..) | SourceType::Any | SourceType::Ref(..) | SourceType::TypeVar(..) => {
             unreachable!()
         }
     }
@@ -1072,7 +1067,6 @@ fn find_super_trait_witness(
         | SourceType::Assoc { .. }
         | SourceType::GenericAssoc { .. }
         | SourceType::Ref(..)
-        | SourceType::Ptr
         | SourceType::Any
         | SourceType::TypeVar(..) => unreachable!(),
     }

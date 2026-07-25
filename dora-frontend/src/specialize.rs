@@ -132,7 +132,7 @@ pub fn replace_type(sa: &Sema, ty: SourceType, type_args: &TypeArgs) -> SourceTy
 
         SourceType::Ref(inner) => SourceType::Ref(Box::new(replace_type(sa, *inner, type_args))),
 
-        SourceType::Any | SourceType::Ptr => unreachable!(),
+        SourceType::Any => unreachable!(),
     }
 }
 
@@ -296,8 +296,6 @@ pub fn specialize_ty_for_call(
         ))),
 
         SourceType::Any => SourceType::Any,
-
-        SourceType::Ptr => unreachable!(),
     }
 }
 
@@ -416,11 +414,7 @@ pub fn specialize_ty_for_trait_object(
         | SourceType::Error
         | SourceType::GenericAssoc { .. } => ty,
 
-        SourceType::This
-        | SourceType::Any
-        | SourceType::Ptr
-        | SourceType::Ref(..)
-        | SourceType::TypeVar(..) => {
+        SourceType::This | SourceType::Any | SourceType::Ref(..) | SourceType::TypeVar(..) => {
             unreachable!()
         }
     }
@@ -684,7 +678,7 @@ impl<'a> DefaultTraitMethodSpecialization<'a> {
 
             SourceType::This => self.extended_ty.clone(),
 
-            SourceType::Any | SourceType::Ptr | SourceType::TypeVar(..) => {
+            SourceType::Any | SourceType::TypeVar(..) => {
                 unreachable!()
             }
         }
@@ -926,7 +920,7 @@ pub fn specialize_ty_for_generic(
             .cloned()
             .expect("Self type required for generic specialization"),
 
-        SourceType::Any | SourceType::Ptr | SourceType::Ref(..) | SourceType::TypeVar(..) => {
+        SourceType::Any | SourceType::Ref(..) | SourceType::TypeVar(..) => {
             unreachable!()
         }
     }
@@ -1042,7 +1036,6 @@ pub fn specialize_for_element(
         }
 
         SourceType::Any
-        | SourceType::Ptr
         | SourceType::Assoc { .. }
         | SourceType::Ref(..)
         | SourceType::TypeVar(..) => {
@@ -1153,8 +1146,7 @@ pub fn specialize_type_for_implements(ty: SourceType, type_args: &TypeArgs) -> S
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Error
-        | SourceType::Any
-        | SourceType::Ptr => ty,
+        | SourceType::Any => ty,
 
         SourceType::This => type_args.self_ty().cloned().unwrap_or(ty),
 

@@ -70,7 +70,6 @@ pub(super) fn check_expr_field_named(
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Bool
-        | SourceType::Ptr
         | SourceType::This
         | SourceType::TraitObject(..)
         | SourceType::Enum(..)
@@ -182,7 +181,6 @@ fn check_expr_field_unnamed(
         | SourceType::Float32
         | SourceType::Float64
         | SourceType::Bool
-        | SourceType::Ptr
         | SourceType::This
         | SourceType::TraitObject(..)
         | SourceType::Enum(..)

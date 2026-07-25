@@ -504,7 +504,7 @@ pub(crate) fn expand_st(
             replace_self,
         ))),
 
-        SourceType::Any | SourceType::Ptr => {
+        SourceType::Any => {
             panic!("unexpected type = {:?}", ty);
             // unreachable!()
         }

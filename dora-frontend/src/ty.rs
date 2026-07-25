@@ -50,10 +50,6 @@ pub fn float64() -> SourceType {
     SourceType::Int32
 }
 
-pub fn ptr() -> SourceType {
-    SourceType::Ptr
-}
-
 pub fn self_() -> SourceType {
     SourceType::This
 }
@@ -94,7 +90,6 @@ pub fn lambda(type_params: SourceTypeArray, return_type: SourceType) -> SourceTy
 pub enum TyKind {
     Error,
     Any,
-    Ptr,
     This,
     Class,
     Struct,
@@ -129,9 +124,6 @@ pub enum SourceType {
     Int64,
     Float32,
     Float64,
-
-    // Pointer to object, only used internally.
-    Ptr,
 
     // Self type.
     This,
@@ -186,7 +178,6 @@ impl SourceType {
             SourceType::Error => TyKind::Error,
             SourceType::This => TyKind::This,
             SourceType::Any => TyKind::Any,
-            SourceType::Ptr => TyKind::Ptr,
             SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
@@ -427,7 +418,6 @@ impl SourceType {
 
     pub fn reference_type(&self) -> bool {
         match self {
-            SourceType::Ptr => true,
             SourceType::Class(..) => true,
             SourceType::TraitObject(..) => true,
             SourceType::Lambda(..) => true,
@@ -559,7 +549,6 @@ impl SourceType {
             SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
                 *self == other
             }
-            SourceType::Ptr => panic!("ptr does not allow any other types"),
             SourceType::Tuple(subtypes) => match other {
                 SourceType::Tuple(other_subtypes) => {
                     if subtypes.len() != other_subtypes.len() {
@@ -587,7 +576,7 @@ impl SourceType {
 
     pub fn is_defined_type(&self, sa: &Sema) -> bool {
         match self {
-            SourceType::Any | SourceType::Ptr | SourceType::TypeVar(..) => false,
+            SourceType::Any | SourceType::TypeVar(..) => false,
             SourceType::Error
             | SourceType::Unit
             | SourceType::Bool
@@ -653,8 +642,7 @@ impl SourceType {
             | SourceType::Int32
             | SourceType::Int64
             | SourceType::Float32
-            | SourceType::Float64
-            | SourceType::Ptr => true,
+            | SourceType::Float64 => true,
             SourceType::Class(_, params)
             | SourceType::Enum(_, params)
             | SourceType::Struct(_, params) => {
@@ -712,7 +700,7 @@ impl SourceType {
 
 pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
     match ty {
-        SourceType::Ptr | SourceType::Any | SourceType::Ref(..) => unreachable!(),
+        SourceType::Any | SourceType::Ref(..) => unreachable!(),
         SourceType::This => true,
         SourceType::Error
         | SourceType::Unit
@@ -1100,7 +1088,6 @@ impl<'a> SourceTypePrinter<'a> {
             SourceType::Float32 => "Float32".into(),
             SourceType::Float64 => "Float64".into(),
             SourceType::Bool => "Bool".into(),
-            SourceType::Ptr => panic!("type Ptr only for internal use."),
             SourceType::This => "Self".into(),
             SourceType::Class(id, type_params) => {
                 let cls = self.sa.class(id);

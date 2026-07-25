@@ -367,7 +367,6 @@ fn type_contains_variable(ty: &SourceType, expected: Option<TypeVarId>) -> bool 
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Ptr
         | SourceType::This
         | SourceType::TypeParam(_) => false,
     }
