@@ -231,12 +231,6 @@ impl std::Stringable for FloatRegister {
     }
 }
 
-impl Equals for Register {
-    fn equals(other: Register): Bool {
-        self.0 == other.0
-    }
-}
-
 class MachineCode {
     bytes: Array[UInt8],
     start: Int64,

@@ -1,5 +1,11 @@
 error: `h` not found in impl.
---> missing-trait-method.dora:13:1 - 22:131
+--> missing-trait-method.dora:13:1
+ | }
+ | 
+ | impl C for Int64 {
+   ~~~~~~~~~~~~~~~~
+ |     fn g(): Int64 { 300 }
+ | }
 error: element not found in trait.
 --> missing-trait-method.dora:14:5
  | 

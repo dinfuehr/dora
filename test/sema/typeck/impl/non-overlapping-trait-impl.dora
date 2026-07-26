@@ -1,0 +1,12 @@
+//= ok
+trait Trait[T] {}
+trait Other {}
+class Value[T] {}
+class Pair[A, B] {}
+
+impl Trait[Int32] for Value[Int32] {}
+impl Trait[Bool] for Value[Int32] {}
+impl Trait[Int32] for Value[Bool] {}
+impl Other for Value[Int32] {}
+impl[T] Other for Pair[T, T] {}
+impl Other for Pair[Int32, Bool] {}

@@ -1,0 +1,16 @@
+trait Trait {
+    fn value(): Int32;
+}
+class Value {}
+
+impl Trait for Value {
+    fn value(): Int32 {
+        return 1;
+    }
+}
+
+impl Trait for Value {
+    fn value(): Int32 {
+        return 2;
+    }
+}

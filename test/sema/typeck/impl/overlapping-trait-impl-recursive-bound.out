@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Trait` for type `Int32`; another implementation is at overlapping-trait-impl-recursive-bound.dora:3:1.
+--> overlapping-trait-impl-recursive-bound.dora:4:1
+ | 
+ | impl[T: Trait] Trait for T {}
+ | impl Trait for Int32 {}
+   ~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

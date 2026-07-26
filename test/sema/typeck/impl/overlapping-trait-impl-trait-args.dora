@@ -1,0 +1,5 @@
+trait Trait[T] {}
+class Value[T] {}
+
+impl[T] Trait[T] for Value[T] {}
+impl Trait[Int32] for Value[Int32] {}

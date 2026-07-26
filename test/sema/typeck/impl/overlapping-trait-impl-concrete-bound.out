@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Trait` for type `Value[Int32]`; another implementation is at overlapping-trait-impl-concrete-bound.dora:6:1.
+--> overlapping-trait-impl-concrete-bound.dora:7:1
+ | impl Bound for Int32 {}
+ | impl[T: Bound] Trait for Value[T] {}
+ | impl Trait for Value[Int32] {}
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

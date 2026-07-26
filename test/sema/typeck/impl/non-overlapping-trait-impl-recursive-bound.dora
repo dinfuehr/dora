@@ -1,0 +1,11 @@
+//= ok
+trait First {}
+trait Second {}
+trait Trait {}
+class Value[T] {}
+
+impl[T: Second] First for T {}
+impl[T: First] Second for T {}
+
+impl[T: First] Trait for Value[T] {}
+impl Trait for Value[Int32] {}

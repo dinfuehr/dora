@@ -1,0 +1,4 @@
+trait Trait {}
+
+impl[T: Trait] Trait for T {}
+impl Trait for Int32 {}

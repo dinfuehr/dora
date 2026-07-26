@@ -1,10 +1,13 @@
+use std::collections::{HashMap, HashSet};
+
 use crate::sema::{
-    Element, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition, block_matches_ty,
-    match_arrays,
+    Element, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition, TypeParamId,
 };
 use crate::{
     SourceType, SourceTypeArray, TraitType, TypeArgs, specialize_trait_type, specialize_type,
 };
+
+use super::matching::{block_matches_ty, block_matches_ty_with_context, match_arrays_with_context};
 
 pub fn impl_matches(
     sa: &Sema,
@@ -32,7 +35,38 @@ pub fn implements_trait(
     check_element: &dyn Element,
     trait_ty: TraitType,
 ) -> bool {
+    let mut context = TraitMatchingContext::default();
+    implements_trait_with_context(sa, check_ty, check_element, trait_ty, &mut context)
+}
+
+pub(super) fn implements_trait_with_context(
+    sa: &Sema,
+    check_ty: SourceType,
+    check_element: &dyn Element,
+    trait_ty: TraitType,
+    context: &mut TraitMatchingContext,
+) -> bool {
     let check_ty = maybe_alias_ty(sa, check_ty);
+    let query = (check_ty.clone(), trait_ty.clone());
+
+    if !context.active_trait_queries.insert(query.clone()) {
+        // A recursive bound does not prove itself. Return false for this candidate
+        // so that trait lookup can continue with another implementation.
+        return false;
+    }
+
+    let result = implements_trait_inner(sa, check_ty, check_element, trait_ty, context);
+    assert!(context.active_trait_queries.remove(&query));
+    result
+}
+
+fn implements_trait_inner(
+    sa: &Sema,
+    check_ty: SourceType,
+    check_element: &dyn Element,
+    trait_ty: TraitType,
+    context: &mut TraitMatchingContext,
+) -> bool {
     let check_type_param_defs = check_element.type_param_definition(sa);
 
     if check_ty.is_primitive() && sa.known.traits.zero() == trait_ty.trait_id {
@@ -54,9 +88,15 @@ pub fn implements_trait(
         | SourceType::Tuple(..)
         | SourceType::Unit
         | SourceType::TraitObject(..)
-        | SourceType::Lambda(..) => {
-            find_impl(sa, check_element, check_ty, check_type_param_defs, trait_ty).is_some()
-        }
+        | SourceType::Lambda(..) => find_impl_with_context(
+            sa,
+            check_element,
+            check_ty,
+            check_type_param_defs,
+            trait_ty,
+            context,
+        )
+        .is_some(),
 
         SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(sa, tp_id, trait_ty),
 
@@ -99,6 +139,11 @@ pub fn implements_trait(
 
         SourceType::Any | SourceType::TypeVar(..) => unreachable!(),
     }
+}
+
+#[derive(Default)]
+pub(super) struct TraitMatchingContext {
+    active_trait_queries: HashSet<(SourceType, TraitType)>,
 }
 
 pub fn associated_type_bounds(
@@ -169,19 +214,39 @@ pub fn find_impl(
     check_type_param_definition: &TypeParamDefinition,
     trait_ty: TraitType,
 ) -> Option<ImplMatch> {
+    let mut context = TraitMatchingContext::default();
+    find_impl_with_context(
+        sa,
+        check_element,
+        check_ty,
+        check_type_param_definition,
+        trait_ty,
+        &mut context,
+    )
+}
+
+fn find_impl_with_context(
+    sa: &Sema,
+    check_element: &dyn Element,
+    check_ty: SourceType,
+    check_type_param_definition: &TypeParamDefinition,
+    trait_ty: TraitType,
+    context: &mut TraitMatchingContext,
+) -> Option<ImplMatch> {
     for (_id, impl_) in sa.impls.iter() {
         if let Some(impl_trait_ty) = impl_.trait_ty() {
             if impl_trait_ty.trait_id != trait_ty.trait_id {
                 continue;
             }
 
-            if let Some(opt_bindings) = block_matches_ty(
+            if let Some(opt_bindings) = block_matches_ty_with_context(
                 sa,
                 check_ty.clone(),
                 check_element,
                 check_type_param_definition,
                 impl_.extended_ty(),
                 impl_.type_param_definition(sa),
+                context,
             ) {
                 let mut bindings_for_types =
                     opt_bindings.iter().cloned().map(|t| Some(t)).collect();
@@ -194,6 +259,7 @@ pub fn find_impl(
                     check_element,
                     check_type_param_definition,
                     &mut bindings_for_types,
+                    context,
                 ) {
                     continue;
                 }
@@ -209,6 +275,325 @@ pub fn find_impl(
     None
 }
 
+pub fn impls_overlap(sa: &Sema, first: &ImplDefinition, second: &ImplDefinition) -> bool {
+    let Some(first_trait_ty) = first.trait_ty() else {
+        return false;
+    };
+    let Some(second_trait_ty) = second.trait_ty() else {
+        return false;
+    };
+
+    if first_trait_ty.trait_id != second_trait_ty.trait_id {
+        return false;
+    }
+
+    let mut unifier = ImplTypeUnifier::new();
+
+    if !unifier.unify(first.extended_ty(), second.extended_ty())
+        || !unifier.unify_trait_types(first_trait_ty, second_trait_ty)
+    {
+        return false;
+    }
+
+    // For example, unifying these impls binds `T` to `Int32`, so overlap is only
+    // possible if `Int32` implements `Bound`:
+    //
+    //     impl[T: Bound] Trait for Value[T] {}
+    //     impl Trait for Value[Int32] {}
+    //
+    // In contrast, unifying these impls only equates `T` and `U`. A type could
+    // implement both `First` and `Second`, so the remaining bounds do not rule
+    // out overlap:
+    //
+    //     impl[T: First] Trait for Value[T] {}
+    //     impl[U: Second] Trait for Value[U] {}
+    impl_bounds_allow_overlap(sa, first, &unifier)
+        && impl_bounds_allow_overlap(sa, second, &unifier)
+}
+
+fn impl_bounds_allow_overlap(sa: &Sema, impl_: &ImplDefinition, unifier: &ImplTypeUnifier) -> bool {
+    let type_param_definition = impl_.type_param_definition(sa);
+    let bindings = type_param_definition
+        .identity_type_params(sa)
+        .iter()
+        .map(|ty| unifier.resolve(ty))
+        .collect::<Vec<_>>();
+    let type_args = TypeArgs::from_own(sa, type_param_definition, &SourceTypeArray::with(bindings));
+
+    for bound in type_param_definition.bounds(sa) {
+        let Some(trait_ty) = bound.trait_ty() else {
+            continue;
+        };
+        let bound_ty = specialize_type(sa, bound.ty(), &type_args);
+        let trait_ty = specialize_trait_type(sa, trait_ty, &type_args);
+
+        if bound_ty.contains_type_param() || trait_ty.contains_type_param() {
+            continue;
+        }
+
+        if !implements_trait(sa, bound_ty, impl_, trait_ty) {
+            return false;
+        }
+    }
+
+    true
+}
+
+struct ImplTypeUnifier {
+    bindings: HashMap<TypeParamId, SourceType>,
+}
+
+impl ImplTypeUnifier {
+    fn new() -> ImplTypeUnifier {
+        ImplTypeUnifier {
+            bindings: HashMap::new(),
+        }
+    }
+
+    fn unify(&mut self, first: SourceType, second: SourceType) -> bool {
+        let first = self.resolve(first);
+        let second = self.resolve(second);
+
+        match (first, second) {
+            (SourceType::Error, _) | (_, SourceType::Error) => false,
+            (SourceType::Any | SourceType::TypeVar(_), _)
+            | (_, SourceType::Any | SourceType::TypeVar(_)) => {
+                unreachable!("unexpected inference type in impl declaration")
+            }
+            (SourceType::TypeParam(id), ty) => self.bind(id, ty),
+            (ty, SourceType::TypeParam(id)) => self.bind(id, ty),
+            (
+                SourceType::Class(first_id, first_params),
+                SourceType::Class(second_id, second_params),
+            ) => first_id == second_id && self.unify_arrays(first_params, second_params),
+            (
+                SourceType::Struct(first_id, first_params),
+                SourceType::Struct(second_id, second_params),
+            ) => first_id == second_id && self.unify_arrays(first_params, second_params),
+            (
+                SourceType::Enum(first_id, first_params),
+                SourceType::Enum(second_id, second_params),
+            ) => first_id == second_id && self.unify_arrays(first_params, second_params),
+            (
+                SourceType::Alias(first_id, first_params),
+                SourceType::Alias(second_id, second_params),
+            ) => first_id == second_id && self.unify_arrays(first_params, second_params),
+            (SourceType::Tuple(first_params), SourceType::Tuple(second_params)) => {
+                self.unify_arrays(first_params, second_params)
+            }
+            (
+                SourceType::TraitObject(first_id, first_params, first_bindings),
+                SourceType::TraitObject(second_id, second_params, second_bindings),
+            ) => {
+                first_id == second_id
+                    && self.unify_arrays(first_params, second_params)
+                    && self.unify_arrays(first_bindings, second_bindings)
+            }
+            (
+                SourceType::Assoc {
+                    trait_ty: first_trait_ty,
+                    assoc_id: first_assoc_id,
+                },
+                SourceType::Assoc {
+                    trait_ty: second_trait_ty,
+                    assoc_id: second_assoc_id,
+                },
+            ) => {
+                first_assoc_id == second_assoc_id
+                    && self.unify_trait_types(first_trait_ty, second_trait_ty)
+            }
+            (
+                SourceType::GenericAssoc {
+                    ty: first_ty,
+                    trait_ty: first_trait_ty,
+                    assoc_id: first_assoc_id,
+                },
+                SourceType::GenericAssoc {
+                    ty: second_ty,
+                    trait_ty: second_trait_ty,
+                    assoc_id: second_assoc_id,
+                },
+            ) => {
+                first_assoc_id == second_assoc_id
+                    && self.unify(*first_ty, *second_ty)
+                    && self.unify_trait_types(first_trait_ty, second_trait_ty)
+            }
+            (
+                SourceType::Lambda(first_params, first_return, first_variadic),
+                SourceType::Lambda(second_params, second_return, second_variadic),
+            ) => {
+                first_variadic == second_variadic
+                    && self.unify_arrays(first_params, second_params)
+                    && self.unify(*first_return, *second_return)
+            }
+            (SourceType::Ref(first), SourceType::Ref(second)) => self.unify(*first, *second),
+            (first, second) => first == second,
+        }
+    }
+
+    fn unify_arrays(&mut self, first: SourceTypeArray, second: SourceTypeArray) -> bool {
+        first.len() == second.len()
+            && first
+                .iter()
+                .zip(second.iter())
+                .all(|(first, second)| self.unify(first, second))
+    }
+
+    fn unify_trait_types(&mut self, first: TraitType, second: TraitType) -> bool {
+        first.trait_id == second.trait_id
+            && self.unify_arrays(first.type_params, second.type_params)
+            && first.bindings.len() == second.bindings.len()
+            && first.bindings.into_iter().zip(second.bindings).all(
+                |((first_id, first_ty), (second_id, second_ty))| {
+                    first_id == second_id && self.unify(first_ty, second_ty)
+                },
+            )
+    }
+
+    fn bind(&mut self, id: TypeParamId, ty: SourceType) -> bool {
+        if ty == SourceType::TypeParam(id) {
+            return true;
+        }
+
+        // Reject recursive bindings such as `T = Foo[T]`. They have no finite
+        // solution and would make recursive type resolution loop indefinitely.
+        if self.contains_type_param(&ty, id) {
+            return false;
+        }
+
+        self.bindings.insert(id, ty);
+        true
+    }
+
+    fn resolve(&self, ty: SourceType) -> SourceType {
+        match ty {
+            SourceType::TypeParam(id) => match self.bindings.get(&id) {
+                Some(binding) => self.resolve(binding.clone()),
+                None => SourceType::TypeParam(id),
+            },
+            SourceType::Class(id, params) => SourceType::Class(id, self.resolve_array(params)),
+            SourceType::Struct(id, params) => SourceType::Struct(id, self.resolve_array(params)),
+            SourceType::Enum(id, params) => SourceType::Enum(id, self.resolve_array(params)),
+            SourceType::Alias(id, params) => SourceType::Alias(id, self.resolve_array(params)),
+            SourceType::Tuple(params) => SourceType::Tuple(self.resolve_array(params)),
+            SourceType::TraitObject(id, params, bindings) => SourceType::TraitObject(
+                id,
+                self.resolve_array(params),
+                self.resolve_array(bindings),
+            ),
+            SourceType::Assoc { trait_ty, assoc_id } => SourceType::Assoc {
+                trait_ty: self.resolve_trait_type(trait_ty),
+                assoc_id,
+            },
+            SourceType::GenericAssoc {
+                ty,
+                trait_ty,
+                assoc_id,
+            } => SourceType::GenericAssoc {
+                ty: Box::new(self.resolve(*ty)),
+                trait_ty: self.resolve_trait_type(trait_ty),
+                assoc_id,
+            },
+            SourceType::Lambda(params, return_type, variadic) => SourceType::Lambda(
+                self.resolve_array(params),
+                Box::new(self.resolve(*return_type)),
+                variadic,
+            ),
+            SourceType::Ref(ty) => SourceType::Ref(Box::new(self.resolve(*ty))),
+            ty @ (SourceType::Unit
+            | SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::This
+            | SourceType::Error) => ty,
+            SourceType::Any | SourceType::TypeVar(_) => {
+                unreachable!("unexpected inference type in impl declaration")
+            }
+        }
+    }
+
+    fn resolve_array(&self, types: SourceTypeArray) -> SourceTypeArray {
+        SourceTypeArray::with(types.iter().map(|ty| self.resolve(ty)).collect())
+    }
+
+    fn resolve_trait_type(&self, trait_ty: TraitType) -> TraitType {
+        TraitType {
+            trait_id: trait_ty.trait_id,
+            type_params: self.resolve_array(trait_ty.type_params),
+            bindings: trait_ty
+                .bindings
+                .into_iter()
+                .map(|(id, ty)| (id, self.resolve(ty)))
+                .collect(),
+        }
+    }
+
+    fn contains_type_param(&self, ty: &SourceType, expected_id: TypeParamId) -> bool {
+        let ty = self.resolve(ty.clone());
+
+        match ty {
+            SourceType::TypeParam(id) => id == expected_id,
+            SourceType::Class(_, params)
+            | SourceType::Struct(_, params)
+            | SourceType::Enum(_, params)
+            | SourceType::Alias(_, params)
+            | SourceType::Tuple(params) => params
+                .iter()
+                .any(|ty| self.contains_type_param(&ty, expected_id)),
+            SourceType::TraitObject(_, params, bindings) => {
+                params
+                    .iter()
+                    .any(|ty| self.contains_type_param(&ty, expected_id))
+                    || bindings
+                        .iter()
+                        .any(|ty| self.contains_type_param(&ty, expected_id))
+            }
+            SourceType::Assoc { trait_ty, .. } => {
+                self.trait_contains_type_param(&trait_ty, expected_id)
+            }
+            SourceType::GenericAssoc { ty, trait_ty, .. } => {
+                self.contains_type_param(&ty, expected_id)
+                    || self.trait_contains_type_param(&trait_ty, expected_id)
+            }
+            SourceType::Lambda(params, return_type, _) => {
+                params
+                    .iter()
+                    .any(|ty| self.contains_type_param(&ty, expected_id))
+                    || self.contains_type_param(&return_type, expected_id)
+            }
+            SourceType::Ref(ty) => self.contains_type_param(&ty, expected_id),
+            SourceType::Unit
+            | SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::This
+            | SourceType::Error => false,
+            SourceType::Any | SourceType::TypeVar(_) => {
+                unreachable!("unexpected inference type in impl declaration")
+            }
+        }
+    }
+
+    fn trait_contains_type_param(&self, trait_ty: &TraitType, expected_id: TypeParamId) -> bool {
+        trait_ty
+            .type_params
+            .iter()
+            .any(|ty| self.contains_type_param(&ty, expected_id))
+            || trait_ty
+                .bindings
+                .iter()
+                .any(|(_, ty)| self.contains_type_param(ty, expected_id))
+    }
+}
+
 fn trait_ty_match(
     sa: &Sema,
     impl_: &ImplDefinition,
@@ -217,6 +602,7 @@ fn trait_ty_match(
     check_element: &dyn Element,
     check_type_param_definition: &TypeParamDefinition,
     opt_bindings: &mut Vec<Option<SourceType>>,
+    context: &mut TraitMatchingContext,
 ) -> bool {
     assert_eq!(impl_trait_ty.trait_id, check_trait_ty.trait_id);
     assert_eq!(
@@ -224,7 +610,7 @@ fn trait_ty_match(
         check_trait_ty.type_params.len()
     );
 
-    if !match_arrays(
+    if !match_arrays_with_context(
         sa,
         &check_trait_ty.type_params,
         check_element,
@@ -232,6 +618,7 @@ fn trait_ty_match(
         &impl_trait_ty.type_params,
         impl_.type_param_definition(sa),
         opt_bindings,
+        context,
     ) {
         return false;
     }

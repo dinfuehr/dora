@@ -1018,6 +1018,11 @@ pub static IMPL_TRAIT_FOREIGN_TYPE: DiagnosticDescriptor = DiagnosticDescriptor 
     level: ErrorLevel::Error,
 };
 
+pub static CONFLICTING_TRAIT_IMPL: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "conflicting implementation of trait `{0}` for type `{1}`; another implementation is at {2}.",
+    level: ErrorLevel::Error,
+};
+
 pub static TRAIT_NOT_OBJECT_SAFE: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "Trait not object safe",
     level: ErrorLevel::Error,

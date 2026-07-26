@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Trait` for type `Value`; another implementation is at duplicate-trait-impl.dora:4:1.
+--> duplicate-trait-impl.dora:5:1
+ | 
+ | impl Trait for Value {}
+ | impl Trait for Value {}
+   ~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

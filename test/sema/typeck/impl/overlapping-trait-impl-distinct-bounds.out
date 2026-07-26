@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Trait` for type `Value[U]`; another implementation is at overlapping-trait-impl-distinct-bounds.dora:6:1.
+--> overlapping-trait-impl-distinct-bounds.dora:7:1
+ | 
+ | impl[T: First] Trait for Value[T] {}
+ | impl[U: Second] Trait for Value[U] {}
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

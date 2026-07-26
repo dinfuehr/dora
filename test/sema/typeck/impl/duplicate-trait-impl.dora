@@ -1,0 +1,5 @@
+trait Trait {}
+class Value {}
+
+impl Trait for Value {}
+impl Trait for Value {}

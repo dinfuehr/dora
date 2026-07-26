@@ -2615,7 +2615,11 @@ fn compute_declaration_span(node: &SyntaxNode) -> Span {
 
     for elem in node.children_with_tokens() {
         match elem {
-            SyntaxElement::Node(node) if node.is_block_expr() => break,
+            SyntaxElement::Node(node)
+                if node.is_block_expr() || node.syntax_kind() == TokenKind::ELEMENT_LIST =>
+            {
+                break;
+            }
             SyntaxElement::Node(node) => {
                 let span = node.span();
                 start.get_or_insert(span.start());
@@ -2634,7 +2638,9 @@ fn compute_declaration_span(node: &SyntaxNode) -> Span {
     }
 
     let span = node.span();
-    Span::new(start.unwrap_or(span.start()), end.unwrap_or(span.end()))
+    let start = start.unwrap_or(span.start());
+    let end = end.unwrap_or(span.end());
+    Span::new(start, end - start)
 }
 
 fn find_node_by_ptr(node: SyntaxNode, needle: SyntaxNodePtr) -> Option<SyntaxNode> {
@@ -2774,7 +2780,24 @@ fn find_tokens_at_offset(node: SyntaxNode, needle: u32) -> Vec<SyntaxToken> {
 #[cfg(test)]
 mod tests {
     use crate::Parser;
-    use crate::ast::{SyntaxNode, SyntaxNodeBase};
+    use crate::ast::{AstImpl, SyntaxNode, SyntaxNodeBase};
+
+    #[test]
+    fn test_impl_declaration_span_excludes_body() {
+        let content = "trait Trait {}\nimpl Trait for Value {\n    fn value() {}\n}";
+        let parser = Parser::from_string(content);
+        let (file, errors) = parser.parse();
+        assert!(errors.is_empty());
+
+        let impl_ = file.root().children().find_map(AstImpl::cast).unwrap();
+        let expected = "impl Trait for Value";
+        let start = content.find(expected).unwrap() as u32;
+
+        assert_eq!(
+            impl_.declaration_span(),
+            crate::Span::new(start, expected.len() as u32)
+        );
+    }
 
     #[test]
     fn test_node_at_offset() {

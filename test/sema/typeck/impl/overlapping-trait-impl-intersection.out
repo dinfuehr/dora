@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Trait[Int32]` for type `Pair[Int32, U]`; another implementation is at overlapping-trait-impl-intersection.dora:4:1.
+--> overlapping-trait-impl-intersection.dora:5:1
+ | 
+ | impl[T] Trait[T] for Pair[T, Int32] {}
+ | impl[U] Trait[Int32] for Pair[Int32, U] {}
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

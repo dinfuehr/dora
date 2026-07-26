@@ -298,6 +298,44 @@ impl SourceType {
         }
     }
 
+    pub fn contains_type_param(&self) -> bool {
+        match self {
+            SourceType::TypeParam(_) => true,
+            SourceType::Class(_, type_params)
+            | SourceType::Struct(_, type_params)
+            | SourceType::Enum(_, type_params)
+            | SourceType::Alias(_, type_params)
+            | SourceType::Tuple(type_params) => {
+                type_params.iter().any(|ty| ty.contains_type_param())
+            }
+            SourceType::TraitObject(_, type_params, bindings) => {
+                type_params.iter().any(|ty| ty.contains_type_param())
+                    || bindings.iter().any(|ty| ty.contains_type_param())
+            }
+            SourceType::Assoc { trait_ty, .. } => trait_ty.contains_type_param(),
+            SourceType::GenericAssoc { ty, trait_ty, .. } => {
+                ty.contains_type_param() || trait_ty.contains_type_param()
+            }
+            SourceType::Lambda(params, return_type, _) => {
+                params.iter().any(|ty| ty.contains_type_param())
+                    || return_type.contains_type_param()
+            }
+            SourceType::Ref(ty) => ty.contains_type_param(),
+            SourceType::Unit
+            | SourceType::Bool
+            | SourceType::UInt8
+            | SourceType::Char
+            | SourceType::Int32
+            | SourceType::Int64
+            | SourceType::Float32
+            | SourceType::Float64
+            | SourceType::This
+            | SourceType::Error
+            | SourceType::Any
+            | SourceType::TypeVar(_) => false,
+        }
+    }
+
     pub fn is_tuple(&self) -> bool {
         match self {
             &SourceType::Tuple(_) => true,
@@ -1261,6 +1299,11 @@ pub struct TraitType {
 }
 
 impl TraitType {
+    pub fn contains_type_param(&self) -> bool {
+        self.type_params.iter().any(|ty| ty.contains_type_param())
+            || self.bindings.iter().any(|(_, ty)| ty.contains_type_param())
+    }
+
     pub fn new_ty(sa: &Sema, ty: SourceType) -> TraitType {
         match ty {
             SourceType::TraitObject(trait_id, type_params, bindings) => {

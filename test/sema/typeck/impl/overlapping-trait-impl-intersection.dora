@@ -1,0 +1,5 @@
+trait Trait[T] {}
+class Pair[A, B] {}
+
+impl[T] Trait[T] for Pair[T, Int32] {}
+impl[U] Trait[Int32] for Pair[Int32, U] {}

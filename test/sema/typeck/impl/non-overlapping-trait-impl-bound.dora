@@ -1,0 +1,17 @@
+//= ok
+trait Bound {}
+trait Trait {}
+trait Other {}
+class Value[T] {}
+class Foo[T] {}
+class Pair[A, B] {}
+class Plain {}
+
+impl[T: Bound] Trait for Value[T] {}
+impl Trait for Value[Int32] {}
+
+impl[A: Bound] Trait for Pair[A, Int32] {}
+impl[B] Trait for Pair[Foo[B], B] {}
+
+impl Other for Plain where Int32: Bound {}
+impl Other for Plain {}

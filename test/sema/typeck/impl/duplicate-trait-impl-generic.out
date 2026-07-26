@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Trait[U]` for type `Value[U]`; another implementation is at duplicate-trait-impl-generic.dora:4:1.
+--> duplicate-trait-impl-generic.dora:5:1
+ | 
+ | impl[T] Trait[T] for Value[T] {}
+ | impl[U] Trait[U] for Value[U] {}
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

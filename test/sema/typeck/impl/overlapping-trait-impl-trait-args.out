@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Trait[Int32]` for type `Value[Int32]`; another implementation is at overlapping-trait-impl-trait-args.dora:4:1.
+--> overlapping-trait-impl-trait-args.dora:5:1
+ | 
+ | impl[T] Trait[T] for Value[T] {}
+ | impl Trait[Int32] for Value[Int32] {}
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.

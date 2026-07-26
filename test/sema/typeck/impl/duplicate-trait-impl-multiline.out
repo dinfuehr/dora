@@ -1,0 +1,9 @@
+error: conflicting implementation of trait `Trait` for type `Value`; another implementation is at duplicate-trait-impl-multiline.dora:6:1.
+--> duplicate-trait-impl-multiline.dora:12:1
+ | }
+ | 
+ | impl Trait for Value {
+   ~~~~~~~~~~~~~~~~~~~~
+ |     fn value(): Int32 {
+ |         return 2;
+1 error found.

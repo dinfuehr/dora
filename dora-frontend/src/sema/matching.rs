@@ -1,9 +1,10 @@
 use crate::sema::{
-    Element, ExtensionDefinitionId, Sema, TypeParamDefinition, TypeParamId, implements_trait,
-    maybe_alias_ty,
+    Element, ExtensionDefinitionId, Sema, TypeParamDefinition, TypeParamId, maybe_alias_ty,
 };
 use crate::specialize::specialize_type;
 use crate::{SourceType, SourceTypeArray, SymbolKind, TypeArgs};
+
+use super::impl_matching::{TraitMatchingContext, implements_trait_with_context};
 
 pub fn extension_matches(
     sa: &Sema,
@@ -33,6 +34,27 @@ pub fn block_matches_ty(
     ext_ty: SourceType,
     ext_type_param_defs: &TypeParamDefinition,
 ) -> Option<Vec<SourceType>> {
+    let mut context = TraitMatchingContext::default();
+    block_matches_ty_with_context(
+        sa,
+        check_ty,
+        check_element,
+        check_type_param_defs,
+        ext_ty,
+        ext_type_param_defs,
+        &mut context,
+    )
+}
+
+pub(super) fn block_matches_ty_with_context(
+    sa: &Sema,
+    check_ty: SourceType,
+    check_element: &dyn Element,
+    check_type_param_defs: &TypeParamDefinition,
+    ext_ty: SourceType,
+    ext_type_param_defs: &TypeParamDefinition,
+    context: &mut TraitMatchingContext,
+) -> Option<Vec<SourceType>> {
     // If check_ty is an error type, don't try to match - return None
     if check_ty.is_error() {
         return None;
@@ -48,6 +70,7 @@ pub fn block_matches_ty(
         ext_ty.clone(),
         ext_type_param_defs,
         &mut bindings,
+        context,
     );
 
     if result {
@@ -66,7 +89,7 @@ pub fn block_matches_ty(
             let bound_ty = specialize_type(sa, bound.ty(), &type_args);
 
             if let Some(trait_ty) = bound.trait_ty() {
-                if !implements_trait(sa, bound_ty, check_element, trait_ty) {
+                if !implements_trait_with_context(sa, bound_ty, check_element, trait_ty, context) {
                     return None;
                 }
             }
@@ -87,6 +110,29 @@ pub fn match_arrays(
     extended_type_param_definition: &TypeParamDefinition,
     bindings: &mut [Option<SourceType>],
 ) -> bool {
+    let mut context = TraitMatchingContext::default();
+    match_arrays_with_context(
+        sa,
+        check_array,
+        check_element,
+        check_type_param_definition,
+        extended_array,
+        extended_type_param_definition,
+        bindings,
+        &mut context,
+    )
+}
+
+pub(super) fn match_arrays_with_context(
+    sa: &Sema,
+    check_array: &SourceTypeArray,
+    check_element: &dyn Element,
+    check_type_param_definition: &TypeParamDefinition,
+    extended_array: &SourceTypeArray,
+    extended_type_param_definition: &TypeParamDefinition,
+    bindings: &mut [Option<SourceType>],
+    context: &mut TraitMatchingContext,
+) -> bool {
     if check_array.len() != extended_array.len() {
         return false;
     }
@@ -100,6 +146,7 @@ pub fn match_arrays(
             extended_ty,
             extended_type_param_definition,
             bindings,
+            context,
         ) {
             return false;
         }
@@ -116,6 +163,7 @@ fn match_types(
     ext_ty: SourceType,
     ext_type_param_defs: &TypeParamDefinition,
     bindings: &mut [Option<SourceType>],
+    context: &mut TraitMatchingContext,
 ) -> bool {
     let check_ty = maybe_alias_ty(sa, check_ty);
     let ext_ty = maybe_alias_ty(sa, ext_ty);
@@ -135,6 +183,7 @@ fn match_types(
                 binding,
                 ext_type_param_defs,
                 bindings,
+                context,
             )
         } else {
             let result = if check_ty.is_type_param() {
@@ -152,6 +201,7 @@ fn match_types(
                     check_element,
                     ext_tp_id,
                     ext_type_param_defs,
+                    context,
                 )
             };
 
@@ -171,6 +221,7 @@ fn match_types(
                 ext_ty,
                 ext_type_param_defs,
                 bindings,
+                context,
             )
         }
     }
@@ -201,9 +252,10 @@ fn match_concrete_against_bounds(
     check_element: &dyn Element,
     ext_tp_id: TypeParamId,
     ext_type_param_defs: &TypeParamDefinition,
+    context: &mut TraitMatchingContext,
 ) -> bool {
     for trait_ty in ext_type_param_defs.bounds_for_type_param(sa, ext_tp_id) {
-        if !implements_trait(sa, check_ty.clone(), check_element, trait_ty) {
+        if !implements_trait_with_context(sa, check_ty.clone(), check_element, trait_ty, context) {
             return false;
         }
     }
@@ -219,6 +271,7 @@ fn match_concrete_types(
     ext_ty: SourceType,
     ext_type_param_defs: &TypeParamDefinition,
     bindings: &mut [Option<SourceType>],
+    context: &mut TraitMatchingContext,
 ) -> bool {
     if check_ty.is_error() || ext_ty.is_error() {
         return true;
@@ -239,7 +292,7 @@ fn match_concrete_types(
 
         SourceType::Lambda(check_params, check_ret_type, check_is_variadic) => match ext_ty {
             SourceType::Lambda(ext_params, ext_ret_type, ext_is_variadic) => {
-                match_arrays(
+                match_arrays_with_context(
                     sa,
                     &check_params,
                     check_element,
@@ -247,6 +300,7 @@ fn match_concrete_types(
                     &ext_params,
                     ext_type_param_defs,
                     bindings,
+                    context,
                 ) && check_is_variadic == ext_is_variadic
                     && match_types(
                         sa,
@@ -256,6 +310,7 @@ fn match_concrete_types(
                         *ext_ret_type,
                         ext_type_param_defs,
                         bindings,
+                        context,
                     )
             }
 
@@ -282,6 +337,7 @@ fn match_concrete_types(
                         *ext_inner_ty,
                         ext_type_param_defs,
                         bindings,
+                        context,
                     )
             }
             _ => false,
@@ -301,7 +357,7 @@ fn match_concrete_types(
         },
 
         SourceType::Tuple(check_subtypes) => match ext_ty {
-            SourceType::Tuple(ext_subtypes) => match_arrays(
+            SourceType::Tuple(ext_subtypes) => match_arrays_with_context(
                 sa,
                 &check_subtypes,
                 check_element,
@@ -309,6 +365,7 @@ fn match_concrete_types(
                 &ext_subtypes,
                 ext_type_param_defs,
                 bindings,
+                context,
             ),
             _ => false,
         },
@@ -321,7 +378,7 @@ fn match_concrete_types(
                 return false;
             }
 
-            match_arrays(
+            match_arrays_with_context(
                 sa,
                 &check_ty.type_params(),
                 check_element,
@@ -329,6 +386,7 @@ fn match_concrete_types(
                 &ext_ty.type_params(),
                 ext_type_param_defs,
                 bindings,
+                context,
             )
         }
 
@@ -336,7 +394,7 @@ fn match_concrete_types(
             match ext_ty {
                 SourceType::TraitObject(ext_trait_id, ext_type_params, ext_bindings) => {
                     check_trait_id == ext_trait_id
-                        && match_arrays(
+                        && match_arrays_with_context(
                             sa,
                             &check_type_params,
                             check_element,
@@ -344,8 +402,9 @@ fn match_concrete_types(
                             &ext_type_params,
                             ext_type_param_defs,
                             bindings,
+                            context,
                         )
-                        && match_arrays(
+                        && match_arrays_with_context(
                             sa,
                             &check_bindings,
                             check_element,
@@ -353,6 +412,7 @@ fn match_concrete_types(
                             &ext_bindings,
                             ext_type_param_defs,
                             bindings,
+                            context,
                         )
                 }
                 _ => false,

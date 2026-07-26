@@ -1,0 +1,7 @@
+trait First {}
+trait Second {}
+trait Trait {}
+class Value[T] {}
+
+impl[T: First] Trait for Value[T] {}
+impl[U: Second] Trait for Value[U] {}

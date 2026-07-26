@@ -66,7 +66,8 @@ pub use self::functions::{
 };
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impl_matching::{
-    associated_type_bounds, find_impl, impl_matches, implements_trait, maybe_alias_ty,
+    associated_type_bounds, find_impl, impl_matches, implements_trait, impls_overlap,
+    maybe_alias_ty,
 };
 pub use self::impls::{ImplDefinition, ImplDefinitionId, SuperTraitWitness};
 pub use self::known::KnownElements;

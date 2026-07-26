@@ -1,0 +1,7 @@
+trait Bound {}
+trait Trait {}
+class Value[T] {}
+
+impl Bound for Int32 {}
+impl[T: Bound] Trait for Value[T] {}
+impl Trait for Value[Int32] {}

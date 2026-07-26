@@ -6,15 +6,16 @@ use crate::args;
 use crate::element_collector::Annotations;
 use crate::error::Location;
 use crate::error::diagnostics::{
-    ALIAS_EXISTS, ELEMENT_NOT_IN_IMPL, ELEMENT_NOT_IN_TRAIT, EXTRA_TYPE_PARAM_BOUND,
-    IMPL_METHOD_DEFINITION_MISMATCH, IMPL_TRAIT_FOREIGN_TYPE, MISSING_ASSOC_TYPE,
-    MISSING_TYPE_PARAM_BOUND, TYPE_NOT_IMPLEMENTING_TRAIT, WRONG_NUMBER_TYPE_PARAMS,
+    ALIAS_EXISTS, CONFLICTING_TRAIT_IMPL, ELEMENT_NOT_IN_IMPL, ELEMENT_NOT_IN_TRAIT,
+    EXTRA_TYPE_PARAM_BOUND, IMPL_METHOD_DEFINITION_MISMATCH, IMPL_TRAIT_FOREIGN_TYPE,
+    MISSING_ASSOC_TYPE, MISSING_TYPE_PARAM_BOUND, TYPE_NOT_IMPLEMENTING_TRAIT,
+    WRONG_NUMBER_TYPE_PARAMS,
 };
 use crate::extensiondefck::check_for_unconstrained_type_params;
 use crate::sema::{
     AliasDefinitionId, Element, FctDefinition, FctDefinitionId, ImplDefinition, ImplDefinitionId,
-    Sema, SuperTraitWitness, TraitDefinition, find_impl, implements_trait, maybe_alias_ty,
-    type_ref_span,
+    Sema, SuperTraitWitness, TraitDefinition, find_impl, implements_trait, impls_overlap,
+    maybe_alias_ty, type_ref_span,
 };
 use crate::specialize::DefaultTraitMethodSpecialization;
 use crate::{
@@ -23,6 +24,40 @@ use crate::{
 };
 
 type TraitAliasMap = HashMap<AliasDefinitionId, (AliasDefinitionId, SourceType)>;
+
+pub fn check_overlapping_impls(sa: &Sema) {
+    let impl_ids = sa.impls.iter().map(|(id, _)| id).collect::<Vec<_>>();
+
+    for (idx, &impl_id) in impl_ids.iter().enumerate() {
+        let impl_ = sa.impl_(impl_id);
+
+        for &previous_impl_id in &impl_ids[..idx] {
+            let previous_impl = sa.impl_(previous_impl_id);
+
+            if !impls_overlap(sa, previous_impl, impl_) {
+                continue;
+            }
+
+            let trait_ty = impl_.trait_ty().expect("trait implementation expected");
+            let type_param_definition = impl_.type_param_definition(sa);
+            let trait_name = trait_ty.name_with_type_params(sa, type_param_definition);
+            let type_name = impl_
+                .extended_ty()
+                .name_with_type_params(sa, type_param_definition);
+            let previous_location = Location {
+                file_id: previous_impl.file_id,
+                span: previous_impl.declaration_span,
+            };
+
+            sa.report(
+                impl_.file_id,
+                impl_.declaration_span,
+                &CONFLICTING_TRAIT_IMPL,
+                args!(trait_name, type_name, previous_location),
+            );
+        }
+    }
+}
 
 pub fn check_definition(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
@@ -1320,7 +1355,7 @@ mod tests {
             class A
             impl Foo for A {}",
             (6, 13),
-            114,
+            14,
             crate::ErrorLevel::Error,
             &ELEMENT_NOT_IN_IMPL,
             args!("bar"),
@@ -1367,7 +1402,7 @@ mod tests {
             class A
             impl Foo for A {}",
             (6, 13),
-            121,
+            14,
             crate::ErrorLevel::Error,
             &ELEMENT_NOT_IN_IMPL,
             args!("bar"),

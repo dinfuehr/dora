@@ -92,6 +92,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     impldefck::check_definition_against_trait(sa);
     impldefck::check_type_aliases_bounds(sa);
     enumck::check(sa);
+    impldefck::check_overlapping_impls(sa);
     globaldefck::check(sa);
     extensiondefck::check(sa);
 
