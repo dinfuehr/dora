@@ -28,3 +28,4 @@ fn direct:
 
 fn <impl Equals for Color>::equals:
   <no bytecode>
+
