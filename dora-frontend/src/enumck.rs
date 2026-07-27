@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use dora_parser::ast::SyntaxNodeBase;
 
 use crate::element_collector::Annotations;
-use crate::error::diagnostics::INVALID_EQUALS_ANNOTATION_USAGE;
+use crate::error::diagnostics::TYPE_NOT_IMPLEMENTING_TRAIT;
 use crate::sema::{
     Element, ElementId, FctDefinition, FctParent, ImplDefinition, Intrinsic, Param, Params, Sema,
-    TypeParamDefinition, TypeRefArena,
+    TypeParamDefinition, TypeRefArena, implements_trait,
 };
 use crate::{SourceType, TraitType, args};
 
@@ -26,38 +26,29 @@ pub fn check(sa: &mut Sema) {
         assert!(enum_.simple_enumeration.set(simple_enumeration).is_ok());
 
         if enum_.derive_equals {
-            if simple_enumeration {
-                derive_equals.push(enum_id);
-            } else {
-                let span = enum_
-                    .ast(sa)
-                    .modifier_list()
-                    .and_then(|list| {
-                        list.items().find(|modifier| {
-                            modifier
-                                .ident()
-                                .is_some_and(|ident| ident.text() == "Equals")
-                        })
-                    })
-                    .map(|modifier| modifier.span())
-                    .unwrap_or(enum_.span);
-                sa.report(
-                    enum_.file_id,
-                    span,
-                    &INVALID_EQUALS_ANNOTATION_USAGE,
-                    args!(),
-                );
-            }
+            derive_equals.push(enum_id);
         }
     }
 
-    for enum_id in derive_equals {
+    for &enum_id in &derive_equals {
         create_equals_impl(sa, enum_id);
+    }
+
+    for enum_id in derive_equals {
+        check_equals_fields(sa, enum_id);
     }
 }
 
 fn create_equals_impl(sa: &mut Sema, enum_id: crate::sema::EnumDefinitionId) {
-    let (package_id, module_id, file_id, declaration_span, span, enum_type_param_definition) = {
+    let (
+        package_id,
+        module_id,
+        file_id,
+        declaration_span,
+        span,
+        enum_type_param_definition,
+        simple_enumeration,
+    ) = {
         let enum_ = sa.enum_(enum_id);
         let declaration_span = enum_
             .ast(sa)
@@ -72,6 +63,7 @@ fn create_equals_impl(sa: &mut Sema, enum_id: crate::sema::EnumDefinitionId) {
             declaration_span,
             enum_.span,
             enum_.type_param_definition(sa).clone(),
+            enum_.is_simple_enum(),
         )
     };
     let enum_type_params = enum_type_param_definition.identity_type_params(sa);
@@ -102,7 +94,7 @@ fn create_equals_impl(sa: &mut Sema, enum_id: crate::sema::EnumDefinitionId) {
     let method_name = sa.interner.intern("equals");
     let mut modifiers = Annotations::default();
     modifiers.is_internal = true;
-    modifiers.is_force_inline = true;
+    modifiers.is_force_inline = simple_enumeration;
     let params = Params::new(
         vec![
             Param::new_ty(SourceType::This),
@@ -129,12 +121,20 @@ fn create_equals_impl(sa: &mut Sema, enum_id: crate::sema::EnumDefinitionId) {
     let method_id = sa.fcts.alloc(method);
     sa.fcts[method_id].id = Some(method_id);
     sa.fcts[method_id].set_type_refs(TypeRefArena::new());
-    assert!(sa.fcts[method_id].intrinsic.set(Intrinsic::EnumEq).is_ok());
 
     let trait_method_id = sa
         .trait_(equals_trait_id)
         .get_method(method_name, false)
         .expect("Equals::equals missing");
+    assert!(
+        sa.fcts[method_id]
+            .trait_method_impl
+            .set(trait_method_id)
+            .is_ok()
+    );
+    if simple_enumeration {
+        assert!(sa.fcts[method_id].intrinsic.set(Intrinsic::EnumEq).is_ok());
+    }
     assert!(sa.impls[impl_id].methods.set(vec![method_id]).is_ok());
     assert!(sa.impls[impl_id].aliases.set(Vec::new()).is_ok());
     assert!(
@@ -156,6 +156,34 @@ fn create_equals_impl(sa: &mut Sema, enum_id: crate::sema::EnumDefinitionId) {
             .is_ok()
     );
     sa.impls[impl_id].set_super_trait_witnesses(HashMap::new());
+}
+
+fn check_equals_fields(sa: &Sema, enum_id: crate::sema::EnumDefinitionId) {
+    let enum_ = sa.enum_(enum_id);
+    let equals_trait_ty = TraitType::from_trait_id(sa.known.traits.equals());
+
+    for &variant_id in enum_.variant_ids() {
+        let variant = sa.variant(variant_id);
+
+        for &field_id in variant.field_ids() {
+            let field = sa.field(field_id);
+            let field_ty = field.ty();
+
+            if !field_ty.is_error()
+                && !implements_trait(sa, field_ty.clone(), enum_, equals_trait_ty.clone())
+            {
+                sa.report(
+                    enum_.file_id,
+                    field.span(),
+                    &TYPE_NOT_IMPLEMENTING_TRAIT,
+                    args!(
+                        field_ty.name_with_type_params(sa, enum_.type_param_definition(sa)),
+                        equals_trait_ty.name_with_type_params(sa, enum_.type_param_definition(sa))
+                    ),
+                );
+            }
+        }
+    }
 }
 
 #[cfg(test)]

@@ -4,6 +4,32 @@ fn main() {
     assert(equals[Color](Color::Blue, Color::Blue));
     assert(!equals[Color](Color::Red, Color::Blue));
     assert(Color::Red.equals(Color::Red));
+
+    assert(Payload::Empty == Payload::Empty);
+    assert(Payload::Integer(1i32) == Payload::Integer(1i32));
+    assert(Payload::Integer(1i32) != Payload::Integer(2i32));
+    assert(Payload::Integer(1i32) != Payload::Flag(true));
+    assert(Payload::Flag(true) == Payload::Flag(true));
+    assert(Payload::Flag(true) != Payload::Flag(false));
+    assert(Payload::Pair(1i32, true) == Payload::Pair(1i32, true));
+    assert(Payload::Pair(1i32, true) != Payload::Pair(1i32, false));
+    assert(Payload::Integer(1i32).equals(Payload::Integer(1i32)));
+
+    assert(Generic[Int32]::None == Generic[Int32]::None);
+    assert(Generic[Int32]::Some(7i32) == Generic[Int32]::Some(7i32));
+    assert(Generic[Int32]::Some(7i32) != Generic[Int32]::Some(8i32));
+    assert(Generic[String]::Some("value") == Generic[String]::Some("value"));
+    assert(Generic[String]::Some("value") != Generic[String]::Some("other"));
+    assert(Generic[Int32]::Some(7i32).equals(Generic[Int32]::Some(7i32)));
+
+    assert(List::Nil == List::Nil);
+    assert(List::Cons(1i32, List::Nil) == List::Cons(1i32, List::Nil));
+    assert(List::Cons(1i32, List::Nil) != List::Cons(2i32, List::Nil));
+    assert(
+        List::Cons(1i32, List::Cons(2i32, List::Nil))
+            == List::Cons(1i32, List::Cons(2i32, List::Nil)),
+    );
+    assert(List::Cons(1i32, List::Nil).equals(List::Cons(1i32, List::Nil)));
 }
 
 @Equals
@@ -11,6 +37,26 @@ enum Color {
     Red,
     Green,
     Blue,
+}
+
+@Equals
+enum Payload {
+    Empty,
+    Integer(Int32),
+    Flag(Bool),
+    Pair(Int32, Bool),
+}
+
+@Equals
+enum Generic[T: std::Equals] {
+    None,
+    Some(T),
+}
+
+@Equals
+enum List {
+    Nil,
+    Cons(Int32, List),
 }
 
 fn equals[T: std::Equals](lhs: T, rhs: T): Bool {

@@ -12,7 +12,7 @@ use dora_bytecode::{
     verify_program,
 };
 
-use crate::generator::{generate_fct, generate_global_initializer};
+use crate::generator::{generate_enum_equals, generate_fct, generate_global_initializer};
 
 use crate::sema::{
     self, AliasDefinitionId, ClassDefinition, ClassDefinitionId, ConstDefinitionId, Element,
@@ -744,7 +744,9 @@ impl Emitter {
 
         // Second pass: Generate bytecode for all functions.
         for (id, fct) in sa.fcts.iter() {
-            if fct.has_body(sa) {
+            let derived_enum_equals = self.derived_enum_equals(sa, &fct);
+
+            if fct.has_body(sa) || derived_enum_equals.is_some() {
                 self.enter_type_param_definition(fct.type_param_definition_id());
                 assert!(self.hidden_self_type_param.is_none());
                 if fct.needs_self_type_param(sa) {
@@ -756,8 +758,12 @@ impl Emitter {
                     );
                 }
 
-                let analysis = fct.analysis();
-                let bc_fct = generate_fct(sa, self, &*fct, analysis);
+                let bc_fct = if let Some(enum_id) = derived_enum_equals {
+                    generate_enum_equals(sa, self, &fct, enum_id)
+                } else {
+                    let analysis = fct.analysis();
+                    generate_fct(sa, self, &fct, analysis)
+                };
                 let function_id = self.convert_function_id(sa, id);
                 self.functions[function_id.index()].bytecode = Some(bc_fct);
                 self.hidden_self_type_param = None;
@@ -812,6 +818,29 @@ impl Emitter {
             self.global_initializer.insert(global.id(), fct_id);
             self.leave_type_param_definition();
         }
+    }
+
+    fn derived_enum_equals(
+        &self,
+        sa: &Sema,
+        fct: &crate::sema::FctDefinition,
+    ) -> Option<EnumDefinitionId> {
+        if fct.syntax_node_ptr.is_some() {
+            return None;
+        }
+
+        let FctParent::Impl(impl_id) = fct.parent else {
+            return None;
+        };
+        let impl_ = sa.impl_(impl_id);
+
+        if impl_.trait_id() != Some(sa.known.traits.equals()) {
+            return None;
+        }
+
+        let enum_id = impl_.extended_ty().enum_id()?;
+        let enum_ = sa.enum_(enum_id);
+        (enum_.derive_equals && !enum_.is_simple_enum()).then_some(enum_id)
     }
 
     fn create_globals(&mut self, sa: &Sema) {

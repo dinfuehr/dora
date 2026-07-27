@@ -19,7 +19,7 @@ mod global;
 mod int_dispatch;
 mod pattern;
 
-pub use self::function::{generate_fct, generate_fct_id};
+pub use self::function::{generate_enum_equals, generate_fct, generate_fct_id};
 pub use self::global::generate_global_initializer;
 
 pub struct LoopLabels {

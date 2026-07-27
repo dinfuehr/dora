@@ -4,4 +4,12 @@ error: conflicting implementation of trait `Equals` for type `Value`; another im
    ~~~~~~~
  | enum Value {
  |     Item,
-1 error found.
+error: conflicting implementation of trait `Equals` for type `ValueWithFields`; another implementation is at equals-manual-impl-conflict.dora:17:1.
+--> equals-manual-impl-conflict.dora:12:1
+ | }
+ | 
+ | @Equals
+   ~~~~~~~
+ | enum ValueWithFields {
+ |     Item(Int32),
+2 errors found.

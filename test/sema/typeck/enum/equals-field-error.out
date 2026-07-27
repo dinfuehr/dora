@@ -1,0 +1,17 @@
+error: type `NoEquals` does not implement trait `Equals`.
+--> equals-field-error.dora:6:11
+ | @Equals
+ | enum Concrete {
+ |     Value(NoEquals),
+             ~~~~~~~~
+ | }
+ | 
+error: type `T` does not implement trait `Equals`.
+--> equals-field-error.dora:11:11
+ | @Equals
+ | enum Generic[T] {
+ |     Value(T),
+             ~
+ | }
+ | 
+2 errors found.

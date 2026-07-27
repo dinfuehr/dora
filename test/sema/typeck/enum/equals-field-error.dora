@@ -1,0 +1,12 @@
+//= error
+class NoEquals {}
+
+@Equals
+enum Concrete {
+    Value(NoEquals),
+}
+
+@Equals
+enum Generic[T] {
+    Value(T),
+}

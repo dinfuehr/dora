@@ -4,3 +4,15 @@ enum A { V1, V2 }
 fn f(x: A, y: A): Bool {
     x == y
 }
+
+@Equals
+enum B { V1(Int32), V2(Bool), V3 }
+fn g(x: B, y: B): Bool {
+    x == y
+}
+
+@Equals
+enum Generic[T: std::Equals] { None, Some(T) }
+fn generic(x: Generic[Int32], y: Generic[Int32]): Bool {
+    x == y
+}

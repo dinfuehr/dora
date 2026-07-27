@@ -11,7 +11,7 @@ fn equals[T]:
    0 => Generic std::traits::Equals::equals on T as Equals
 
   Locations:
-   0 => 5:5
+   0 => 12:5
 
 fn direct:
   0: TestEq r2, r0, r1
@@ -25,6 +25,72 @@ fn direct:
   Constants:
 
   Locations:
+
+fn payload:
+  0: InvokeDirect r2, @0, r0, r1 # <impl Equals for Payload>::equals
+  6: Ret r2
+
+  Registers:
+   0 => enum Payload
+   1 => enum Payload
+   2 => Bool
+
+  Constants:
+   0 => Fct <impl Equals for Payload>::equals
+
+  Locations:
+   0 => 20:5
+
+fn <impl Equals for Payload>::equals:
+  0: LoadEnumVariant r2, r0, @0 # Payload
+  4: LoadEnumVariant r3, r1, @0 # Payload
+  8: TestEq r4, r2, r3
+ 12: JumpIfFalse r4, 93 (+81)
+ 18: Switch r2, @1 # [21, 25, 49], default 93
+ 21: ConstTrue r4
+ 23: Ret r4
+ 25: LoadEnumElement r5, r0, @2, 0 # Payload::Integer.0
+ 29: LoadEnumElement r6, r1, @2, 0 # Payload::Integer.0
+ 33: InvokeDirect r4, @3, r5, r6 # std::primitives::<impl Equals for Int32>::equals
+ 39: JumpIfFalse r4, 93 (+54)
+ 45: ConstTrue r4
+ 47: Ret r4
+ 49: LoadEnumElement r5, r0, @4, 0 # Payload::Pair.0
+ 53: LoadEnumElement r6, r1, @4, 0 # Payload::Pair.0
+ 57: InvokeDirect r4, @5, r5, r6 # std::primitives::<impl Equals for Int32>::equals
+ 63: JumpIfFalse r4, 93 (+30)
+ 69: LoadEnumElement r7, r0, @6, 1 # Payload::Pair.1
+ 73: LoadEnumElement r8, r1, @6, 1 # Payload::Pair.1
+ 77: InvokeDirect r4, @7, r7, r8 # std::primitives::<impl Equals for Bool>::equals
+ 83: JumpIfFalse r4, 93 (+10)
+ 89: ConstTrue r4
+ 91: Ret r4
+ 93: ConstFalse r4
+ 95: Ret r4
+
+  Registers:
+   0 => enum Payload
+   1 => enum Payload
+   2 => Int32
+   3 => Int32
+   4 => Bool
+   5 => Int32
+   6 => Int32
+   7 => Bool
+   8 => Bool
+
+  Constants:
+   0 => Enum Payload
+   1 => JumpTable 21, 25, 49, default 93
+   2 => EnumVariantElement Payload::Integer::0
+   3 => Fct std::primitives::<impl Equals for Int32>::equals
+   4 => EnumVariantElement Payload::Pair::0
+   5 => Fct std::primitives::<impl Equals for Int32>::equals
+   6 => EnumVariantElement Payload::Pair::1
+   7 => Fct std::primitives::<impl Equals for Bool>::equals
+
+  Locations:
+   0 => 1:1
 
 fn <impl Equals for Color>::equals:
   <no bytecode>

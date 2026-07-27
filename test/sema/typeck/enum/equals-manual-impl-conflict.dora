@@ -8,3 +8,14 @@ impl std::Equals for Value {
         false
     }
 }
+
+@Equals
+enum ValueWithFields {
+    Item(Int32),
+}
+
+impl std::Equals for ValueWithFields {
+    fn equals(_other: ValueWithFields): Bool {
+        false
+    }
+}

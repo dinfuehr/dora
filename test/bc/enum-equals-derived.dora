@@ -1,4 +1,11 @@
 @Equals
+enum Payload {
+    Empty,
+    Integer(Int32),
+    Pair(Int32, Bool),
+}
+
+@Equals
 enum Color { Red, Green, Blue }
 
 fn equals[T: std::Equals](lhs: T, rhs: T): Bool {
@@ -6,5 +13,9 @@ fn equals[T: std::Equals](lhs: T, rhs: T): Bool {
 }
 
 fn direct(lhs: Color, rhs: Color): Bool {
+    lhs == rhs
+}
+
+fn payload(lhs: Payload, rhs: Payload): Bool {
     lhs == rhs
 }
