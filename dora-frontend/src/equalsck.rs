@@ -62,7 +62,7 @@ fn create_equals_impl(sa: &mut Sema, target: EqualsTarget) {
         span,
         type_param_definition_id,
         extended_ty,
-        force_inline,
+        is_simple_enum,
     ) = {
         let element = target.element(sa);
         (
@@ -100,7 +100,7 @@ fn create_equals_impl(sa: &mut Sema, target: EqualsTarget) {
     let method_name = sa.interner.intern("equals");
     let mut modifiers = Annotations::default();
     modifiers.is_internal = true;
-    modifiers.is_force_inline = force_inline;
+    modifiers.is_force_inline = is_simple_enum;
     let params = Params::new(
         vec![Param::new_ty(SourceType::This), Param::new_ty(extended_ty)],
         true,
@@ -126,7 +126,7 @@ fn create_equals_impl(sa: &mut Sema, target: EqualsTarget) {
     sa.fcts[method_id].id = Some(method_id);
     sa.fcts[method_id].set_type_refs(TypeRefArena::new());
 
-    if force_inline {
+    if is_simple_enum {
         assert!(sa.fcts[method_id].intrinsic.set(Intrinsic::EnumEq).is_ok());
     }
     assert!(sa.impls[impl_id].methods.set(vec![method_id]).is_ok());
