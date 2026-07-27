@@ -633,7 +633,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.sa,
             self.file_id,
             ast_node.modifier_list(),
-            &[Annotation::Internal, Annotation::Pub],
+            &[Annotation::Equals, Annotation::Internal, Annotation::Pub],
         );
 
         let mut type_ref_arena = TypeRefArenaBuilder::new();
@@ -728,7 +728,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.sa,
             self.file_id,
             ast_node.modifier_list(),
-            &[Annotation::Pub, Annotation::Internal],
+            &[Annotation::Equals, Annotation::Pub, Annotation::Internal],
         );
 
         let mut type_ref_arena = TypeRefArenaBuilder::new();

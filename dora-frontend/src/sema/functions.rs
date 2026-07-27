@@ -8,14 +8,22 @@ use dora_parser::ast::{self, SyntaxNodeBase, SyntaxNodePtr};
 use id_arena::Id;
 
 use crate::sema::{
-    Body, Element, ElementId, ExprId, ExtensionDefinitionId, ImplDefinitionId, ModuleDefinitionId,
-    PackageDefinitionId, Sema, SourceFileId, TraitDefinitionId, TypeParamDefinitionId,
-    TypeRefArena, TypeRefArenaBuilder, Visibility, lower_type, module_path,
+    Body, ClassDefinitionId, Element, ElementId, EnumDefinitionId, ExprId, ExtensionDefinitionId,
+    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
+    StructDefinitionId, TraitDefinitionId, TypeParamDefinitionId, TypeRefArena,
+    TypeRefArenaBuilder, Visibility, lower_type, module_path,
 };
 use crate::ty::SourceType;
 use dora_bytecode::BytecodeBody;
 
 pub type FctDefinitionId = Id<FctDefinition>;
+
+#[derive(Clone, Copy)]
+pub enum DerivedEquals {
+    Class(ClassDefinitionId),
+    Struct(StructDefinitionId),
+    Enum(EnumDefinitionId),
+}
 
 pub struct FctDefinition {
     pub id: Option<FctDefinitionId>,
@@ -48,6 +56,7 @@ pub struct FctDefinition {
     pub bytecode: OnceCell<BytecodeBody>,
     pub intrinsic: OnceCell<Intrinsic>,
     pub trait_method_impl: OnceCell<FctDefinitionId>,
+    pub derived_equals: Option<DerivedEquals>,
     is_default_trait_method_adapter: bool,
 }
 
@@ -95,6 +104,7 @@ impl FctDefinition {
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
             trait_method_impl: OnceCell::new(),
+            derived_equals: None,
             is_default_trait_method_adapter: false,
         }
     }
@@ -143,6 +153,7 @@ impl FctDefinition {
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
             trait_method_impl: OnceCell::new(),
+            derived_equals: None,
             is_default_trait_method_adapter: false,
         }
     }

@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Equals` for type `Value`; another implementation is at equals-manual-impl-conflict.dora:5:1.
+--> equals-manual-impl-conflict.dora:2:1
+ | //= error
+ | @Equals
+   ~~~~~~~
+ | struct Value(Int32)
+ | 
+1 error found.

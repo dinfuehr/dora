@@ -1,5 +1,5 @@
 use package::bytecode::{BytecodeType, Location};
-use std::{Equals, Hash, Stringable};
+use std::{Hash, Stringable};
 
 pub struct PackageId(pub Int32)
 
@@ -76,17 +76,12 @@ pub class GlobalData {
     initial_value: Option[FunctionId],
 }
 
+@Equals
 pub struct ClassId(pub Int32)
 
 impl Stringable for ClassId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Equals for ClassId {
-    fn equals(other: ClassId): Bool {
-        self.0 == other.0
     }
 }
 
@@ -117,17 +112,12 @@ pub class ClassField {
     name: String,
 }
 
+@Equals
 pub struct StructId(pub Int32)
 
 impl Stringable for StructId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Equals for StructId {
-    fn equals(other: StructId): Bool {
-        self.0 == other.0
     }
 }
 
@@ -157,17 +147,12 @@ pub class StructField {
     name: String,
 }
 
+@Equals
 pub struct EnumId(pub Int32)
 
 impl Stringable for EnumId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Equals for EnumId {
-    fn equals(other: EnumId): Bool {
-        self.0 == other.0
     }
 }
 
@@ -189,17 +174,12 @@ pub class EnumVariant {
     arguments: Array[BytecodeType],
 }
 
+@Equals
 pub struct TraitId(pub Int32)
 
 impl Stringable for TraitId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Equals for TraitId {
-    fn equals(other: TraitId): Bool {
-        self.0 == other.0
     }
 }
 
@@ -242,17 +222,12 @@ pub class ImplData {
     trait_method_map: Array[(FunctionId, FunctionId)],
 }
 
+@Equals
 pub struct AliasId(pub Int32)
 
 impl Stringable for AliasId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Equals for AliasId {
-    fn equals(other: AliasId): Bool {
-        self.0 == other.0
     }
 }
 
@@ -267,17 +242,12 @@ pub class AliasData {
     ty: Option[BytecodeType],
 }
 
+@Equals
 pub struct ConstId(pub Int32)
 
 impl Stringable for ConstId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Equals for ConstId {
-    fn equals(other: ConstId): Bool {
-        self.0 == other.0
     }
 }
 

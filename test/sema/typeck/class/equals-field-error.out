@@ -1,0 +1,16 @@
+error: type `NoEquals` does not implement trait `Equals`.
+--> equals-field-error.dora:5:16
+ | 
+ | @Equals
+ | class Concrete(NoEquals)
+                  ~~~~~~~~
+ | 
+ | @Equals
+error: type `T` does not implement trait `Equals`.
+--> equals-field-error.dora:8:18
+ | 
+ | @Equals
+ | class Generic[T](T)
+                    ~
+ | 
+2 errors found.

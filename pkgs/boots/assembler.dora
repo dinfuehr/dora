@@ -145,6 +145,7 @@ pub trait RegisterType: Equals {
     fn to_location(): Location;
 }
 
+@Equals
 pub struct Register(pub UInt8)
 
 impl Register {
@@ -160,12 +161,6 @@ impl Register {
 impl Hash for Register {
     fn hash(): Int32 {
         self.0.to_int32()
-    }
-}
-
-impl Equals for Register {
-    fn equals(other: Register): Bool {
-        self.0 == other.0
     }
 }
 
@@ -190,17 +185,12 @@ impl std::Stringable for Register {
     }
 }
 
+@Equals
 pub struct FloatRegister(pub UInt8)
 
 impl FloatRegister {
     fn value(): Int32 {
         self.0.to_int32()
-    }
-}
-
-impl Equals for FloatRegister {
-    fn equals(rhs: FloatRegister): Bool {
-        self.0 == rhs.0
     }
 }
 

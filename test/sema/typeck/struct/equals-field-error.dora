@@ -1,0 +1,8 @@
+//= error
+class NoEquals
+
+@Equals
+struct Concrete(NoEquals)
+
+@Equals
+struct Generic[T](T)

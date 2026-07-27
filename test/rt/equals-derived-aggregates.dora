@@ -1,0 +1,53 @@
+fn main() {
+    assert(EmptyClass() == EmptyClass());
+    assert(ClassValue(1i32, true) == ClassValue(1i32, true));
+    assert(ClassValue(1i32, true) != ClassValue(2i32, true));
+    assert(ClassValue(1i32, true) != ClassValue(1i32, false));
+    assert(ClassValue(1i32, true).equals(ClassValue(1i32, true)));
+
+    assert(GenericClass[Int32](7i32) == GenericClass[Int32](7i32));
+    assert(GenericClass[Int32](7i32) != GenericClass[Int32](8i32));
+
+    assert(EmptyStruct() == EmptyStruct());
+    assert(StructValue(1i32, true) == StructValue(1i32, true));
+    assert(StructValue(1i32, true) != StructValue(2i32, true));
+    assert(StructValue(1i32, true) != StructValue(1i32, false));
+    assert(StructValue(1i32, true).equals(StructValue(1i32, true)));
+
+    assert(GenericStruct[String]("value") == GenericStruct[String]("value"));
+    assert(GenericStruct[String]("value") != GenericStruct[String]("other"));
+
+    assert(
+        Node(1i32, Option[Node]::None)
+            == Node(1i32, Option[Node]::None),
+    );
+    assert(
+        Node(1i32, Option[Node]::Some(Node(2i32, Option[Node]::None)))
+            == Node(1i32, Option[Node]::Some(Node(2i32, Option[Node]::None))),
+    );
+    assert(
+        Node(1i32, Option[Node]::Some(Node(2i32, Option[Node]::None)))
+            != Node(1i32, Option[Node]::Some(Node(3i32, Option[Node]::None))),
+    );
+}
+
+@Equals
+class EmptyClass
+
+@Equals
+class ClassValue(Int32, Bool)
+
+@Equals
+class GenericClass[T: std::Equals](T)
+
+@Equals
+struct EmptyStruct
+
+@Equals
+struct StructValue(Int32, Bool)
+
+@Equals
+struct GenericStruct[T: std::Equals](T)
+
+@Equals
+class Node(Int32, Option[Node])

@@ -12,11 +12,14 @@ use dora_bytecode::{
     verify_program,
 };
 
-use crate::generator::{generate_enum_equals, generate_fct, generate_global_initializer};
+use crate::generator::{
+    generate_class_equals, generate_enum_equals, generate_fct, generate_global_initializer,
+    generate_struct_equals,
+};
 
 use crate::sema::{
-    self, AliasDefinitionId, ClassDefinition, ClassDefinitionId, ConstDefinitionId, Element,
-    EnumDefinition, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, FctParent,
+    self, AliasDefinitionId, ClassDefinition, ClassDefinitionId, ConstDefinitionId, DerivedEquals,
+    Element, EnumDefinition, EnumDefinitionId, ExtensionDefinitionId, FctDefinitionId, FctParent,
     GlobalDefinition, GlobalDefinitionId, ImplDefinitionId, ModuleDefinitionId,
     PackageDefinitionId, PackageName, StructDefinition, StructDefinitionId, TraitDefinitionId,
     TypeParamDefinition, TypeParamDefinitionId,
@@ -744,9 +747,9 @@ impl Emitter {
 
         // Second pass: Generate bytecode for all functions.
         for (id, fct) in sa.fcts.iter() {
-            let derived_enum_equals = self.derived_enum_equals(sa, &fct);
+            let derived_equals = fct.derived_equals;
 
-            if fct.has_body(sa) || derived_enum_equals.is_some() {
+            if fct.has_body(sa) || derived_equals.is_some() {
                 self.enter_type_param_definition(fct.type_param_definition_id());
                 assert!(self.hidden_self_type_param.is_none());
                 if fct.needs_self_type_param(sa) {
@@ -758,11 +761,20 @@ impl Emitter {
                     );
                 }
 
-                let bc_fct = if let Some(enum_id) = derived_enum_equals {
-                    generate_enum_equals(sa, self, &fct, enum_id)
-                } else {
-                    let analysis = fct.analysis();
-                    generate_fct(sa, self, &fct, analysis)
+                let bc_fct = match derived_equals {
+                    Some(DerivedEquals::Class(class_id)) => {
+                        generate_class_equals(sa, self, &fct, class_id)
+                    }
+                    Some(DerivedEquals::Struct(struct_id)) => {
+                        generate_struct_equals(sa, self, &fct, struct_id)
+                    }
+                    Some(DerivedEquals::Enum(enum_id)) => {
+                        generate_enum_equals(sa, self, &fct, enum_id)
+                    }
+                    None => {
+                        let analysis = fct.analysis();
+                        generate_fct(sa, self, &fct, analysis)
+                    }
                 };
                 let function_id = self.convert_function_id(sa, id);
                 self.functions[function_id.index()].bytecode = Some(bc_fct);
@@ -818,29 +830,6 @@ impl Emitter {
             self.global_initializer.insert(global.id(), fct_id);
             self.leave_type_param_definition();
         }
-    }
-
-    fn derived_enum_equals(
-        &self,
-        sa: &Sema,
-        fct: &crate::sema::FctDefinition,
-    ) -> Option<EnumDefinitionId> {
-        if fct.syntax_node_ptr.is_some() {
-            return None;
-        }
-
-        let FctParent::Impl(impl_id) = fct.parent else {
-            return None;
-        };
-        let impl_ = sa.impl_(impl_id);
-
-        if impl_.trait_id() != Some(sa.known.traits.equals()) {
-            return None;
-        }
-
-        let enum_id = impl_.extended_ty().enum_id()?;
-        let enum_ = sa.enum_(enum_id);
-        (enum_.derive_equals && !enum_.is_simple_enum()).then_some(enum_id)
     }
 
     fn create_globals(&mut self, sa: &Sema) {

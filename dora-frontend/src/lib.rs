@@ -32,6 +32,7 @@ mod clsdefck;
 mod constdefck;
 mod element_collector;
 mod enumck;
+mod equalsck;
 pub mod error;
 mod exhaustiveness;
 mod expr_lowering;
@@ -75,6 +76,9 @@ pub fn check_program(sa: &mut Sema) -> bool {
 
     // Now all types are known and we can start parsing types/type bounds.
     typedefck::parse_types(sa);
+    enumck::check(sa);
+    // Derived impls need to be visible while validating supertraits and type arguments.
+    equalsck::create_impls(sa);
     // Check for cycles in super trait hierarchy.
     traitdefck::check_super_trait_cycles(sa);
     // Connect aliases in impl to trait.
@@ -91,7 +95,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     impldefck::check_super_traits(sa);
     impldefck::check_definition_against_trait(sa);
     impldefck::check_type_aliases_bounds(sa);
-    enumck::check(sa);
+    equalsck::check_fields(sa);
     impldefck::check_overlapping_impls(sa);
     globaldefck::check(sa);
     extensiondefck::check(sa);

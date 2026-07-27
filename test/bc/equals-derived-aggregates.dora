@@ -1,0 +1,13 @@
+@Equals
+class ClassValue { number: Int32, flag: Bool }
+
+@Equals
+struct StructValue(Int32, Bool)
+
+fn class_equals(lhs: ClassValue, rhs: ClassValue): Bool {
+    lhs == rhs
+}
+
+fn struct_equals(lhs: StructValue, rhs: StructValue): Bool {
+    lhs == rhs
+}

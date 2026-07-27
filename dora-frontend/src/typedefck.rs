@@ -322,6 +322,10 @@ fn check_enum_types(sa: &Sema) {
 
 fn check_impl_types(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
+        if impl_.syntax_node_ptr.is_none() {
+            continue;
+        }
+
         check_type_param_definition(sa, impl_, impl_.type_param_definition(sa), true);
         impl_.parsed_extended_ty().check(sa, impl_, false);
         parsety::check_trait_type(sa, impl_, impl_.parsed_trait_ty());
@@ -375,6 +379,10 @@ pub fn expand_types(sa: &Sema) {
 
 fn expand_impl_types(sa: &Sema) {
     for (_id, impl_) in sa.impls.iter() {
+        if impl_.syntax_node_ptr.is_none() {
+            continue;
+        }
+
         impl_.parsed_extended_ty().expand(sa, impl_, None);
         parsety::expand_parsed_trait_type(
             sa,

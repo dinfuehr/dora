@@ -2459,6 +2459,7 @@ impl InputOutputOverlap {
     }
 }
 
+@Equals
 pub struct StackSlot {
     fp: Bool,
     offset: Int32,
@@ -2486,12 +2487,6 @@ impl StackSlot {
     }
 }
 
-impl Equals for StackSlot {
-    fn equals(other: StackSlot): Bool {
-        self.fp == other.fp && self.offset == other.offset
-    }
-}
-
 impl Stringable for StackSlot {
     fn to_string(): String {
         if self.fp {
@@ -2502,6 +2497,7 @@ impl Stringable for StackSlot {
     }
 }
 
+@Equals
 pub enum Location {
     None,
     Reg(Register),
@@ -2564,25 +2560,6 @@ impl Location {
         match self {
             Location::Stack(slot) => slot,
             _ => unreachable[StackSlot](),
-        }
-    }
-}
-
-impl Equals for Location {
-    fn equals(other: Location): Bool {
-        match self {
-            Location::None => {
-                other.is_none()
-            }
-            Location::Reg(reg) => {
-                other.is_register() && reg == other.get_register()
-            }
-            Location::FloatReg(reg) => {
-                other.is_float_register() && reg == other.get_float_register()
-            }
-            Location::Stack(slot) => {
-                other.is_stack() && slot == other.get_stack()
-            }
         }
     }
 }
@@ -3106,15 +3083,10 @@ pub class LambdaFunctionInfo {
     pub receiver_is_first: Bool,
 }
 
+@Equals
 pub class ClassInfo {
     pub class_id: ClassId,
     pub type_params: Array[BytecodeType],
-}
-
-impl Equals for ClassInfo {
-    fn equals(other: ClassInfo): Bool {
-        self.class_id == other.class_id && self.type_params == other.type_params
-    }
 }
 
 impl Hash for ClassInfo {
@@ -3123,15 +3095,10 @@ impl Hash for ClassInfo {
     }
 }
 
+@Equals
 pub class StructInfo {
     pub struct_id: StructId,
     pub type_params: Array[BytecodeType],
-}
-
-impl Equals for StructInfo {
-    fn equals(other: StructInfo): Bool {
-        self.struct_id == other.struct_id && self.type_params == other.type_params
-    }
 }
 
 impl Hash for StructInfo {

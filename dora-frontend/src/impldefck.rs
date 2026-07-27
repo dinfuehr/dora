@@ -1,7 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use dora_parser::ast::SyntaxNodeBase;
-
 use crate::args;
 use crate::element_collector::Annotations;
 use crate::error::Location;
@@ -99,7 +97,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         impl_.extended_ty(),
         impl_.type_param_definition(sa),
         impl_.file_id,
-        impl_.ast(sa).span(),
+        impl_.span,
     );
 
     if impl_.trait_ty().is_some() && !impl_.extended_ty().is_error() {
@@ -109,12 +107,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
             package_for_type(sa, impl_.extended_ty()) != Some(impl_.package_id);
 
         if is_trait_foreign && is_extended_ty_foreign {
-            sa.report(
-                impl_.file_id,
-                impl_.ast(sa).span(),
-                &IMPL_TRAIT_FOREIGN_TYPE,
-                args!(),
-            );
+            sa.report(impl_.file_id, impl_.span, &IMPL_TRAIT_FOREIGN_TYPE, args!());
         }
     }
 }

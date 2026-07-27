@@ -31,6 +31,7 @@ pub struct ClassDefinition {
     pub needs_self_type_param: bool,
     pub visibility: Visibility,
     pub field_name_style: ast::FieldNameStyle,
+    pub derive_equals: bool,
 
     pub field_ids: OnceCell<Vec<FieldDefinitionId>>,
     pub children: OnceCell<Vec<ElementId>>,
@@ -72,6 +73,7 @@ impl ClassDefinition {
             needs_self_type_param: false,
             visibility: modifiers.visibility(),
             field_name_style: ast.field_name_style(),
+            derive_equals: modifiers.is_equals,
             field_ids: OnceCell::new(),
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
@@ -106,6 +108,7 @@ impl ClassDefinition {
             needs_self_type_param: false,
             visibility,
             field_name_style: ast::FieldNameStyle::Positional,
+            derive_equals: false,
             field_ids: OnceCell::new(),
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),

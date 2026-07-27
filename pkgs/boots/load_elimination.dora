@@ -1,4 +1,4 @@
-use std::{Equals, Hash, HashMap, HashSet};
+use std::{Hash, HashMap, HashSet};
 
 use package::bytecode::GlobalId;
 use package::compilation::CompilationInfo;
@@ -326,15 +326,10 @@ impl LoadEliminationPass {
     }
 }
 
+@Equals
 struct ObjectWithOffset {
     object: Inst,
     offset: Int32,
-}
-
-impl Equals for ObjectWithOffset {
-    fn equals(other: ObjectWithOffset): Bool {
-        self.object == other.object && self.offset == other.offset
-    }
 }
 
 impl Hash for ObjectWithOffset {
@@ -343,18 +338,11 @@ impl Hash for ObjectWithOffset {
     }
 }
 
+@Equals
 struct Field {
     object: Inst,
     class_info: ClassInfo,
     offset: Int32,
-}
-
-impl Equals for Field {
-    fn equals(other: Field): Bool {
-        self.object == other.object &&
-        self.class_info == other.class_info &&
-        self.offset == other.offset
-    }
 }
 
 impl Hash for Field {

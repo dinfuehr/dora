@@ -1,0 +1,20 @@
+//= ok
+trait Marker: std::Equals {}
+class RequiresEquals[T: std::Equals]
+
+@Equals
+class C(Int32)
+impl Marker for C {}
+class UsesC(RequiresEquals[C])
+
+@Equals
+struct S(Int32)
+impl Marker for S {}
+class UsesS(RequiresEquals[S])
+
+@Equals
+enum E {
+    Value(Int32),
+}
+impl Marker for E {}
+class UsesE(RequiresEquals[E])

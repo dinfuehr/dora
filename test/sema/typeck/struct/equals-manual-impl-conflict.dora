@@ -1,0 +1,9 @@
+//= error
+@Equals
+struct Value(Int32)
+
+impl std::Equals for Value {
+    fn equals(_other: Self): Bool {
+        true
+    }
+}

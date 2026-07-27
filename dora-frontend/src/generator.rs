@@ -13,13 +13,15 @@ use crate::ty::{SourceType, SourceTypeArray};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
 
 mod bytecode;
+mod equals;
 mod expr;
 mod function;
 mod global;
 mod int_dispatch;
 mod pattern;
 
-pub use self::function::{generate_enum_equals, generate_fct, generate_fct_id};
+pub use self::equals::{generate_class_equals, generate_enum_equals, generate_struct_equals};
+pub use self::function::{generate_fct, generate_fct_id};
 pub use self::global::generate_global_initializer;
 
 pub struct LoopLabels {

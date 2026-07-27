@@ -1,0 +1,16 @@
+//= ok
+@Equals
+class Empty
+
+@Equals
+class Named { value: Int32, flag: Bool }
+
+@Equals
+class Generic[T: std::Equals](T)
+
+@Equals
+class Recursive { value: Int32, next: Option[Recursive] }
+
+fn equals(lhs: Named, rhs: Named): Bool {
+    lhs == rhs
+}

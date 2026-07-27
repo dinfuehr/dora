@@ -1,0 +1,13 @@
+//= ok
+@Equals
+struct Empty
+
+@Equals
+struct Named { value: Int32, flag: Bool }
+
+@Equals
+struct Generic[T: std::Equals](T)
+
+fn equals(lhs: Named, rhs: Named): Bool {
+    lhs == rhs
+}

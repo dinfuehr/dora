@@ -1,4 +1,4 @@
-use std::{Equals, Hash, HashSet};
+use std::{Hash, HashSet};
 
 use package::compilation::CompilationInfo;
 use package::dominator::compute_post_order;
@@ -354,18 +354,11 @@ fn is_memory_barrier(op: Op): Bool {
     }
 }
 
+@Equals
 struct StoredField {
     object: Inst,
     class_info: ClassInfo,
     offset: Int32,
-}
-
-impl Equals for StoredField {
-    fn equals(other: StoredField): Bool {
-        self.object == other.object &&
-        self.class_info == other.class_info &&
-        self.offset == other.offset
-    }
 }
 
 impl Hash for StoredField {
@@ -374,16 +367,11 @@ impl Hash for StoredField {
     }
 }
 
+@Equals
 struct StackSlot {
     object: Inst,
     offset: Int32,
     ty: Type,
-}
-
-impl Equals for StackSlot {
-    fn equals(other: StackSlot): Bool {
-        self.object == other.object && self.offset == other.offset && self.ty == other.ty
-    }
 }
 
 impl Hash for StackSlot {

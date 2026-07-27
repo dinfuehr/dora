@@ -1,0 +1,8 @@
+//= error
+class NoEquals
+
+@Equals
+class Concrete(NoEquals)
+
+@Equals
+class Generic[T](T)

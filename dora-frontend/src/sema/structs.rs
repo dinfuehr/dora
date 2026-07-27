@@ -37,6 +37,7 @@ pub struct StructDefinition {
     pub children: OnceCell<Vec<ElementId>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub field_name_style: ast::FieldNameStyle,
+    pub derive_equals: bool,
 }
 
 impl StructDefinition {
@@ -70,6 +71,7 @@ impl StructDefinition {
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             field_name_style: ast.field_name_style(),
+            derive_equals: modifiers.is_equals,
         }
     }
 

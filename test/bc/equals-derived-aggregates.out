@@ -1,0 +1,102 @@
+class ClassValue:
+  number: Int32
+  flag: Bool
+
+struct StructValue:
+  0: Int32
+  1: Bool
+
+fn class_equals:
+  0: InvokeDirect r2, @0, r0, r1 # <impl Equals for ClassValue>::equals
+  6: Ret r2
+
+  Registers:
+   0 => class ClassValue
+   1 => class ClassValue
+   2 => Bool
+
+  Constants:
+   0 => Fct <impl Equals for ClassValue>::equals
+
+  Locations:
+   0 => 8:5
+
+fn struct_equals:
+  0: InvokeDirect r2, @0, r0, r1 # <impl Equals for StructValue>::equals
+  6: Ret r2
+
+  Registers:
+   0 => struct StructValue
+   1 => struct StructValue
+   2 => Bool
+
+  Constants:
+   0 => Fct <impl Equals for StructValue>::equals
+
+  Locations:
+   0 => 12:5
+
+fn <impl Equals for ClassValue>::equals:
+  0: LoadField r3, r0, @0 # ClassValue.number
+  4: LoadField r4, r1, @0 # ClassValue.number
+  8: InvokeDirect r2, @1, r3, r4 # std::primitives::<impl Equals for Int32>::equals
+ 14: JumpIfFalse r2, 44 (+30)
+ 20: LoadField r5, r0, @2 # ClassValue.flag
+ 24: LoadField r6, r1, @2 # ClassValue.flag
+ 28: InvokeDirect r2, @3, r5, r6 # std::primitives::<impl Equals for Bool>::equals
+ 34: JumpIfFalse r2, 44 (+10)
+ 40: ConstTrue r2
+ 42: Ret r2
+ 44: ConstFalse r2
+ 46: Ret r2
+
+  Registers:
+   0 => class ClassValue
+   1 => class ClassValue
+   2 => Bool
+   3 => Int32
+   4 => Int32
+   5 => Bool
+   6 => Bool
+
+  Constants:
+   0 => Field ClassValue.number
+   1 => Fct std::primitives::<impl Equals for Int32>::equals
+   2 => Field ClassValue.flag
+   3 => Fct std::primitives::<impl Equals for Bool>::equals
+
+  Locations:
+   8 => 1:1
+
+fn <impl Equals for StructValue>::equals:
+  0: LoadField r3, r0, @0 # StructValue.0
+  4: LoadField r4, r1, @0 # StructValue.0
+  8: InvokeDirect r2, @1, r3, r4 # std::primitives::<impl Equals for Int32>::equals
+ 14: JumpIfFalse r2, 44 (+30)
+ 20: LoadField r5, r0, @2 # StructValue.1
+ 24: LoadField r6, r1, @2 # StructValue.1
+ 28: InvokeDirect r2, @3, r5, r6 # std::primitives::<impl Equals for Bool>::equals
+ 34: JumpIfFalse r2, 44 (+10)
+ 40: ConstTrue r2
+ 42: Ret r2
+ 44: ConstFalse r2
+ 46: Ret r2
+
+  Registers:
+   0 => struct StructValue
+   1 => struct StructValue
+   2 => Bool
+   3 => Int32
+   4 => Int32
+   5 => Bool
+   6 => Bool
+
+  Constants:
+   0 => StructField StructValue.0
+   1 => Fct std::primitives::<impl Equals for Int32>::equals
+   2 => StructField StructValue.1
+   3 => Fct std::primitives::<impl Equals for Bool>::equals
+
+  Locations:
+   8 => 4:1
+
