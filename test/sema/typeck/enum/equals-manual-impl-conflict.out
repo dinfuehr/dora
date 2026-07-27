@@ -1,0 +1,7 @@
+error: conflicting implementation of trait `Equals` for type `Value`; another implementation is at equals-manual-impl-conflict.dora:6:1.
+--> equals-manual-impl-conflict.dora:1:1
+ | @Equals
+   ~~~~~~~
+ | enum Value {
+ |     Item,
+1 error found.

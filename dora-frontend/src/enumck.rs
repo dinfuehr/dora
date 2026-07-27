@@ -52,27 +52,24 @@ pub fn check(sa: &mut Sema) {
     }
 
     for enum_id in derive_equals {
-        if !has_equals_impl(sa, enum_id) {
-            create_equals_impl(sa, enum_id);
-        }
+        create_equals_impl(sa, enum_id);
     }
 }
 
-fn has_equals_impl(sa: &Sema, enum_id: crate::sema::EnumDefinitionId) -> bool {
-    let equals_trait_id = sa.known.traits.equals();
-
-    sa.impls.iter().any(|(_, impl_)| {
-        impl_.trait_id() == Some(equals_trait_id) && impl_.extended_ty().enum_id() == Some(enum_id)
-    })
-}
-
 fn create_equals_impl(sa: &mut Sema, enum_id: crate::sema::EnumDefinitionId) {
-    let (package_id, module_id, file_id, span, enum_type_param_definition) = {
+    let (package_id, module_id, file_id, declaration_span, span, enum_type_param_definition) = {
         let enum_ = sa.enum_(enum_id);
+        let declaration_span = enum_
+            .ast(sa)
+            .modifier_list()
+            .and_then(|list| list.find_modifier("Equals"))
+            .expect("missing Equals annotation")
+            .span();
         (
             enum_.package_id,
             enum_.module_id,
             enum_.file_id,
+            declaration_span,
             enum_.span,
             enum_.type_param_definition(sa).clone(),
         )
@@ -87,6 +84,7 @@ fn create_equals_impl(sa: &mut Sema, enum_id: crate::sema::EnumDefinitionId) {
         package_id,
         module_id,
         file_id,
+        declaration_span,
         span,
         impl_type_param_definition_id,
         trait_ty,
@@ -117,7 +115,7 @@ fn create_equals_impl(sa: &mut Sema, enum_id: crate::sema::EnumDefinitionId) {
         package_id,
         module_id,
         file_id,
-        span,
+        declaration_span,
         span,
         None,
         modifiers,

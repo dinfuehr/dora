@@ -1,0 +1,10 @@
+@Equals
+enum Value {
+    Item,
+}
+
+impl std::Equals for Value {
+    fn equals(_other: Value): Bool {
+        false
+    }
+}

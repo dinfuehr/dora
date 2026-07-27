@@ -1893,6 +1893,11 @@ impl AstModifierList {
             .children()
             .filter_map(|n| AstModifier::cast(n))
     }
+
+    pub fn find_modifier(&self, name: &str) -> Option<AstModifier> {
+        self.items()
+            .find(|modifier| modifier.ident().is_some_and(|ident| ident.text() == name))
+    }
 }
 
 impl AstModule {
@@ -2780,7 +2785,28 @@ fn find_tokens_at_offset(node: SyntaxNode, needle: u32) -> Vec<SyntaxToken> {
 #[cfg(test)]
 mod tests {
     use crate::Parser;
-    use crate::ast::{AstImpl, SyntaxNode, SyntaxNodeBase};
+    use crate::ast::{AstEnum, AstImpl, SyntaxNode, SyntaxNodeBase};
+
+    #[test]
+    fn test_find_modifier() {
+        let parser = Parser::from_string("@First @Equals enum Value { Item }");
+        let (file, errors) = parser.parse();
+        assert!(errors.is_empty());
+
+        let enum_ = file.root().children().find_map(AstEnum::cast).unwrap();
+        let modifiers = enum_.modifier_list().unwrap();
+
+        assert_eq!(
+            modifiers
+                .find_modifier("Equals")
+                .unwrap()
+                .ident()
+                .unwrap()
+                .text(),
+            "Equals"
+        );
+        assert!(modifiers.find_modifier("Missing").is_none());
+    }
 
     #[test]
     fn test_impl_declaration_span_excludes_body() {
