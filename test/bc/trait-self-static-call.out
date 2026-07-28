@@ -1,4 +1,10 @@
-fn Foo::foo[$Self]:
+fn Foo::foo:
+  <no bytecode>
+
+fn Foo::bar:
+  <no bytecode>
+
+fn Foo::foo$body[$Self]:
   0: Ret r0
 
   Registers:
@@ -8,15 +14,15 @@ fn Foo::foo[$Self]:
 
   Locations:
 
-fn Foo::bar[$Self]:
-  0: InvokeGenericStatic r0, @0 # Foo::foo[$Self]
+fn Foo::bar$body[$Self]:
+  0: InvokeGenericStatic r0, @0 # Foo::foo
   4: Ret r0
 
   Registers:
    0 => ()
 
   Constants:
-   0 => Generic Foo::foo[$Self] on $Self as Foo
+   0 => Generic Foo::foo on $Self as Foo
 
   Locations:
    0 => 4:9

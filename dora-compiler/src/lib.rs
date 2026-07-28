@@ -133,8 +133,10 @@ pub fn get_bytecode<'a>(
         None => {
             let trait_method_id = program_fct.trait_method_impl?;
             let trait_method = program.fct(trait_method_id);
-            let bytecode_body = trait_method.bytecode.as_ref()?;
-            Some((bytecode_body, trait_method))
+            let body_id = trait_method.default_method_body?;
+            let body = program.fct(body_id);
+            let bytecode = body.bytecode.as_ref()?;
+            Some((bytecode, body))
         }
     }
 }
@@ -152,6 +154,10 @@ pub fn bytecode_type_params(
         .trait_method_impl
         .expect("function without bytecode is not a default trait method");
     let trait_method = program.fct(trait_method_id);
+    let body_id = trait_method
+        .default_method_body
+        .expect("trait method is missing its default body");
+    let body = program.fct(body_id);
     let impl_id = match program_fct.kind {
         FunctionKind::Impl(impl_id) => impl_id,
         _ => unreachable!(),
@@ -160,9 +166,14 @@ pub fn bytecode_type_params(
     let impl_container_count = impl_.type_params.type_param_count();
     let trait_container_count = impl_.trait_ty.type_params.len();
     let trait_method_type_param_count = trait_method.type_params.type_param_count();
-    assert!(trait_method_type_param_count > trait_container_count);
-    assert!(trait_method.has_bytecode_self_type_param());
-    let method_type_param_count = trait_method_type_param_count - trait_container_count - 1;
+    assert!(trait_method_type_param_count >= trait_container_count);
+    // The executable body mirrors the declaration's type parameters and appends `$Self`.
+    assert_eq!(
+        body.type_params.type_param_count(),
+        trait_method_type_param_count + 1
+    );
+    assert!(body.has_bytecode_self_type_param());
+    let method_type_param_count = trait_method_type_param_count - trait_container_count;
     assert_eq!(
         program_fct.type_params.type_param_count(),
         impl_container_count + method_type_param_count
@@ -173,8 +184,8 @@ pub fn bytecode_type_params(
     );
 
     // A default method body is emitted in trait coordinates, while its synthetic impl method is
-    // instantiated in impl coordinates. Translate once into the body's ordinary indexed layout:
-    // trait arguments, method arguments, and the final bytecode-only Self argument.
+    // instantiated in impl coordinates. Translate once into the body's indexed layout: trait
+    // arguments, method arguments, and the final bytecode-only Self argument.
     let trait_type_params =
         specialize_ty_array_in_program(program, &impl_.trait_ty.type_params, type_params);
     let (_, method_type_params) = type_params.split(impl_container_count);

@@ -1,7 +1,10 @@
 fn Foo::foo:
   <no bytecode>
 
-fn Foo::bar[$Self]:
+fn Foo::bar:
+  <no bytecode>
+
+fn Foo::bar$body[$Self]:
   0: InvokeGenericDirect r1, @0, r0 # Foo::foo
   5: Ret r1
 

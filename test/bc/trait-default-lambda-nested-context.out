@@ -5,37 +5,8 @@ class $Context1[T, U, $Self]:
 fn Foo::item[T]:
   <no bytecode>
 
-fn Foo::nested[T, U, $Self]:
-  0: NewObject r2, @0 # $Context1[T, U, $Self]
-  4: StoreField r0, r2, @1 # $Context1[T, U, $Self].self
-  8: StoreField r1, r2, @2 # $Context1[T, U, $Self].extra
- 12: NewLambda r4, @3, r2 # $Lambda2
- 17: Mov r3, r4
- 20: InvokeLambda r5, @4, r3 # lambda
- 25: InvokeLambda r6, @5, r5 # lambda
- 30: Ret r6
-
-  Registers:
-   0 => $Self
-   1 => U
-   2 => class $Context1[T, U, $Self]
-   3 => (): (): ([$Self as Foo[T]]::Item, U)
-   4 => (): (): ([$Self as Foo[T]]::Item, U)
-   5 => (): ([$Self as Foo[T]]::Item, U)
-   6 => ([$Self as Foo[T]]::Item, U)
-
-  Constants:
-   0 => Class $Context1[T, U, $Self]
-   1 => Field $Context1[T, U, $Self].self
-   2 => Field $Context1[T, U, $Self].extra
-   3 => Fct lamba::$Lambda2[T#0, T#1, T#2]
-   4 => Lambda (): (): ([$Self as Foo[T]]::Item, U)
-   5 => Lambda (): ([$Self as Foo[T]]::Item, U)
-
-  Locations:
-   0 => 6:5
-   12 => 7:21
-   20 => 12:9
+fn Foo::nested[T, U]:
+  <no bytecode>
 
 fn lamba::$Lambda1[T, U, $Self]:
   0: LoadField r3, r0, @1 # $Lambda[$Context1[T, U, $Self]].context
@@ -84,4 +55,36 @@ fn lamba::$Lambda2[T, U, $Self]:
 
   Locations:
    4 => 8:25
+
+fn Foo::nested$body[T, U, $Self]:
+  0: NewObject r2, @0 # $Context1[T, U, $Self]
+  4: StoreField r0, r2, @1 # $Context1[T, U, $Self].self
+  8: StoreField r1, r2, @2 # $Context1[T, U, $Self].extra
+ 12: NewLambda r4, @3, r2 # $Lambda2
+ 17: Mov r3, r4
+ 20: InvokeLambda r5, @4, r3 # lambda
+ 25: InvokeLambda r6, @5, r5 # lambda
+ 30: Ret r6
+
+  Registers:
+   0 => $Self
+   1 => U
+   2 => class $Context1[T, U, $Self]
+   3 => (): (): ([$Self as Foo[T]]::Item, U)
+   4 => (): (): ([$Self as Foo[T]]::Item, U)
+   5 => (): ([$Self as Foo[T]]::Item, U)
+   6 => ([$Self as Foo[T]]::Item, U)
+
+  Constants:
+   0 => Class $Context1[T, U, $Self]
+   1 => Field $Context1[T, U, $Self].self
+   2 => Field $Context1[T, U, $Self].extra
+   3 => Fct lamba::$Lambda2[T#0, T#1, T#2]
+   4 => Lambda (): (): ([$Self as Foo[T]]::Item, U)
+   5 => Lambda (): ([$Self as Foo[T]]::Item, U)
+
+  Locations:
+   0 => 6:5
+   12 => 7:21
+   20 => 12:9
 

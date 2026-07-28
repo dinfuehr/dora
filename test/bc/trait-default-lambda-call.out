@@ -1,7 +1,26 @@
 class $Context1[$Self]:
   self: $Self
 
-fn Foo::foo[$Self]:
+fn Foo::foo:
+  <no bytecode>
+
+fn lamba::$Lambda1[$Self]:
+  0: LoadField r1, r0, @0 # $Lambda[$Context1[$Self]].context
+  4: LoadField r2, r1, @1 # $Context1[$Self].self
+  8: Ret r2
+
+  Registers:
+   0 => class $Lambda[$Context1[$Self]]
+   1 => class $Context1[$Self]
+   2 => $Self
+
+  Constants:
+   0 => Field std::$Lambda[$Context1[$Self]].context
+   1 => Field $Context1[$Self].self
+
+  Locations:
+
+fn Foo::foo$body[$Self]:
   0: NewObject r1, @0 # $Context1[$Self]
   4: StoreField r0, r1, @1 # $Context1[$Self].self
   8: NewLambda r3, @2, r1 # $Lambda1
@@ -26,20 +45,4 @@ fn Foo::foo[$Self]:
    0 => 2:5
    8 => 3:22
    16 => 4:9
-
-fn lamba::$Lambda1[$Self]:
-  0: LoadField r1, r0, @0 # $Lambda[$Context1[$Self]].context
-  4: LoadField r2, r1, @1 # $Context1[$Self].self
-  8: Ret r2
-
-  Registers:
-   0 => class $Lambda[$Context1[$Self]]
-   1 => class $Context1[$Self]
-   2 => $Self
-
-  Constants:
-   0 => Field std::$Lambda[$Context1[$Self]].context
-   1 => Field $Context1[$Self].self
-
-  Locations:
 

@@ -130,6 +130,7 @@ pub struct FunctionData {
     pub is_trait_object_ignore: bool,
     pub bytecode: Option<BytecodeBody>,
     pub trait_method_impl: Option<FunctionId>,
+    pub default_method_body: Option<FunctionId>,
 }
 
 #[derive(Debug, Decode, Encode)]

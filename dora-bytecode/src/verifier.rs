@@ -3,7 +3,7 @@ use fixedbitset::FixedBitSet;
 use crate::{
     BytecodeBody, BytecodeInstruction, BytecodeOffset, BytecodeReader, BytecodeTraitType,
     BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, FunctionData,
-    FunctionId, FunctionKind, Program, Register, TypeParamData, resolve_path,
+    FunctionId, FunctionKind, Program, Register, TraitId, TypeParamData, resolve_path,
 };
 
 pub fn verify(program: &Program) {
@@ -113,9 +113,13 @@ impl<'a> Verifier<'a> {
             .type_param_count();
         for ty in self.bytecode.registers() {
             verify_type(ty, type_param_count);
+            // `This` is only valid in trait-level metadata; executable bodies use `$Self`.
+            assert!(!type_contains_this(ty));
         }
         for entry in self.bytecode.const_pool_entries() {
             verify_const_pool_entry(entry, type_param_count);
+            // Constant-pool types belong to the body and therefore also use `$Self`.
+            assert!(!const_pool_entry_contains_this(entry));
         }
     }
 
@@ -1115,7 +1119,13 @@ fn verify_program_types(program: &Program) {
             verify_type(ty, type_param_count);
         }
         verify_type(&function.return_type, type_param_count);
+
+        if function.bytecode.is_some() {
+            verify_executable_function_signature_has_no_this(function);
+        }
     }
+
+    verify_trait_functions(program);
 
     for global in &program.globals {
         verify_type(&global.ty, 0);
@@ -1169,6 +1179,228 @@ fn verify_program_types(program: &Program) {
             verify_type(ty, type_param_count);
         }
     }
+}
+
+fn verify_executable_function_signature_has_no_this(function: &FunctionData) {
+    assert!(function.params.iter().all(|ty| !type_contains_this(ty)));
+    assert!(!type_contains_this(&function.return_type));
+    for bound in &function.type_params.bounds {
+        assert!(!type_contains_this(&bound.ty));
+        assert!(!trait_type_contains_this(&bound.trait_ty));
+    }
+}
+
+fn verify_trait_functions(program: &Program) {
+    let mut trait_method_owners = vec![None; program.functions.len()];
+    let mut default_body_owners = vec![None; program.functions.len()];
+
+    for (trait_idx, trait_) in program.traits.iter().enumerate() {
+        let trait_id: TraitId = trait_idx.into();
+        let mut virtual_methods = FixedBitSet::with_capacity(program.functions.len());
+
+        for &method_id in &trait_.methods {
+            assert!(
+                method_id.index() < program.functions.len(),
+                "trait references invalid method {method_id:?}"
+            );
+            let method = program.fct(method_id);
+            assert!(matches!(method.kind, FunctionKind::Trait(id) if id == trait_id));
+            assert!(
+                method.bytecode.is_none(),
+                "default method body must not appear in trait method metadata"
+            );
+            assert!(
+                trait_method_owners[method_id.index()]
+                    .replace(trait_id)
+                    .is_none(),
+                "trait method is listed more than once"
+            );
+        }
+
+        for &method_id in &trait_.virtual_methods {
+            assert!(
+                method_id.index() < program.functions.len(),
+                "trait references invalid virtual method {method_id:?}"
+            );
+            assert_eq!(trait_method_owners[method_id.index()], Some(trait_id));
+            assert!(
+                !virtual_methods.contains(method_id.index()),
+                "virtual method is listed more than once"
+            );
+            virtual_methods.insert(method_id.index());
+        }
+
+        for &method_id in &trait_.methods {
+            assert_eq!(
+                virtual_methods.contains(method_id.index()),
+                !program.fct(method_id).is_trait_object_ignore
+            );
+        }
+    }
+
+    for (declaration_idx, declaration) in program.functions.iter().enumerate() {
+        let Some(body_id) = declaration.default_method_body else {
+            continue;
+        };
+        assert!(
+            body_id.index() < program.functions.len(),
+            "default method references invalid body {body_id:?}"
+        );
+        let declaration_id: FunctionId = declaration_idx.into();
+        assert!(
+            default_body_owners[body_id.index()]
+                .replace(declaration_id)
+                .is_none(),
+            "default method body is shared by multiple declarations"
+        );
+        verify_default_method_body(program, declaration, body_id);
+    }
+
+    for (function_idx, function) in program.functions.iter().enumerate() {
+        let function_id: FunctionId = function_idx.into();
+
+        if let FunctionKind::Trait(trait_id) = function.kind {
+            assert!(
+                trait_id.index() < program.traits.len(),
+                "function references invalid trait {trait_id:?}"
+            );
+            if function.bytecode.is_some() {
+                assert!(
+                    default_body_owners[function_idx].is_some(),
+                    "orphaned default method body {function_id:?}"
+                );
+                assert!(trait_method_owners[function_idx].is_none());
+            } else {
+                assert_eq!(trait_method_owners[function_idx], Some(trait_id));
+                assert!(default_body_owners[function_idx].is_none());
+            }
+        } else {
+            assert!(trait_method_owners[function_idx].is_none());
+            assert!(default_body_owners[function_idx].is_none());
+        }
+    }
+}
+
+fn verify_default_method_body(program: &Program, declaration: &FunctionData, body_id: FunctionId) {
+    let trait_id = match declaration.kind {
+        FunctionKind::Trait(trait_id) => trait_id,
+        _ => panic!("default method body on non-trait function"),
+    };
+    assert!(declaration.bytecode.is_none());
+    assert!(declaration.trait_method_impl.is_none());
+
+    let body = program.fct(body_id);
+    assert!(matches!(body.kind, FunctionKind::Trait(id) if id == trait_id));
+    assert!(body.bytecode.is_some());
+    assert!(body.default_method_body.is_none());
+    assert!(body.trait_method_impl.is_none());
+    assert_eq!(body.name, format!("{}$body", declaration.name));
+    assert_eq!(body.file_id, declaration.file_id);
+    assert_eq!(body.loc, declaration.loc);
+    assert_eq!(body.package_id, declaration.package_id);
+    assert_eq!(body.module_id, declaration.module_id);
+    assert_eq!(body.source_file_id, declaration.source_file_id);
+    assert!(!body.is_public);
+    assert_eq!(body.is_internal, declaration.is_internal);
+    assert!(!body.is_native);
+    assert!(!body.is_test);
+    assert_eq!(body.is_force_inline, declaration.is_force_inline);
+    assert_eq!(body.is_never_inline, declaration.is_never_inline);
+    assert_eq!(
+        body.is_trait_object_ignore,
+        declaration.is_trait_object_ignore
+    );
+
+    let declaration_type_param_count = declaration.type_params.type_param_count();
+    assert_eq!(
+        body.type_params.type_param_count(),
+        declaration_type_param_count + 1
+    );
+    assert_eq!(
+        &body.type_params.names[..declaration_type_param_count],
+        declaration.type_params.names.as_slice()
+    );
+    assert_eq!(
+        body.type_params.names[declaration_type_param_count],
+        "$Self"
+    );
+    assert_eq!(
+        body.type_params.container_count,
+        declaration.type_params.container_count
+    );
+    assert_eq!(
+        body.type_params.container_bound_count,
+        declaration.type_params.container_bound_count
+    );
+
+    let identity_type_params = BytecodeTypeArray::new(
+        (0..declaration_type_param_count)
+            .map(|idx| BytecodeType::TypeParam(idx.try_into().expect("type parameter overflow")))
+            .collect(),
+    );
+    let self_ty = BytecodeType::TypeParam(
+        declaration_type_param_count
+            .try_into()
+            .expect("type parameter overflow"),
+    );
+
+    assert_eq!(
+        body.type_params.bounds.len(),
+        declaration.type_params.bounds.len() + 1
+    );
+    for (declaration_bound, body_bound) in declaration
+        .type_params
+        .bounds
+        .iter()
+        .zip(body.type_params.bounds.iter())
+    {
+        assert_eq!(
+            body_bound.ty,
+            specialize_type_with_self(&declaration_bound.ty, &identity_type_params, Some(&self_ty))
+        );
+        assert_eq!(
+            body_bound.trait_ty,
+            specialize_trait_type_with_self(
+                &declaration_bound.trait_ty,
+                &identity_type_params,
+                Some(&self_ty)
+            )
+        );
+    }
+
+    let self_bound = body.type_params.bounds.last().expect("Self bound missing");
+    assert_eq!(self_bound.ty, self_ty);
+    assert_eq!(self_bound.trait_ty.trait_id, trait_id);
+    assert_eq!(
+        self_bound.trait_ty.type_params,
+        BytecodeTypeArray::new(
+            (0..declaration.type_params.container_count)
+                .map(|idx| {
+                    BytecodeType::TypeParam(idx.try_into().expect("type parameter overflow"))
+                })
+                .collect()
+        )
+    );
+    assert!(self_bound.trait_ty.bindings.is_empty());
+
+    assert_eq!(body.params.len(), declaration.params.len());
+    for (declaration_param, body_param) in declaration.params.iter().zip(&body.params) {
+        assert_eq!(
+            *body_param,
+            specialize_type_with_self(declaration_param, &identity_type_params, Some(&self_ty))
+        );
+    }
+    assert_eq!(
+        body.return_type,
+        specialize_type_with_self(
+            &declaration.return_type,
+            &identity_type_params,
+            Some(&self_ty)
+        )
+    );
+    assert_eq!(body.is_static, declaration.is_static);
+    assert_eq!(body.is_mutating, declaration.is_mutating);
+    assert_eq!(body.is_variadic, declaration.is_variadic);
 }
 
 fn verify_type_params(type_params: &TypeParamData) -> usize {
@@ -1269,5 +1501,86 @@ fn verify_const_pool_entry(entry: &ConstPoolEntry, type_param_count: usize) {
         | ConstPoolEntry::Int64(_)
         | ConstPoolEntry::Char(_)
         | ConstPoolEntry::JumpTable { .. } => {}
+    }
+}
+
+fn type_contains_this(ty: &BytecodeType) -> bool {
+    match ty {
+        BytecodeType::This => true,
+        BytecodeType::Tuple(types)
+        | BytecodeType::Enum(_, types)
+        | BytecodeType::Struct(_, types)
+        | BytecodeType::Class(_, types) => types.iter().any(|ty| type_contains_this(&ty)),
+        BytecodeType::TraitObject(_, type_params, bindings) => type_params
+            .iter()
+            .chain(bindings.iter())
+            .any(|ty| type_contains_this(&ty)),
+        BytecodeType::Lambda(params, return_type, _) => {
+            params.iter().any(|ty| type_contains_this(&ty)) || type_contains_this(return_type)
+        }
+        BytecodeType::Assoc { ty, trait_ty, .. } => {
+            type_contains_this(ty) || trait_type_contains_this(trait_ty)
+        }
+        BytecodeType::Ref(inner) => type_contains_this(inner),
+        BytecodeType::Unit
+        | BytecodeType::Bool
+        | BytecodeType::UInt8
+        | BytecodeType::Char
+        | BytecodeType::Int32
+        | BytecodeType::Int64
+        | BytecodeType::Float32
+        | BytecodeType::Float64
+        | BytecodeType::Address
+        | BytecodeType::TypeParam(_)
+        | BytecodeType::TypeAlias(_) => false,
+    }
+}
+
+fn trait_type_contains_this(trait_ty: &BytecodeTraitType) -> bool {
+    trait_ty
+        .type_params
+        .iter()
+        .chain(trait_ty.bindings.iter().map(|(_, ty)| ty.clone()))
+        .any(|ty| type_contains_this(&ty))
+}
+
+fn const_pool_entry_contains_this(entry: &ConstPoolEntry) -> bool {
+    match entry {
+        ConstPoolEntry::Class(_, types)
+        | ConstPoolEntry::ClassField(_, types, _)
+        | ConstPoolEntry::Fct(_, types)
+        | ConstPoolEntry::Enum(_, types)
+        | ConstPoolEntry::EnumVariant(_, types, _)
+        | ConstPoolEntry::EnumElement(_, types, _, _)
+        | ConstPoolEntry::Struct(_, types)
+        | ConstPoolEntry::StructField(_, types, _)
+        | ConstPoolEntry::Tuple(types) => types.iter().any(|ty| type_contains_this(&ty)),
+        ConstPoolEntry::TraitObjectMethod(ty, _) | ConstPoolEntry::TupleElement(ty, _) => {
+            type_contains_this(ty)
+        }
+        ConstPoolEntry::Generic {
+            object_type,
+            trait_ty,
+            fct_type_params,
+            ..
+        } => {
+            type_contains_this(object_type)
+                || trait_type_contains_this(trait_ty)
+                || fct_type_params.iter().any(|ty| type_contains_this(&ty))
+        }
+        ConstPoolEntry::TraitObject {
+            trait_ty,
+            actual_object_ty,
+        } => type_contains_this(trait_ty) || type_contains_this(actual_object_ty),
+        ConstPoolEntry::Lambda(params, return_type, _) => {
+            params.iter().any(|ty| type_contains_this(&ty)) || type_contains_this(return_type)
+        }
+        ConstPoolEntry::String(_)
+        | ConstPoolEntry::Float32(_)
+        | ConstPoolEntry::Float64(_)
+        | ConstPoolEntry::Int32(_)
+        | ConstPoolEntry::Int64(_)
+        | ConstPoolEntry::Char(_)
+        | ConstPoolEntry::JumpTable { .. } => false,
     }
 }

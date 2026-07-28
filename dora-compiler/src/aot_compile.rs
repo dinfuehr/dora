@@ -1034,18 +1034,8 @@ fn resolve_string_relocation(
     const_pool_idx: ConstPoolIdx,
 ) -> String {
     let owner = program.fct(owner_fct_id);
-    let bytecode = if let Some(bytecode) = owner.bytecode.as_ref() {
-        bytecode
-    } else {
-        let trait_method_id = owner
-            .trait_method_impl
-            .expect("missing trait method for relocation owner");
-        program
-            .fct(trait_method_id)
-            .bytecode
-            .as_ref()
-            .expect("missing bytecode for relocation owner")
-    };
+    let (bytecode, _) =
+        get_bytecode(program, owner).expect("missing bytecode for relocation owner");
 
     match bytecode.const_pool(const_pool_idx) {
         ConstPoolEntry::String(value) => value.clone(),

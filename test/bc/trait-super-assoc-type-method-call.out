@@ -1,7 +1,10 @@
 fn Callable::call:
   <no bytecode>
 
-fn Derived::invoke[$Self]:
+fn Derived::invoke:
+  <no bytecode>
+
+fn Derived::invoke$body[$Self]:
   0: InvokeGenericDirect r2, @0, r1 # Callable::call
   5: Ret r2
 

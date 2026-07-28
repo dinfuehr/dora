@@ -82,6 +82,7 @@ pub struct Emitter {
     // final bytecode-only type parameter. Frontend type parameters stay unchanged.
     hidden_self_type_param: Option<u32>,
     global_initializer: HashMap<GlobalDefinitionId, FunctionId>,
+    default_trait_method_bodies: HashMap<FctDefinitionId, FunctionId>,
     map_packages: HashMap<PackageDefinitionId, PackageId>,
     map_modules: HashMap<ModuleDefinitionId, ModuleId>,
     map_functions: HashMap<FctDefinitionId, FunctionId>,
@@ -117,6 +118,7 @@ impl Emitter {
             type_param_definition: None,
             hidden_self_type_param: None,
             global_initializer: HashMap::new(),
+            default_trait_method_bodies: HashMap::new(),
             map_packages: HashMap::new(),
             map_modules: HashMap::new(),
             map_functions: HashMap::new(),
@@ -266,6 +268,7 @@ impl Emitter {
                 is_trait_object_ignore: false,
                 bytecode: None,
                 trait_method_impl: None,
+                default_method_body: None,
             });
         }
 
@@ -681,7 +684,7 @@ impl Emitter {
         for (id, fct) in sa.fcts.iter() {
             self.enter_type_param_definition(fct.type_param_definition_id());
             assert!(self.hidden_self_type_param.is_none());
-            if fct.needs_self_type_param(sa) {
+            if fct.needs_self_type_param(sa) && !fct.in_trait() {
                 self.hidden_self_type_param = Some(
                     fct.type_param_definition(sa)
                         .type_param_count()
@@ -743,6 +746,7 @@ impl Emitter {
                 is_trait_object_ignore: fct.is_trait_object_ignore,
                 bytecode: None,
                 trait_method_impl,
+                default_method_body: None,
             });
             if let Some(intrinsic) = fct.intrinsic.get().copied() {
                 let function_id = self.convert_function_id(sa, id);
@@ -754,6 +758,8 @@ impl Emitter {
             self.hidden_self_type_param = None;
             self.leave_type_param_definition();
         }
+
+        self.create_default_trait_method_bodies(sa);
 
         // Second pass: Generate bytecode for all functions.
         for (id, fct) in sa.fcts.iter() {
@@ -786,7 +792,11 @@ impl Emitter {
                         generate_fct(sa, self, &fct, analysis)
                     }
                 };
-                let function_id = self.convert_function_id(sa, id);
+                let function_id = self
+                    .default_trait_method_bodies
+                    .get(&id)
+                    .copied()
+                    .unwrap_or_else(|| self.convert_function_id(sa, id));
                 self.functions[function_id.index()].bytecode = Some(bc_fct);
                 self.hidden_self_type_param = None;
                 self.leave_type_param_definition();
@@ -835,9 +845,100 @@ impl Emitter {
                 is_trait_object_ignore: false,
                 bytecode: Some(bc_fct),
                 trait_method_impl: None,
+                default_method_body: None,
             });
 
             self.global_initializer.insert(global.id(), fct_id);
+            self.leave_type_param_definition();
+        }
+    }
+
+    fn create_default_trait_method_bodies(&mut self, sa: &Sema) {
+        for (id, fct) in sa.fcts.iter() {
+            let FctParent::Trait(trait_id) = fct.parent else {
+                continue;
+            };
+            if !fct.has_body(sa) {
+                continue;
+            }
+
+            self.enter_type_param_definition(fct.type_param_definition_id());
+            assert!(self.hidden_self_type_param.is_none());
+            let self_type_param = fct
+                .type_param_definition(sa)
+                .type_param_count()
+                .try_into()
+                .expect("type parameter overflow");
+            self.hidden_self_type_param = Some(self_type_param);
+
+            let mut type_params = self.create_type_params(sa, fct.type_param_definition(sa));
+            let trait_type_params = sa
+                .trait_(trait_id)
+                .type_param_definition(sa)
+                .identity_type_params(sa);
+            let trait_ty = TraitType {
+                trait_id,
+                type_params: trait_type_params,
+                bindings: Vec::new(),
+            };
+            type_params.bounds.push(TypeParamBound {
+                ty: BytecodeType::TypeParam(self_type_param),
+                trait_ty: self.convert_trait_ty(sa, &trait_ty),
+            });
+
+            let params = fct
+                .params_with_self()
+                .iter()
+                .map(|param| self.convert_ty(sa, param.ty()))
+                .collect();
+            let return_type = self.convert_ty(sa, fct.return_type());
+            let name = format!("{}$body", sa.interner.str(fct.name));
+            let body_id = self.functions.len().into();
+            let trait_id = self.convert_trait_id(sa, trait_id);
+            let file_id = self.convert_source_file_id(sa, fct.file_id);
+            let package_id = self.convert_package_id(sa, fct.package_id);
+            let module_id = self.convert_module_id(sa, fct.module_id);
+
+            self.functions.push(FunctionData {
+                name,
+                loc: sa.compute_loc(fct.file_id, fct.span),
+                kind: FunctionKind::Trait(trait_id),
+                file_id,
+                package_id,
+                module_id,
+                type_params,
+                source_file_id: Some(file_id),
+                params,
+                return_type,
+                is_public: false,
+                is_static: fct.is_static,
+                is_mutating: fct.is_mutating,
+                is_internal: fct.is_internal,
+                is_native: false,
+                is_test: false,
+                is_variadic: fct.params.is_variadic(),
+                is_force_inline: fct.is_force_inline,
+                is_never_inline: fct.is_never_inline,
+                is_trait_object_ignore: fct.is_trait_object_ignore,
+                bytecode: None,
+                trait_method_impl: None,
+                default_method_body: None,
+            });
+
+            let declaration_id = self.convert_function_id(sa, id);
+            assert!(
+                self.functions[declaration_id.index()]
+                    .default_method_body
+                    .replace(body_id)
+                    .is_none()
+            );
+            assert!(
+                self.default_trait_method_bodies
+                    .insert(id, body_id)
+                    .is_none()
+            );
+
+            self.hidden_self_type_param = None;
             self.leave_type_param_definition();
         }
     }
