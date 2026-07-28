@@ -13,13 +13,13 @@ use dora_bytecode::{
 };
 
 use crate::generator::{
-    generate_class_equals, generate_enum_equals, generate_fct, generate_global_initializer,
-    generate_struct_equals,
+    generate_class_equals, generate_class_hash, generate_enum_equals, generate_enum_hash,
+    generate_fct, generate_global_initializer, generate_struct_equals, generate_struct_hash,
 };
 
 use crate::sema::{
-    self, AliasDefinitionId, ClassDefinition, ClassDefinitionId, ConstDefinitionId, DerivedEquals,
-    Element, EnumDefinition, EnumDefinitionId, ExtensionDefinitionId, FctDefinition,
+    self, AliasDefinitionId, ClassDefinition, ClassDefinitionId, ConstDefinitionId, DerivedMethod,
+    DerivedTarget, Element, EnumDefinition, EnumDefinitionId, ExtensionDefinitionId, FctDefinition,
     FctDefinitionId, FctParent, GlobalDefinition, GlobalDefinitionId, ImplDefinitionId,
     ModuleDefinitionId, PackageDefinitionId, PackageName, StructDefinition, StructDefinitionId,
     TraitDefinitionId, TypeParamDefinition, TypeParamDefinitionId,
@@ -769,22 +769,31 @@ impl Emitter {
 
         // Second pass: Generate bytecode for all functions.
         for (id, fct) in sa.fcts.iter() {
-            let derived_equals = fct.derived_equals;
+            let derived_method = fct.derived_method;
 
-            if fct.has_body(sa) || derived_equals.is_some() {
+            if fct.has_body(sa) || derived_method.is_some() {
                 self.enter_type_param_definition(fct.type_param_definition_id());
                 assert!(self.hidden_self_type_param.is_none());
                 self.hidden_self_type_param = self.function_self_type_param_idx(sa, fct);
 
-                let bc_fct = match derived_equals {
-                    Some(DerivedEquals::Class(class_id)) => {
+                let bc_fct = match derived_method {
+                    Some(DerivedMethod::Equals(DerivedTarget::Class(class_id))) => {
                         generate_class_equals(sa, self, &fct, class_id)
                     }
-                    Some(DerivedEquals::Struct(struct_id)) => {
+                    Some(DerivedMethod::Equals(DerivedTarget::Struct(struct_id))) => {
                         generate_struct_equals(sa, self, &fct, struct_id)
                     }
-                    Some(DerivedEquals::Enum(enum_id)) => {
+                    Some(DerivedMethod::Equals(DerivedTarget::Enum(enum_id))) => {
                         generate_enum_equals(sa, self, &fct, enum_id)
+                    }
+                    Some(DerivedMethod::Hash(DerivedTarget::Class(class_id))) => {
+                        generate_class_hash(sa, self, &fct, class_id)
+                    }
+                    Some(DerivedMethod::Hash(DerivedTarget::Struct(struct_id))) => {
+                        generate_struct_hash(sa, self, &fct, struct_id)
+                    }
+                    Some(DerivedMethod::Hash(DerivedTarget::Enum(enum_id))) => {
+                        generate_enum_hash(sa, self, &fct, enum_id)
                     }
                     None => {
                         let analysis = fct.analysis();

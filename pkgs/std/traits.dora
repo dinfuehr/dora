@@ -33,6 +33,7 @@ pub trait Zero {
 }
 
 @Equals
+@Hash
 pub enum Ordering {
     Less,
     Equal,

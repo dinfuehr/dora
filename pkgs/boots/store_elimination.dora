@@ -1,4 +1,4 @@
-use std::{Hash, HashSet};
+use std::HashSet;
 
 use package::compilation::CompilationInfo;
 use package::dominator::compute_post_order;
@@ -354,29 +354,19 @@ fn is_memory_barrier(op: Op): Bool {
 }
 
 @Equals
+@Hash
 struct StoredField {
     object: Inst,
     class_info: ClassInfo,
     offset: Int32,
 }
 
-impl Hash for StoredField {
-    fn hash(): Int32 {
-        self.object.hash() ^ self.class_info.hash() ^ self.offset
-    }
-}
-
 @Equals
+@Hash
 struct StackSlot {
     object: Inst,
     offset: Int32,
     ty: Type,
-}
-
-impl Hash for StackSlot {
-    fn hash(): Int32 {
-        self.object.hash() ^ self.offset ^ self.ty.hash()
-    }
 }
 
 impl StackSlot {

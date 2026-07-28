@@ -1,0 +1,17 @@
+error: type `NoHash` does not implement trait `Hash`.
+--> hash-field-error.dora:6:11
+ | @Hash
+ | enum Concrete {
+ |     Value(NoHash),
+             ~~~~~~
+ | }
+ | 
+error: type `T` does not implement trait `Hash`.
+--> hash-field-error.dora:11:11
+ | @Hash
+ | enum Generic[T] {
+ |     Value(T),
+             ~
+ | }
+ | 
+2 errors found.

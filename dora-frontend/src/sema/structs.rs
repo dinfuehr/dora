@@ -39,6 +39,7 @@ pub struct StructDefinition {
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub field_name_style: ast::FieldNameStyle,
     pub derive_equals: bool,
+    pub derive_hash: bool,
 }
 
 impl StructDefinition {
@@ -74,6 +75,7 @@ impl StructDefinition {
             extensions: RefCell::new(Vec::new()),
             field_name_style: ast.field_name_style(),
             derive_equals: modifiers.is_equals,
+            derive_hash: modifiers.is_hash,
         }
     }
 
@@ -107,6 +109,7 @@ impl StructDefinition {
             extensions: RefCell::new(Vec::new()),
             field_name_style: ast::FieldNameStyle::Positional,
             derive_equals: false,
+            derive_hash: false,
         }
     }
 

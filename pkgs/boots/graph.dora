@@ -3062,27 +3062,17 @@ pub class VirtualFunctionInfo {
 }
 
 @Equals
+@Hash
 pub class ClassInfo {
     pub class_id: ClassId,
     pub type_params: Array[BytecodeType],
 }
 
-impl Hash for ClassInfo {
-    fn hash(): Int32 {
-        self.class_id.hash() ^ self.type_params.hash()
-    }
-}
-
 @Equals
+@Hash
 pub class StructInfo {
     pub struct_id: StructId,
     pub type_params: Array[BytecodeType],
-}
-
-impl Hash for StructInfo {
-    fn hash(): Int32 {
-        self.struct_id.hash() ^ self.type_params.hash()
-    }
 }
 
 pub fn create_arg_inst(index: Int32, ty: Type): Inst {

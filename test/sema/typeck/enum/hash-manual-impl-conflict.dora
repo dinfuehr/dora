@@ -1,0 +1,23 @@
+//= error
+@Hash
+enum Value {
+    First,
+    Second,
+}
+
+impl std::Hash for Value {
+    fn hash(): Int32 {
+        0
+    }
+}
+
+@Hash
+enum ValueWithFields {
+    Value(Int32),
+}
+
+impl std::Hash for ValueWithFields {
+    fn hash(): Int32 {
+        0
+    }
+}

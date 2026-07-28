@@ -78,6 +78,7 @@ pub fn lookup_known_fundamental_types(sa: &mut Sema) {
     sa.known.traits.comparable = Some(find_trait(sa, "std::traits::Comparable"));
     sa.known.traits.div = Some(find_trait(sa, "std::traits::Div"));
     sa.known.traits.equals = Some(find_trait(sa, "std::traits::Equals"));
+    sa.known.traits.hash = Some(find_trait(sa, "std::traits::Hash"));
     sa.known.traits.into_iterator = Some(find_trait(sa, "std::traits::IntoIterator"));
     sa.known.traits.iterator = Some(find_trait(sa, "std::traits::Iterator"));
     sa.known.traits.mul = Some(find_trait(sa, "std::traits::Mul"));

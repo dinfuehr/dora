@@ -62,8 +62,8 @@ pub use self::exprs::{AssignExpr, CallArg, Expr, ExprId};
 pub use self::extensions::{ExtensionDefinition, ExtensionDefinitionId};
 pub use self::fields::{FieldDefinition, FieldDefinitionId, FieldIndex};
 pub use self::functions::{
-    DerivedEquals, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param, Params,
-    emit_as_bytecode_operation,
+    DerivedMethod, DerivedTarget, FctDefinition, FctDefinitionId, FctParent, Intrinsic, Param,
+    Params, emit_as_bytecode_operation,
 };
 pub use self::globals::{GlobalDefinition, GlobalDefinitionId};
 pub use self::impl_matching::{

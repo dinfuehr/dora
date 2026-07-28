@@ -42,6 +42,7 @@ mod extensiondefck;
 mod fctdefck;
 pub mod generator;
 mod globaldefck;
+mod hashck;
 mod impldefck;
 mod interner;
 mod parsety;
@@ -81,6 +82,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     enumck::check(sa);
     // Derived impls need to be visible while validating supertraits and type arguments.
     equalsck::create_impls(sa);
+    hashck::create_impls(sa);
     // Check for cycles in super trait hierarchy.
     traitdefck::check_super_trait_cycles(sa);
     // Connect aliases in impl to trait.
@@ -98,6 +100,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     impldefck::check_definition_against_trait(sa);
     impldefck::check_type_aliases_bounds(sa);
     equalsck::check_fields(sa);
+    hashck::check_fields(sa);
     impldefck::check_overlapping_impls(sa);
     globaldefck::check(sa);
     extensiondefck::check(sa);

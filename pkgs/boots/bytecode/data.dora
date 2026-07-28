@@ -209,13 +209,8 @@ impl Stringable for ConstPoolEntry {
 }
 
 @Equals
+@Hash
 pub struct BytecodeRegister(pub Int32)
-
-impl Hash for BytecodeRegister {
-    fn hash(): Int32 {
-        self.0
-    }
-}
 
 impl Stringable for BytecodeRegister {
     fn to_string(): String {

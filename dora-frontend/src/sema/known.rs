@@ -175,6 +175,7 @@ pub struct KnownTraits {
     pub comparable: Option<TraitDefinitionId>,
     pub div: Option<TraitDefinitionId>,
     pub equals: Option<TraitDefinitionId>,
+    pub hash: Option<TraitDefinitionId>,
     pub into_iterator: Option<TraitDefinitionId>,
     pub iterator: Option<TraitDefinitionId>,
     pub shr: Option<TraitDefinitionId>,
@@ -201,6 +202,7 @@ impl KnownTraits {
             comparable: None,
             div: None,
             equals: None,
+            hash: None,
             into_iterator: None,
             iterator: None,
             shr: None,
@@ -247,6 +249,10 @@ impl KnownTraits {
 
     pub fn equals(&self) -> TraitDefinitionId {
         self.equals.expect("uninitialized")
+    }
+
+    pub fn hash(&self) -> TraitDefinitionId {
+        self.hash.expect("uninitialized")
     }
 
     pub fn shr(&self) -> TraitDefinitionId {

@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Hash` for type `Value`; another implementation is at hash-manual-impl-conflict.dora:5:1.
+--> hash-manual-impl-conflict.dora:2:1
+ | //= error
+ | @Hash
+   ~~~~~
+ | struct Value(Int32)
+ | 
+1 error found.

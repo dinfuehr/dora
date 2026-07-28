@@ -9,8 +9,8 @@ use id_arena::Id;
 
 use crate::sema::{
     Body, ClassDefinitionId, Element, ElementId, EnumDefinitionId, ExprId, ExtensionDefinitionId,
-    ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    StructDefinitionId, TraitDefinitionId, TypeParamDefinitionId, TypeRefArena,
+    FieldDefinitionId, ImplDefinitionId, ModuleDefinitionId, PackageDefinitionId, Sema,
+    SourceFileId, StructDefinitionId, TraitDefinitionId, TypeParamDefinitionId, TypeRefArena,
     TypeRefArenaBuilder, Visibility, lower_type, module_path,
 };
 use crate::ty::SourceType;
@@ -20,10 +20,73 @@ pub use dora_bytecode::Intrinsic;
 pub type FctDefinitionId = Id<FctDefinition>;
 
 #[derive(Clone, Copy)]
-pub enum DerivedEquals {
+pub enum DerivedTarget {
     Class(ClassDefinitionId),
     Struct(StructDefinitionId),
     Enum(EnumDefinitionId),
+}
+
+impl DerivedTarget {
+    pub(crate) fn element(self, sa: &Sema) -> &dyn Element {
+        match self {
+            DerivedTarget::Class(id) => sa.class(id),
+            DerivedTarget::Struct(id) => sa.struct_(id),
+            DerivedTarget::Enum(id) => sa.enum_(id),
+        }
+    }
+
+    pub(crate) fn ty(self, sa: &Sema) -> SourceType {
+        let type_params = self
+            .element(sa)
+            .type_param_definition(sa)
+            .identity_type_params(sa);
+
+        match self {
+            DerivedTarget::Class(id) => SourceType::Class(id, type_params),
+            DerivedTarget::Struct(id) => SourceType::Struct(id, type_params),
+            DerivedTarget::Enum(id) => SourceType::Enum(id, type_params),
+        }
+    }
+
+    pub(crate) fn annotation_span(self, sa: &Sema, annotation: &str) -> Span {
+        let modifier_list = match self {
+            DerivedTarget::Class(id) => sa.class(id).ast(sa).modifier_list(),
+            DerivedTarget::Struct(id) => sa.struct_(id).ast(sa).modifier_list(),
+            DerivedTarget::Enum(id) => sa.enum_(id).ast(sa).modifier_list(),
+        };
+
+        modifier_list
+            .and_then(|list| list.find_modifier(annotation))
+            .expect("missing annotation")
+            .span()
+    }
+
+    pub(crate) fn is_simple_enum(self, sa: &Sema) -> bool {
+        match self {
+            DerivedTarget::Enum(id) => sa.enum_(id).is_simple_enum(),
+            DerivedTarget::Class(_) | DerivedTarget::Struct(_) => false,
+        }
+    }
+
+    pub(crate) fn field_ids(self, sa: &Sema) -> Vec<FieldDefinitionId> {
+        match self {
+            DerivedTarget::Class(id) => sa.class(id).field_ids().to_vec(),
+            DerivedTarget::Struct(id) => sa.struct_(id).field_ids().to_vec(),
+            DerivedTarget::Enum(id) => sa
+                .enum_(id)
+                .variant_ids()
+                .iter()
+                .flat_map(|&variant_id| sa.variant(variant_id).field_ids())
+                .copied()
+                .collect(),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum DerivedMethod {
+    Equals(DerivedTarget),
+    Hash(DerivedTarget),
 }
 
 pub struct FctDefinition {
@@ -58,7 +121,7 @@ pub struct FctDefinition {
     pub bytecode: OnceCell<BytecodeBody>,
     pub intrinsic: OnceCell<Intrinsic>,
     pub trait_method_impl: OnceCell<FctDefinitionId>,
-    pub derived_equals: Option<DerivedEquals>,
+    pub derived_method: Option<DerivedMethod>,
     is_default_trait_method_adapter: bool,
 }
 
@@ -107,7 +170,7 @@ impl FctDefinition {
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
             trait_method_impl: OnceCell::new(),
-            derived_equals: None,
+            derived_method: None,
             is_default_trait_method_adapter: false,
         }
     }
@@ -157,7 +220,7 @@ impl FctDefinition {
             bytecode: OnceCell::new(),
             intrinsic: OnceCell::new(),
             trait_method_impl: OnceCell::new(),
-            derived_equals: None,
+            derived_method: None,
             is_default_trait_method_adapter: false,
         }
     }

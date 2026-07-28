@@ -1,0 +1,23 @@
+//= ok
+@Hash
+enum Unit { Only }
+
+@Hash
+enum Simple { First, Second }
+
+@Hash
+enum Payload {
+    Empty,
+    Value(Int32),
+}
+
+@Hash
+enum Generic[T: std::Hash] { None, Some(T) }
+
+fn hash[T: std::Hash](value: T): Int32 {
+    value.hash()
+}
+
+fn use_hash(value: Payload): Int32 {
+    hash[Payload](value)
+}

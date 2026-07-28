@@ -1,4 +1,4 @@
-use std::{Hash, HashMap, HashSet};
+use std::{HashMap, HashSet};
 
 use package::bytecode::GlobalId;
 use package::compilation::CompilationInfo;
@@ -327,28 +327,18 @@ impl LoadEliminationPass {
 }
 
 @Equals
+@Hash
 struct ObjectWithOffset {
     object: Inst,
     offset: Int32,
 }
 
-impl Hash for ObjectWithOffset {
-    fn hash(): Int32 {
-        self.object.hash() ^ self.offset
-    }
-}
-
 @Equals
+@Hash
 struct Field {
     object: Inst,
     class_info: ClassInfo,
     offset: Int32,
-}
-
-impl Hash for Field {
-    fn hash(): Int32 {
-        self.object.hash() ^ self.class_info.hash() ^ self.offset
-    }
 }
 
 class LoadData {

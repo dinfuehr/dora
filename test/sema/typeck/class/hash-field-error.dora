@@ -1,0 +1,8 @@
+//= error
+class NoHash
+
+@Hash
+class Concrete(NoHash)
+
+@Hash
+class Generic[T](T)

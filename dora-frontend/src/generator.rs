@@ -3,25 +3,75 @@ use std::collections::HashMap;
 
 use self::bytecode::BytecodeBuilder;
 use self::expr::{gen_stmt_expr, gen_stmt_let};
+use crate::TraitType;
 use crate::program_emitter::Emitter;
 use crate::sema::{
     AnalysisData, ContextFieldId, ContextId, Element, ExprMapId, FctDefinitionId, FieldIndex,
-    Intrinsic, ScopeId, Sema, SourceFileId, Stmt, StmtId, TypeParamDefinitionId, VarId,
+    Intrinsic, ScopeId, Sema, SourceFileId, Stmt, StmtId, TypeParamDefinitionId, VarId, find_impl,
 };
 use crate::ty::{SourceType, SourceTypeArray, TypeArgs};
-use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
+use dora_bytecode::{BytecodeType, BytecodeTypeArray, ConstPoolEntry, Label, Location, Register};
 
 mod bytecode;
 mod equals;
 mod expr;
 mod function;
 mod global;
+mod hash;
 mod int_dispatch;
 mod pattern;
 
 pub use self::equals::{generate_class_equals, generate_enum_equals, generate_struct_equals};
 pub use self::function::{generate_fct, generate_fct_id};
 pub use self::global::generate_global_initializer;
+pub use self::hash::{generate_class_hash, generate_enum_hash, generate_struct_hash};
+
+#[allow(clippy::too_many_arguments)]
+fn emit_trait_method_call(
+    sa: &Sema,
+    emitter: &mut Emitter,
+    builder: &mut BytecodeBuilder,
+    element: &dyn Element,
+    trait_ty: &TraitType,
+    trait_method_id: FctDefinitionId,
+    value_ty: SourceType,
+    result: Register,
+    arguments: &[Register],
+    location: Location,
+) {
+    let is_generic = value_ty.is_type_param() || value_ty.is_assoc() || value_ty.is_generic_assoc();
+    let callee_idx = if is_generic {
+        builder.add_const(ConstPoolEntry::Generic {
+            object_type: emitter.convert_ty(sa, value_ty),
+            trait_ty: emitter.convert_trait_ty(sa, trait_ty),
+            fct_id: emitter.convert_function_id(sa, trait_method_id),
+            fct_type_params: BytecodeTypeArray::empty(),
+        })
+    } else {
+        let impl_match = find_impl(
+            sa,
+            element,
+            value_ty,
+            element.type_param_definition(sa),
+            trait_ty.clone(),
+        )
+        .expect("field should implement trait");
+        let method_id = sa
+            .impl_(impl_match.id)
+            .get_method_for_trait_method_id(trait_method_id)
+            .expect("trait implementation missing method");
+        builder.add_const(ConstPoolEntry::Fct(
+            emitter.convert_function_id(sa, method_id),
+            emitter.convert_tya(sa, &impl_match.bindings),
+        ))
+    };
+
+    if is_generic {
+        builder.emit_invoke_generic_direct(result, callee_idx, arguments, location);
+    } else {
+        builder.emit_invoke_direct(result, callee_idx, arguments, location);
+    }
+}
 
 pub struct LoopLabels {
     cond: Label,

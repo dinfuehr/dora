@@ -1,0 +1,17 @@
+//= ok
+@Hash
+struct Empty
+
+@Hash
+struct Named { value: Int32, flag: Bool }
+
+@Hash
+struct Generic[T: std::Hash](T)
+
+fn hash[T: std::Hash](value: T): Int32 {
+    value.hash()
+}
+
+fn use_hash(value: Named): Int32 {
+    hash[Named](value)
+}

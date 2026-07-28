@@ -1,0 +1,112 @@
+enum Payload:
+  Empty
+  Integer(Int32)
+  Pair(Int32, Bool)
+
+enum Color:
+  Red
+  Green
+  Blue
+
+fn hash[T]:
+  0: InvokeGenericDirect r1, @0, r0 # std::traits::Hash::hash
+  5: Ret r1
+
+  Registers:
+   0 => T
+   1 => Int32
+
+  Constants:
+   0 => Generic std::traits::Hash::hash on T as Hash
+
+  Locations:
+   0 => 12:5
+
+fn direct:
+  0: InvokeDirect r1, @0, r0 # <impl Hash for Color>::hash
+  5: Ret r1
+
+  Registers:
+   0 => enum Color
+   1 => Int32
+
+  Constants:
+   0 => Fct <impl Hash for Color>::hash
+
+  Locations:
+   0 => 16:5
+
+fn payload:
+  0: InvokeDirect r1, @0, r0 # <impl Hash for Payload>::hash
+  5: Ret r1
+
+  Registers:
+   0 => enum Payload
+   1 => Int32
+
+  Constants:
+   0 => Fct <impl Hash for Payload>::hash
+
+  Locations:
+   0 => 20:5
+
+fn <impl Hash for Payload>::hash:
+  0: LoadEnumVariant r1, r0, @0 # Payload
+  4: Mov r2, r1
+  7: Switch r1, @1 # [10, 12, 27], default 55
+ 10: Ret r2
+ 12: LoadEnumElement r3, r0, @2, 0 # Payload::Integer.0
+ 16: InvokeDirect r4, @3, r3 # std::primitives::<impl Hash for Int32>::hash
+ 21: Xor r2, r2, r4
+ 25: Ret r2
+ 27: LoadEnumElement r3, r0, @4, 0 # Payload::Pair.0
+ 31: InvokeDirect r4, @5, r3 # std::primitives::<impl Hash for Int32>::hash
+ 36: Xor r2, r2, r4
+ 40: LoadEnumElement r5, r0, @6, 1 # Payload::Pair.1
+ 44: InvokeDirect r3, @7, r5 # std::primitives::<impl Hash for Bool>::hash
+ 49: Xor r2, r2, r3
+ 53: Ret r2
+ 55: Ret r2
+
+  Registers:
+   0 => enum Payload
+   1 => Int32
+   2 => Int32
+   3 => Int32
+   4 => Int32
+   5 => Bool
+
+  Constants:
+   0 => Enum Payload
+   1 => JumpTable 10, 12, 27, default 55
+   2 => EnumVariantElement Payload::Integer::0
+   3 => Fct std::primitives::<impl Hash for Int32>::hash
+   4 => EnumVariantElement Payload::Pair::0
+   5 => Fct std::primitives::<impl Hash for Int32>::hash
+   6 => EnumVariantElement Payload::Pair::1
+   7 => Fct std::primitives::<impl Hash for Bool>::hash
+
+  Locations:
+   0 => 1:1
+
+fn <impl Hash for Color>::hash:
+  0: LoadEnumVariant r1, r0, @0 # Color
+  4: Mov r2, r1
+  7: Switch r1, @1 # [10, 12, 14], default 16
+ 10: Ret r2
+ 12: Ret r2
+ 14: Ret r2
+ 16: Ret r2
+
+  Registers:
+   0 => enum Color
+   1 => Int32
+   2 => Int32
+
+  Constants:
+   0 => Enum Color
+   1 => JumpTable 10, 12, 14, default 16
+
+  Locations:
+   0 => 8:1
+

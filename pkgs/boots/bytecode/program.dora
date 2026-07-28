@@ -1,5 +1,5 @@
 use package::bytecode::{BytecodeType, Location};
-use std::{Hash, Stringable};
+use std::Stringable;
 
 pub struct PackageId(pub Int32)
 
@@ -76,17 +76,12 @@ pub class GlobalData {
 }
 
 @Equals
+@Hash
 pub struct ClassId(pub Int32)
 
 impl Stringable for ClassId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Hash for ClassId {
-    fn hash(): Int32 {
-        self.0
     }
 }
 
@@ -112,17 +107,12 @@ pub class ClassField {
 }
 
 @Equals
+@Hash
 pub struct StructId(pub Int32)
 
 impl Stringable for StructId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Hash for StructId {
-    fn hash(): Int32 {
-        self.0
     }
 }
 
@@ -147,17 +137,12 @@ pub class StructField {
 }
 
 @Equals
+@Hash
 pub struct EnumId(pub Int32)
 
 impl Stringable for EnumId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Hash for EnumId {
-    fn hash(): Int32 {
-        self.0
     }
 }
 
@@ -174,17 +159,12 @@ pub class EnumVariant {
 }
 
 @Equals
+@Hash
 pub struct TraitId(pub Int32)
 
 impl Stringable for TraitId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Hash for TraitId {
-    fn hash(): Int32 {
-        self.0
     }
 }
 
@@ -222,17 +202,12 @@ pub class ImplData {
 }
 
 @Equals
+@Hash
 pub struct AliasId(pub Int32)
 
 impl Stringable for AliasId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Hash for AliasId {
-    fn hash(): Int32 {
-        self.0
     }
 }
 
@@ -242,17 +217,12 @@ pub class AliasData {
 }
 
 @Equals
+@Hash
 pub struct ConstId(pub Int32)
 
 impl Stringable for ConstId {
     fn to_string(): String {
         self.0.to_string()
-    }
-}
-
-impl Hash for ConstId {
-    fn hash(): Int32 {
-        self.0
     }
 }
 

@@ -1,0 +1,8 @@
+//= error
+class NoHash
+
+@Hash
+struct Concrete(NoHash)
+
+@Hash
+struct Generic[T](T)

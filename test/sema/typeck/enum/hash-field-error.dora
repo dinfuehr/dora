@@ -1,0 +1,12 @@
+//= error
+class NoHash
+
+@Hash
+enum Concrete {
+    Value(NoHash),
+}
+
+@Hash
+enum Generic[T] {
+    Value(T),
+}

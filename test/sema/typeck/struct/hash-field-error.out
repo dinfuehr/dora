@@ -1,0 +1,16 @@
+error: type `NoHash` does not implement trait `Hash`.
+--> hash-field-error.dora:5:17
+ | 
+ | @Hash
+ | struct Concrete(NoHash)
+                   ~~~~~~
+ | 
+ | @Hash
+error: type `T` does not implement trait `Hash`.
+--> hash-field-error.dora:8:19
+ | 
+ | @Hash
+ | struct Generic[T](T)
+                     ~
+ | 
+2 errors found.

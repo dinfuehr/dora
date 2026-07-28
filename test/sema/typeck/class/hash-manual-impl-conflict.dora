@@ -1,0 +1,9 @@
+//= error
+@Hash
+class Value(Int32)
+
+impl std::Hash for Value {
+    fn hash(): Int32 {
+        0
+    }
+}

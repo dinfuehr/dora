@@ -1,5 +1,4 @@
 use std::Equals;
-use std::Hash;
 use std::traits::Iterator;
 
 use package::graph::Location;
@@ -146,6 +145,7 @@ pub trait RegisterType: Equals {
 }
 
 @Equals
+@Hash
 pub struct Register(pub UInt8)
 
 impl Register {
@@ -155,12 +155,6 @@ impl Register {
 
     fn equals(rhs: Register): Bool {
         self.0 == rhs.0
-    }
-}
-
-impl Hash for Register {
-    fn hash(): Int32 {
-        self.0.to_int32()
     }
 }
 
@@ -186,16 +180,11 @@ impl std::Stringable for Register {
 }
 
 @Equals
+@Hash
 pub struct FloatRegister(pub UInt8)
 
 impl FloatRegister {
     fn value(): Int32 {
-        self.0.to_int32()
-    }
-}
-
-impl Hash for FloatRegister {
-    fn hash(): Int32 {
         self.0.to_int32()
     }
 }

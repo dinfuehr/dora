@@ -1,0 +1,67 @@
+fn main() {
+    assert(EmptyClass().hash() == 0);
+    assert(ClassValue(7, true).hash() == 6);
+    assert(ClassValue(7, true).hash() == ClassValue(7, true).hash());
+    assert(GenericClass[Int32](7).hash() == 7);
+
+    assert(EmptyStruct().hash() == 0);
+    assert(StructValue(7, true).hash() == 6);
+    assert(StructValue(7, true).hash() == StructValue(7, true).hash());
+    assert(GenericStruct[Int32](7).hash() == 7);
+
+    assert(Color::Red.hash() == 0);
+    assert(Color::Green.hash() == 1);
+    assert(Color::Blue.hash() == 2);
+    assert(hash[Color](Color::Green) == 1);
+
+    assert(Payload::Empty.hash() == 0);
+    assert(Payload::Integer(7).hash() == 6);
+    assert(Payload::Flag(true).hash() == 3);
+    assert(Payload::Pair(7, true).hash() == 5);
+
+    assert(Generic[Int32]::None.hash() == 0);
+    assert(Generic[Int32]::Some(7).hash() == 6);
+}
+
+@Hash
+class EmptyClass
+
+@Hash
+class ClassValue(Int32, Bool)
+
+@Hash
+class GenericClass[T: std::Hash](T)
+
+@Hash
+struct EmptyStruct
+
+@Hash
+struct StructValue(Int32, Bool)
+
+@Hash
+struct GenericStruct[T: std::Hash](T)
+
+@Hash
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+@Hash
+enum Payload {
+    Empty,
+    Integer(Int32),
+    Flag(Bool),
+    Pair(Int32, Bool),
+}
+
+@Hash
+enum Generic[T: std::Hash] {
+    None,
+    Some(T),
+}
+
+fn hash[T: std::Hash](value: T): Int32 {
+    value.hash()
+}

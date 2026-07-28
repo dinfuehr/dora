@@ -1,0 +1,13 @@
+@Hash
+class ClassValue { number: Int32, flag: Bool }
+
+@Hash
+struct StructValue(Int32, Bool)
+
+fn class_hash(value: ClassValue): Int32 {
+    value.hash()
+}
+
+fn struct_hash(value: StructValue): Int32 {
+    value.hash()
+}

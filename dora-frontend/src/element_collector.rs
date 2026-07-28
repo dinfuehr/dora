@@ -633,7 +633,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.sa,
             self.file_id,
             ast_node.modifier_list(),
-            &[Annotation::Equals, Annotation::Internal, Annotation::Pub],
+            &[
+                Annotation::Equals,
+                Annotation::Hash,
+                Annotation::Internal,
+                Annotation::Pub,
+            ],
         );
 
         let mut type_ref_arena = TypeRefArenaBuilder::new();
@@ -728,7 +733,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.sa,
             self.file_id,
             ast_node.modifier_list(),
-            &[Annotation::Equals, Annotation::Pub, Annotation::Internal],
+            &[
+                Annotation::Equals,
+                Annotation::Hash,
+                Annotation::Pub,
+                Annotation::Internal,
+            ],
         );
 
         let mut type_ref_arena = TypeRefArenaBuilder::new();
@@ -902,7 +912,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.sa,
             self.file_id,
             ast_node.modifier_list(),
-            &[Annotation::Equals, Annotation::Pub],
+            &[Annotation::Equals, Annotation::Hash, Annotation::Pub],
         );
         let enum_ = EnumDefinition::new(
             self.package_id,
@@ -1588,6 +1598,7 @@ pub struct Annotations {
     pub is_mutating: bool,
     pub is_test: bool,
     pub is_equals: bool,
+    pub is_hash: bool,
     pub is_internal: bool,
     pub is_native: bool,
     pub is_force_inline: bool,
@@ -1608,6 +1619,7 @@ impl Annotations {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 enum Annotation {
     Equals,
+    Hash,
     Internal,
     Native,
     Pub,
@@ -1623,6 +1635,7 @@ impl Annotation {
     fn name(&self) -> &'static str {
         match *self {
             Annotation::Equals => "Equals",
+            Annotation::Hash => "Hash",
             Annotation::Internal => "internal",
             Annotation::Native => "native",
             Annotation::Pub => "pub",
@@ -1705,6 +1718,11 @@ fn check_annotation(
                     "Equals" => {
                         annotations.is_equals = true;
                         Some(Annotation::Equals)
+                    }
+
+                    "Hash" => {
+                        annotations.is_hash = true;
+                        Some(Annotation::Hash)
                     }
 
                     "internal" => {

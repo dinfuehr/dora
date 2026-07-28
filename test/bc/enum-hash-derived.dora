@@ -1,0 +1,21 @@
+@Hash
+enum Payload {
+    Empty,
+    Integer(Int32),
+    Pair(Int32, Bool),
+}
+
+@Hash
+enum Color { Red, Green, Blue }
+
+fn hash[T: std::Hash](value: T): Int32 {
+    value.hash()
+}
+
+fn direct(value: Color): Int32 {
+    value.hash()
+}
+
+fn payload(value: Payload): Int32 {
+    value.hash()
+}
