@@ -5,8 +5,8 @@ error: conflicting implementation of trait `Hash` for type `Value`; another impl
    ~~~~~
  | enum Value {
  |     First,
-error: conflicting implementation of trait `Hash` for type `ValueWithFields`; another implementation is at hash-manual-impl-conflict.dora:19:1.
---> hash-manual-impl-conflict.dora:14:1
+error: conflicting implementation of trait `Hash` for type `ValueWithFields`; another implementation is at hash-manual-impl-conflict.dora:17:1.
+--> hash-manual-impl-conflict.dora:12:1
  | }
  | 
  | @Hash

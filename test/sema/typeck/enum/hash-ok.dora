@@ -15,7 +15,9 @@ enum Payload {
 enum Generic[T: std::Hash] { None, Some(T) }
 
 fn hash[T: std::Hash](value: T): Int32 {
-    value.hash()
+    let hasher = std::Hasher::new();
+    value.hash(hasher);
+    hasher.finish()
 }
 
 fn use_hash(value: Payload): Int32 {

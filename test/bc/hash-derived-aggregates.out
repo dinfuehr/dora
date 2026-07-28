@@ -7,84 +7,96 @@ struct StructValue:
   1: Bool
 
 fn class_hash:
-  0: InvokeDirect r1, @0, r0 # <impl Hash for ClassValue>::hash
-  5: Ret r1
+  0: InvokeStatic r2, @0 # std::traits::<impl Hasher>::new
+  4: Mov r1, r2
+  7: InvokeDirect r3, @1, r0, r1 # <impl Hash for ClassValue>::hash
+ 13: InvokeDirect r4, @2, r1 # std::traits::<impl Hasher>::finish
+ 18: Ret r4
 
   Registers:
    0 => class ClassValue
-   1 => Int32
+   1 => class Hasher
+   2 => class Hasher
+   3 => ()
+   4 => Int32
 
   Constants:
-   0 => Fct <impl Hash for ClassValue>::hash
+   0 => Fct std::traits::<impl Hasher>::new
+   1 => Fct <impl Hash for ClassValue>::hash
+   2 => Fct std::traits::<impl Hasher>::finish
 
   Locations:
-   0 => 8:5
+   0 => 8:18
+   7 => 9:5
+   13 => 10:5
 
 fn struct_hash:
-  0: InvokeDirect r1, @0, r0 # <impl Hash for StructValue>::hash
-  5: Ret r1
+  0: InvokeStatic r2, @0 # std::traits::<impl Hasher>::new
+  4: Mov r1, r2
+  7: InvokeDirect r3, @1, r0, r1 # <impl Hash for StructValue>::hash
+ 13: InvokeDirect r4, @2, r1 # std::traits::<impl Hasher>::finish
+ 18: Ret r4
 
   Registers:
    0 => struct StructValue
-   1 => Int32
+   1 => class Hasher
+   2 => class Hasher
+   3 => ()
+   4 => Int32
 
   Constants:
-   0 => Fct <impl Hash for StructValue>::hash
+   0 => Fct std::traits::<impl Hasher>::new
+   1 => Fct <impl Hash for StructValue>::hash
+   2 => Fct std::traits::<impl Hasher>::finish
 
   Locations:
-   0 => 12:5
+   0 => 14:18
+   7 => 15:5
+   13 => 16:5
 
 fn <impl Hash for ClassValue>::hash:
-  0: ConstInt32 r1, @0 # 0
-  3: LoadField r2, r0, @1 # ClassValue.number
-  7: InvokeDirect r3, @2, r2 # std::primitives::<impl Hash for Int32>::hash
- 12: Xor r1, r1, r3
- 16: LoadField r4, r0, @3 # ClassValue.flag
- 20: InvokeDirect r2, @4, r4 # std::primitives::<impl Hash for Bool>::hash
- 25: Xor r1, r1, r2
- 29: Ret r1
+  0: LoadField r3, r0, @0 # ClassValue.number
+  4: InvokeDirect r2, @1, r3, r1 # std::primitives::<impl Hash for Int32>::hash
+ 10: LoadField r4, r0, @2 # ClassValue.flag
+ 14: InvokeDirect r2, @3, r4, r1 # std::primitives::<impl Hash for Bool>::hash
+ 20: Ret r2
 
   Registers:
    0 => class ClassValue
-   1 => Int32
-   2 => Int32
+   1 => class Hasher
+   2 => ()
    3 => Int32
    4 => Bool
 
   Constants:
-   0 => Int32 0
-   1 => Field ClassValue.number
-   2 => Fct std::primitives::<impl Hash for Int32>::hash
-   3 => Field ClassValue.flag
-   4 => Fct std::primitives::<impl Hash for Bool>::hash
+   0 => Field ClassValue.number
+   1 => Fct std::primitives::<impl Hash for Int32>::hash
+   2 => Field ClassValue.flag
+   3 => Fct std::primitives::<impl Hash for Bool>::hash
 
   Locations:
-   7 => 1:1
+   4 => 1:1
 
 fn <impl Hash for StructValue>::hash:
-  0: ConstInt32 r1, @0 # 0
-  3: LoadField r2, r0, @1 # StructValue.0
-  7: InvokeDirect r3, @2, r2 # std::primitives::<impl Hash for Int32>::hash
- 12: Xor r1, r1, r3
- 16: LoadField r4, r0, @3 # StructValue.1
- 20: InvokeDirect r2, @4, r4 # std::primitives::<impl Hash for Bool>::hash
- 25: Xor r1, r1, r2
- 29: Ret r1
+  0: LoadField r3, r0, @0 # StructValue.0
+  4: InvokeDirect r2, @1, r3, r1 # std::primitives::<impl Hash for Int32>::hash
+ 10: LoadField r4, r0, @2 # StructValue.1
+ 14: InvokeDirect r2, @3, r4, r1 # std::primitives::<impl Hash for Bool>::hash
+ 20: Ret r2
 
   Registers:
    0 => struct StructValue
-   1 => Int32
-   2 => Int32
+   1 => class Hasher
+   2 => ()
    3 => Int32
    4 => Bool
 
   Constants:
-   0 => Int32 0
-   1 => StructField StructValue.0
-   2 => Fct std::primitives::<impl Hash for Int32>::hash
-   3 => StructField StructValue.1
-   4 => Fct std::primitives::<impl Hash for Bool>::hash
+   0 => StructField StructValue.0
+   1 => Fct std::primitives::<impl Hash for Int32>::hash
+   2 => StructField StructValue.1
+   3 => Fct std::primitives::<impl Hash for Bool>::hash
 
   Locations:
-   7 => 4:1
+   4 => 4:1
 

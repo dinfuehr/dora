@@ -1,1 +1,1 @@
-fn f[T](t: T) { t.hash(); }
+fn f[T](t: T, _hasher: std::Hasher) { t.hash(_hasher); }

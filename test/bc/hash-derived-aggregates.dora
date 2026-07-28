@@ -5,9 +5,13 @@ class ClassValue { number: Int32, flag: Bool }
 struct StructValue(Int32, Bool)
 
 fn class_hash(value: ClassValue): Int32 {
-    value.hash()
+    let hasher = std::Hasher::new();
+    value.hash(hasher);
+    hasher.finish()
 }
 
 fn struct_hash(value: StructValue): Int32 {
-    value.hash()
+    let hasher = std::Hasher::new();
+    value.hash(hasher);
+    hasher.finish()
 }

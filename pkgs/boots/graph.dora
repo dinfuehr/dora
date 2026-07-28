@@ -2,6 +2,7 @@ use std::{BitSet, BitVec};
 use std::{StringBuffer, Stringable};
 use std::Equals;
 use std::Hash;
+use std::Hasher;
 use std::collections::{BitVecIter, HashMap};
 use std::traits::{IndexGet, IntoIterator, Iterator};
 
@@ -764,8 +765,8 @@ impl Block {
 }
 
 impl Hash for Block {
-    fn hash(): Int32 {
-        self.id().hash()
+    fn hash(hasher: Hasher) {
+        hasher.write_int32(self.id().hash());
     }
 }
 
@@ -2145,8 +2146,8 @@ impl Inst {
 }
 
 impl Hash for Inst {
-    fn hash(): Int32 {
-        self.id().0.hash()
+    fn hash(hasher: Hasher) {
+        hasher.write_int32(self.id().0.hash());
     }
 }
 
@@ -2550,15 +2551,16 @@ impl Location {
 }
 
 impl Hash for Location {
-    fn hash(): Int32 {
-        match self {
+    fn hash(hasher: Hasher) {
+        let value = match self {
             Location::None => 1i32,
             Location::Reg(reg) => reg.to_int32() << 1,
             Location::FloatReg(reg) => reg.to_int32() << 1,
             Location::Stack(
                 slot
             ) => slot.get_offset() << 2 + slot.is_fp().to_int32() << 1 + 1i32,
-        }
+        };
+        hasher.write_int32(value);
     }
 }
 

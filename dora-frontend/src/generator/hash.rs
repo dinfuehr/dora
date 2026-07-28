@@ -42,6 +42,8 @@ fn generate_aggregate_hash(
     let type_params = element.type_param_definition(sa).identity_type_params(sa);
     let aggregate_ty = target.ty(type_params.clone());
     let bytecode_aggregate_ty = emitter.convert_ty(sa, aggregate_ty);
+    let hasher_ty = SourceType::Class(sa.known.classes.hasher(), crate::SourceTypeArray::empty());
+    let bytecode_hasher_ty = emitter.convert_ty(sa, hasher_ty);
     let bytecode_type_params = emitter.convert_tya(sa, &type_params);
     let location = sa.compute_loc(fct.file_id, fct.span);
 
@@ -56,15 +58,14 @@ fn generate_aggregate_hash(
     builder.push_scope();
 
     let value = builder.alloc_var(bytecode_aggregate_ty);
-    let result = builder.alloc_var(BytecodeType::Int32);
-    builder.emit_const_int32(result, 0);
+    let hasher = builder.alloc_var(bytecode_hasher_ty);
+    let unit = builder.alloc_var(BytecodeType::Unit);
 
     for &field_id in target.field_ids(sa) {
         let field = sa.field(field_id);
         let field_ty = field.ty();
         let bytecode_field_ty = emitter.convert_ty(sa, field_ty.clone());
         let field_value = builder.alloc_temp(bytecode_field_ty);
-        let field_hash = builder.alloc_temp(BytecodeType::Int32);
         let field_idx = target.add_field_const(
             sa,
             emitter,
@@ -82,16 +83,14 @@ fn generate_aggregate_hash(
             &hash_trait_ty,
             hash_method_id,
             field_ty,
-            field_hash,
-            &[field_value],
+            unit,
+            &[field_value, hasher],
             location,
         );
-        builder.emit_xor(result, result, field_hash);
-        builder.free_temp(field_hash);
         builder.free_temp(field_value);
     }
 
-    builder.emit_ret(result);
+    builder.emit_ret(unit);
     builder.pop_scope();
     builder.generate()
 }
@@ -151,6 +150,8 @@ pub fn generate_enum_hash(
     let type_params = enum_.type_param_definition(sa).identity_type_params(sa);
     let enum_ty = SourceType::Enum(enum_id, type_params.clone());
     let bytecode_enum_ty = emitter.convert_ty(sa, enum_ty);
+    let hasher_ty = SourceType::Class(sa.known.classes.hasher(), crate::SourceTypeArray::empty());
+    let bytecode_hasher_ty = emitter.convert_ty(sa, hasher_ty);
     let bytecode_enum_id = emitter.convert_enum_id(sa, enum_id);
     let bytecode_type_params = emitter.convert_tya(sa, &type_params);
     let enum_const = ConstPoolEntry::Enum(bytecode_enum_id, bytecode_type_params.clone());
@@ -167,8 +168,9 @@ pub fn generate_enum_hash(
     builder.push_scope();
 
     let value = builder.alloc_var(bytecode_enum_ty);
+    let hasher = builder.alloc_var(bytecode_hasher_ty);
     let variant = builder.alloc_var(BytecodeType::Int32);
-    let result = builder.alloc_var(BytecodeType::Int32);
+    let unit = builder.alloc_var(BytecodeType::Unit);
     let default_label = builder.create_label();
     let variant_labels = enum_
         .variant_ids()
@@ -185,7 +187,18 @@ pub fn generate_enum_hash(
 
     let enum_idx = builder.add_const(enum_const);
     builder.emit_load_enum_variant(variant, value, enum_idx, location);
-    builder.emit_mov(result, variant);
+    emit_trait_method_call(
+        sa,
+        emitter,
+        &mut builder,
+        enum_,
+        &hash_trait_ty,
+        hash_method_id,
+        SourceType::Int32,
+        unit,
+        &[variant, hasher],
+        location,
+    );
     let jump_table_idx = builder.add_const_jump_table(variant_labels.clone(), default_label);
     builder.emit_switch(variant, jump_table_idx);
 
@@ -197,7 +210,6 @@ pub fn generate_enum_hash(
             let field_ty = sa.field(field_id).ty();
             let bytecode_field_ty = emitter.convert_ty(sa, field_ty.clone());
             let field_value = builder.alloc_temp(bytecode_field_ty);
-            let field_hash = builder.alloc_temp(BytecodeType::Int32);
             let field_idx = builder.add_const_enum_element(
                 bytecode_enum_id,
                 bytecode_type_params.clone(),
@@ -214,20 +226,18 @@ pub fn generate_enum_hash(
                 &hash_trait_ty,
                 hash_method_id,
                 field_ty,
-                field_hash,
-                &[field_value],
+                unit,
+                &[field_value, hasher],
                 location,
             );
-            builder.emit_xor(result, result, field_hash);
-            builder.free_temp(field_hash);
             builder.free_temp(field_value);
         }
 
-        builder.emit_ret(result);
+        builder.emit_ret(unit);
     }
 
     builder.bind_label(default_label);
-    builder.emit_ret(result);
+    builder.emit_ret(unit);
     builder.pop_scope();
     builder.generate()
 }

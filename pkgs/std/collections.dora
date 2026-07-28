@@ -7,6 +7,7 @@ use std::traits::{
     Equals,
     FromIterator,
     Hash,
+    Hasher,
     IndexGet,
     IndexSet,
     IntoIterator,
@@ -239,14 +240,13 @@ impl[T: Equals] Equals for Array[T] {
 }
 
 impl[T: Hash] Hash for Array[T] {
-    fn hash(): Int32 {
-        let mut result: Int32 = self.size().hash();
+    fn hash(hasher: Hasher) {
+        hasher.write_int32(self.size().hash());
         let mut i = 0i64;
         while i < self.size() {
-            result = result ^ self(i).hash();
+            self(i).hash(hasher);
             i = i + 1i64;
         }
-        result
     }
 }
 
@@ -737,7 +737,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         self.ensure_capacity(1i64);
         assert(self.entries < self.cap);
 
-        let mut hash = key.hash();
+        let hash = self.hash(key);
         let mut idx = hash.to_int64() & (self.cap - 1i64);
         let mut insert_idx = -1;
         let mut iterations = 0;
@@ -746,7 +746,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             if self.is_live(idx) {
                 let current_key = self.keys.get(idx);
 
-                if current_key.hash() == hash && current_key == key {
+                if self.hash(current_key) == hash && current_key == key {
                     let old_value = self.values.get(idx);
                     self.values.set(idx, value);
                     return Some[V](old_value);
@@ -788,7 +788,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             return false;
         }
 
-        let mut hash = key.hash();
+        let hash = self.hash(key);
         let mut idx = hash.to_int64() & (self.cap - 1i64);
         let mut iterations = 0;
 
@@ -796,7 +796,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             if self.is_live(idx) {
                 let current_key = self.keys.get(idx);
 
-                if current_key.hash() == hash && current_key == key {
+                if self.hash(current_key) == hash && current_key == key {
                     return true;
                 }
             } else if self.is_deleted(idx) {
@@ -819,7 +819,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             return Option[V]::None;
         }
 
-        let mut hash = key.hash();
+        let hash = self.hash(key);
         let mut idx = hash.to_int64() & (self.cap - 1i64);
         let mut iterations = 0;
 
@@ -827,7 +827,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             if self.is_live(idx) {
                 let current_key = self.keys.get(idx);
 
-                if current_key.hash() == hash && current_key == key {
+                if self.hash(current_key) == hash && current_key == key {
                     return Option[V]::Some(self.values.get(idx));
                 }
             } else if self.is_deleted(idx) {
@@ -846,7 +846,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
     pub fn remove(key: K): Option[V] {
         self.shrink();
 
-        let mut hash = key.hash();
+        let hash = self.hash(key);
         let mut idx = hash.to_int64() & (self.cap - 1i64);
         let mut iterations = 0;
 
@@ -854,7 +854,7 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
             if self.is_live(idx) {
                 let current_key = self.keys.get(idx);
 
-                if current_key.hash() == hash && current_key == key {
+                if self.hash(current_key) == hash && current_key == key {
                     let value = self.values.get(idx);
                     self.inserted_and_deleted.insert(2i64 * idx + 1i64);
 
@@ -918,6 +918,12 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
         assert(self.entries + elements_to_add < new_capacity);
 
         self.rehash(new_capacity);
+    }
+
+    fn hash(key: K): Int32 {
+        let hasher = Hasher::new();
+        key.hash(hasher);
+        hasher.finish()
     }
 
     fn shrink() {

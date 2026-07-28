@@ -9,7 +9,9 @@ struct Named { value: Int32, flag: Bool }
 struct Generic[T: std::Hash](T)
 
 fn hash[T: std::Hash](value: T): Int32 {
-    value.hash()
+    let hasher = std::Hasher::new();
+    value.hash(hasher);
+    hasher.finish()
 }
 
 fn use_hash(value: Named): Int32 {

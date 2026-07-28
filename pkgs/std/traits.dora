@@ -4,8 +4,26 @@ pub trait Default {
     static fn default(): Self;
 }
 
+pub class Hasher {
+    value: Int32,
+}
+
+impl Hasher {
+    pub static fn new(): Hasher {
+        Hasher(value = 0i32)
+    }
+
+    pub fn write_int32(value: Int32) {
+        self.value = self.value ^ value;
+    }
+
+    pub fn finish(): Int32 {
+        self.value
+    }
+}
+
 pub trait Hash {
-    fn hash(): Int32;
+    fn hash(hasher: Hasher);
 }
 
 // Implementations of the `Zero` trait indicate that zero-initialized memory of the appropriate size can be allocated to

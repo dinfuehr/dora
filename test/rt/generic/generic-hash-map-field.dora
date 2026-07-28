@@ -5,7 +5,7 @@ impl std::Equals for MyOwnType {
 }
 
 impl std::Hash for MyOwnType {
-    fn hash(): Int32 { 0i32 }
+    fn hash(hasher: std::Hasher) { hasher.write_int32(0i32); }
 }
 
 class Foo {

@@ -9,103 +9,133 @@ enum Color:
   Blue
 
 fn hash[T]:
-  0: InvokeGenericDirect r1, @0, r0 # std::traits::Hash::hash
-  5: Ret r1
+  0: InvokeStatic r2, @0 # std::traits::<impl Hasher>::new
+  4: Mov r1, r2
+  7: InvokeGenericDirect r3, @1, r0, r1 # std::traits::Hash::hash
+ 13: InvokeDirect r4, @2, r1 # std::traits::<impl Hasher>::finish
+ 18: Ret r4
 
   Registers:
    0 => T
-   1 => Int32
+   1 => class Hasher
+   2 => class Hasher
+   3 => ()
+   4 => Int32
 
   Constants:
-   0 => Generic std::traits::Hash::hash on T as Hash
+   0 => Fct std::traits::<impl Hasher>::new
+   1 => Generic std::traits::Hash::hash on T as Hash
+   2 => Fct std::traits::<impl Hasher>::finish
 
   Locations:
-   0 => 12:5
+   0 => 12:18
+   7 => 13:5
+   13 => 14:5
 
 fn direct:
-  0: InvokeDirect r1, @0, r0 # <impl Hash for Color>::hash
-  5: Ret r1
+  0: InvokeStatic r2, @0 # std::traits::<impl Hasher>::new
+  4: Mov r1, r2
+  7: InvokeDirect r3, @1, r0, r1 # <impl Hash for Color>::hash
+ 13: InvokeDirect r4, @2, r1 # std::traits::<impl Hasher>::finish
+ 18: Ret r4
 
   Registers:
    0 => enum Color
-   1 => Int32
+   1 => class Hasher
+   2 => class Hasher
+   3 => ()
+   4 => Int32
 
   Constants:
-   0 => Fct <impl Hash for Color>::hash
+   0 => Fct std::traits::<impl Hasher>::new
+   1 => Fct <impl Hash for Color>::hash
+   2 => Fct std::traits::<impl Hasher>::finish
 
   Locations:
-   0 => 16:5
+   0 => 18:18
+   7 => 19:5
+   13 => 20:5
 
 fn payload:
-  0: InvokeDirect r1, @0, r0 # <impl Hash for Payload>::hash
-  5: Ret r1
+  0: InvokeStatic r2, @0 # std::traits::<impl Hasher>::new
+  4: Mov r1, r2
+  7: InvokeDirect r3, @1, r0, r1 # <impl Hash for Payload>::hash
+ 13: InvokeDirect r4, @2, r1 # std::traits::<impl Hasher>::finish
+ 18: Ret r4
 
   Registers:
    0 => enum Payload
-   1 => Int32
+   1 => class Hasher
+   2 => class Hasher
+   3 => ()
+   4 => Int32
 
   Constants:
-   0 => Fct <impl Hash for Payload>::hash
+   0 => Fct std::traits::<impl Hasher>::new
+   1 => Fct <impl Hash for Payload>::hash
+   2 => Fct std::traits::<impl Hasher>::finish
 
   Locations:
-   0 => 20:5
+   0 => 24:18
+   7 => 25:5
+   13 => 26:5
 
 fn <impl Hash for Payload>::hash:
-  0: LoadEnumVariant r1, r0, @0 # Payload
-  4: Mov r2, r1
-  7: Switch r1, @1 # [10, 12, 27], default 55
- 10: Ret r2
- 12: LoadEnumElement r3, r0, @2, 0 # Payload::Integer.0
- 16: InvokeDirect r4, @3, r3 # std::primitives::<impl Hash for Int32>::hash
- 21: Xor r2, r2, r4
- 25: Ret r2
- 27: LoadEnumElement r3, r0, @4, 0 # Payload::Pair.0
- 31: InvokeDirect r4, @5, r3 # std::primitives::<impl Hash for Int32>::hash
- 36: Xor r2, r2, r4
- 40: LoadEnumElement r5, r0, @6, 1 # Payload::Pair.1
- 44: InvokeDirect r3, @7, r5 # std::primitives::<impl Hash for Bool>::hash
- 49: Xor r2, r2, r3
- 53: Ret r2
- 55: Ret r2
+  0: LoadEnumVariant r2, r0, @0 # Payload
+  4: InvokeDirect r3, @1, r2, r1 # std::primitives::<impl Hash for Int32>::hash
+ 10: Switch r2, @2 # [13, 15, 27], default 49
+ 13: Ret r3
+ 15: LoadEnumElement r4, r0, @3, 0 # Payload::Integer.0
+ 19: InvokeDirect r3, @4, r4, r1 # std::primitives::<impl Hash for Int32>::hash
+ 25: Ret r3
+ 27: LoadEnumElement r4, r0, @5, 0 # Payload::Pair.0
+ 31: InvokeDirect r3, @6, r4, r1 # std::primitives::<impl Hash for Int32>::hash
+ 37: LoadEnumElement r5, r0, @7, 1 # Payload::Pair.1
+ 41: InvokeDirect r3, @8, r5, r1 # std::primitives::<impl Hash for Bool>::hash
+ 47: Ret r3
+ 49: Ret r3
 
   Registers:
    0 => enum Payload
-   1 => Int32
+   1 => class Hasher
    2 => Int32
-   3 => Int32
+   3 => ()
    4 => Int32
    5 => Bool
 
   Constants:
    0 => Enum Payload
-   1 => JumpTable 10, 12, 27, default 55
-   2 => EnumVariantElement Payload::Integer::0
-   3 => Fct std::primitives::<impl Hash for Int32>::hash
-   4 => EnumVariantElement Payload::Pair::0
-   5 => Fct std::primitives::<impl Hash for Int32>::hash
-   6 => EnumVariantElement Payload::Pair::1
-   7 => Fct std::primitives::<impl Hash for Bool>::hash
+   1 => Fct std::primitives::<impl Hash for Int32>::hash
+   2 => JumpTable 13, 15, 27, default 49
+   3 => EnumVariantElement Payload::Integer::0
+   4 => Fct std::primitives::<impl Hash for Int32>::hash
+   5 => EnumVariantElement Payload::Pair::0
+   6 => Fct std::primitives::<impl Hash for Int32>::hash
+   7 => EnumVariantElement Payload::Pair::1
+   8 => Fct std::primitives::<impl Hash for Bool>::hash
 
   Locations:
    0 => 1:1
 
 fn <impl Hash for Color>::hash:
-  0: LoadEnumVariant r1, r0, @0 # Color
-  4: Mov r2, r1
-  7: Switch r1, @1 # [10, 12, 14], default 16
- 10: Ret r2
- 12: Ret r2
- 14: Ret r2
- 16: Ret r2
+  0: LoadEnumVariant r2, r0, @0 # Color
+  4: InvokeDirect r3, @1, r2, r1 # std::primitives::<impl Hash for Int32>::hash
+ 10: Switch r2, @2 # [13, 15, 17], default 19
+ 13: Ret r3
+ 15: Ret r3
+ 17: Ret r3
+ 19: Ret r3
 
   Registers:
    0 => enum Color
-   1 => Int32
+   1 => class Hasher
    2 => Int32
+   3 => ()
 
   Constants:
    0 => Enum Color
-   1 => JumpTable 10, 12, 14, default 16
+   1 => Fct std::primitives::<impl Hash for Int32>::hash
+   2 => JumpTable 13, 15, 17, default 19
 
   Locations:
    0 => 8:1

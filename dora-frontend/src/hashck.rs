@@ -92,7 +92,12 @@ fn create_hash_impl(sa: &mut Sema, target: DerivedTarget) {
     let mut modifiers = Annotations::default();
     modifiers.is_internal = true;
     modifiers.is_force_inline = is_simple_enum;
-    let params = Params::new(vec![Param::new_ty(SourceType::This)], true, false);
+    let hasher_ty = SourceType::Class(sa.known.classes.hasher(), crate::SourceTypeArray::empty());
+    let params = Params::new(
+        vec![Param::new_ty(SourceType::This), Param::new_ty(hasher_ty)],
+        true,
+        false,
+    );
     let mut method = FctDefinition::new_no_source(
         package_id,
         module_id,
@@ -104,7 +109,7 @@ fn create_hash_impl(sa: &mut Sema, target: DerivedTarget) {
         method_name,
         method_type_param_definition_id,
         params,
-        SourceType::Int32,
+        SourceType::Unit,
         FctParent::Impl(impl_id),
         false,
     );
