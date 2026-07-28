@@ -169,6 +169,7 @@ pub fn check_definition_against_trait(sa: &mut Sema) {
                     is_static: trait_method.is_static,
                     is_mutating: trait_method.is_mutating,
                     is_test: trait_method.is_test,
+                    is_comparable: false,
                     is_equals: false,
                     is_hash: false,
                     is_internal: trait_method.is_internal,

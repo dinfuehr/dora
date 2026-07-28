@@ -38,6 +38,7 @@ pub struct StructDefinition {
     pub children: OnceCell<Vec<ElementId>>,
     pub extensions: RefCell<Vec<ExtensionDefinitionId>>,
     pub field_name_style: ast::FieldNameStyle,
+    pub derive_comparable: bool,
     pub derive_equals: bool,
     pub derive_hash: bool,
 }
@@ -74,6 +75,7 @@ impl StructDefinition {
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             field_name_style: ast.field_name_style(),
+            derive_comparable: modifiers.is_comparable,
             derive_equals: modifiers.is_equals,
             derive_hash: modifiers.is_hash,
         }
@@ -108,6 +110,7 @@ impl StructDefinition {
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
             field_name_style: ast::FieldNameStyle::Positional,
+            derive_comparable: false,
             derive_equals: false,
             derive_hash: false,
         }

@@ -31,6 +31,7 @@ pub(crate) mod access;
 mod aliasck;
 pub mod ast_dump;
 mod clsdefck;
+mod comparableck;
 mod constdefck;
 mod element_collector;
 mod enumck;
@@ -81,6 +82,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     typedefck::parse_types(sa);
     enumck::check(sa);
     // Derived impls need to be visible while validating supertraits and type arguments.
+    comparableck::create_impls(sa);
     equalsck::create_impls(sa);
     hashck::create_impls(sa);
     // Check for cycles in super trait hierarchy.
@@ -99,6 +101,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     impldefck::check_super_traits(sa);
     impldefck::check_definition_against_trait(sa);
     impldefck::check_type_aliases_bounds(sa);
+    comparableck::check_fields(sa);
     equalsck::check_fields(sa);
     hashck::check_fields(sa);
     impldefck::check_overlapping_impls(sa);

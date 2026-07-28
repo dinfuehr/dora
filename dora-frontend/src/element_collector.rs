@@ -634,6 +634,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.file_id,
             ast_node.modifier_list(),
             &[
+                Annotation::Comparable,
                 Annotation::Equals,
                 Annotation::Hash,
                 Annotation::Internal,
@@ -734,6 +735,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.file_id,
             ast_node.modifier_list(),
             &[
+                Annotation::Comparable,
                 Annotation::Equals,
                 Annotation::Hash,
                 Annotation::Pub,
@@ -912,7 +914,12 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
             self.sa,
             self.file_id,
             ast_node.modifier_list(),
-            &[Annotation::Equals, Annotation::Hash, Annotation::Pub],
+            &[
+                Annotation::Comparable,
+                Annotation::Equals,
+                Annotation::Hash,
+                Annotation::Pub,
+            ],
         );
         let enum_ = EnumDefinition::new(
             self.package_id,
@@ -1597,6 +1604,7 @@ pub struct Annotations {
     pub is_static: bool,
     pub is_mutating: bool,
     pub is_test: bool,
+    pub is_comparable: bool,
     pub is_equals: bool,
     pub is_hash: bool,
     pub is_internal: bool,
@@ -1618,6 +1626,7 @@ impl Annotations {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 enum Annotation {
+    Comparable,
     Equals,
     Hash,
     Internal,
@@ -1634,6 +1643,7 @@ enum Annotation {
 impl Annotation {
     fn name(&self) -> &'static str {
         match *self {
+            Annotation::Comparable => "Comparable",
             Annotation::Equals => "Equals",
             Annotation::Hash => "Hash",
             Annotation::Internal => "internal",
@@ -1713,6 +1723,11 @@ fn check_annotation(
                     "Test" => {
                         annotations.is_test = true;
                         Some(Annotation::Test)
+                    }
+
+                    "Comparable" => {
+                        annotations.is_comparable = true;
+                        Some(Annotation::Comparable)
                     }
 
                     "Equals" => {

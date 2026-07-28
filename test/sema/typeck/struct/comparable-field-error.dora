@@ -1,0 +1,8 @@
+//= error
+class NoComparable
+
+@Comparable
+struct Concrete(NoComparable)
+
+@Comparable
+struct Generic[T](T)

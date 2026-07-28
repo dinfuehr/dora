@@ -1,0 +1,16 @@
+error: conflicting implementation of trait `Comparable` for type `Value`; another implementation is at comparable-manual-impl-conflict.dora:8:1.
+--> comparable-manual-impl-conflict.dora:2:1
+ | //= error
+ | @Comparable
+   ~~~~~~~~~~~
+ | enum Value {
+ |     First,
+error: conflicting implementation of trait `Comparable` for type `ValueWithFields`; another implementation is at comparable-manual-impl-conflict.dora:19:1.
+--> comparable-manual-impl-conflict.dora:14:1
+ | }
+ | 
+ | @Comparable
+   ~~~~~~~~~~~
+ | enum ValueWithFields {
+ |     Value(Int32),
+2 errors found.

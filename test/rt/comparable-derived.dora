@@ -1,0 +1,79 @@
+use std::Ordering;
+
+fn main() {
+    assert(EmptyClass().cmp(EmptyClass()) == Ordering::Equal);
+    assert(ClassValue(1i32, 9i32).cmp(ClassValue(2i32, 0i32)) == Ordering::Less);
+    assert(ClassValue(1i32, 9i32) < ClassValue(2i32, 0i32));
+    assert(ClassValue(2i32, 0i32).cmp(ClassValue(1i32, 9i32)) == Ordering::Greater);
+    assert(ClassValue(1i32, 2i32).cmp(ClassValue(1i32, 3i32)) == Ordering::Less);
+    assert(GenericClass[String]("a").cmp(GenericClass[String]("b")) == Ordering::Less);
+
+    assert(EmptyStruct().cmp(EmptyStruct()) == Ordering::Equal);
+    assert(StructValue(1i32, 2i32).cmp(StructValue(1i32, 2i32)) == Ordering::Equal);
+    assert(StructValue(1i32, 3i32).cmp(StructValue(1i32, 2i32)) == Ordering::Greater);
+    assert(GenericStruct[Int32](7i32).cmp(GenericStruct[Int32](8i32)) == Ordering::Less);
+
+    assert(Color::Red.cmp(Color::Red) == Ordering::Equal);
+    assert(Color::Red.cmp(Color::Green) == Ordering::Less);
+    assert(Color::Blue.cmp(Color::Green) == Ordering::Greater);
+    assert(Color::Blue > Color::Green);
+    assert(compare[Color](Color::Green, Color::Blue) == Ordering::Less);
+
+    assert(Payload::Empty.cmp(Payload::Integer(0i32)) == Ordering::Less);
+    assert(Payload::Flag(0i32).cmp(Payload::Integer(99i32)) == Ordering::Greater);
+    assert(Payload::Pair(1i32, 9i32).cmp(Payload::Pair(2i32, 0i32)) == Ordering::Less);
+    assert(Payload::Pair(1i32, 2i32).cmp(Payload::Pair(1i32, 3i32)) == Ordering::Less);
+    assert(Payload::Pair(1i32, 2i32).cmp(Payload::Pair(1i32, 2i32)) == Ordering::Equal);
+
+    assert(
+        Generic[Int32]::None.cmp(Generic[Int32]::Some(0i32))
+            == Ordering::Less,
+    );
+    assert(
+        Generic[Int32]::Some(8i32).cmp(Generic[Int32]::Some(7i32))
+            == Ordering::Greater,
+    );
+}
+
+@Comparable
+class EmptyClass
+
+@Comparable
+class ClassValue(Int32, Int32)
+
+@Comparable
+class GenericClass[T: std::Comparable](T)
+
+@Comparable
+struct EmptyStruct
+
+@Comparable
+struct StructValue(Int32, Int32)
+
+@Comparable
+struct GenericStruct[T: std::Comparable](T)
+
+@Comparable
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+@Comparable
+enum Payload {
+    Empty,
+    Integer(Int32),
+    Flag(Int32),
+    Pair(Int32, Int32),
+}
+
+@Comparable
+enum Generic[T: std::Comparable] {
+    None,
+    Some(T),
+}
+
+fn compare[T: std::Comparable](lhs: T, rhs: T): Ordering {
+    lhs.cmp(rhs)
+}

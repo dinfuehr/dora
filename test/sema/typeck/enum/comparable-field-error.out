@@ -1,0 +1,17 @@
+error: type `NoComparable` does not implement trait `Comparable`.
+--> comparable-field-error.dora:6:11
+ | @Comparable
+ | enum Concrete {
+ |     Value(NoComparable),
+             ~~~~~~~~~~~~
+ | }
+ | 
+error: type `T` does not implement trait `Comparable`.
+--> comparable-field-error.dora:11:11
+ | @Comparable
+ | enum Generic[T] {
+ |     Value(T),
+             ~
+ | }
+ | 
+2 errors found.

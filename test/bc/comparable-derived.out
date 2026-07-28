@@ -1,0 +1,213 @@
+class ClassValue:
+  0: Int32
+  1: Int32
+
+struct StructValue:
+  0: Int32
+  1: Int32
+
+enum Payload:
+  Empty
+  Pair(Int32, Int32)
+
+fn compare[T]:
+  0: InvokeGenericDirect r2, @0, r0, r1 # std::traits::Comparable::cmp
+  6: Ret r2
+
+  Registers:
+   0 => T
+   1 => T
+   2 => enum Ordering
+
+  Constants:
+   0 => Generic std::traits::Comparable::cmp on T as Comparable
+
+  Locations:
+   0 => 14:5
+
+fn compare_class:
+  0: InvokeDirect r2, @0, r0, r1 # <impl Comparable for ClassValue>::cmp
+  6: Ret r2
+
+  Registers:
+   0 => class ClassValue
+   1 => class ClassValue
+   2 => enum Ordering
+
+  Constants:
+   0 => Fct <impl Comparable for ClassValue>::cmp
+
+  Locations:
+   0 => 18:5
+
+fn compare_struct:
+  0: InvokeDirect r2, @0, r0, r1 # <impl Comparable for StructValue>::cmp
+  6: Ret r2
+
+  Registers:
+   0 => struct StructValue
+   1 => struct StructValue
+   2 => enum Ordering
+
+  Constants:
+   0 => Fct <impl Comparable for StructValue>::cmp
+
+  Locations:
+   0 => 22:5
+
+fn compare_enum:
+  0: InvokeDirect r2, @0, r0, r1 # <impl Comparable for Payload>::cmp
+  6: Ret r2
+
+  Registers:
+   0 => enum Payload
+   1 => enum Payload
+   2 => enum Ordering
+
+  Constants:
+   0 => Fct <impl Comparable for Payload>::cmp
+
+  Locations:
+   0 => 26:5
+
+fn <impl Comparable for ClassValue>::cmp:
+  0: ConstInt32 r4, @1 # 1
+  3: LoadField r6, r0, @2 # ClassValue.0
+  7: LoadField r7, r1, @2 # ClassValue.0
+ 11: InvokeDirect r2, @3, r6, r7 # std::primitives::<impl Comparable for Int32>::cmp
+ 17: LoadEnumVariant r3, r2, @0 # Ordering
+ 21: TestNe r5, r3, r4
+ 25: JumpIfTrue r5, 63 (+38)
+ 31: LoadField r6, r0, @4 # ClassValue.1
+ 35: LoadField r7, r1, @4 # ClassValue.1
+ 39: InvokeDirect r2, @5, r6, r7 # std::primitives::<impl Comparable for Int32>::cmp
+ 45: LoadEnumVariant r3, r2, @0 # Ordering
+ 49: TestNe r5, r3, r4
+ 53: JumpIfTrue r5, 63 (+10)
+ 59: NewEnum r2, @6 # Ordering::Equal
+ 63: Ret r2
+
+  Registers:
+   0 => class ClassValue
+   1 => class ClassValue
+   2 => enum Ordering
+   3 => Int32
+   4 => Int32
+   5 => Bool
+   6 => Int32
+   7 => Int32
+
+  Constants:
+   0 => Enum std::traits::Ordering
+   1 => Int32 1
+   2 => Field ClassValue.0
+   3 => Fct std::primitives::<impl Comparable for Int32>::cmp
+   4 => Field ClassValue.1
+   5 => Fct std::primitives::<impl Comparable for Int32>::cmp
+   6 => EnumVariant std::traits::Ordering::Equal
+
+  Locations:
+   11 => 1:1
+
+fn <impl Comparable for StructValue>::cmp:
+  0: ConstInt32 r4, @1 # 1
+  3: LoadField r6, r0, @2 # StructValue.0
+  7: LoadField r7, r1, @2 # StructValue.0
+ 11: InvokeDirect r2, @3, r6, r7 # std::primitives::<impl Comparable for Int32>::cmp
+ 17: LoadEnumVariant r3, r2, @0 # Ordering
+ 21: TestNe r5, r3, r4
+ 25: JumpIfTrue r5, 63 (+38)
+ 31: LoadField r6, r0, @4 # StructValue.1
+ 35: LoadField r7, r1, @4 # StructValue.1
+ 39: InvokeDirect r2, @5, r6, r7 # std::primitives::<impl Comparable for Int32>::cmp
+ 45: LoadEnumVariant r3, r2, @0 # Ordering
+ 49: TestNe r5, r3, r4
+ 53: JumpIfTrue r5, 63 (+10)
+ 59: NewEnum r2, @6 # Ordering::Equal
+ 63: Ret r2
+
+  Registers:
+   0 => struct StructValue
+   1 => struct StructValue
+   2 => enum Ordering
+   3 => Int32
+   4 => Int32
+   5 => Bool
+   6 => Int32
+   7 => Int32
+
+  Constants:
+   0 => Enum std::traits::Ordering
+   1 => Int32 1
+   2 => StructField StructValue.0
+   3 => Fct std::primitives::<impl Comparable for Int32>::cmp
+   4 => StructField StructValue.1
+   5 => Fct std::primitives::<impl Comparable for Int32>::cmp
+   6 => EnumVariant std::traits::Ordering::Equal
+
+  Locations:
+   11 => 4:1
+
+fn <impl Comparable for Payload>::cmp:
+  0: ConstInt32 r6, @2 # 1
+  3: LoadEnumVariant r2, r0, @0 # Payload
+  7: LoadEnumVariant r3, r1, @0 # Payload
+ 11: TestEq r7, r2, r3
+ 15: JumpIfTrue r7, 43 (+28)
+ 21: TestLt r7, r2, r3
+ 25: JumpIfTrue r7, 37 (+12)
+ 31: NewEnum r4, @3 # Ordering::Greater
+ 35: Ret r4
+ 37: NewEnum r4, @4 # Ordering::Less
+ 41: Ret r4
+ 43: Switch r2, @5 # [46, 52], default 114
+ 46: NewEnum r4, @6 # Ordering::Equal
+ 50: Ret r4
+ 52: LoadEnumElement r8, r0, @7, 0 # Payload::Pair.0
+ 56: LoadEnumElement r9, r1, @7, 0 # Payload::Pair.0
+ 60: InvokeDirect r4, @8, r8, r9 # std::primitives::<impl Comparable for Int32>::cmp
+ 66: LoadEnumVariant r5, r4, @1 # Ordering
+ 70: TestNe r7, r5, r6
+ 74: JumpIfTrue r7, 120 (+46)
+ 80: LoadEnumElement r8, r0, @9, 1 # Payload::Pair.1
+ 84: LoadEnumElement r9, r1, @9, 1 # Payload::Pair.1
+ 88: InvokeDirect r4, @10, r8, r9 # std::primitives::<impl Comparable for Int32>::cmp
+ 94: LoadEnumVariant r5, r4, @1 # Ordering
+ 98: TestNe r7, r5, r6
+102: JumpIfTrue r7, 120 (+18)
+108: NewEnum r4, @11 # Ordering::Equal
+112: Ret r4
+114: NewEnum r4, @12 # Ordering::Equal
+118: Ret r4
+120: Ret r4
+
+  Registers:
+   0 => enum Payload
+   1 => enum Payload
+   2 => Int32
+   3 => Int32
+   4 => enum Ordering
+   5 => Int32
+   6 => Int32
+   7 => Bool
+   8 => Int32
+   9 => Int32
+
+  Constants:
+   0 => Enum Payload
+   1 => Enum std::traits::Ordering
+   2 => Int32 1
+   3 => EnumVariant std::traits::Ordering::Greater
+   4 => EnumVariant std::traits::Ordering::Less
+   5 => JumpTable 46, 52, default 114
+   6 => EnumVariant std::traits::Ordering::Equal
+   7 => EnumVariantElement Payload::Pair::0
+   8 => Fct std::primitives::<impl Comparable for Int32>::cmp
+   9 => EnumVariantElement Payload::Pair::1
+   10 => Fct std::primitives::<impl Comparable for Int32>::cmp
+   11 => EnumVariant std::traits::Ordering::Equal
+   12 => EnumVariant std::traits::Ordering::Equal
+
+  Locations:
+   3 => 7:1
+

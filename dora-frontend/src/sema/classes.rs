@@ -31,6 +31,7 @@ pub struct ClassDefinition {
     pub needs_self_type_param: bool,
     pub visibility: Visibility,
     pub field_name_style: ast::FieldNameStyle,
+    pub derive_comparable: bool,
     pub derive_equals: bool,
     pub derive_hash: bool,
 
@@ -74,6 +75,7 @@ impl ClassDefinition {
             needs_self_type_param: false,
             visibility: modifiers.visibility(),
             field_name_style: ast.field_name_style(),
+            derive_comparable: modifiers.is_comparable,
             derive_equals: modifiers.is_equals,
             derive_hash: modifiers.is_hash,
             field_ids: OnceCell::new(),
@@ -110,6 +112,7 @@ impl ClassDefinition {
             needs_self_type_param: false,
             visibility,
             field_name_style: ast::FieldNameStyle::Positional,
+            derive_comparable: false,
             derive_equals: false,
             derive_hash: false,
             field_ids: OnceCell::new(),

@@ -1,0 +1,23 @@
+//= ok
+@Comparable
+enum Unit { Only }
+
+@Comparable
+enum Simple { First, Second }
+
+@Comparable
+enum Payload {
+    Empty,
+    Value(Int32),
+}
+
+@Comparable
+enum Generic[T: std::Comparable] { None, Some(T) }
+
+fn compare[T: std::Comparable](lhs: T, rhs: T): std::Ordering {
+    lhs.cmp(rhs)
+}
+
+fn use_compare(lhs: Payload, rhs: Payload): std::Ordering {
+    compare[Payload](lhs, rhs)
+}

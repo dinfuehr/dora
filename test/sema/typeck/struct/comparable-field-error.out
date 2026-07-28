@@ -1,0 +1,16 @@
+error: type `NoComparable` does not implement trait `Comparable`.
+--> comparable-field-error.dora:5:17
+ | 
+ | @Comparable
+ | struct Concrete(NoComparable)
+                   ~~~~~~~~~~~~
+ | 
+ | @Comparable
+error: type `T` does not implement trait `Comparable`.
+--> comparable-field-error.dora:8:19
+ | 
+ | @Comparable
+ | struct Generic[T](T)
+                     ~
+ | 
+2 errors found.

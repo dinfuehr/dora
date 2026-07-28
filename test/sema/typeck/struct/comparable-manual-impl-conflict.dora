@@ -1,0 +1,9 @@
+//= error
+@Comparable
+struct Value(Int32)
+
+impl std::Comparable for Value {
+    fn cmp(_other: Self): std::Ordering {
+        std::Ordering::Equal
+    }
+}

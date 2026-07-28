@@ -85,6 +85,7 @@ impl DerivedTarget {
 
 #[derive(Clone, Copy)]
 pub enum DerivedMethod {
+    Comparable(DerivedTarget),
     Equals(DerivedTarget),
     Hash(DerivedTarget),
 }

@@ -1,0 +1,12 @@
+//= error
+class NoComparable
+
+@Comparable
+enum Concrete {
+    Value(NoComparable),
+}
+
+@Comparable
+enum Generic[T] {
+    Value(T),
+}

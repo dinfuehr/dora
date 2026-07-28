@@ -1,0 +1,17 @@
+//= ok
+@Comparable
+struct Empty
+
+@Comparable
+struct Named { value: Int32, other: String }
+
+@Comparable
+struct Generic[T: std::Comparable](T)
+
+fn compare[T: std::Comparable](lhs: T, rhs: T): std::Ordering {
+    lhs.cmp(rhs)
+}
+
+fn use_compare(lhs: Named, rhs: Named): std::Ordering {
+    compare[Named](lhs, rhs)
+}

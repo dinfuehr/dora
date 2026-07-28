@@ -1,0 +1,27 @@
+@Comparable
+class ClassValue(Int32, Int32)
+
+@Comparable
+struct StructValue(Int32, Int32)
+
+@Comparable
+enum Payload {
+    Empty,
+    Pair(Int32, Int32),
+}
+
+fn compare[T: std::Comparable](lhs: T, rhs: T): std::Ordering {
+    lhs.cmp(rhs)
+}
+
+fn compare_class(lhs: ClassValue, rhs: ClassValue): std::Ordering {
+    lhs.cmp(rhs)
+}
+
+fn compare_struct(lhs: StructValue, rhs: StructValue): std::Ordering {
+    lhs.cmp(rhs)
+}
+
+fn compare_enum(lhs: Payload, rhs: Payload): std::Ordering {
+    lhs.cmp(rhs)
+}

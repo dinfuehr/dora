@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Comparable` for type `Value`; another implementation is at comparable-manual-impl-conflict.dora:5:1.
+--> comparable-manual-impl-conflict.dora:2:1
+ | //= error
+ | @Comparable
+   ~~~~~~~~~~~
+ | struct Value(Int32)
+ | 
+1 error found.

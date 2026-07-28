@@ -1,0 +1,23 @@
+//= error
+@Comparable
+enum Value {
+    First,
+    Second,
+}
+
+impl std::Comparable for Value {
+    fn cmp(_other: Value): std::Ordering {
+        std::Ordering::Equal
+    }
+}
+
+@Comparable
+enum ValueWithFields {
+    Value(Int32),
+}
+
+impl std::Comparable for ValueWithFields {
+    fn cmp(_other: ValueWithFields): std::Ordering {
+        std::Ordering::Equal
+    }
+}

@@ -13,8 +13,10 @@ use dora_bytecode::{
 };
 
 use crate::generator::{
-    generate_class_equals, generate_class_hash, generate_enum_equals, generate_enum_hash,
-    generate_fct, generate_global_initializer, generate_struct_equals, generate_struct_hash,
+    generate_class_comparable, generate_class_equals, generate_class_hash,
+    generate_enum_comparable, generate_enum_equals, generate_enum_hash, generate_fct,
+    generate_global_initializer, generate_struct_comparable, generate_struct_equals,
+    generate_struct_hash,
 };
 
 use crate::sema::{
@@ -777,6 +779,15 @@ impl Emitter {
                 self.hidden_self_type_param = self.function_self_type_param_idx(sa, fct);
 
                 let bc_fct = match derived_method {
+                    Some(DerivedMethod::Comparable(DerivedTarget::Class(class_id))) => {
+                        generate_class_comparable(sa, self, &fct, class_id)
+                    }
+                    Some(DerivedMethod::Comparable(DerivedTarget::Struct(struct_id))) => {
+                        generate_struct_comparable(sa, self, &fct, struct_id)
+                    }
+                    Some(DerivedMethod::Comparable(DerivedTarget::Enum(enum_id))) => {
+                        generate_enum_comparable(sa, self, &fct, enum_id)
+                    }
                     Some(DerivedMethod::Equals(DerivedTarget::Class(class_id))) => {
                         generate_class_equals(sa, self, &fct, class_id)
                     }

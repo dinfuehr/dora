@@ -1,0 +1,8 @@
+//= error
+class NoComparable
+
+@Comparable
+class Concrete(NoComparable)
+
+@Comparable
+class Generic[T](T)

@@ -13,6 +13,7 @@ use crate::ty::{SourceType, SourceTypeArray, TypeArgs};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, ConstPoolEntry, Label, Location, Register};
 
 mod bytecode;
+mod comparable;
 mod equals;
 mod expr;
 mod function;
@@ -21,6 +22,9 @@ mod hash;
 mod int_dispatch;
 mod pattern;
 
+pub use self::comparable::{
+    generate_class_comparable, generate_enum_comparable, generate_struct_comparable,
+};
 pub use self::equals::{generate_class_equals, generate_enum_equals, generate_struct_equals};
 pub use self::function::{generate_fct, generate_fct_id};
 pub use self::global::generate_global_initializer;
