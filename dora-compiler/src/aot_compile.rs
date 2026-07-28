@@ -18,7 +18,11 @@ use crate::{
     bytecode_type_params, compute_transitive_closure, find_trait_impl_in_program, get_bytecode,
     native_function_symbol, specialize_bty_for_trait_object,
 };
-use dora_symbol::mangle_name;
+use dora_symbol::mangle_name_with_max_len;
+
+// MASM accepts identifiers up to 247 characters. Keep generated AOT function
+// symbols shorter so derived local labels also remain below that limit.
+const AOT_SYMBOL_MAX_LEN: usize = 200;
 
 pub fn compile_program_aot(program: &Program, inputs: AotCompileInputs) -> AotCompilation {
     let main_fct_id = program.main_fct_id.expect("no main function");
@@ -632,9 +636,9 @@ fn build_aot_compilation(
         let name = aot_compiled_function_name(program, entry);
         let symbol_name = match &entry.code_kind {
             CompiledCodeKind::RuntimeEntryTrampoline { .. } => {
-                mangle_name(&format!("{name}$runtime_entry"))
+                aot_symbol_name(&format!("{name}$runtime_entry"))
             }
-            _ => mangle_name(&name),
+            _ => aot_symbol_name(&name),
         };
 
         match &entry.target {
@@ -724,9 +728,9 @@ fn build_aot_compilation(
                 } => {
                     let target_name = display_fct_specialized(program, *fct_id, type_params);
                     let target = if program.fct(*fct_id).is_native {
-                        mangle_name(&format!("{target_name}$runtime_entry"))
+                        aot_symbol_name(&format!("{target_name}$runtime_entry"))
                     } else {
-                        mangle_name(&target_name)
+                        aot_symbol_name(&target_name)
                     };
                     relocations.push(AotRelocation {
                         offset: reloc.offset,
@@ -829,7 +833,7 @@ fn build_aot_compilation(
     let test_functions = test_function_ids
         .iter()
         .map(|&fct_id| {
-            let symbol_name = mangle_name(&aot_display_name(
+            let symbol_name = aot_symbol_name(&aot_display_name(
                 program,
                 fct_id,
                 &BytecodeTypeArray::empty(),
@@ -1085,6 +1089,12 @@ fn aot_display_name(
         ));
     }
     name
+}
+
+fn aot_symbol_name(name: &str) -> String {
+    // Preserve a readable prefix while making truncated symbols distinct. The
+    // full function name remains available in the AOT debug metadata.
+    mangle_name_with_max_len(name, AOT_SYMBOL_MAX_LEN)
 }
 
 fn runtime_function_symbol(runtime_function: RuntimeFunction) -> &'static str {

@@ -17,6 +17,26 @@ pub fn mangle_name(name: &str) -> String {
     result
 }
 
+pub fn mangle_name_with_max_len(name: &str, max_len: usize) -> String {
+    const HASH_SUFFIX_LEN: usize = 34;
+
+    assert!(
+        max_len >= HASH_SUFFIX_LEN,
+        "maximum symbol length must be at least {HASH_SUFFIX_LEN}"
+    );
+
+    let symbol = mangle_name(name);
+    if symbol.len() <= max_len {
+        return symbol;
+    }
+
+    let hash = fnv1a_128(symbol.as_bytes());
+    let suffix = format!("_H{hash:032X}");
+    let prefix_len = max_len - suffix.len();
+    debug_assert!(symbol.is_ascii());
+    format!("{}{}", &symbol[..prefix_len], suffix)
+}
+
 pub fn demangle_name(name: &str) -> Option<String> {
     let body = name.strip_prefix(SYMBOL_PREFIX)?;
     let mut result = Vec::with_capacity(body.len());
@@ -42,6 +62,18 @@ pub fn demangle_name(name: &str) -> Option<String> {
     String::from_utf8(result).ok()
 }
 
+fn fnv1a_128(bytes: &[u8]) -> u128 {
+    const OFFSET_BASIS: u128 = 0x6C62272E07BB014262B821756295C58D;
+    const PRIME: u128 = 0x0000000001000000000000000000013B;
+
+    let mut hash = OFFSET_BASIS;
+    for &byte in bytes {
+        hash ^= u128::from(byte);
+        hash = hash.wrapping_mul(PRIME);
+    }
+    hash
+}
+
 fn hex_digit(value: u8) -> char {
     match value {
         0..=9 => (b'0' + value) as char,
@@ -61,7 +93,7 @@ fn hex_value(value: u8) -> Option<u8> {
 
 #[cfg(test)]
 mod tests {
-    use super::{demangle_name, mangle_name};
+    use super::{demangle_name, mangle_name, mangle_name_with_max_len};
 
     #[test]
     fn mangle_name_escapes_separators() {
@@ -97,5 +129,28 @@ mod tests {
         assert_eq!(demangle_name("dora_std_"), None);
         assert_eq!(demangle_name("dora_std_3"), None);
         assert_eq!(demangle_name("dora_std_XY"), None);
+    }
+
+    #[test]
+    fn mangle_name_with_max_len_preserves_short_symbols() {
+        assert_eq!(
+            mangle_name_with_max_len("std::string::length", 200),
+            mangle_name("std::string::length")
+        );
+    }
+
+    #[test]
+    fn mangle_name_with_max_len_shortens_long_symbols_deterministically() {
+        let name = format!("std::callable::Fn16[{}]", "Int64, ".repeat(32));
+        let shortened = mangle_name_with_max_len(&name, 200);
+
+        assert!(mangle_name(&name).len() > 200);
+        assert_eq!(shortened.len(), 200);
+        assert!(shortened.starts_with("dora_std_3A_3Acallable"));
+        assert!(shortened.contains("_H"));
+        assert_eq!(shortened, mangle_name_with_max_len(&name, 200));
+
+        let other_name = format!("{name}other");
+        assert_ne!(shortened, mangle_name_with_max_len(&other_name, 200));
     }
 }
