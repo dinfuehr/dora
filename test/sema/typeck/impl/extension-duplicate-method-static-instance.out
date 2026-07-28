@@ -1,0 +1,8 @@
+error: element with name `foo` already exists at extension-duplicate-method-static-instance.dora:3:12.
+--> extension-duplicate-method-static-instance.dora:4:12
+ | 
+ | impl Foo { static fn foo() {} }
+ | impl Foo { fn foo() {} }
+              ~~~~~~~~~~~
+ | 
+1 error found.

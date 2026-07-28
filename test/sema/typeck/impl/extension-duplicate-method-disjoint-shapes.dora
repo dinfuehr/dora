@@ -1,0 +1,19 @@
+//= ok
+class Value[T]
+class Pair[A, B]
+class Wrapper[T]
+
+impl Value[Int32] { fn concrete() {} }
+impl Value[Bool] { fn concrete() {} }
+
+impl[T] Pair[T, T] { fn repeated() {} }
+impl Pair[Int32, Bool] { fn repeated() {} }
+
+impl[T] Value[Wrapper[T]] { fn nested() {} }
+impl Value[Int32] { fn nested() {} }
+
+impl[T] Pair[T, Wrapper[T]] { fn recursive() {} }
+impl[U] Pair[Wrapper[U], U] { fn recursive() {} }
+
+impl[T] Value[T] { fn generic_only() {} }
+impl Value[Int32] { fn concrete_only() {} }

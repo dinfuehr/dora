@@ -1,0 +1,6 @@
+class Foo[T]
+trait TraitA {}
+trait TraitB {}
+
+impl[T1: TraitA] Foo[T1] { fn foo() {} }
+impl[T2: TraitB] Foo[T2] { fn foo() {} }

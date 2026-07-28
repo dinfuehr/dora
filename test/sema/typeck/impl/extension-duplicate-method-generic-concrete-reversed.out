@@ -1,0 +1,8 @@
+error: element with name `foo` already exists at extension-duplicate-method-generic-concrete-reversed.dora:3:21.
+--> extension-duplicate-method-generic-concrete-reversed.dora:4:20
+ | 
+ | impl Value[Int32] { fn foo() {} }
+ | impl[T] Value[T] { fn foo() {} }
+                      ~~~~~~~~~~~
+ | 
+1 error found.

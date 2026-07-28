@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::sema::{
-    Element, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition, TypeParamId,
+    Element, ExtensionDefinition, ImplDefinition, ImplDefinitionId, Sema, TypeParamDefinition,
+    TypeParamId,
 };
 use crate::{
     SourceType, SourceTypeArray, TraitType, TypeArgs, specialize_trait_type, specialize_type,
@@ -286,7 +287,7 @@ pub fn impls_overlap(sa: &Sema, first: &ImplDefinition, second: &ImplDefinition)
         return false;
     }
 
-    let mut unifier = ImplTypeUnifier::new();
+    let mut unifier = TypeUnifier::new();
 
     if !unifier.unify(first.extended_ty(), second.extended_ty())
         || !unifier.unify_trait_types(first_trait_ty, second_trait_ty)
@@ -306,12 +307,42 @@ pub fn impls_overlap(sa: &Sema, first: &ImplDefinition, second: &ImplDefinition)
     //
     //     impl[T: First] Trait for Value[T] {}
     //     impl[U: Second] Trait for Value[U] {}
-    impl_bounds_allow_overlap(sa, first, &unifier)
-        && impl_bounds_allow_overlap(sa, second, &unifier)
+    type_param_bounds_allow_overlap(sa, first, &unifier)
+        && type_param_bounds_allow_overlap(sa, second, &unifier)
 }
 
-fn impl_bounds_allow_overlap(sa: &Sema, impl_: &ImplDefinition, unifier: &ImplTypeUnifier) -> bool {
-    let type_param_definition = impl_.type_param_definition(sa);
+pub fn extensions_overlap(
+    sa: &Sema,
+    first: &ExtensionDefinition,
+    second: &ExtensionDefinition,
+) -> bool {
+    let mut unifier = TypeUnifier::new();
+
+    if !unifier.unify(first.ty(), second.ty()) {
+        return false;
+    }
+
+    // Generic bounds do not rule out an overlap when one type could implement
+    // both of them:
+    //
+    //     impl[T: First] Vec[T] { fn foo() {} }
+    //     impl[U: Second] Vec[U] { fn foo() {} }
+    //
+    // If unification resolves a parameter to a concrete type, however, the
+    // extensions overlap only when that type satisfies the bound:
+    //
+    //     impl[T: Bound] Vec[T] { fn foo() {} }
+    //     impl Vec[Int32] { fn foo() {} }
+    type_param_bounds_allow_overlap(sa, first, &unifier)
+        && type_param_bounds_allow_overlap(sa, second, &unifier)
+}
+
+fn type_param_bounds_allow_overlap(
+    sa: &Sema,
+    element: &dyn Element,
+    unifier: &TypeUnifier,
+) -> bool {
+    let type_param_definition = element.type_param_definition(sa);
     let bindings = type_param_definition
         .identity_type_params(sa)
         .iter()
@@ -330,7 +361,7 @@ fn impl_bounds_allow_overlap(sa: &Sema, impl_: &ImplDefinition, unifier: &ImplTy
             continue;
         }
 
-        if !implements_trait(sa, bound_ty, impl_, trait_ty) {
+        if !implements_trait(sa, bound_ty, element, trait_ty) {
             return false;
         }
     }
@@ -338,13 +369,13 @@ fn impl_bounds_allow_overlap(sa: &Sema, impl_: &ImplDefinition, unifier: &ImplTy
     true
 }
 
-struct ImplTypeUnifier {
+struct TypeUnifier {
     bindings: HashMap<TypeParamId, SourceType>,
 }
 
-impl ImplTypeUnifier {
-    fn new() -> ImplTypeUnifier {
-        ImplTypeUnifier {
+impl TypeUnifier {
+    fn new() -> TypeUnifier {
+        TypeUnifier {
             bindings: HashMap::new(),
         }
     }
@@ -357,7 +388,7 @@ impl ImplTypeUnifier {
             (SourceType::Error, _) | (_, SourceType::Error) => false,
             (SourceType::Any | SourceType::TypeVar(_), _)
             | (_, SourceType::Any | SourceType::TypeVar(_)) => {
-                unreachable!("unexpected inference type in impl declaration")
+                unreachable!("unexpected inference type in generic declaration")
             }
             (SourceType::TypeParam(id), ty) => self.bind(id, ty),
             (ty, SourceType::TypeParam(id)) => self.bind(id, ty),
@@ -493,7 +524,7 @@ impl ImplTypeUnifier {
             | SourceType::This
             | SourceType::Error) => ty,
             SourceType::Any | SourceType::TypeVar(_) => {
-                unreachable!("unexpected inference type in impl declaration")
+                unreachable!("unexpected inference type in generic declaration")
             }
         }
     }
@@ -556,7 +587,7 @@ impl ImplTypeUnifier {
             | SourceType::This
             | SourceType::Error => false,
             SourceType::Any | SourceType::TypeVar(_) => {
-                unreachable!("unexpected inference type in impl declaration")
+                unreachable!("unexpected inference type in generic declaration")
             }
         }
     }

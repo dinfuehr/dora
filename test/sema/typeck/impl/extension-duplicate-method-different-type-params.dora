@@ -1,0 +1,4 @@
+class Foo
+
+impl Foo { fn foo[T](_value: T) {} }
+impl Foo { fn foo(_value: Int32) {} }

@@ -1,0 +1,9 @@
+//= ok
+class Foo[T]
+trait TraitA {}
+trait TraitB {}
+class Value
+
+impl TraitB for Value {}
+impl[T: TraitA] Foo[T] { fn foo() {} }
+impl Foo[Value] { fn foo() {} }

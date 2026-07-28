@@ -1,0 +1,5 @@
+class Value[T]
+class Wrapper[T]
+
+impl[T] Value[Wrapper[T]] { fn foo() {} }
+impl[U] Value[U] { fn foo() {} }

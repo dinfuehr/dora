@@ -8,7 +8,7 @@ use crate::error::diagnostics::{
 };
 use crate::sema::{
     Element, ExtensionDefinition, FctDefinitionId, PackageDefinitionId, Sema, SourceFileId,
-    TypeParamDefinition, TypeParamId, block_matches_ty,
+    TypeParamDefinition, TypeParamId, extensions_overlap,
 };
 use crate::{Name, SourceType};
 
@@ -44,23 +44,14 @@ pub fn check(sa: &Sema) {
                 let cmp_extension_id = cmp_fct.parent.extension_id().expect("extension expected");
                 let cmp_extension = sa.extension(cmp_extension_id);
 
-                if block_matches_ty(
-                    sa,
-                    extension.ty().clone(),
-                    fct,
-                    extension.type_param_definition(sa),
-                    cmp_extension.ty().clone(),
-                    cmp_extension.type_param_definition(sa),
-                )
-                .is_some()
-                {
+                if extensions_overlap(sa, extension, cmp_extension) {
                     let method_name = sa.interner.str(name).to_string();
                     let existing_loc = Location {
                         file_id: fct.file_id,
                         span: fct.span,
                     };
                     sa.report(
-                        extension.file_id.into(),
+                        cmp_extension.file_id.into(),
                         cmp_fct.span,
                         &ALIAS_EXISTS,
                         args!(method_name, existing_loc),

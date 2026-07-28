@@ -1,0 +1,4 @@
+class Foo
+
+impl Foo { fn foo() {} }
+impl Foo { fn foo() {} }

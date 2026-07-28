@@ -1,0 +1,8 @@
+error: element with name `foo` already exists at extension-duplicate-method-concrete-bound.dora:3:31.
+--> extension-duplicate-method-concrete-bound.dora:4:21
+ | 
+ | impl[T: std::Zero] Value[T] { fn foo() {} }
+ | impl Value[Int32] { fn foo() {} }
+                       ~~~~~~~~~~~
+ | 
+1 error found.

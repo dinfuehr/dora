@@ -1,0 +1,4 @@
+class Foo
+
+impl Foo { fn foo(): Int32 { 0i32 } }
+impl Foo { fn foo(): String { "" } }

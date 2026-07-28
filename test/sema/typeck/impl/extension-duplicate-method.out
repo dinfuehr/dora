@@ -1,0 +1,8 @@
+error: element with name `foo` already exists at extension-duplicate-method.dora:3:12.
+--> extension-duplicate-method.dora:4:12
+ | 
+ | impl Foo { fn foo() {} }
+ | impl Foo { fn foo() {} }
+              ~~~~~~~~~~~
+ | 
+1 error found.

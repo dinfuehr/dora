@@ -1,0 +1,4 @@
+class Value[T]
+
+impl[T] Value[T] { fn foo() {} }
+impl Value[Int32] { fn foo() {} }

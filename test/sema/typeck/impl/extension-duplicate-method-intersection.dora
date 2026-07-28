@@ -1,0 +1,4 @@
+class Pair[A, B]
+
+impl[T] Pair[T, Int32] { fn foo() {} }
+impl[U] Pair[Int32, U] { fn foo() {} }

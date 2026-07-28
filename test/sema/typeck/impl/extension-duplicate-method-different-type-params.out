@@ -1,0 +1,8 @@
+error: element with name `foo` already exists at extension-duplicate-method-different-type-params.dora:3:12.
+--> extension-duplicate-method-different-type-params.dora:4:12
+ | 
+ | impl Foo { fn foo[T](_value: T) {} }
+ | impl Foo { fn foo(_value: Int32) {} }
+              ~~~~~~~~~~~~~~~~~~~~~~~~
+ | 
+1 error found.
