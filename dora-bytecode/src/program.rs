@@ -2,7 +2,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
-use crate::{BytecodeBody, BytecodeTraitType, BytecodeType, Location};
+use crate::{BytecodeBody, BytecodeTraitType, BytecodeType, Intrinsic, Location};
 use bincode::{Decode, Encode, de::Decoder, enc::Encoder};
 
 #[repr(transparent)]
@@ -130,6 +130,12 @@ pub struct FunctionData {
     pub is_trait_object_ignore: bool,
     pub bytecode: Option<BytecodeBody>,
     pub trait_method_impl: Option<FunctionId>,
+}
+
+#[derive(Debug, Decode, Encode)]
+pub struct FunctionIntrinsic {
+    pub function_id: FunctionId,
+    pub intrinsic: Intrinsic,
 }
 
 impl FunctionData {
@@ -401,6 +407,7 @@ pub struct Program {
     pub packages: Vec<PackageData>,
     pub modules: Vec<ModuleData>,
     pub functions: Vec<FunctionData>,
+    pub function_intrinsics: Vec<FunctionIntrinsic>,
     pub globals: Vec<GlobalData>,
     pub consts: Vec<ConstData>,
     pub classes: Vec<ClassData>,

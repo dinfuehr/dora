@@ -21,12 +21,13 @@ pub use display::{
 };
 pub use dumper::{dump, dump_stdout};
 pub use lookup::{lookup_fct, resolve_path};
+pub use opcode::Intrinsic;
 pub use program::{
     AliasData, AliasId, ClassData, ClassField, ClassId, ConstData, ConstId, ConstValue, EnumData,
     EnumId, EnumVariant, EnumVariantField, ExtensionData, ExtensionId, FunctionData, FunctionId,
-    FunctionKind, GlobalData, GlobalId, ImplData, ImplId, ModuleData, ModuleElementId, ModuleId,
-    PackageData, PackageId, Program, SourceFileData, SourceFileId, StructData, StructField,
-    StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
+    FunctionIntrinsic, FunctionKind, GlobalData, GlobalId, ImplData, ImplId, ModuleData,
+    ModuleElementId, ModuleId, PackageData, PackageId, Program, SourceFileData, SourceFileId,
+    StructData, StructField, StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
 pub use reader::*;
 pub use serializer::{decode_program_from_bytes, read_program_from_file};

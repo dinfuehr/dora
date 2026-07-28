@@ -72,14 +72,33 @@ def generate_rust(config: dict) -> str:
         "",
     ]
 
+    if any(section.get("rust_enum", False) for section in config.values()):
+        lines.extend(["use bincode::{Decode, Encode};", ""])
+
     for section_name, section in config.items():
         prefix = to_screaming_snake(section_name)
         variants = section["variants"]
 
-        for i, variant in enumerate(variants):
-            const_name = f"{prefix}_{to_screaming_snake(variant)}"
-            lines.append(f"pub const {const_name}: u8 = {i};")
-        lines.append("")
+        if section.get("rust_enum", False):
+            # Enum variants replace the otherwise generated Rust constants.
+            if len(variants) > 256:
+                raise ValueError(f"{section_name} has too many variants for repr(u8)")
+
+            lines.extend(
+                [
+                    "#[derive(Clone, Copy, Debug, Decode, Encode, Eq, Hash, PartialEq)]",
+                    "#[repr(u8)]",
+                    f"pub enum {section_name} {{",
+                ]
+            )
+            for i, variant in enumerate(variants):
+                lines.append(f"    {variant} = {i},")
+            lines.extend(["}", ""])
+        else:
+            for i, variant in enumerate(variants):
+                const_name = f"{prefix}_{to_screaming_snake(variant)}"
+                lines.append(f"pub const {const_name}: u8 = {i};")
+            lines.append("")
 
     return "\n".join(lines)
 

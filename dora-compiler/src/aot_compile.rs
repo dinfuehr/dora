@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use dora_bytecode::{
     BytecodeBody, BytecodeType, BytecodeTypeArray, ClassId, ConstPoolEntry, ConstPoolIdx, EnumId,
     FunctionData, FunctionId, Location, PackageId, Program, display_fct, display_fct_specialized,
-    display_ty, lookup_fct, resolve_path,
+    display_ty, resolve_path,
 };
 
 use crate::runtime_entry_trampoline::{self, NativeFct};
@@ -13,10 +13,10 @@ use crate::{
     AotLayout, AotLocation, AotRelocation, AotRelocationTarget, AotShape, AotShapeInterner,
     AotShapeKey, AotStringTable, AotTestFunction, BytecodeTypeExt, CodeDescriptor, CollectorName,
     CompilationData, CompilationOptions, FunctionSignature, GlobalLayout, GlobalLayoutEntry,
-    InstanceSize, Intrinsic, RelocationKind, RuntimeFunction, STDLIB_INTRINSICS, ShapeKind,
-    ShapeVisitor, TargetArch, TraitObjectThunk, TraitObjectThunkCompilationData, TransitiveClosure,
-    align_usize_up, bytecode_type_params, compute_transitive_closure, find_trait_impl_in_program,
-    get_bytecode, native_function_symbol, specialize_bty_for_trait_object,
+    InstanceSize, Intrinsic, RelocationKind, RuntimeFunction, ShapeKind, ShapeVisitor, TargetArch,
+    TraitObjectThunk, TraitObjectThunkCompilationData, TransitiveClosure, align_usize_up,
+    bytecode_type_params, compute_transitive_closure, find_trait_impl_in_program, get_bytecode,
+    native_function_symbol, specialize_bty_for_trait_object,
 };
 use dora_symbol::mangle_name;
 
@@ -44,7 +44,7 @@ fn compile_program_entries_aot(
     let ctx = Box::new(AotCodegenContext {
         program,
         layout: AotLayout::new(program),
-        intrinsics: collect_aot_intrinsics(program),
+        intrinsics: collect_intrinsics(program),
         compiler_invocation: inputs.compiler_invocation,
         target_arch: inputs.target_arch,
         collector_name: inputs.collector_name,
@@ -101,7 +101,7 @@ pub fn compile_boots_compiler_aot(
     let ctx = Box::new(AotCodegenContext {
         program,
         layout: AotLayout::new(program),
-        intrinsics: collect_aot_intrinsics(program),
+        intrinsics: collect_intrinsics(program),
         compiler_invocation: inputs.compiler_invocation,
         target_arch: inputs.target_arch,
         collector_name: inputs.collector_name,
@@ -175,47 +175,25 @@ impl CompiledTransitiveClosure {
     }
 }
 
-fn collect_aot_intrinsics(program: &Program) -> HashMap<FunctionId, Intrinsic> {
+fn collect_intrinsics(program: &Program) -> HashMap<FunctionId, Intrinsic> {
     let mut intrinsics = HashMap::new();
 
-    add_intrinsic_functions(program, STDLIB_INTRINSICS, &mut intrinsics);
-    add_derived_enum_equals_intrinsics(program, &mut intrinsics);
+    for entry in &program.function_intrinsics {
+        assert!(
+            entry.function_id.index() < program.functions.len(),
+            "intrinsic references invalid function {:?}",
+            entry.function_id
+        );
+        assert!(
+            intrinsics
+                .insert(entry.function_id, entry.intrinsic)
+                .is_none(),
+            "duplicate intrinsic for function {:?}",
+            entry.function_id
+        );
+    }
 
     intrinsics
-}
-
-fn add_derived_enum_equals_intrinsics(
-    program: &Program,
-    intrinsics: &mut HashMap<FunctionId, Intrinsic>,
-) {
-    let equals_trait_id = resolve_path(program, "std::traits::Equals")
-        .and_then(|element| element.trait_id())
-        .expect("std::traits::Equals missing");
-
-    for impl_ in &program.impls {
-        if impl_.trait_ty.trait_id != equals_trait_id || !impl_.extended_ty.is_enum() {
-            continue;
-        }
-
-        for &method_id in &impl_.methods {
-            let method = program.fct(method_id);
-            if method.is_internal && method.is_force_inline && method.bytecode.is_none() {
-                intrinsics.insert(method_id, Intrinsic::EnumEq);
-            }
-        }
-    }
-}
-
-fn add_intrinsic_functions(
-    program: &Program,
-    functions: &[(&'static str, Intrinsic)],
-    intrinsics: &mut HashMap<FunctionId, Intrinsic>,
-) {
-    for (path, intrinsic) in functions {
-        if let Some(fct_id) = lookup_fct(program, path) {
-            intrinsics.insert(fct_id, *intrinsic);
-        }
-    }
 }
 
 pub struct AotCodegenContext<'a> {

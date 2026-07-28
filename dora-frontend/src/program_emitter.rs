@@ -6,10 +6,10 @@ use dora_bytecode::program::{AliasData, ImplData};
 use dora_bytecode::{
     AliasId, BytecodeTraitType, BytecodeType, BytecodeTypeArray, ClassData, ClassField, ClassId,
     ConstData, ConstId, EnumData, EnumId, EnumVariant, EnumVariantField, ExtensionData,
-    ExtensionId, FunctionData, FunctionId, FunctionKind, GlobalData, GlobalId, ImplId, ModuleData,
-    ModuleElementId, ModuleId, PackageData, PackageId, Program, SourceFileData, SourceFileId,
-    StructData, StructField, StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
-    verify_program,
+    ExtensionId, FunctionData, FunctionId, FunctionIntrinsic, FunctionKind, GlobalData, GlobalId,
+    ImplId, ModuleData, ModuleElementId, ModuleId, PackageData, PackageId, Program, SourceFileData,
+    SourceFileId, StructData, StructField, StructId, TraitData, TraitId, TypeParamBound,
+    TypeParamData, verify_program,
 };
 
 use crate::generator::{
@@ -53,6 +53,7 @@ pub fn emit_program(sa: Sema) -> Program {
         packages: emitter.packages,
         modules: emitter.modules,
         functions: emitter.functions,
+        function_intrinsics: emitter.function_intrinsics,
         globals: emitter.globals,
         consts: emitter.consts,
         classes: emitter.classes,
@@ -95,6 +96,7 @@ pub struct Emitter {
     map_impls: HashMap<ImplDefinitionId, ImplId>,
     map_aliases: HashMap<AliasDefinitionId, AliasId>,
     functions: Vec<FunctionData>,
+    function_intrinsics: Vec<FunctionIntrinsic>,
     globals: Vec<GlobalData>,
     consts: Vec<ConstData>,
     packages: Vec<PackageData>,
@@ -129,6 +131,7 @@ impl Emitter {
             map_impls: HashMap::new(),
             map_aliases: HashMap::new(),
             functions: Vec::new(),
+            function_intrinsics: Vec::new(),
             globals: Vec::new(),
             consts: Vec::new(),
             packages: Vec::new(),
@@ -675,7 +678,7 @@ impl Emitter {
 
     fn create_functions(&mut self, sa: &Sema) {
         // First pass: Create all function entries without bytecode.
-        for (_id, fct) in sa.fcts.iter() {
+        for (id, fct) in sa.fcts.iter() {
             self.enter_type_param_definition(fct.type_param_definition_id());
             assert!(self.hidden_self_type_param.is_none());
             if fct.needs_self_type_param(sa) {
@@ -741,6 +744,13 @@ impl Emitter {
                 bytecode: None,
                 trait_method_impl,
             });
+            if let Some(intrinsic) = fct.intrinsic.get().copied() {
+                let function_id = self.convert_function_id(sa, id);
+                self.function_intrinsics.push(FunctionIntrinsic {
+                    function_id,
+                    intrinsic,
+                });
+            }
             self.hidden_self_type_param = None;
             self.leave_type_param_definition();
         }

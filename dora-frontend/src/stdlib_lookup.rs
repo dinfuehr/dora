@@ -329,9 +329,20 @@ pub fn resolve_internal_functions(sa: &mut Sema) {
 }
 
 fn resolve_functions(sa: &mut Sema) {
-    sa.known.functions.unreachable = Some(lookup_fct(sa, "std::unreachable"));
+    sa.known.functions.unreachable = Some(intrinsic_method(
+        sa,
+        "std::unreachable",
+        Intrinsic::Unreachable,
+    ));
     sa.known.functions.unimplemented = Some(lookup_fct(sa, "std::unimplemented"));
-    sa.known.functions.fatal_error = Some(lookup_fct(sa, "std::fatal_error"));
+    sa.known.functions.fatal_error = Some(intrinsic_method(
+        sa,
+        "std::fatal_error",
+        Intrinsic::FatalError,
+    ));
+    sa.known.functions.assert = Some(intrinsic_method(sa, "std::assert", Intrinsic::Assert));
+    intrinsic_method(sa, "std::debug", Intrinsic::Debug);
+    intrinsic_method(sa, "std::unsafe_kill_refs", Intrinsic::UnsafeKillRefs);
 }
 
 fn lookup_ordering(sa: &mut Sema) {
@@ -470,7 +481,7 @@ fn resolve_int32(sa: &Sema) {
     intrinsic_method(
         sa,
         "std::primitives::Int32#to_char_unchecked",
-        Intrinsic::Int32ToChar,
+        Intrinsic::Int32ToCharUnchecked,
     );
     intrinsic_method(
         sa,
@@ -547,6 +558,31 @@ fn resolve_int32(sa: &Sema) {
         "std::primitives::Int32#wrapping_mul",
         Intrinsic::Int32WrappingMul,
     );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int32#overflowing_add",
+        Intrinsic::Int32OverflowingAdd,
+    );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int32#overflowing_sub",
+        Intrinsic::Int32OverflowingSub,
+    );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int32#overflowing_mul",
+        Intrinsic::Int32OverflowingMul,
+    );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int32#overflowing_div",
+        Intrinsic::Int32OverflowingDiv,
+    );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int32#overflowing_mod",
+        Intrinsic::Int32OverflowingMod,
+    );
 
     intrinsic_method(
         sa,
@@ -600,6 +636,11 @@ fn resolve_int32(sa: &Sema) {
         sa,
         "std::primitives::Int32#wrapping_neg",
         Intrinsic::Int32WrappingNeg,
+    );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int32#overflowing_neg",
+        Intrinsic::Int32OverflowingNeg,
     );
     intrinsic_method(
         sa,
@@ -828,7 +869,7 @@ fn resolve_int64(sa: &mut Sema) {
     intrinsic_method(
         sa,
         "std::primitives::Int64#to_char_unchecked",
-        Intrinsic::Int64ToChar,
+        Intrinsic::Int64ToCharUnchecked,
     );
     let fct_id = intrinsic_method(
         sa,
@@ -911,6 +952,31 @@ fn resolve_int64(sa: &mut Sema) {
         "std::primitives::Int64#wrapping_mul",
         Intrinsic::Int64WrappingMul,
     );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int64#overflowing_add",
+        Intrinsic::Int64OverflowingAdd,
+    );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int64#overflowing_sub",
+        Intrinsic::Int64OverflowingSub,
+    );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int64#overflowing_mul",
+        Intrinsic::Int64OverflowingMul,
+    );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int64#overflowing_div",
+        Intrinsic::Int64OverflowingDiv,
+    );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int64#overflowing_mod",
+        Intrinsic::Int64OverflowingMod,
+    );
 
     intrinsic_method(
         sa,
@@ -964,6 +1030,11 @@ fn resolve_int64(sa: &mut Sema) {
         sa,
         "std::primitives::Int64#wrapping_neg",
         Intrinsic::Int64WrappingNeg,
+    );
+    intrinsic_method(
+        sa,
+        "std::primitives::Int64#overflowing_neg",
+        Intrinsic::Int64OverflowingNeg,
     );
     intrinsic_method(
         sa,

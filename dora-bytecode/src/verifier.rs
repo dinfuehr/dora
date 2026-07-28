@@ -8,6 +8,7 @@ use crate::{
 
 pub fn verify(program: &Program) {
     verify_program_types(program);
+    verify_function_intrinsics(program);
     let array_class_id = resolve_stdlib_class(program, "collections::Array");
     let string_class_id = resolve_stdlib_class(program, "string::String");
 
@@ -22,6 +23,25 @@ pub fn verify(program: &Program) {
             )
             .verify();
         }
+    }
+}
+
+fn verify_function_intrinsics(program: &Program) {
+    let mut functions_with_intrinsics = FixedBitSet::with_capacity(program.functions.len());
+
+    for entry in &program.function_intrinsics {
+        let function_id = entry.function_id.index();
+        assert!(
+            function_id < program.functions.len(),
+            "intrinsic references invalid function {:?}",
+            entry.function_id
+        );
+        assert!(
+            !functions_with_intrinsics.contains(function_id),
+            "duplicate intrinsic for function {:?}",
+            entry.function_id
+        );
+        functions_with_intrinsics.insert(function_id);
     }
 }
 

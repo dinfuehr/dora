@@ -142,6 +142,7 @@ variants = [
 
 [Intrinsic]
 name_function = "intrinsic_name"
+rust_enum = true
 variants = [
     "ArrayNewOfSize",
     "ArrayWithValues",

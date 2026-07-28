@@ -14,7 +14,6 @@ pub mod cpu;
 pub mod dora_entry_trampoline;
 mod extensions;
 mod impls;
-mod intrinsics;
 pub mod layout;
 mod native_lookup;
 mod reg;
@@ -52,12 +51,12 @@ pub use aot_compile::{
 pub use assembly::{AotAssemblyKind, write_assembly};
 pub use calling_convention::{ArgumentPassingMode, argument_passing_mode};
 pub use closure::{TraitObjectThunk, TransitiveClosure, compute_transitive_closure};
+pub use dora_bytecode::Intrinsic;
 pub use extensions::block_matches_ty_in_program;
 pub use impls::{
     TypeParamBoundsIter, bounds_for_tp, find_impl_in_program, find_trait_impl_in_program,
     find_trait_ty_impl_in_program, tp_implements_trait, ty_implements_trait_in_program,
 };
-pub use intrinsics::{Intrinsic, STDLIB_INTRINSICS};
 pub use layout::{
     AotEnumLayout, AotLayout, AotRecordLayout, FieldInstance, InstanceSize, MachineMode, align_i32,
     align_usize_up, array_header_size, fits_i32, object_header_size, ptr_width, ptr_width_usize,
