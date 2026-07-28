@@ -23,7 +23,7 @@ use crate::sema::{
     Sema, SourceFileId, StmtId, StructDefinition, TypeContext, TypeParamDefinition,
     TypeParamDefinitionId, TypeRefArena, TypeRefId, Var, VarAccess, VarId, VarLocation, Visibility,
     check_type_ref, convert_trait_type_ref, convert_type_ref_with_inference,
-    generated_identity_type_params, lambda_outer_context_type, parse_type_ref, type_ref_span,
+    lambda_outer_context_type, parse_type_ref, type_ref_span,
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
@@ -1230,11 +1230,10 @@ fn create_context_classes(sa: &mut Sema, contexts: &mut [ContextData]) {
                 context_class.needs_self_type_param,
             );
 
-            let parent_type_params = generated_identity_type_params(
-                sa,
-                sa.class(parent_class_id).type_param_definition(sa),
-                sa.class(parent_class_id).needs_self_type_param,
-            );
+            let parent_type_params = sa
+                .class(parent_class_id)
+                .type_param_definition(sa)
+                .identity_type_params(sa);
 
             let parent_field = FieldDefinition {
                 id: None,
@@ -1300,8 +1299,7 @@ fn create_lambda_functions(sa: &mut Sema, lambda_definitions: Vec<FctDefinition>
             .type_param_definition(lambda_definition.type_param_definition_id)
             .toplevel_clone(sa);
         let needs_self_type_param = lambda_definition.is_in_trait;
-        let identity_type_params =
-            generated_identity_type_params(sa, &type_params, needs_self_type_param);
+        let identity_type_params = type_params.identity_type_params(sa);
         let type_param_definition_id = sa.type_param_definitions.alloc(type_params);
 
         let env_name = format!("{}Env", sa.interner.str(lambda_definition.name));

@@ -7,7 +7,6 @@ use crate::program_emitter::Emitter;
 use crate::sema::{
     AnalysisData, ContextFieldId, ContextId, Element, ExprMapId, FctDefinitionId, FieldIndex,
     Intrinsic, ScopeId, Sema, SourceFileId, Stmt, StmtId, TypeParamDefinitionId, VarId,
-    generated_identity_type_params,
 };
 use crate::ty::{SourceType, SourceTypeArray, TypeArgs};
 use dora_bytecode::{BytecodeType, BytecodeTypeArray, Label, Location, Register};
@@ -47,7 +46,6 @@ struct AstBytecodeGen<'a> {
     #[allow(unused)]
     emitter: &'a mut Emitter,
     type_param_definition_id: TypeParamDefinitionId,
-    needs_self_type_param: bool,
     is_lambda: bool,
     lambda_env_type: Option<SourceType>,
     return_type: SourceType,
@@ -231,29 +229,27 @@ impl<'a> AstBytecodeGen<'a> {
     }
 
     fn identity_type_params(&self) -> SourceTypeArray {
-        generated_identity_type_params(
-            self.sa,
-            self.sa.type_param_definition(self.type_param_definition_id),
-            self.needs_self_type_param,
-        )
+        self.sa
+            .type_param_definition(self.type_param_definition_id)
+            .identity_type_params(self.sa)
     }
 
     fn context_type(&mut self, context_id: ContextId) -> BytecodeType {
         let context = self.sa.context(context_id);
         let class = self.sa.class(context.class_id());
-        let class_id = self.emitter.convert_class_id(self.sa, class.id());
-        let type_params = self.context_type_params(context_id);
-        let type_params = self.convert_tya(&type_params);
-        BytecodeType::Class(class_id, type_params)
+        let type_params = self.identity_type_params();
+        assert_eq!(
+            type_params.len(),
+            class.type_param_definition(self.sa).type_param_count()
+        );
+        self.emitter
+            .convert_ty(self.sa, SourceType::Class(class.id(), type_params))
     }
 
-    fn context_type_params(&self, context_id: ContextId) -> SourceTypeArray {
-        let context = self.sa.context(context_id);
-        let class = self.sa.class(context.class_id());
-        let type_params = self.identity_type_params();
-        let expected_len = class.type_param_definition(self.sa).type_param_count()
-            + usize::from(class.needs_self_type_param);
-        assert_eq!(type_params.len(), expected_len);
+    fn context_type_params(&mut self, context_id: ContextId) -> BytecodeTypeArray {
+        let BytecodeType::Class(_, type_params) = self.context_type(context_id) else {
+            unreachable!();
+        };
         type_params
     }
 
@@ -261,21 +257,10 @@ impl<'a> AstBytecodeGen<'a> {
         let context = self.sa.context(context_id);
         let class = self.sa.class(context.class_id());
         let field = self.sa.field(class.field_id(field_index));
-        let type_params = self.context_type_params(context_id);
+        let type_params = self.identity_type_params();
         let definition = class.type_param_definition(self.sa);
-        let own_type_params = SourceTypeArray::with(
-            type_params
-                .iter()
-                .take(definition.type_param_count())
-                .collect(),
-        );
-        let mut type_args = TypeArgs::from_own(self.sa, definition, &own_type_params);
-        let self_ty = class
-            .needs_self_type_param
-            .then(|| type_params[definition.type_param_count()].clone());
-        if let Some(self_ty) = &self_ty {
-            type_args = type_args.with_self(self_ty.clone());
-        }
+        assert_eq!(type_params.len(), definition.type_param_count());
+        let type_args = TypeArgs::from_own(self.sa, definition, &type_params);
         crate::specialize_type(self.sa, field.ty(), &type_args)
     }
 
@@ -487,8 +472,7 @@ fn store_in_context(
     let cls_id = context.class_id();
     let field_id = field_id_from_context_idx(field_id, context.has_parent_slot());
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
-    let type_params = g.context_type_params(entered_context.context_id);
-    let bc_type_params = g.convert_tya(&type_params);
+    let bc_type_params = g.context_type_params(entered_context.context_id);
     let field_idx = g
         .builder
         .add_const_field_types(bc_cls_id, bc_type_params, field_id.0 as u32);

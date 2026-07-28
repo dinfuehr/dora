@@ -54,8 +54,7 @@ pub(super) fn gen_expr_path_context(
     let value_reg = ensure_register(g, dest, ty);
 
     let bc_cls_id = g.emitter.convert_class_id(g.sa, outer_cls_id);
-    let context_type_params = g.context_type_params(context_id);
-    let bc_type_params = g.convert_tya(&context_type_params);
+    let bc_type_params = g.context_type_params(context_id);
     let idx = g
         .builder
         .add_const_field_types(bc_cls_id, bc_type_params, field_index.0 as u32);
@@ -175,8 +174,7 @@ pub(super) fn load_from_context(
     let cls_id = context.class_id();
     let field_id = field_id_from_context_idx(field_id, context.has_parent_slot());
     let bc_cls_id = g.emitter.convert_class_id(g.sa, cls_id);
-    let context_type_params = g.context_type_params(entered_context.context_id);
-    let bc_type_params = g.convert_tya(&context_type_params);
+    let bc_type_params = g.context_type_params(entered_context.context_id);
     let field_idx = g
         .builder
         .add_const_field_types(bc_cls_id, bc_type_params, field_id.0 as u32);

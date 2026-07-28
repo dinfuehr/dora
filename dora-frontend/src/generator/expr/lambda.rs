@@ -6,6 +6,7 @@ use crate::generator::{
     load_outer_context_object,
 };
 use crate::sema::{Element, ExprId, LambdaExpr};
+use crate::ty::SourceType;
 
 pub(super) fn gen_expr_lambda(
     g: &mut AstBytecodeGen,
@@ -50,13 +51,17 @@ pub(super) fn gen_expr_lambda(
 
     let env_struct_id = g.sa.lambda_env_struct_id(lambda_id);
     let env_struct = g.sa.struct_(env_struct_id);
-    let bc_env_struct_id = g.emitter.convert_struct_id(g.sa, env_struct_id);
     let env_type_params = g.identity_type_params();
-    let expected_type_params = env_struct.type_param_definition(g.sa).type_param_count()
-        + usize::from(env_struct.needs_self_type_param);
-    assert_eq!(expected_type_params, env_type_params.len());
-    let bc_type_params = g.convert_tya(&env_type_params);
-    let env_ty = BytecodeType::Struct(bc_env_struct_id, bc_type_params.clone());
+    assert_eq!(
+        env_struct.type_param_definition(g.sa).type_param_count(),
+        env_type_params.len()
+    );
+    let env_ty = g
+        .emitter
+        .convert_ty(g.sa, SourceType::Struct(env_struct_id, env_type_params));
+    let BytecodeType::Struct(bc_env_struct_id, bc_type_params) = env_ty.clone() else {
+        unreachable!()
+    };
     let env_reg = g.alloc_temp(env_ty.clone());
     let env_idx = g.builder.add_const_struct(bc_env_struct_id, bc_type_params);
     g.builder

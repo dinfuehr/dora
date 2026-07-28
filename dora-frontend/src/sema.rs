@@ -15,7 +15,7 @@ use dora_parser::{Span, compute_line_column};
 use crate::error::diag::Diagnostic;
 use crate::error::diagnostics::DiagnosticDescriptor;
 use crate::error::msg::ErrorDescriptor;
-use crate::{Name, SourceType, SourceTypeArray, SymTable, Vfs};
+use crate::{Name, SourceType, SymTable, Vfs};
 
 pub trait ToArcString {
     fn into(self) -> Arc<String>;
@@ -587,25 +587,10 @@ pub fn lambda_outer_context_type(sa: &Sema, analysis: &AnalysisData) -> SourceTy
 
     SourceType::Class(
         context_class_id,
-        generated_identity_type_params(
-            sa,
-            context_class.type_param_definition(sa),
-            context_class.needs_self_type_param,
-        ),
+        context_class
+            .type_param_definition(sa)
+            .identity_type_params(sa),
     )
-}
-
-pub fn generated_identity_type_params(
-    sa: &Sema,
-    definition: &TypeParamDefinition,
-    needs_self_type_param: bool,
-) -> SourceTypeArray {
-    let type_params = definition.identity_type_params(sa);
-    if needs_self_type_param {
-        type_params.connect_single(SourceType::This)
-    } else {
-        type_params
-    }
 }
 
 fn find_pkgs_directory() -> Option<PathBuf> {

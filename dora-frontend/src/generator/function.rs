@@ -29,7 +29,6 @@ pub fn generate_fct(
         sa,
         emitter,
         type_param_definition_id: fct.type_param_definition_id,
-        needs_self_type_param: fct.needs_self_type_param(sa),
         is_lambda: fct.is_lambda(),
         lambda_env_type: fct.is_lambda().then(|| fct.params_with_self()[0].ty()),
         return_type: fct.return_type(),

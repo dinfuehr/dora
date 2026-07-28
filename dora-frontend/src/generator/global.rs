@@ -17,7 +17,6 @@ pub fn generate_global_initializer(
         sa,
         emitter,
         type_param_definition_id: global.type_param_definition_id,
-        needs_self_type_param: false,
         is_lambda: false,
         lambda_env_type: None,
         return_type: global.ty(),

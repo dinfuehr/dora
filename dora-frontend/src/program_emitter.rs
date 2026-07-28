@@ -1219,10 +1219,13 @@ impl Emitter {
             SourceType::Int64 => BytecodeType::Int64,
             SourceType::Float32 => BytecodeType::Float32,
             SourceType::Float64 => BytecodeType::Float64,
-            SourceType::Class(class_id, type_params) => BytecodeType::Class(
-                self.convert_class_id(sa, class_id),
-                self.convert_tya(sa, &type_params),
-            ),
+            SourceType::Class(class_id, type_params) => {
+                let needs_self_type_param = sa.class(class_id).needs_self_type_param;
+                let class_id = self.convert_class_id(sa, class_id);
+                let type_params =
+                    self.convert_generated_type_args(sa, &type_params, needs_self_type_param);
+                BytecodeType::Class(class_id, type_params)
+            }
             SourceType::TraitObject(trait_id, type_params, bindings) => BytecodeType::TraitObject(
                 self.convert_trait_id(sa, trait_id),
                 self.convert_tya(sa, &type_params),
@@ -1232,10 +1235,13 @@ impl Emitter {
                 self.convert_enum_id(sa, enum_id),
                 self.convert_tya(sa, &type_params),
             ),
-            SourceType::Struct(struct_id, type_params) => BytecodeType::Struct(
-                self.convert_struct_id(sa, struct_id),
-                self.convert_tya(sa, &type_params),
-            ),
+            SourceType::Struct(struct_id, type_params) => {
+                let needs_self_type_param = sa.struct_(struct_id).needs_self_type_param;
+                let struct_id = self.convert_struct_id(sa, struct_id);
+                let type_params =
+                    self.convert_generated_type_args(sa, &type_params, needs_self_type_param);
+                BytecodeType::Struct(struct_id, type_params)
+            }
             SourceType::Tuple(subtypes) => BytecodeType::Tuple(self.convert_tya(sa, &subtypes)),
             SourceType::TypeParam(id) => {
                 let definition_id = self
@@ -1299,6 +1305,24 @@ impl Emitter {
             bytecode_subtypes.push(self.convert_ty(_sa, subtype));
         }
         BytecodeTypeArray::new(bytecode_subtypes)
+    }
+
+    fn convert_generated_type_args(
+        &mut self,
+        sa: &Sema,
+        type_args: &SourceTypeArray,
+        needs_self_type_param: bool,
+    ) -> BytecodeTypeArray {
+        let type_args = self.convert_tya(sa, type_args);
+
+        if needs_self_type_param {
+            let self_type_param = self
+                .hidden_self_type_param
+                .expect("generated type requiring `$Self` used outside a `$Self` context");
+            type_args.append(BytecodeType::TypeParam(self_type_param))
+        } else {
+            type_args
+        }
     }
 
     pub fn convert_trait_ty(&mut self, _sa: &Sema, trait_ty: &TraitType) -> BytecodeTraitType {
