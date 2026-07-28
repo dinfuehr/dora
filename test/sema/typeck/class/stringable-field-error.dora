@@ -1,0 +1,8 @@
+//= error
+class NoStringable
+
+@Stringable
+class Concrete(NoStringable)
+
+@Stringable
+class Generic[T](T)

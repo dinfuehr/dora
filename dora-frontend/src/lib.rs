@@ -54,6 +54,7 @@ mod returnck;
 pub mod sema;
 mod specialize;
 mod stdlib_lookup;
+mod stringableck;
 mod structdefck;
 pub mod sym;
 mod traitdefck;
@@ -85,6 +86,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     comparableck::create_impls(sa);
     equalsck::create_impls(sa);
     hashck::create_impls(sa);
+    stringableck::create_impls(sa);
     // Check for cycles in super trait hierarchy.
     traitdefck::check_super_trait_cycles(sa);
     // Connect aliases in impl to trait.
@@ -104,6 +106,7 @@ pub fn check_program(sa: &mut Sema) -> bool {
     comparableck::check_fields(sa);
     equalsck::check_fields(sa);
     hashck::check_fields(sa);
+    stringableck::check_fields(sa);
     impldefck::check_overlapping_impls(sa);
     globaldefck::check(sa);
     extensiondefck::check(sa);

@@ -88,6 +88,7 @@ pub enum DerivedMethod {
     Comparable(DerivedTarget),
     Equals(DerivedTarget),
     Hash(DerivedTarget),
+    Stringable(DerivedTarget),
 }
 
 pub struct FctDefinition {

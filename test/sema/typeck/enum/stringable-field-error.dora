@@ -1,0 +1,12 @@
+//= error
+class NoStringable
+
+@Stringable
+enum Concrete {
+    Value(NoStringable),
+}
+
+@Stringable
+enum Generic[T] {
+    Value(T),
+}

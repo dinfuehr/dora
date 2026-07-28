@@ -36,6 +36,7 @@ pub struct EnumDefinition {
     pub derive_comparable: bool,
     pub derive_equals: bool,
     pub derive_hash: bool,
+    pub derive_stringable: bool,
     pub name_to_value: OnceCell<HashMap<Name, u32>>,
 }
 
@@ -69,6 +70,7 @@ impl EnumDefinition {
             derive_comparable: modifiers.is_comparable,
             derive_equals: modifiers.is_equals,
             derive_hash: modifiers.is_hash,
+            derive_stringable: modifiers.is_stringable,
             name_to_value: OnceCell::new(),
         }
     }

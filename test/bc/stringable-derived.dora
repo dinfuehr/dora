@@ -1,0 +1,27 @@
+@Stringable
+class ClassValue(Int32, Bool)
+
+@Stringable
+struct StructValue(Int32, Bool)
+
+@Stringable
+enum Payload {
+    Empty,
+    Pair(Int32, Bool),
+}
+
+fn stringify[T: std::Stringable](value: T): String {
+    value.to_string()
+}
+
+fn stringify_class(value: ClassValue): String {
+    value.to_string()
+}
+
+fn stringify_struct(value: StructValue): String {
+    value.to_string()
+}
+
+fn stringify_enum(value: Payload): String {
+    value.to_string()
+}

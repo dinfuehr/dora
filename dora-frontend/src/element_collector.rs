@@ -639,6 +639,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 Annotation::Hash,
                 Annotation::Internal,
                 Annotation::Pub,
+                Annotation::Stringable,
             ],
         );
 
@@ -740,6 +741,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 Annotation::Hash,
                 Annotation::Pub,
                 Annotation::Internal,
+                Annotation::Stringable,
             ],
         );
 
@@ -919,6 +921,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
                 Annotation::Equals,
                 Annotation::Hash,
                 Annotation::Pub,
+                Annotation::Stringable,
             ],
         );
         let enum_ = EnumDefinition::new(
@@ -1607,6 +1610,7 @@ pub struct Annotations {
     pub is_comparable: bool,
     pub is_equals: bool,
     pub is_hash: bool,
+    pub is_stringable: bool,
     pub is_internal: bool,
     pub is_native: bool,
     pub is_force_inline: bool,
@@ -1629,6 +1633,7 @@ enum Annotation {
     Comparable,
     Equals,
     Hash,
+    Stringable,
     Internal,
     Native,
     Pub,
@@ -1646,6 +1651,7 @@ impl Annotation {
             Annotation::Comparable => "Comparable",
             Annotation::Equals => "Equals",
             Annotation::Hash => "Hash",
+            Annotation::Stringable => "Stringable",
             Annotation::Internal => "internal",
             Annotation::Native => "native",
             Annotation::Pub => "pub",
@@ -1738,6 +1744,11 @@ fn check_annotation(
                     "Hash" => {
                         annotations.is_hash = true;
                         Some(Annotation::Hash)
+                    }
+
+                    "Stringable" => {
+                        annotations.is_stringable = true;
+                        Some(Annotation::Stringable)
                     }
 
                     "internal" => {

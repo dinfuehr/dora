@@ -1,0 +1,69 @@
+fn main() {
+    assert(EmptyClass().to_string() == "EmptyClass()");
+    assert(ClassValue(7, true).to_string() == "ClassValue(7, true)");
+    assert(GenericClass[String]("text").to_string() == "GenericClass(text)");
+    assert(stringify[ClassValue](ClassValue(1, false)) == "ClassValue(1, false)");
+
+    assert(EmptyStruct().to_string() == "EmptyStruct()");
+    assert(StructValue(7, true).to_string() == "StructValue(7, true)");
+    assert(GenericStruct[Int32](8).to_string() == "GenericStruct(8)");
+
+    assert(Color::Red.to_string() == "Red");
+    assert(Color::Green.to_string() == "Green");
+    assert(Payload::Empty.to_string() == "Empty");
+    assert(Payload::Integer(7).to_string() == "Integer(7)");
+    assert(Payload::Pair(7, true).to_string() == "Pair(7, true)");
+
+    assert(Generic[Int32]::None.to_string() == "None");
+    assert(Generic[Int32]::Some(8).to_string() == "Some(8)");
+
+    assert(
+        Node(1, Some[Node](Node(2, None[Node]))).to_string()
+            == "Node(1, Some(Node(2, None)))",
+    );
+    assert("${ClassValue(3, false)}" == "ClassValue(3, false)");
+}
+
+@Stringable
+class EmptyClass
+
+@Stringable
+class ClassValue(Int32, Bool)
+
+@Stringable
+class GenericClass[T: std::Stringable](T)
+
+@Stringable
+struct EmptyStruct
+
+@Stringable
+struct StructValue(Int32, Bool)
+
+@Stringable
+struct GenericStruct[T: std::Stringable](T)
+
+@Stringable
+enum Color {
+    Red,
+    Green,
+}
+
+@Stringable
+enum Payload {
+    Empty,
+    Integer(Int32),
+    Pair(Int32, Bool),
+}
+
+@Stringable
+enum Generic[T: std::Stringable] {
+    None,
+    Some(T),
+}
+
+@Stringable
+class Node(Int32, Option[Node])
+
+fn stringify[T: std::Stringable](value: T): String {
+    value.to_string()
+}

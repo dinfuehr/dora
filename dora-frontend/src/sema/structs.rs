@@ -41,6 +41,7 @@ pub struct StructDefinition {
     pub derive_comparable: bool,
     pub derive_equals: bool,
     pub derive_hash: bool,
+    pub derive_stringable: bool,
 }
 
 impl StructDefinition {
@@ -78,6 +79,7 @@ impl StructDefinition {
             derive_comparable: modifiers.is_comparable,
             derive_equals: modifiers.is_equals,
             derive_hash: modifiers.is_hash,
+            derive_stringable: modifiers.is_stringable,
         }
     }
 
@@ -113,6 +115,7 @@ impl StructDefinition {
             derive_comparable: false,
             derive_equals: false,
             derive_hash: false,
+            derive_stringable: false,
         }
     }
 

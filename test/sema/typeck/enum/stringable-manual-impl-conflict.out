@@ -1,0 +1,16 @@
+error: conflicting implementation of trait `Stringable` for type `Value`; another implementation is at stringable-manual-impl-conflict.dora:8:1.
+--> stringable-manual-impl-conflict.dora:2:1
+ | //= error
+ | @Stringable
+   ~~~~~~~~~~~
+ | enum Value {
+ |     First,
+error: conflicting implementation of trait `Stringable` for type `ValueWithFields`; another implementation is at stringable-manual-impl-conflict.dora:19:1.
+--> stringable-manual-impl-conflict.dora:14:1
+ | }
+ | 
+ | @Stringable
+   ~~~~~~~~~~~
+ | enum ValueWithFields {
+ |     Value(Int32),
+2 errors found.

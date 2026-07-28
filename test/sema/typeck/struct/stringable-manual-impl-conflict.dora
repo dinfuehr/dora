@@ -1,0 +1,9 @@
+//= error
+@Stringable
+struct Value(Int32)
+
+impl std::Stringable for Value {
+    fn to_string(): String {
+        "Value"
+    }
+}

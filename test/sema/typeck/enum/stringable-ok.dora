@@ -1,0 +1,23 @@
+//= ok
+@Stringable
+enum Unit { Only }
+
+@Stringable
+enum Simple { First, Second }
+
+@Stringable
+enum Payload {
+    Empty,
+    Value(Int32),
+}
+
+@Stringable
+enum Generic[T: std::Stringable] { None, Some(T) }
+
+fn stringify[T: std::Stringable](value: T): String {
+    value.to_string()
+}
+
+fn use_stringify(value: Payload): String {
+    stringify[Payload](value)
+}

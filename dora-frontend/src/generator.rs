@@ -21,6 +21,7 @@ mod global;
 mod hash;
 mod int_dispatch;
 mod pattern;
+mod stringable;
 
 pub use self::comparable::{
     generate_class_comparable, generate_enum_comparable, generate_struct_comparable,
@@ -29,6 +30,9 @@ pub use self::equals::{generate_class_equals, generate_enum_equals, generate_str
 pub use self::function::{generate_fct, generate_fct_id};
 pub use self::global::generate_global_initializer;
 pub use self::hash::{generate_class_hash, generate_enum_hash, generate_struct_hash};
+pub use self::stringable::{
+    generate_class_stringable, generate_enum_stringable, generate_struct_stringable,
+};
 
 #[allow(clippy::too_many_arguments)]
 fn emit_trait_method_call(

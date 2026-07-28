@@ -1,0 +1,8 @@
+//= error
+class NoStringable
+
+@Stringable
+struct Concrete(NoStringable)
+
+@Stringable
+struct Generic[T](T)

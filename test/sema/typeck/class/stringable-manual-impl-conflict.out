@@ -1,0 +1,8 @@
+error: conflicting implementation of trait `Stringable` for type `Value`; another implementation is at stringable-manual-impl-conflict.dora:5:1.
+--> stringable-manual-impl-conflict.dora:2:1
+ | //= error
+ | @Stringable
+   ~~~~~~~~~~~
+ | class Value(Int32)
+ | 
+1 error found.

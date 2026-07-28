@@ -1,0 +1,17 @@
+error: type `NoStringable` does not implement trait `Stringable`.
+--> stringable-field-error.dora:6:11
+ | @Stringable
+ | enum Concrete {
+ |     Value(NoStringable),
+             ~~~~~~~~~~~~
+ | }
+ | 
+error: type `T` does not implement trait `Stringable`.
+--> stringable-field-error.dora:11:11
+ | @Stringable
+ | enum Generic[T] {
+ |     Value(T),
+             ~
+ | }
+ | 
+2 errors found.

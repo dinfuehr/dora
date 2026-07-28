@@ -34,6 +34,7 @@ pub struct ClassDefinition {
     pub derive_comparable: bool,
     pub derive_equals: bool,
     pub derive_hash: bool,
+    pub derive_stringable: bool,
 
     pub field_ids: OnceCell<Vec<FieldDefinitionId>>,
     pub children: OnceCell<Vec<ElementId>>,
@@ -78,6 +79,7 @@ impl ClassDefinition {
             derive_comparable: modifiers.is_comparable,
             derive_equals: modifiers.is_equals,
             derive_hash: modifiers.is_hash,
+            derive_stringable: modifiers.is_stringable,
             field_ids: OnceCell::new(),
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),
@@ -115,6 +117,7 @@ impl ClassDefinition {
             derive_comparable: false,
             derive_equals: false,
             derive_hash: false,
+            derive_stringable: false,
             field_ids: OnceCell::new(),
             children: OnceCell::new(),
             extensions: RefCell::new(Vec::new()),

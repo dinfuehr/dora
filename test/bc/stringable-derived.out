@@ -1,0 +1,214 @@
+class ClassValue:
+  0: Int32
+  1: Bool
+
+struct StructValue:
+  0: Int32
+  1: Bool
+
+enum Payload:
+  Empty
+  Pair(Int32, Bool)
+
+fn stringify[T]:
+  0: InvokeGenericDirect r1, @0, r0 # std::string::Stringable::to_string
+  5: Ret r1
+
+  Registers:
+   0 => T
+   1 => class String
+
+  Constants:
+   0 => Generic std::string::Stringable::to_string on T as Stringable
+
+  Locations:
+   0 => 14:5
+
+fn stringify_class:
+  0: InvokeDirect r1, @0, r0 # <impl Stringable for ClassValue>::to_string
+  5: Ret r1
+
+  Registers:
+   0 => class ClassValue
+   1 => class String
+
+  Constants:
+   0 => Fct <impl Stringable for ClassValue>::to_string
+
+  Locations:
+   0 => 18:5
+
+fn stringify_struct:
+  0: InvokeDirect r1, @0, r0 # <impl Stringable for StructValue>::to_string
+  5: Ret r1
+
+  Registers:
+   0 => struct StructValue
+   1 => class String
+
+  Constants:
+   0 => Fct <impl Stringable for StructValue>::to_string
+
+  Locations:
+   0 => 22:5
+
+fn stringify_enum:
+  0: InvokeDirect r1, @0, r0 # <impl Stringable for Payload>::to_string
+  5: Ret r1
+
+  Registers:
+   0 => enum Payload
+   1 => class String
+
+  Constants:
+   0 => Fct <impl Stringable for Payload>::to_string
+
+  Locations:
+   0 => 26:5
+
+fn <impl Stringable for ClassValue>::to_string:
+  0: InvokeStatic r2, @0 # std::string::<impl StringBuffer>::empty
+  4: ConstString r3, @1 # "ClassValue("
+  7: InvokeDirect r4, @2, r2, r3 # std::string::<impl StringBuffer>::append
+ 13: LoadField r5, r0, @3 # ClassValue.0
+ 17: InvokeDirect r3, @4, r5 # std::primitives::<impl Stringable for Int32>::to_string
+ 22: InvokeDirect r4, @5, r2, r3 # std::string::<impl StringBuffer>::append
+ 28: ConstString r3, @6 # ", "
+ 31: InvokeDirect r4, @7, r2, r3 # std::string::<impl StringBuffer>::append
+ 37: LoadField r6, r0, @8 # ClassValue.1
+ 41: InvokeDirect r3, @9, r6 # std::primitives::<impl Stringable for Bool>::to_string
+ 46: InvokeDirect r4, @10, r2, r3 # std::string::<impl StringBuffer>::append
+ 52: ConstString r3, @11 # ")"
+ 55: InvokeDirect r4, @12, r2, r3 # std::string::<impl StringBuffer>::append
+ 61: InvokeDirect r1, @13, r2 # std::string::<impl StringBuffer>::to_string
+ 66: Ret r1
+
+  Registers:
+   0 => class ClassValue
+   1 => class String
+   2 => class StringBuffer
+   3 => class String
+   4 => ()
+   5 => Int32
+   6 => Bool
+
+  Constants:
+   0 => Fct std::string::<impl StringBuffer>::empty
+   1 => String "ClassValue("
+   2 => Fct std::string::<impl StringBuffer>::append
+   3 => Field ClassValue.0
+   4 => Fct std::primitives::<impl Stringable for Int32>::to_string
+   5 => Fct std::string::<impl StringBuffer>::append
+   6 => String ", "
+   7 => Fct std::string::<impl StringBuffer>::append
+   8 => Field ClassValue.1
+   9 => Fct std::primitives::<impl Stringable for Bool>::to_string
+   10 => Fct std::string::<impl StringBuffer>::append
+   11 => String ")"
+   12 => Fct std::string::<impl StringBuffer>::append
+   13 => Fct std::string::<impl StringBuffer>::to_string
+
+  Locations:
+   0 => 1:1
+
+fn <impl Stringable for StructValue>::to_string:
+  0: InvokeStatic r2, @0 # std::string::<impl StringBuffer>::empty
+  4: ConstString r3, @1 # "StructValue("
+  7: InvokeDirect r4, @2, r2, r3 # std::string::<impl StringBuffer>::append
+ 13: LoadField r5, r0, @3 # StructValue.0
+ 17: InvokeDirect r3, @4, r5 # std::primitives::<impl Stringable for Int32>::to_string
+ 22: InvokeDirect r4, @5, r2, r3 # std::string::<impl StringBuffer>::append
+ 28: ConstString r3, @6 # ", "
+ 31: InvokeDirect r4, @7, r2, r3 # std::string::<impl StringBuffer>::append
+ 37: LoadField r6, r0, @8 # StructValue.1
+ 41: InvokeDirect r3, @9, r6 # std::primitives::<impl Stringable for Bool>::to_string
+ 46: InvokeDirect r4, @10, r2, r3 # std::string::<impl StringBuffer>::append
+ 52: ConstString r3, @11 # ")"
+ 55: InvokeDirect r4, @12, r2, r3 # std::string::<impl StringBuffer>::append
+ 61: InvokeDirect r1, @13, r2 # std::string::<impl StringBuffer>::to_string
+ 66: Ret r1
+
+  Registers:
+   0 => struct StructValue
+   1 => class String
+   2 => class StringBuffer
+   3 => class String
+   4 => ()
+   5 => Int32
+   6 => Bool
+
+  Constants:
+   0 => Fct std::string::<impl StringBuffer>::empty
+   1 => String "StructValue("
+   2 => Fct std::string::<impl StringBuffer>::append
+   3 => StructField StructValue.0
+   4 => Fct std::primitives::<impl Stringable for Int32>::to_string
+   5 => Fct std::string::<impl StringBuffer>::append
+   6 => String ", "
+   7 => Fct std::string::<impl StringBuffer>::append
+   8 => StructField StructValue.1
+   9 => Fct std::primitives::<impl Stringable for Bool>::to_string
+   10 => Fct std::string::<impl StringBuffer>::append
+   11 => String ")"
+   12 => Fct std::string::<impl StringBuffer>::append
+   13 => Fct std::string::<impl StringBuffer>::to_string
+
+  Locations:
+   0 => 4:1
+
+fn <impl Stringable for Payload>::to_string:
+  0: InvokeStatic r2, @0 # std::string::<impl StringBuffer>::empty
+  4: LoadEnumVariant r5, r0, @1 # Payload
+  8: Switch r5, @2 # [11, 25], default 87
+ 11: ConstString r3, @3 # "Empty"
+ 14: InvokeDirect r4, @4, r2, r3 # std::string::<impl StringBuffer>::append
+ 20: Jump 87 (+67)
+ 25: ConstString r3, @5 # "Pair("
+ 28: InvokeDirect r4, @6, r2, r3 # std::string::<impl StringBuffer>::append
+ 34: LoadEnumElement r6, r0, @7, 0 # Payload::Pair.0
+ 38: InvokeDirect r3, @8, r6 # std::primitives::<impl Stringable for Int32>::to_string
+ 43: InvokeDirect r4, @9, r2, r3 # std::string::<impl StringBuffer>::append
+ 49: ConstString r3, @10 # ", "
+ 52: InvokeDirect r4, @11, r2, r3 # std::string::<impl StringBuffer>::append
+ 58: LoadEnumElement r7, r0, @12, 1 # Payload::Pair.1
+ 62: InvokeDirect r3, @13, r7 # std::primitives::<impl Stringable for Bool>::to_string
+ 67: InvokeDirect r4, @14, r2, r3 # std::string::<impl StringBuffer>::append
+ 73: ConstString r3, @15 # ")"
+ 76: InvokeDirect r4, @16, r2, r3 # std::string::<impl StringBuffer>::append
+ 82: Jump 87 (+5)
+ 87: InvokeDirect r1, @17, r2 # std::string::<impl StringBuffer>::to_string
+ 92: Ret r1
+
+  Registers:
+   0 => enum Payload
+   1 => class String
+   2 => class StringBuffer
+   3 => class String
+   4 => ()
+   5 => Int32
+   6 => Int32
+   7 => Bool
+
+  Constants:
+   0 => Fct std::string::<impl StringBuffer>::empty
+   1 => Enum Payload
+   2 => JumpTable 11, 25, default 87
+   3 => String "Empty"
+   4 => Fct std::string::<impl StringBuffer>::append
+   5 => String "Pair("
+   6 => Fct std::string::<impl StringBuffer>::append
+   7 => EnumVariantElement Payload::Pair::0
+   8 => Fct std::primitives::<impl Stringable for Int32>::to_string
+   9 => Fct std::string::<impl StringBuffer>::append
+   10 => String ", "
+   11 => Fct std::string::<impl StringBuffer>::append
+   12 => EnumVariantElement Payload::Pair::1
+   13 => Fct std::primitives::<impl Stringable for Bool>::to_string
+   14 => Fct std::string::<impl StringBuffer>::append
+   15 => String ")"
+   16 => Fct std::string::<impl StringBuffer>::append
+   17 => Fct std::string::<impl StringBuffer>::to_string
+
+  Locations:
+   0 => 7:1
+

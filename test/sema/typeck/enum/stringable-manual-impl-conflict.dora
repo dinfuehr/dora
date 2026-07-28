@@ -1,0 +1,23 @@
+//= error
+@Stringable
+enum Value {
+    First,
+    Second,
+}
+
+impl std::Stringable for Value {
+    fn to_string(): String {
+        "Value"
+    }
+}
+
+@Stringable
+enum ValueWithFields {
+    Value(Int32),
+}
+
+impl std::Stringable for ValueWithFields {
+    fn to_string(): String {
+        "ValueWithFields"
+    }
+}
