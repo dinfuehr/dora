@@ -3,6 +3,7 @@ use std::string::{StringBuffer, Stringable};
 use std::traits::{
     Comparable,
     Default,
+    DefaultHasher,
     DoubleEndedIterator,
     Equals,
     FromIterator,
@@ -240,11 +241,11 @@ impl[T: Equals] Equals for Array[T] {
 }
 
 impl[T: Hash] Hash for Array[T] {
-    fn hash(hasher: Hasher) {
+    fn hash[H: Hasher](hasher: H) {
         hasher.write_int32(self.size().hash());
         let mut i = 0i64;
         while i < self.size() {
-            self(i).hash(hasher);
+            self(i).hash[H](hasher);
             i = i + 1i64;
         }
     }
@@ -921,8 +922,8 @@ impl[K: Hash + Equals, V] HashMap[K, V] {
     }
 
     fn hash(key: K): Int32 {
-        let hasher = Hasher::new();
-        key.hash(hasher);
+        let hasher = DefaultHasher::new();
+        key.hash[DefaultHasher](hasher);
         hasher.finish()
     }
 

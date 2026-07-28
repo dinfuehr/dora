@@ -765,7 +765,7 @@ impl Block {
 }
 
 impl Hash for Block {
-    fn hash(hasher: Hasher) {
+    fn hash[H: Hasher](hasher: H) {
         hasher.write_int32(self.id().hash());
     }
 }
@@ -2146,7 +2146,7 @@ impl Inst {
 }
 
 impl Hash for Inst {
-    fn hash(hasher: Hasher) {
+    fn hash[H: Hasher](hasher: H) {
         hasher.write_int32(self.id().0.hash());
     }
 }
@@ -2551,7 +2551,7 @@ impl Location {
 }
 
 impl Hash for Location {
-    fn hash(hasher: Hasher) {
+    fn hash[H: Hasher](hasher: H) {
         let value = match self {
             Location::None => 1i32,
             Location::Reg(reg) => reg.to_int32() << 1,

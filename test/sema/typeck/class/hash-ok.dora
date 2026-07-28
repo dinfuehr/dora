@@ -1,4 +1,6 @@
 //= ok
+use std::Hasher;
+
 @Hash
 class Empty
 
@@ -9,8 +11,8 @@ class Named { value: Int32, flag: Bool }
 class Generic[T: std::Hash](T)
 
 fn hash[T: std::Hash](value: T): Int32 {
-    let hasher = std::Hasher::new();
-    value.hash(hasher);
+    let hasher = std::DefaultHasher::new();
+    value.hash[std::DefaultHasher](hasher);
     hasher.finish()
 }
 

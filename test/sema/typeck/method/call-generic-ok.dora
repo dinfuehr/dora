@@ -1,2 +1,4 @@
 //= ok
-fn f[T: std::Hash](t: T, hasher: std::Hasher) { t.hash(hasher); }
+fn f[T: std::Hash](t: T, hasher: std::DefaultHasher) {
+    t.hash[std::DefaultHasher](hasher);
+}

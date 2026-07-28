@@ -58,7 +58,6 @@ pub fn lookup_known_fundamental_types(sa: &mut Sema) {
 
     sa.known.classes.atomic_int32 = Some(find_class(sa, "std::thread::AtomicInt32"));
     sa.known.classes.atomic_int64 = Some(find_class(sa, "std::thread::AtomicInt64"));
-    sa.known.classes.hasher = Some(find_class(sa, "std::traits::Hasher"));
 
     let cls = &mut sa.classes[sa.known.classes.string()];
     cls.is_str = true;
@@ -80,6 +79,7 @@ pub fn lookup_known_fundamental_types(sa: &mut Sema) {
     sa.known.traits.div = Some(find_trait(sa, "std::traits::Div"));
     sa.known.traits.equals = Some(find_trait(sa, "std::traits::Equals"));
     sa.known.traits.hash = Some(find_trait(sa, "std::traits::Hash"));
+    sa.known.traits.hasher = Some(find_trait(sa, "std::traits::Hasher"));
     sa.known.traits.into_iterator = Some(find_trait(sa, "std::traits::IntoIterator"));
     sa.known.traits.iterator = Some(find_trait(sa, "std::traits::Iterator"));
     sa.known.traits.mul = Some(find_trait(sa, "std::traits::Mul"));

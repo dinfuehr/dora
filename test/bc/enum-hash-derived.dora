@@ -1,3 +1,5 @@
+use std::Hasher;
+
 @Hash
 enum Payload {
     Empty,
@@ -9,19 +11,19 @@ enum Payload {
 enum Color { Red, Green, Blue }
 
 fn hash[T: std::Hash](value: T): Int32 {
-    let hasher = std::Hasher::new();
-    value.hash(hasher);
+    let hasher = std::DefaultHasher::new();
+    value.hash[std::DefaultHasher](hasher);
     hasher.finish()
 }
 
 fn direct(value: Color): Int32 {
-    let hasher = std::Hasher::new();
-    value.hash(hasher);
+    let hasher = std::DefaultHasher::new();
+    value.hash[std::DefaultHasher](hasher);
     hasher.finish()
 }
 
 fn payload(value: Payload): Int32 {
-    let hasher = std::Hasher::new();
-    value.hash(hasher);
+    let hasher = std::DefaultHasher::new();
+    value.hash[std::DefaultHasher](hasher);
     hasher.finish()
 }

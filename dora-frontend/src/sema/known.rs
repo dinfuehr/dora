@@ -52,7 +52,6 @@ pub struct KnownClasses {
     pub atomic_int32: Option<ClassDefinitionId>,
     pub atomic_int64: Option<ClassDefinitionId>,
     pub array: Option<ClassDefinitionId>,
-    pub hasher: Option<ClassDefinitionId>,
     pub string: Option<ClassDefinitionId>,
     pub string_buffer: Option<ClassDefinitionId>,
     pub stacktrace: Option<ClassDefinitionId>,
@@ -66,7 +65,6 @@ impl KnownClasses {
             atomic_int32: None,
             atomic_int64: None,
             array: None,
-            hasher: None,
             string: None,
             string_buffer: None,
             stacktrace: None,
@@ -85,10 +83,6 @@ impl KnownClasses {
 
     pub fn array(&self) -> ClassDefinitionId {
         self.array.expect("uninitialized")
-    }
-
-    pub fn hasher(&self) -> ClassDefinitionId {
-        self.hasher.expect("uninitialized")
     }
 
     pub fn string(&self) -> ClassDefinitionId {
@@ -182,6 +176,7 @@ pub struct KnownTraits {
     pub div: Option<TraitDefinitionId>,
     pub equals: Option<TraitDefinitionId>,
     pub hash: Option<TraitDefinitionId>,
+    pub hasher: Option<TraitDefinitionId>,
     pub into_iterator: Option<TraitDefinitionId>,
     pub iterator: Option<TraitDefinitionId>,
     pub shr: Option<TraitDefinitionId>,
@@ -209,6 +204,7 @@ impl KnownTraits {
             div: None,
             equals: None,
             hash: None,
+            hasher: None,
             into_iterator: None,
             iterator: None,
             shr: None,
@@ -259,6 +255,10 @@ impl KnownTraits {
 
     pub fn hash(&self) -> TraitDefinitionId {
         self.hash.expect("uninitialized")
+    }
+
+    pub fn hasher(&self) -> TraitDefinitionId {
+        self.hasher.expect("uninitialized")
     }
 
     pub fn shr(&self) -> TraitDefinitionId {

@@ -47,13 +47,42 @@ fn emit_trait_method_call(
     arguments: &[Register],
     location: Location,
 ) {
+    emit_trait_method_call_with_type_params(
+        sa,
+        emitter,
+        builder,
+        element,
+        trait_ty,
+        trait_method_id,
+        &SourceTypeArray::empty(),
+        value_ty,
+        result,
+        arguments,
+        location,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn emit_trait_method_call_with_type_params(
+    sa: &Sema,
+    emitter: &mut Emitter,
+    builder: &mut BytecodeBuilder,
+    element: &dyn Element,
+    trait_ty: &TraitType,
+    trait_method_id: FctDefinitionId,
+    fct_type_params: &SourceTypeArray,
+    value_ty: SourceType,
+    result: Register,
+    arguments: &[Register],
+    location: Location,
+) {
     let is_generic = value_ty.is_type_param() || value_ty.is_assoc() || value_ty.is_generic_assoc();
     let callee_idx = if is_generic {
         builder.add_const(ConstPoolEntry::Generic {
             object_type: emitter.convert_ty(sa, value_ty),
             trait_ty: emitter.convert_trait_ty(sa, trait_ty),
             fct_id: emitter.convert_function_id(sa, trait_method_id),
-            fct_type_params: BytecodeTypeArray::empty(),
+            fct_type_params: emitter.convert_tya(sa, fct_type_params),
         })
     } else {
         let impl_match = find_impl(
@@ -70,7 +99,7 @@ fn emit_trait_method_call(
             .expect("trait implementation missing method");
         builder.add_const(ConstPoolEntry::Fct(
             emitter.convert_function_id(sa, method_id),
-            emitter.convert_tya(sa, &impl_match.bindings),
+            emitter.convert_tya(sa, &impl_match.bindings.connect(fct_type_params)),
         ))
     };
 

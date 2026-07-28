@@ -6,7 +6,7 @@ enum Value {
 }
 
 impl std::Hash for Value {
-    fn hash(_hasher: std::Hasher) {}
+    fn hash[H: std::Hasher](_hasher: H) {}
 }
 
 @Hash
@@ -15,5 +15,5 @@ enum ValueWithFields {
 }
 
 impl std::Hash for ValueWithFields {
-    fn hash(_hasher: std::Hasher) {}
+    fn hash[H: std::Hasher](_hasher: H) {}
 }

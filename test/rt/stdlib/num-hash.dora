@@ -1,19 +1,58 @@
+use std::Hasher;
+
 fn main() {
-  assert(hash(true) == 1i32);
-  assert(hash(false) == 0i32);
-  assert(hash(1.to_uint8()) == 1i32);
-  assert(hash(1i32) == 1i32);
+    assert(hash(true) == 1i32);
+    assert(hash(false) == 0i32);
+    assert(hash(1.to_uint8()) == 1i32);
+    assert(hash(1i32) == 1i32);
 
-  assert(hash(1i64) == 1i32);
-  assert(hash(1 << 32i32) == (1i32 ^ 0i32));
-  assert(hash(1 << 31i32) == (1i32 << 31i32));
+    assert(hash(1i64) == 1i32);
+    assert(hash(1 << 32i32) == (1i32 ^ 0i32));
+    assert(hash(1 << 31i32) == (1i32 << 31i32));
 
-  assert(hash(1.0f32) == 1065353216i32);
-  assert(hash(1.0) == 1072693248i32);
+    assert(hash(1.0f32) == 1065353216i32);
+    assert(hash(1.0) == 1072693248i32);
+
+    assert(writes_int64(1i32) == false);
+    assert(writes_int64(1i64) == true);
+    assert(writes_int64(1.0f32) == false);
+    assert(writes_int64(1.0) == true);
 }
 
 fn hash[T: std::Hash](value: T): Int32 {
-  let hasher = std::Hasher::new();
-  value.hash(hasher);
-  hasher.finish()
+    let hasher = std::DefaultHasher::new();
+    value.hash[std::DefaultHasher](hasher);
+    hasher.finish()
+}
+
+class TrackingHasher {
+    wrote_int64: Bool,
+}
+
+impl TrackingHasher {
+    static fn new(): TrackingHasher {
+        TrackingHasher(wrote_int64 = false)
+    }
+}
+
+impl std::Hasher for TrackingHasher {
+    fn write_int32(value: Int32) {}
+
+    fn write_int64(value: Int64) {
+        self.wrote_int64 = true;
+    }
+
+    fn finish(): Int32 {
+        if self.wrote_int64 {
+            1i32
+        } else {
+            0i32
+        }
+    }
+}
+
+fn writes_int64[T: std::Hash](value: T): Bool {
+    let hasher = TrackingHasher::new();
+    value.hash[TrackingHasher](hasher);
+    hasher.finish() == 1i32
 }

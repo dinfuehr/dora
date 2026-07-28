@@ -1,4 +1,6 @@
 //= ok
+use std::Hasher;
+
 @Hash
 enum Unit { Only }
 
@@ -15,8 +17,8 @@ enum Payload {
 enum Generic[T: std::Hash] { None, Some(T) }
 
 fn hash[T: std::Hash](value: T): Int32 {
-    let hasher = std::Hasher::new();
-    value.hash(hasher);
+    let hasher = std::DefaultHasher::new();
+    value.hash[std::DefaultHasher](hasher);
     hasher.finish()
 }
 

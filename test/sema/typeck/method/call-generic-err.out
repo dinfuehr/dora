@@ -1,6 +1,6 @@
 error: no method with this name found for type param.
---> call-generic-err.dora:1:39
- | fn f[T](t: T, _hasher: std::Hasher) { t.hash(_hasher); }
-                                         ~~~~~~~~~~~~~~~
+--> call-generic-err.dora:1:46
+ | fn f[T](t: T, _hasher: std::DefaultHasher) { t.hash[std::DefaultHasher](_hasher); }
+                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  | 
 1 error found.

@@ -1,4 +1,6 @@
 //= ok
+use std::Hasher;
+
 @Hash
 struct Empty
 
@@ -9,8 +11,8 @@ struct Named { value: Int32, flag: Bool }
 struct Generic[T: std::Hash](T)
 
 fn hash[T: std::Hash](value: T): Int32 {
-    let hasher = std::Hasher::new();
-    value.hash(hasher);
+    let hasher = std::DefaultHasher::new();
+    value.hash[std::DefaultHasher](hasher);
     hasher.finish()
 }
 

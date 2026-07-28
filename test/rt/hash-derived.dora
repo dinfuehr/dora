@@ -1,3 +1,5 @@
+use std::Hasher;
+
 fn main() {
     assert(hash(EmptyClass()) == 0);
     assert(hash(ClassValue(7, true)) == 6);
@@ -21,6 +23,9 @@ fn main() {
 
     assert(hash(Generic[Int32]::None) == 0);
     assert(hash(Generic[Int32]::Some(7)) == 6);
+
+    assert(sum_hash(ClassValue(7, true)) == 8);
+    assert(sum_hash(Payload::Pair(7, true)) == 11);
 }
 
 @Hash
@@ -63,7 +68,37 @@ enum Generic[T: std::Hash] {
 }
 
 fn hash[T: std::Hash](value: T): Int32 {
-    let hasher = std::Hasher::new();
-    value.hash(hasher);
+    let hasher = std::DefaultHasher::new();
+    value.hash[std::DefaultHasher](hasher);
+    hasher.finish()
+}
+
+class SumHasher {
+    value: Int32,
+}
+
+impl SumHasher {
+    static fn new(): SumHasher {
+        SumHasher(value = 0i32)
+    }
+}
+
+impl std::Hasher for SumHasher {
+    fn write_int32(value: Int32) {
+        self.value = self.value + value;
+    }
+
+    fn write_int64(value: Int64) {
+        self.value = self.value + value.hash();
+    }
+
+    fn finish(): Int32 {
+        self.value
+    }
+}
+
+fn sum_hash[T: std::Hash](value: T): Int32 {
+    let hasher = SumHasher::new();
+    value.hash[SumHasher](hasher);
     hasher.finish()
 }

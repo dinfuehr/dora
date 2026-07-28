@@ -458,7 +458,7 @@ impl Equals for BytecodeType {
 }
 
 impl Hash for BytecodeType {
-    fn hash(hasher: Hasher) {
+    fn hash[H: Hasher](hasher: H) {
         match self {
             BytecodeType::Unit => hasher.write_int32(opc::BYTECODE_TYPE_UNIT),
             BytecodeType::Address => hasher.write_int32(opc::BYTECODE_TYPE_ADDRESS),
@@ -472,28 +472,28 @@ impl Hash for BytecodeType {
             BytecodeType::This => hasher.write_int32(opc::BYTECODE_TYPE_THIS),
             BytecodeType::Struct(id, type_params) => {
                 hasher.write_int32(opc::BYTECODE_TYPE_STRUCT);
-                id.hash(hasher);
-                type_params.hash(hasher);
+                id.hash[H](hasher);
+                type_params.hash[H](hasher);
             }
             BytecodeType::Enum(id, type_params) => {
                 hasher.write_int32(opc::BYTECODE_TYPE_ENUM);
-                id.hash(hasher);
-                type_params.hash(hasher);
+                id.hash[H](hasher);
+                type_params.hash[H](hasher);
             }
             BytecodeType::Class(id, type_params) => {
                 hasher.write_int32(opc::BYTECODE_TYPE_CLASS);
-                id.hash(hasher);
-                type_params.hash(hasher);
+                id.hash[H](hasher);
+                type_params.hash[H](hasher);
             }
             BytecodeType::TraitObject(id, type_params, assoc_types) => {
                 hasher.write_int32(opc::BYTECODE_TYPE_TRAIT_OBJECT);
-                id.hash(hasher);
-                type_params.hash(hasher);
-                assoc_types.hash(hasher);
+                id.hash[H](hasher);
+                type_params.hash[H](hasher);
+                assoc_types.hash[H](hasher);
             }
             BytecodeType::Tuple(subtypes) => {
                 hasher.write_int32(opc::BYTECODE_TYPE_TUPLE);
-                subtypes.hash(hasher);
+                subtypes.hash[H](hasher);
             }
             BytecodeType::TypeParam(id) => {
                 hasher.write_int32(opc::BYTECODE_TYPE_TYPE_PARAM);
@@ -501,7 +501,7 @@ impl Hash for BytecodeType {
             }
             BytecodeType::TypeAlias(id) => {
                 hasher.write_int32(opc::BYTECODE_TYPE_TYPE_ALIAS);
-                id.hash(hasher);
+                id.hash[H](hasher);
             }
             BytecodeType::Assoc(..) => unreachable[()](),
         }

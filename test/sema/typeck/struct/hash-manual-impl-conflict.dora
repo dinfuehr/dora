@@ -3,5 +3,5 @@
 struct Value(Int32)
 
 impl std::Hash for Value {
-    fn hash(_hasher: std::Hasher) {}
+    fn hash[H: std::Hasher](_hasher: H) {}
 }

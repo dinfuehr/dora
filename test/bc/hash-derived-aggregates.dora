@@ -1,3 +1,5 @@
+use std::Hasher;
+
 @Hash
 class ClassValue { number: Int32, flag: Bool }
 
@@ -5,13 +7,13 @@ class ClassValue { number: Int32, flag: Bool }
 struct StructValue(Int32, Bool)
 
 fn class_hash(value: ClassValue): Int32 {
-    let hasher = std::Hasher::new();
-    value.hash(hasher);
+    let hasher = std::DefaultHasher::new();
+    value.hash[std::DefaultHasher](hasher);
     hasher.finish()
 }
 
 fn struct_hash(value: StructValue): Int32 {
-    let hasher = std::Hasher::new();
-    value.hash(hasher);
+    let hasher = std::DefaultHasher::new();
+    value.hash[std::DefaultHasher](hasher);
     hasher.finish()
 }

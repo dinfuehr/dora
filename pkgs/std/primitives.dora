@@ -60,7 +60,7 @@ impl std::traits::Default for Bool {
 }
 
 impl std::traits::Hash for Bool {
-    fn hash(hasher: std::Hasher) {
+    fn hash[H: std::Hasher](hasher: H) {
         hasher.write_int32(self.hash());
     }
 }
@@ -322,7 +322,7 @@ impl std::traits::Default for Int32 {
 }
 
 impl std::traits::Hash for Int32 {
-    fn hash(hasher: std::Hasher) {
+    fn hash[H: std::Hasher](hasher: H) {
         hasher.write_int32(self.hash());
     }
 }
@@ -699,8 +699,8 @@ impl std::string::Stringable for Int64 {
 }
 
 impl std::traits::Hash for Int64 {
-    fn hash(hasher: std::Hasher) {
-        hasher.write_int32(self.hash());
+    fn hash[H: std::Hasher](hasher: H) {
+        hasher.write_int64(self);
     }
 }
 
@@ -839,7 +839,7 @@ impl std::traits::Default for Float32 {
 }
 
 impl std::traits::Hash for Float32 {
-    fn hash(hasher: std::Hasher) {
+    fn hash[H: std::Hasher](hasher: H) {
         hasher.write_int32(self.hash());
     }
 }
@@ -973,8 +973,8 @@ impl std::traits::Default for Float64 {
 }
 
 impl std::traits::Hash for Float64 {
-    fn hash(hasher: std::Hasher) {
-        hasher.write_int32(self.hash());
+    fn hash[H: std::Hasher](hasher: H) {
+        hasher.write_int64(self.as_int64());
     }
 }
 
@@ -1042,7 +1042,7 @@ impl std::traits::Default for UInt8 {
 }
 
 impl std::traits::Hash for UInt8 {
-    fn hash(hasher: std::Hasher) {
+    fn hash[H: std::Hasher](hasher: H) {
         hasher.write_int32(self.hash());
     }
 }

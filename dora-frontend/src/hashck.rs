@@ -4,7 +4,7 @@ use crate::sema::{
     DerivedMethod, DerivedTarget, Element, ElementId, FctDefinition, FctParent, ImplDefinition,
     Param, Params, Sema, TypeParamDefinition, TypeRefArena, implements_trait,
 };
-use crate::{SourceType, TraitType, args};
+use crate::{ParsedTraitType, ParsedType, SourceType, TraitType, args};
 
 pub fn create_impls(sa: &mut Sema) {
     for target in targets(sa) {
@@ -84,7 +84,15 @@ fn create_hash_impl(sa: &mut Sema, target: DerivedTarget) {
     assert!(sa.impls[impl_id].id.set(impl_id).is_ok());
     sa.impls[impl_id].set_type_refs(TypeRefArena::new());
 
-    let method_type_param_definition = TypeParamDefinition::new(sa, Some(type_param_definition_id));
+    let mut method_type_param_definition =
+        TypeParamDefinition::new(sa, Some(type_param_definition_id));
+    let hasher_name = sa.interner.intern("H");
+    let hasher_type_param_id = method_type_param_definition.add_type_param(sa, hasher_name);
+    let hasher_trait_ty = TraitType::from_trait_id(sa.known.traits.hasher());
+    method_type_param_definition.add_where_bound(
+        ParsedType::new_ty(SourceType::TypeParam(hasher_type_param_id)),
+        ParsedTraitType::new_ty(Some(hasher_trait_ty)),
+    );
     let method_type_param_definition_id = sa
         .type_param_definitions
         .alloc(method_type_param_definition);
@@ -92,7 +100,7 @@ fn create_hash_impl(sa: &mut Sema, target: DerivedTarget) {
     let mut modifiers = Annotations::default();
     modifiers.is_internal = true;
     modifiers.is_force_inline = is_simple_enum;
-    let hasher_ty = SourceType::Class(sa.known.classes.hasher(), crate::SourceTypeArray::empty());
+    let hasher_ty = SourceType::TypeParam(hasher_type_param_id);
     let params = Params::new(
         vec![Param::new_ty(SourceType::This), Param::new_ty(hasher_ty)],
         true,

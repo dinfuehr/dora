@@ -4,9 +4,9 @@ use crate::program_emitter::Emitter;
 use crate::sema::{
     ClassDefinitionId, Element, EnumDefinitionId, FctDefinition, Sema, StructDefinitionId,
 };
-use crate::{SourceType, TraitType};
+use crate::{SourceType, SourceTypeArray, TraitType};
 
-use super::{BytecodeBuilder, emit_trait_method_call};
+use super::{BytecodeBuilder, emit_trait_method_call_with_type_params};
 
 pub fn generate_class_hash(
     sa: &Sema,
@@ -42,8 +42,9 @@ fn generate_aggregate_hash(
     let type_params = element.type_param_definition(sa).identity_type_params(sa);
     let aggregate_ty = target.ty(type_params.clone());
     let bytecode_aggregate_ty = emitter.convert_ty(sa, aggregate_ty);
-    let hasher_ty = SourceType::Class(sa.known.classes.hasher(), crate::SourceTypeArray::empty());
-    let bytecode_hasher_ty = emitter.convert_ty(sa, hasher_ty);
+    let hasher_ty = fct.params_without_self()[0].ty();
+    let bytecode_hasher_ty = emitter.convert_ty(sa, hasher_ty.clone());
+    let hash_fct_type_params = SourceTypeArray::single(hasher_ty);
     let bytecode_type_params = emitter.convert_tya(sa, &type_params);
     let location = sa.compute_loc(fct.file_id, fct.span);
 
@@ -75,13 +76,14 @@ fn generate_aggregate_hash(
         );
 
         builder.emit_load_field(field_value, value, field_idx, location);
-        emit_trait_method_call(
+        emit_trait_method_call_with_type_params(
             sa,
             emitter,
             &mut builder,
             element,
             &hash_trait_ty,
             hash_method_id,
+            &hash_fct_type_params,
             field_ty,
             unit,
             &[field_value, hasher],
@@ -150,8 +152,9 @@ pub fn generate_enum_hash(
     let type_params = enum_.type_param_definition(sa).identity_type_params(sa);
     let enum_ty = SourceType::Enum(enum_id, type_params.clone());
     let bytecode_enum_ty = emitter.convert_ty(sa, enum_ty);
-    let hasher_ty = SourceType::Class(sa.known.classes.hasher(), crate::SourceTypeArray::empty());
-    let bytecode_hasher_ty = emitter.convert_ty(sa, hasher_ty);
+    let hasher_ty = fct.params_without_self()[0].ty();
+    let bytecode_hasher_ty = emitter.convert_ty(sa, hasher_ty.clone());
+    let hash_fct_type_params = SourceTypeArray::single(hasher_ty);
     let bytecode_enum_id = emitter.convert_enum_id(sa, enum_id);
     let bytecode_type_params = emitter.convert_tya(sa, &type_params);
     let enum_const = ConstPoolEntry::Enum(bytecode_enum_id, bytecode_type_params.clone());
@@ -187,13 +190,14 @@ pub fn generate_enum_hash(
 
     let enum_idx = builder.add_const(enum_const);
     builder.emit_load_enum_variant(variant, value, enum_idx, location);
-    emit_trait_method_call(
+    emit_trait_method_call_with_type_params(
         sa,
         emitter,
         &mut builder,
         enum_,
         &hash_trait_ty,
         hash_method_id,
+        &hash_fct_type_params,
         SourceType::Int32,
         unit,
         &[variant, hasher],
@@ -218,13 +222,14 @@ pub fn generate_enum_hash(
             );
 
             builder.emit_load_enum_element(field_value, value, field_idx, location);
-            emit_trait_method_call(
+            emit_trait_method_call_with_type_params(
                 sa,
                 emitter,
                 &mut builder,
                 enum_,
                 &hash_trait_ty,
                 hash_method_id,
+                &hash_fct_type_params,
                 field_ty,
                 unit,
                 &[field_value, hasher],
