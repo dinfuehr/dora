@@ -31,9 +31,11 @@ where
 
         match ty {
             SourceType::Assoc {
+                ty: assoc_ty,
                 trait_ty: assoc_trait_ty,
                 assoc_id,
-            } if assoc_trait_ty.trait_id == trait_ty.trait_id
+            } if assoc_ty.is_self()
+                && assoc_trait_ty.trait_id == trait_ty.trait_id
                 && assoc_trait_ty.type_params == trait_ty.type_params
                 && assoc_id == *id =>
             {
@@ -104,17 +106,16 @@ pub fn replace_type(sa: &Sema, ty: SourceType, type_args: &TypeArgs) -> SourceTy
 
         SourceType::TypeParam(id) => type_args[id].clone(),
 
-        SourceType::Assoc { trait_ty, assoc_id } => SourceType::Assoc {
-            trait_ty: specialize_trait_type(sa, trait_ty, type_args),
-            assoc_id,
-        },
-
-        SourceType::GenericAssoc {
+        SourceType::Assoc {
             ty,
             trait_ty,
             assoc_id,
-        } => SourceType::GenericAssoc {
-            ty: Box::new(replace_type(sa, *ty, type_args)),
+        } => SourceType::Assoc {
+            ty: if ty.is_self() {
+                ty
+            } else {
+                Box::new(replace_type(sa, *ty, type_args))
+            },
             trait_ty: specialize_trait_type(sa, trait_ty, type_args),
             assoc_id,
         },
@@ -177,25 +178,25 @@ pub fn specialize_ty_for_call(
             specialize_ty_for_call_array(sa, alias_type_params, caller_element, type_params),
         ),
 
-        SourceType::Assoc { assoc_id, .. } => {
-            let alias = sa.alias(assoc_id);
-            let object_ty = type_params.self_ty().expect("object_ty required for Assoc");
-
-            match object_ty {
-                SourceType::TraitObject(_trait_id, _type_params, assoc_types) => {
-                    assoc_types[alias.idx_in_trait()].clone()
-                }
-
-                // Associated types should only be used in traits.
-                _ => unreachable!(),
-            }
-        }
-
-        SourceType::GenericAssoc {
+        SourceType::Assoc {
             ty,
             trait_ty,
             assoc_id,
         } => {
+            if ty.is_self() {
+                let alias = sa.alias(assoc_id);
+                let object_ty = type_params.self_ty().expect("object_ty required for Assoc");
+
+                return match object_ty {
+                    SourceType::TraitObject(_trait_id, _type_params, assoc_types) => {
+                        assoc_types[alias.idx_in_trait()].clone()
+                    }
+
+                    // Associated types should only be used in traits.
+                    _ => unreachable!(),
+                };
+            }
+
             let assoc = sa.alias(assoc_id);
             assert!(assoc.parent.is_trait());
             let specialized_ty = specialize_ty_for_call(sa, *ty, caller_element, type_params);
@@ -205,7 +206,7 @@ pub fn specialize_ty_for_call(
             } else if specialized_ty.is_error() {
                 SourceType::Error
             } else if specialized_ty.is_type_param() {
-                SourceType::GenericAssoc {
+                SourceType::Assoc {
                     ty: Box::new(specialized_ty),
                     trait_ty,
                     assoc_id,
@@ -230,7 +231,11 @@ pub fn specialize_ty_for_call(
 
                 let trait_ty = find_super_trait_ty(sa, &current_trait_ty, assoc_trait_id)
                     .expect("super trait not found for associated type on Self");
-                SourceType::Assoc { trait_ty, assoc_id }
+                SourceType::Assoc {
+                    ty: Box::new(SourceType::This),
+                    trait_ty,
+                    assoc_id,
+                }
             } else if let Some(impl_match) = find_impl(
                 sa,
                 caller_element,
@@ -376,9 +381,21 @@ pub fn specialize_ty_for_trait_object(
             ),
         ),
 
-        SourceType::Assoc { assoc_id, .. } => {
-            let alias = sa.alias(assoc_id);
-            assoc_types[alias.idx_in_trait()].clone()
+        SourceType::Assoc {
+            ty: assoc_ty,
+            trait_ty,
+            assoc_id,
+        } => {
+            if assoc_ty.is_self() {
+                let alias = sa.alias(assoc_id);
+                assoc_types[alias.idx_in_trait()].clone()
+            } else {
+                SourceType::Assoc {
+                    ty: assoc_ty,
+                    trait_ty,
+                    assoc_id,
+                }
+            }
         }
 
         SourceType::Lambda(params, return_type, is_variadic) => SourceType::Lambda(
@@ -411,8 +428,7 @@ pub fn specialize_ty_for_trait_object(
         | SourceType::Int64
         | SourceType::Float32
         | SourceType::Float64
-        | SourceType::Error
-        | SourceType::GenericAssoc { .. } => ty,
+        | SourceType::Error => ty,
 
         SourceType::This | SourceType::Any | SourceType::Ref(..) | SourceType::TypeVar(..) => {
             unreachable!()
@@ -558,99 +574,101 @@ impl<'a> DefaultTraitMethodSpecialization<'a> {
                 SourceType::Alias(alias_id, self.specialize_array(alias_type_params))
             }
 
-            SourceType::Assoc { trait_ty, assoc_id } => {
-                let assoc = self.sa.alias(assoc_id);
-                assert!(assoc.parent.is_trait());
-
-                let impl_alias_id = self.impl_.trait_alias_map().get(&assoc_id).cloned();
-
-                if let Some(impl_alias_id) = impl_alias_id {
-                    let impl_alias = self.sa.alias(impl_alias_id);
-                    impl_alias.ty()
-                } else {
-                    let trait_ty = self.specialize_trait_ty(trait_ty);
-                    assert_eq!(
-                        trait_ty.trait_id,
-                        assoc.parent.to_trait_id().expect("trait expected")
-                    );
-
-                    if let Some((_, ty)) = trait_ty.bindings.iter().find(|(id, _)| *id == assoc_id)
-                    {
-                        return ty.clone();
-                    }
-
-                    // Super-trait validation recorded how this exact specialized obligation was
-                    // satisfied before default method adapters were created.
-                    match self.impl_.super_trait_witness(&trait_ty) {
-                        Some(SuperTraitWitness::Impl {
-                            impl_id,
-                            type_param_bindings,
-                        }) => {
-                            let found_impl = self.sa.impl_(*impl_id);
-                            let ty = found_impl
-                                .trait_alias_map()
-                                .get(&assoc_id)
-                                .map(|a| self.sa.alias(*a).ty())
-                                .unwrap_or(SourceType::Error);
-                            let mut type_params = TypeParamSubstitution::new();
-                            type_params.insert_bindings(type_param_bindings);
-                            let nested = self.new_for_impl(found_impl, type_params);
-                            nested.specialize(ty)
-                        }
-
-                        Some(SuperTraitWitness::TypeParamBound { type_param_id }) => {
-                            // No concrete impl is known until the adapter's type parameter is
-                            // instantiated, so preserve the associated-type projection.
-                            SourceType::GenericAssoc {
-                                ty: Box::new(SourceType::TypeParam(*type_param_id)),
-                                trait_ty,
-                                assoc_id,
-                            }
-                        }
-
-                        Some(SuperTraitWitness::Intrinsic) | None => SourceType::Error,
-                    }
-                }
-            }
-
-            SourceType::GenericAssoc {
+            SourceType::Assoc {
                 ty,
-                trait_ty: local_trait_ty,
+                trait_ty,
                 assoc_id,
             } => {
-                let assoc = self.sa.alias(assoc_id);
-                assert!(assoc.parent.is_trait());
-                let specialized_ty = self.specialize(*ty);
+                if ty.is_self() {
+                    let assoc = self.sa.alias(assoc_id);
+                    assert!(assoc.parent.is_trait());
 
-                if specialized_ty.is_type_param() {
-                    SourceType::GenericAssoc {
-                        ty: Box::new(specialized_ty),
-                        trait_ty: local_trait_ty,
-                        assoc_id,
+                    let impl_alias_id = self.impl_.trait_alias_map().get(&assoc_id).cloned();
+
+                    if let Some(impl_alias_id) = impl_alias_id {
+                        let impl_alias = self.sa.alias(impl_alias_id);
+                        impl_alias.ty()
+                    } else {
+                        let trait_ty = self.specialize_trait_ty(trait_ty);
+                        assert_eq!(
+                            trait_ty.trait_id,
+                            assoc.parent.to_trait_id().expect("trait expected")
+                        );
+
+                        if let Some((_, ty)) =
+                            trait_ty.bindings.iter().find(|(id, _)| *id == assoc_id)
+                        {
+                            return ty.clone();
+                        }
+
+                        // Super-trait validation recorded how this exact specialized obligation was
+                        // satisfied before default method adapters were created.
+                        match self.impl_.super_trait_witness(&trait_ty) {
+                            Some(SuperTraitWitness::Impl {
+                                impl_id,
+                                type_param_bindings,
+                            }) => {
+                                let found_impl = self.sa.impl_(*impl_id);
+                                let ty = found_impl
+                                    .trait_alias_map()
+                                    .get(&assoc_id)
+                                    .map(|a| self.sa.alias(*a).ty())
+                                    .unwrap_or(SourceType::Error);
+                                let mut type_params = TypeParamSubstitution::new();
+                                type_params.insert_bindings(type_param_bindings);
+                                let nested = self.new_for_impl(found_impl, type_params);
+                                nested.specialize(ty)
+                            }
+
+                            Some(SuperTraitWitness::TypeParamBound { type_param_id }) => {
+                                // No concrete impl is known until the adapter's type parameter is
+                                // instantiated, so preserve the associated-type projection.
+                                SourceType::Assoc {
+                                    ty: Box::new(SourceType::TypeParam(*type_param_id)),
+                                    trait_ty,
+                                    assoc_id,
+                                }
+                            }
+
+                            Some(SuperTraitWitness::Intrinsic) | None => SourceType::Error,
+                        }
                     }
-                } else if let Some(impl_match) = find_impl(
-                    self.sa,
-                    self.type_param_context,
-                    specialized_ty.clone(),
-                    self.type_param_context.type_param_definition(self.sa),
-                    local_trait_ty.clone(),
-                ) {
-                    let found_impl = self.sa.impl_(impl_match.id);
-                    let ty = found_impl
-                        .trait_alias_map()
-                        .get(&assoc_id)
-                        .map(|a| self.sa.alias(*a).ty())
-                        .unwrap_or(SourceType::Error);
-                    let mut type_params = self.type_params.clone();
-                    type_params.insert_definition(
-                        self.sa,
-                        found_impl.type_param_definition(self.sa),
-                        &impl_match.bindings,
-                    );
-                    let nested = self.new_for_impl(found_impl, type_params);
-                    nested.specialize(ty)
                 } else {
-                    unimplemented!()
+                    let local_trait_ty = trait_ty;
+                    let assoc = self.sa.alias(assoc_id);
+                    assert!(assoc.parent.is_trait());
+                    let specialized_ty = self.specialize(*ty);
+
+                    if specialized_ty.is_type_param() {
+                        SourceType::Assoc {
+                            ty: Box::new(specialized_ty),
+                            trait_ty: local_trait_ty,
+                            assoc_id,
+                        }
+                    } else if let Some(impl_match) = find_impl(
+                        self.sa,
+                        self.type_param_context,
+                        specialized_ty.clone(),
+                        self.type_param_context.type_param_definition(self.sa),
+                        local_trait_ty.clone(),
+                    ) {
+                        let found_impl = self.sa.impl_(impl_match.id);
+                        let ty = found_impl
+                            .trait_alias_map()
+                            .get(&assoc_id)
+                            .map(|a| self.sa.alias(*a).ty())
+                            .unwrap_or(SourceType::Error);
+                        let mut type_params = self.type_params.clone();
+                        type_params.insert_definition(
+                            self.sa,
+                            found_impl.type_param_definition(self.sa),
+                            &impl_match.bindings,
+                        );
+                        let nested = self.new_for_impl(found_impl, type_params);
+                        nested.specialize(ty)
+                    } else {
+                        unimplemented!()
+                    }
                 }
             }
 
@@ -816,41 +834,43 @@ pub fn specialize_ty_for_generic(
             ),
         ),
 
-        SourceType::Assoc { assoc_id, .. } => {
-            let alias = sa.alias(assoc_id);
-            let assoc_trait_id = alias.parent.to_trait_id().expect("expected trait");
-
-            // Find the appropriate trait type - either the current trait or a super trait
-            let assoc_trait_ty = if assoc_trait_id == trait_ty.trait_id {
-                trait_ty.clone()
-            } else {
-                find_super_trait_ty(sa, trait_ty, assoc_trait_id)
-                    .expect("super trait not found for associated type")
-            };
-
-            if let Some((_, ty)) = assoc_trait_ty.bindings.iter().find(|(x, _)| *x == assoc_id) {
-                ty.clone()
-            } else {
-                SourceType::GenericAssoc {
-                    ty: Box::new(SourceType::TypeParam(type_param_id)),
-                    trait_ty: assoc_trait_ty,
-                    assoc_id,
-                }
-            }
-        }
-
-        SourceType::GenericAssoc {
+        SourceType::Assoc {
             ty,
             trait_ty: local_trait_ty,
             assoc_id,
         } => {
+            if ty.is_self() {
+                let alias = sa.alias(assoc_id);
+                let assoc_trait_id = alias.parent.to_trait_id().expect("expected trait");
+
+                // Find the appropriate trait type - either the current trait or a super trait
+                let assoc_trait_ty = if assoc_trait_id == trait_ty.trait_id {
+                    trait_ty.clone()
+                } else {
+                    find_super_trait_ty(sa, trait_ty, assoc_trait_id)
+                        .expect("super trait not found for associated type")
+                };
+
+                return if let Some((_, ty)) =
+                    assoc_trait_ty.bindings.iter().find(|(x, _)| *x == assoc_id)
+                {
+                    ty.clone()
+                } else {
+                    SourceType::Assoc {
+                        ty: Box::new(SourceType::TypeParam(type_param_id)),
+                        trait_ty: assoc_trait_ty,
+                        assoc_id,
+                    }
+                };
+            }
+
             let assoc = sa.alias(assoc_id);
             assert!(assoc.parent.is_trait());
             let specialized_ty =
                 specialize_ty_for_generic(sa, *ty, element, type_param_id, trait_ty, type_params);
 
             if specialized_ty.is_type_param() {
-                SourceType::GenericAssoc {
+                SourceType::Assoc {
                     ty: Box::new(specialized_ty),
                     trait_ty: local_trait_ty,
                     assoc_id,
@@ -1001,7 +1021,7 @@ pub fn specialize_for_element(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::GenericAssoc {
+        SourceType::Assoc {
             ty,
             trait_ty,
             assoc_id,
@@ -1011,7 +1031,7 @@ pub fn specialize_for_element(
             let specialized_ty = specialize_for_element(sa, *ty, element, type_args);
 
             if specialized_ty.is_type_param() {
-                SourceType::GenericAssoc {
+                SourceType::Assoc {
                     ty: Box::new(specialized_ty),
                     trait_ty,
                     assoc_id,
@@ -1035,10 +1055,7 @@ pub fn specialize_for_element(
             }
         }
 
-        SourceType::Any
-        | SourceType::Assoc { .. }
-        | SourceType::Ref(..)
-        | SourceType::TypeVar(..) => {
+        SourceType::Any | SourceType::Ref(..) | SourceType::TypeVar(..) => {
             unreachable!()
         }
     }
@@ -1111,16 +1128,16 @@ pub fn specialize_type_for_implements(ty: SourceType, type_args: &TypeArgs) -> S
             let new_params = specialize_type_array_for_implements(&alias_params, type_args);
             SourceType::Alias(alias_id, new_params)
         }
-        SourceType::Assoc { trait_ty, assoc_id } => SourceType::Assoc {
-            trait_ty: specialize_trait_type_for_implements(trait_ty, type_args),
-            assoc_id,
-        },
-        SourceType::GenericAssoc {
+        SourceType::Assoc {
             ty,
             trait_ty,
             assoc_id,
-        } => SourceType::GenericAssoc {
-            ty: Box::new(specialize_type_for_implements(*ty, type_args)),
+        } => SourceType::Assoc {
+            ty: if ty.is_self() {
+                ty
+            } else {
+                Box::new(specialize_type_for_implements(*ty, type_args))
+            },
             trait_ty: specialize_trait_type_for_implements(trait_ty, type_args),
             assoc_id,
         },

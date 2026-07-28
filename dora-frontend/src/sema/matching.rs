@@ -317,44 +317,37 @@ fn match_concrete_types(
             _ => false,
         },
 
-        SourceType::GenericAssoc {
+        SourceType::Assoc {
             ty: check_inner_ty,
             trait_ty: check_trait_ty,
             assoc_id: check_assoc_id,
         } => match ext_ty {
-            SourceType::GenericAssoc {
+            SourceType::Assoc {
                 ty: ext_inner_ty,
                 trait_ty: ext_trait_ty,
                 assoc_id: ext_assoc_id,
             } => {
                 check_trait_ty == ext_trait_ty
                     && check_assoc_id == ext_assoc_id
-                    && match_types(
-                        sa,
-                        *check_inner_ty,
-                        check_element,
-                        check_type_param_defs,
-                        *ext_inner_ty,
-                        ext_type_param_defs,
-                        bindings,
-                        context,
-                    )
+                    && match (check_inner_ty.as_ref(), ext_inner_ty.as_ref()) {
+                        (SourceType::This, SourceType::This) => true,
+                        (SourceType::This, _) | (_, SourceType::This) => false,
+                        _ => match_types(
+                            sa,
+                            *check_inner_ty,
+                            check_element,
+                            check_type_param_defs,
+                            *ext_inner_ty,
+                            ext_type_param_defs,
+                            bindings,
+                            context,
+                        ),
+                    }
             }
             _ => false,
         },
 
         SourceType::Alias(..) => unreachable!(),
-
-        SourceType::Assoc {
-            trait_ty: check_trait_ty,
-            assoc_id: check_assoc_id,
-        } => match ext_ty {
-            SourceType::Assoc {
-                trait_ty: ext_trait_ty,
-                assoc_id: ext_assoc_id,
-            } => check_trait_ty == ext_trait_ty && check_assoc_id == ext_assoc_id,
-            _ => false,
-        },
 
         SourceType::Tuple(check_subtypes) => match ext_ty {
             SourceType::Tuple(ext_subtypes) => match_arrays_with_context(

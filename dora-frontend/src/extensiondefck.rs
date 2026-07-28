@@ -94,7 +94,7 @@ pub fn package_for_type(sa: &Sema, ty: SourceType) -> Option<PackageDefinitionId
         SourceType::Enum(id, ..) => Some(sa.enum_(id).package_id),
         SourceType::TraitObject(id, ..) => Some(sa.trait_(id).package_id),
         SourceType::Alias(id, ..) => Some(sa.alias(id).package_id),
-        SourceType::Assoc { .. } | SourceType::GenericAssoc { .. } => unimplemented!(),
+        SourceType::Assoc { .. } => unimplemented!(),
     }
 }
 
@@ -122,7 +122,6 @@ impl<'x> ExtensionCheck<'x> {
             | SourceType::This
             | SourceType::TypeVar(..)
             | SourceType::Assoc { .. }
-            | SourceType::GenericAssoc { .. }
             | SourceType::Ref(..) => {
                 unreachable!()
             }
@@ -270,10 +269,7 @@ fn discover_type_params(
             );
             used_type_params.insert(tp_id);
         }
-        SourceType::Alias(..)
-        | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. }
-        | SourceType::Ref(..) => {
+        SourceType::Alias(..) | SourceType::Assoc { .. } | SourceType::Ref(..) => {
             unreachable!()
         }
     }

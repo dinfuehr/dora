@@ -265,15 +265,11 @@ where
         SourceType::Alias(id, type_params) => {
             SourceType::Alias(id, replace_type_variable_array(type_params, replace))
         }
-        SourceType::Assoc { trait_ty, assoc_id } => SourceType::Assoc {
-            trait_ty: replace_type_variable_trait(trait_ty, replace),
-            assoc_id,
-        },
-        SourceType::GenericAssoc {
+        SourceType::Assoc {
             ty,
             trait_ty,
             assoc_id,
-        } => SourceType::GenericAssoc {
+        } => SourceType::Assoc {
             ty: Box::new(replace_type_variable(*ty, replace)),
             trait_ty: replace_type_variable_trait(trait_ty, replace),
             assoc_id,
@@ -335,17 +331,7 @@ fn type_contains_variable(ty: &SourceType, expected: Option<TypeVarId>) -> bool 
                 .any(|ty| type_contains_variable(&ty, expected))
                 || type_contains_variable(return_type, expected)
         }
-        SourceType::Assoc { trait_ty, .. } => {
-            trait_ty
-                .type_params
-                .iter()
-                .any(|ty| type_contains_variable(&ty, expected))
-                || trait_ty
-                    .bindings
-                    .iter()
-                    .any(|(_, ty)| type_contains_variable(ty, expected))
-        }
-        SourceType::GenericAssoc { ty, trait_ty, .. } => {
+        SourceType::Assoc { ty, trait_ty, .. } => {
             type_contains_variable(ty, expected)
                 || trait_ty
                     .type_params

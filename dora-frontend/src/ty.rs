@@ -99,7 +99,6 @@ pub enum TyKind {
     TypeVar,
     Alias,
     Assoc,
-    GenericAssoc,
     Lambda,
     Enum,
     Ref,
@@ -149,14 +148,8 @@ pub enum SourceType {
     // Type alias.
     Alias(AliasDefinitionId, SourceTypeArray),
 
-    // Some associated type (used through Self::X).
+    // Some associated type (Self::X, T::X or [T as Trait]::X).
     Assoc {
-        trait_ty: TraitType,
-        assoc_id: AliasDefinitionId,
-    },
-
-    // Some associated type on a type (T::X or [T as Trait]::X).
-    GenericAssoc {
         ty: Box<SourceType>,
         trait_ty: TraitType,
         assoc_id: AliasDefinitionId,
@@ -195,7 +188,6 @@ impl SourceType {
             SourceType::Class(..) => TyKind::Class,
             SourceType::Unit | SourceType::Tuple(..) => TyKind::Tuple,
             SourceType::Assoc { .. } => TyKind::Assoc,
-            SourceType::GenericAssoc { .. } => TyKind::GenericAssoc,
             SourceType::Ref(..) => TyKind::Ref,
         }
     }
@@ -231,13 +223,6 @@ impl SourceType {
     pub fn is_assoc(&self) -> bool {
         match self {
             SourceType::Assoc { .. } => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_generic_assoc(&self) -> bool {
-        match self {
-            SourceType::GenericAssoc { .. } => true,
             _ => false,
         }
     }
@@ -312,8 +297,7 @@ impl SourceType {
                 type_params.iter().any(|ty| ty.contains_type_param())
                     || bindings.iter().any(|ty| ty.contains_type_param())
             }
-            SourceType::Assoc { trait_ty, .. } => trait_ty.contains_type_param(),
-            SourceType::GenericAssoc { ty, trait_ty, .. } => {
+            SourceType::Assoc { ty, trait_ty, .. } => {
                 ty.contains_type_param() || trait_ty.contains_type_param()
             }
             SourceType::Lambda(params, return_type, _) => {
@@ -582,7 +566,6 @@ impl SourceType {
             | SourceType::TypeParam(..)
             | SourceType::TypeVar(..)
             | SourceType::Lambda(..)
-            | SourceType::GenericAssoc { .. }
             | SourceType::Ref(..) => *self == other,
             SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
                 *self == other
@@ -628,7 +611,7 @@ impl SourceType {
             | SourceType::Lambda(..)
             | SourceType::TypeParam(_)
             | SourceType::This => true,
-            SourceType::Assoc { trait_ty, .. } | SourceType::GenericAssoc { trait_ty, .. } => {
+            SourceType::Assoc { trait_ty, .. } => {
                 for ty in trait_ty.type_params.iter() {
                     if !ty.is_defined_type(sa) {
                         return false;
@@ -730,7 +713,6 @@ impl SourceType {
             | SourceType::TypeParam(_)
             | SourceType::TypeVar(_)
             | SourceType::Assoc { .. }
-            | SourceType::GenericAssoc { .. }
             | SourceType::Ref(..) => false,
         }
     }
@@ -753,9 +735,7 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
         | SourceType::TypeVar(..)
         | SourceType::Assoc { .. } => false,
 
-        SourceType::Alias(..) | SourceType::GenericAssoc { .. } => {
-            unimplemented!()
-        }
+        SourceType::Alias(..) => unimplemented!(),
         SourceType::Class(_, params)
         | SourceType::Enum(_, params)
         | SourceType::Struct(_, params) => {
@@ -1257,18 +1237,18 @@ impl<'a> SourceTypePrinter<'a> {
                 }
             }
 
-            SourceType::Assoc { assoc_id, .. } => {
-                let alias = self.sa.alias(assoc_id);
-                let name = self.sa.interner.str(alias.name).to_string();
-
-                format!("Self::{}", name)
-            }
-
-            SourceType::GenericAssoc {
+            SourceType::Assoc {
                 ty,
                 trait_ty,
                 assoc_id,
             } => {
+                let alias = self.sa.alias(assoc_id);
+                let alias_name = self.sa.interner.str(alias.name);
+
+                if ty.is_self() {
+                    return format!("Self::{}", alias_name);
+                }
+
                 let ty_name = SourceTypePrinter {
                     sa: self.sa,
                     type_params: self.type_params,
@@ -1277,9 +1257,6 @@ impl<'a> SourceTypePrinter<'a> {
 
                 let trait_ = self.sa.trait_(trait_ty.trait_id);
                 let trait_name = self.sa.interner.str(trait_.name);
-
-                let alias = self.sa.alias(assoc_id);
-                let alias_name = self.sa.interner.str(alias.name);
 
                 format!("[{} as {}]::{}", ty_name, trait_name, alias_name)
             }

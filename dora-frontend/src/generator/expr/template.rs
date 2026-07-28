@@ -45,7 +45,7 @@ pub(super) fn gen_expr_template(
 
             if ty.cls_id() == Some(g.sa.known.classes.string()) {
                 gen_expr(g, part_id, DataDest::Reg(part_register));
-            } else if ty.is_type_param() || ty.is_assoc() || ty.is_generic_assoc() {
+            } else if ty.is_type_param() || ty.is_assoc() {
                 let expr_register = gen_expr(g, part_id, DataDest::Alloc);
 
                 // build to_string() call

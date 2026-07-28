@@ -70,7 +70,6 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         | SourceType::This
         | SourceType::TypeVar(..)
         | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. }
         | SourceType::Ref(..) => {
             unreachable!()
         }
@@ -661,28 +660,6 @@ fn trait_and_impl_arg_ty_compatible(
             }
         }
 
-        SourceType::Assoc { assoc_id, .. } => {
-            let Some((alias_id, ty)) = trait_alias_map.get(&assoc_id) else {
-                return SourceType::Error.allows(sa, impl_arg_ty);
-            };
-            let alias = sa.alias(*alias_id);
-            let definition = alias.type_param_definition(sa);
-
-            if definition.own_type_params_len() != trait_type_args.own_len() {
-                return false;
-            }
-
-            let container_type_params = definition.container_identity_type_params(sa);
-            let alias_type_args = TypeArgs::from_parts(
-                sa,
-                definition,
-                &container_type_params,
-                trait_type_args.own(),
-                None,
-            );
-            specialize_type(sa, ty.clone(), &alias_type_args).allows(sa, impl_arg_ty)
-        }
-
         SourceType::TypeParam(id) => trait_type_args[id].allows(sa, impl_arg_ty),
 
         SourceType::This => self_ty.allows(sa, impl_arg_ty),
@@ -698,16 +675,38 @@ fn trait_and_impl_arg_ty_compatible(
 
         SourceType::Error => true,
 
-        SourceType::GenericAssoc {
+        SourceType::Assoc {
             ty,
             trait_ty,
             assoc_id,
         } => {
+            if ty.is_self() {
+                let Some((alias_id, ty)) = trait_alias_map.get(&assoc_id) else {
+                    return SourceType::Error.allows(sa, impl_arg_ty);
+                };
+                let alias = sa.alias(*alias_id);
+                let definition = alias.type_param_definition(sa);
+
+                if definition.own_type_params_len() != trait_type_args.own_len() {
+                    return false;
+                }
+
+                let container_type_params = definition.container_identity_type_params(sa);
+                let alias_type_args = TypeArgs::from_parts(
+                    sa,
+                    definition,
+                    &container_type_params,
+                    trait_type_args.own(),
+                    None,
+                );
+                return specialize_type(sa, ty.clone(), &alias_type_args).allows(sa, impl_arg_ty);
+            }
+
             let trait_ty = specialize_trait_type(sa, trait_ty, &trait_type_args);
 
             match impl_arg_ty {
-                // If impl also has matching GenericAssoc, compare inner types recursively
-                SourceType::GenericAssoc {
+                // If impl also has a matching associated type, compare inner types recursively.
+                SourceType::Assoc {
                     ty: impl_ty,
                     trait_ty: impl_trait_ty,
                     assoc_id: impl_assoc_id,
@@ -1097,7 +1096,6 @@ fn find_super_trait_witness(
         SourceType::Alias(..)
         | SourceType::This
         | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. }
         | SourceType::Ref(..)
         | SourceType::Any
         | SourceType::TypeVar(..) => unreachable!(),

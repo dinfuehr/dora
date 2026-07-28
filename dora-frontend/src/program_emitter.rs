@@ -1311,12 +1311,7 @@ impl Emitter {
                 assert!(type_params.is_empty());
                 BytecodeType::TypeAlias(self.convert_alias_id(sa, id))
             }
-            SourceType::Assoc { trait_ty, assoc_id } => BytecodeType::Assoc {
-                ty: Box::new(self.convert_ty(sa, SourceType::This)),
-                trait_ty: self.convert_trait_ty(sa, &trait_ty),
-                assoc_id: self.convert_alias_id(sa, assoc_id),
-            },
-            SourceType::GenericAssoc {
+            SourceType::Assoc {
                 ty,
                 trait_ty,
                 assoc_id,

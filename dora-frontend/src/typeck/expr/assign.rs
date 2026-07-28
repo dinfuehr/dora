@@ -911,7 +911,6 @@ fn check_expr_assign_unnamed_field(
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
         | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. }
         | SourceType::Ref(..) => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);

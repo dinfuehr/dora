@@ -596,6 +596,7 @@ fn check_expr_call_self_assoc_type_static_method(
     let parent_trait_ty = find_super_trait_ty(ck.sa, &current_trait_ty, parent_trait_id)
         .expect("super trait not found for associated type");
     let assoc_type = SourceType::Assoc {
+        ty: Box::new(SourceType::This),
         trait_ty: parent_trait_ty,
         assoc_id: alias_id,
     };
@@ -681,7 +682,7 @@ fn check_expr_call_generic_assoc_static_method(
     let mut matched_methods = Vec::new();
     let interned_method_name = ck.sa.interner.intern(&method_name);
 
-    let assoc_type = SourceType::GenericAssoc {
+    let assoc_type = SourceType::Assoc {
         ty: Box::new(SourceType::TypeParam(tp_id)),
         trait_ty: container_trait_ty,
         assoc_id,
@@ -863,7 +864,7 @@ fn check_expr_call_qualified_path(
         return ty_error();
     }
 
-    let assoc_type = SourceType::GenericAssoc {
+    let assoc_type = SourceType::Assoc {
         ty: Box::new(ty),
         trait_ty: trait_ty.clone(),
         assoc_id,
@@ -2265,7 +2266,7 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
             arg_allows(sa, alias.ty(), arg, self_ty.clone())
         }
 
-        SourceType::Assoc { .. } | SourceType::GenericAssoc { .. } => def == arg,
+        SourceType::Assoc { .. } => def == arg,
 
         SourceType::Ref(inner) => match arg {
             SourceType::Ref(other_inner) => arg_allows(sa, *inner, *other_inner, self_ty),

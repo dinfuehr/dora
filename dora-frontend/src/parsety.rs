@@ -239,6 +239,7 @@ pub(crate) fn ty_for_sym(sa: &Sema, sym: SymbolKind, type_params: SourceTypeArra
                 let trait_id = alias.parent.to_trait_id().expect("trait expected");
                 let trait_ty = TraitType::from_trait_id(trait_id);
                 SourceType::Assoc {
+                    ty: Box::new(SourceType::This),
                     trait_ty,
                     assoc_id: id,
                 }
@@ -445,37 +446,36 @@ pub(crate) fn expand_st(
             expand_st(sa, element, alias_ty, replace_self)
         }
 
-        SourceType::Assoc { assoc_id, .. } => {
-            let element = parent_element_or_self(sa, element);
-            if let Some(impl_) = element.to_impl() {
-                let impl_alias_id = impl_.trait_alias_map().get(&assoc_id).cloned();
-                if let Some(impl_alias_id) = impl_alias_id {
-                    let impl_alias = sa.alias(impl_alias_id);
-                    expand_st(sa, element, impl_alias.ty(), replace_self)
-                } else {
-                    SourceType::Error
-                }
-            } else if element.is_trait() {
-                ty
-            } else {
-                unreachable!()
-            }
-        }
-
-        SourceType::GenericAssoc {
-            ty,
+        SourceType::Assoc {
+            ty: assoc_ty,
             trait_ty,
             assoc_id,
         } => {
-            if let Some((_, resolved_ty)) = trait_ty.bindings.iter().find(|(x, _)| *x == *assoc_id)
+            if assoc_ty.is_self() {
+                let element = parent_element_or_self(sa, element);
+                if let Some(impl_) = element.to_impl() {
+                    let impl_alias_id = impl_.trait_alias_map().get(assoc_id).cloned();
+                    if let Some(impl_alias_id) = impl_alias_id {
+                        let impl_alias = sa.alias(impl_alias_id);
+                        expand_st(sa, element, impl_alias.ty(), replace_self)
+                    } else {
+                        SourceType::Error
+                    }
+                } else if element.is_trait() {
+                    ty
+                } else {
+                    unreachable!()
+                }
+            } else if let Some((_, resolved_ty)) =
+                trait_ty.bindings.iter().find(|(x, _)| *x == *assoc_id)
             {
                 expand_st(sa, element, resolved_ty.clone(), replace_self)
             } else {
-                SourceType::GenericAssoc {
+                SourceType::Assoc {
                     ty: Box::new(expand_st(
                         sa,
                         element,
-                        ty.as_ref().clone(),
+                        assoc_ty.as_ref().clone(),
                         replace_self.clone(),
                     )),
                     trait_ty: expand_trait_ty(sa, element, trait_ty, replace_self),

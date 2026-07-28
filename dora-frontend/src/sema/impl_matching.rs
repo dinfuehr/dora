@@ -100,7 +100,7 @@ fn implements_trait_inner(
 
         SourceType::TypeParam(tp_id) => check_type_param_defs.implements_trait(sa, tp_id, trait_ty),
 
-        check_ty @ SourceType::Assoc { .. } | check_ty @ SourceType::GenericAssoc { .. } => {
+        check_ty @ SourceType::Assoc { .. } => {
             associated_type_bounds(sa, &check_ty, check_type_param_defs)
                 .into_iter()
                 .any(|bound| bound.implements_trait(sa, &trait_ty))
@@ -152,8 +152,7 @@ pub fn associated_type_bounds(
     type_param_definition: &TypeParamDefinition,
 ) -> Vec<TraitType> {
     let (assoc_trait_ty, assoc_id) = match check_ty {
-        SourceType::Assoc { trait_ty, assoc_id }
-        | SourceType::GenericAssoc {
+        SourceType::Assoc {
             trait_ty, assoc_id, ..
         } => (trait_ty, *assoc_id),
         _ => unreachable!(),
@@ -391,24 +390,11 @@ impl ImplTypeUnifier {
             }
             (
                 SourceType::Assoc {
-                    trait_ty: first_trait_ty,
-                    assoc_id: first_assoc_id,
-                },
-                SourceType::Assoc {
-                    trait_ty: second_trait_ty,
-                    assoc_id: second_assoc_id,
-                },
-            ) => {
-                first_assoc_id == second_assoc_id
-                    && self.unify_trait_types(first_trait_ty, second_trait_ty)
-            }
-            (
-                SourceType::GenericAssoc {
                     ty: first_ty,
                     trait_ty: first_trait_ty,
                     assoc_id: first_assoc_id,
                 },
-                SourceType::GenericAssoc {
+                SourceType::Assoc {
                     ty: second_ty,
                     trait_ty: second_trait_ty,
                     assoc_id: second_assoc_id,
@@ -481,15 +467,11 @@ impl ImplTypeUnifier {
                 self.resolve_array(params),
                 self.resolve_array(bindings),
             ),
-            SourceType::Assoc { trait_ty, assoc_id } => SourceType::Assoc {
-                trait_ty: self.resolve_trait_type(trait_ty),
-                assoc_id,
-            },
-            SourceType::GenericAssoc {
+            SourceType::Assoc {
                 ty,
                 trait_ty,
                 assoc_id,
-            } => SourceType::GenericAssoc {
+            } => SourceType::Assoc {
                 ty: Box::new(self.resolve(*ty)),
                 trait_ty: self.resolve_trait_type(trait_ty),
                 assoc_id,
@@ -552,10 +534,7 @@ impl ImplTypeUnifier {
                         .iter()
                         .any(|ty| self.contains_type_param(&ty, expected_id))
             }
-            SourceType::Assoc { trait_ty, .. } => {
-                self.trait_contains_type_param(&trait_ty, expected_id)
-            }
-            SourceType::GenericAssoc { ty, trait_ty, .. } => {
+            SourceType::Assoc { ty, trait_ty, .. } => {
                 self.contains_type_param(&ty, expected_id)
                     || self.trait_contains_type_param(&trait_ty, expected_id)
             }

@@ -78,7 +78,6 @@ pub(super) fn check_expr_field_named(
         | SourceType::Tuple(..)
         | SourceType::Alias(..)
         | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. }
         | SourceType::Ref(..) => {}
         SourceType::TypeVar(..) => unreachable!(),
         SourceType::Class(cls_id, class_type_params) => {
@@ -188,7 +187,6 @@ fn check_expr_field_unnamed(
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
         | SourceType::Assoc { .. }
-        | SourceType::GenericAssoc { .. }
         | SourceType::Ref(..) => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);

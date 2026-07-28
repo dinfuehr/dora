@@ -184,7 +184,7 @@ fn convert_type_ref_inner(
                     alias_id,
                     tp_id,
                     trait_ty,
-                } => SourceType::GenericAssoc {
+                } => SourceType::Assoc {
                     ty: Box::new(SourceType::TypeParam(tp_id)),
                     trait_ty,
                     assoc_id: alias_id,
@@ -202,7 +202,11 @@ fn convert_type_ref_inner(
                     if let Some(trait_ty) = current_trait_ty(sa, ctxt_element)
                         .and_then(|current| find_super_trait_ty(sa, &current, parent_trait_id))
                     {
-                        SourceType::Assoc { trait_ty, assoc_id }
+                        SourceType::Assoc {
+                            ty: Box::new(SourceType::This),
+                            trait_ty,
+                            assoc_id,
+                        }
                     } else {
                         SourceType::Error
                     }
@@ -264,7 +268,7 @@ fn convert_type_ref_qualified_path(
         None => return SourceType::Error,
     };
 
-    SourceType::GenericAssoc {
+    SourceType::Assoc {
         ty: Box::new(inner_ty),
         trait_ty,
         assoc_id,

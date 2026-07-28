@@ -76,7 +76,7 @@ fn emit_trait_method_call_with_type_params(
     arguments: &[Register],
     location: Location,
 ) {
-    let is_generic = value_ty.is_type_param() || value_ty.is_assoc() || value_ty.is_generic_assoc();
+    let is_generic = value_ty.is_type_param() || value_ty.is_assoc();
     let callee_idx = if is_generic {
         builder.add_const(ConstPoolEntry::Generic {
             object_type: emitter.convert_ty(sa, value_ty),
