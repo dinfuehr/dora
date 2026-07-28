@@ -1,0 +1,30 @@
+fn f:
+  0: NewLambda r1, @0, r2 # $Lambda1
+  5: Mov r0, r1
+  8: Ret r2
+
+  Registers:
+   0 => ((Int32, Int32, Int32): Int32): Int32
+   1 => ((Int32, Int32, Int32): Int32): Int32
+   2 => ()
+
+  Constants:
+   0 => Fct lamba::$Lambda1
+
+  Locations:
+   0 => 2:19
+
+fn lamba::$Lambda1:
+  0: ConstInt32 r2, @0 # 0
+  3: Ret r2
+
+  Registers:
+   0 => class $Lambda[()]
+   1 => (Int32, Int32, Int32): Int32
+   2 => Int32
+
+  Constants:
+   0 => Int32 0
+
+  Locations:
+

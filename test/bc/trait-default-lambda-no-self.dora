@@ -1,0 +1,6 @@
+trait Foo {
+    fn value(): Int64 {
+        let lambda = ||: Int64 { 1 };
+        lambda()
+    }
+}

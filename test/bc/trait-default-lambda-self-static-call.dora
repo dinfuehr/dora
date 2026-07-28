@@ -1,0 +1,7 @@
+trait Foo {
+    static fn make(): Self;
+
+    static fn factory(): (): Self {
+        ||: Self { Self::make() }
+    }
+}

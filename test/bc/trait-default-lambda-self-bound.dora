@@ -1,0 +1,10 @@
+trait Value {
+    fn value(): Int64;
+}
+
+trait Foo {
+    fn through_bound(): Int64 where Self: Value {
+        let lambda = ||: Int64 { self.value() };
+        lambda()
+    }
+}

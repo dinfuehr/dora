@@ -1,0 +1,23 @@
+fn sink[T]:
+  0: Ret r0
+
+  Registers:
+   0 => ()
+
+  Constants:
+
+  Locations:
+
+fn f:
+  0: InvokeStatic r0, @0 # sink[T]
+  4: Ret r0
+
+  Registers:
+   0 => ()
+
+  Constants:
+   0 => Fct sink[(Int32): Int32]
+
+  Locations:
+   0 => 4:5
+

@@ -1,0 +1,3 @@
+fn f() {
+    let _invoke = |callback: (Int32, Int32, Int32): Int32|: Int32 { 0 };
+}

@@ -1,0 +1,16 @@
+fn f:
+  0: NewEnum r1, @0 # Option[(Int32, Int32, Int32, Int32): Int32]::None
+  4: Mov r0, r1
+  7: Ret r2
+
+  Registers:
+   0 => enum Option[(Int32, Int32, Int32, Int32): Int32]
+   1 => enum Option[(Int32, Int32, Int32, Int32): Int32]
+   2 => ()
+
+  Constants:
+   0 => EnumVariant std::primitives::Option[(Int32, Int32, Int32, Int32): Int32]::None
+
+  Locations:
+   0 => 2:18
+

@@ -1,0 +1,5 @@
+trait Maker {
+    fn make(): (Self): Bool {
+        |_: Self|: Bool { true }
+    }
+}

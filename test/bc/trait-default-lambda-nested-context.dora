@@ -1,0 +1,14 @@
+trait Foo[T] {
+    type Item;
+
+    fn item(): Self::Item;
+
+    fn nested[U](extra: U): (Self::Item, U) {
+        let outer = ||: (): (Self::Item, U) {
+            let inner = ||: (Self::Item, U) { (self.item(), extra) };
+            inner
+        };
+
+        outer()()
+    }
+}

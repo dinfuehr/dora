@@ -1,0 +1,28 @@
+fn Maker::make[$Self]:
+  0: NewLambda r1, @0, r2 # $Lambda1
+  5: Ret r1
+
+  Registers:
+   0 => $Self
+   1 => ($Self): Bool
+   2 => ()
+
+  Constants:
+   0 => Fct lamba::$Lambda1[T#0]
+
+  Locations:
+   0 => 3:9
+
+fn lamba::$Lambda1[$Self]:
+  0: ConstTrue r2
+  2: Ret r2
+
+  Registers:
+   0 => class $Lambda[()]
+   1 => $Self
+   2 => Bool
+
+  Constants:
+
+  Locations:
+

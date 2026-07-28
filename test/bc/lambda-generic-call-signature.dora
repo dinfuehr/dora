@@ -1,0 +1,5 @@
+fn sink[T]() {}
+
+fn f() {
+    sink[(Int32): Int32]();
+}
