@@ -1,3 +1,13 @@
+enum Payload:
+  Empty
+  Integer(Int32)
+  Pair(Int32, Bool)
+
+enum Color:
+  Red
+  Green
+  Blue
+
 fn equals[T]:
   0: InvokeGenericDirect r2, @0, r0, r1 # std::traits::Equals::equals
   6: Ret r2

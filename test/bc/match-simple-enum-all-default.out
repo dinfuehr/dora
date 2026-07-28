@@ -1,3 +1,11 @@
+enum Kind:
+  A
+  B
+  C
+  D
+  E
+  F
+
 fn f:
   0: LoadEnumVariant r2, r0, @0 # Kind
   4: Jump 9 (+5)

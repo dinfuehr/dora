@@ -1,3 +1,7 @@
+enum Foo:
+  A(Int32)
+  B
+
 fn f:
   0: ConstInt32 r0, @0 # 10
   3: NewEnum r1, @1, r0 # Foo::A

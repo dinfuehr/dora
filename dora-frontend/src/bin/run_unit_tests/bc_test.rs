@@ -3,8 +3,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use dora_bytecode::{
-    BytecodeType, FunctionId, ModuleId, Program, TypeParamData, TypeParamMode, display_fct, dump,
-    fmt_ty, module_path_name,
+    BytecodeType, EnumData, FunctionId, ModuleId, Program, TypeParamData, TypeParamMode,
+    display_fct, dump, fmt_ty, module_path_name,
 };
 use dora_frontend::sema::{Sema, SemaCreationParams};
 use dora_frontend::{check_program, emit_program};
@@ -139,6 +139,12 @@ fn dump_type_definitions(output: &mut String, program: &Program) {
             );
         }
     }
+
+    for enum_ in &program.enums {
+        if is_program_module(program, enum_.module_id) {
+            dump_enum_definition(output, program, enum_);
+        }
+    }
 }
 
 fn dump_type_definition<'a>(
@@ -150,19 +156,7 @@ fn dump_type_definition<'a>(
     type_params: &'a TypeParamData,
     fields: impl Iterator<Item = (Option<&'a str>, &'a BytecodeType)>,
 ) {
-    write!(
-        output,
-        "{} {}",
-        kind,
-        module_path_name(program, module_id, name)
-    )
-    .unwrap();
-
-    if !type_params.names.is_empty() {
-        write!(output, "[{}]", type_params.names.join(", ")).unwrap();
-    }
-
-    writeln!(output, ":").unwrap();
+    dump_type_definition_header(output, program, kind, module_id, name, type_params);
 
     for (idx, (name, ty)) in fields.enumerate() {
         let name = name
@@ -178,4 +172,90 @@ fn dump_type_definition<'a>(
     }
 
     writeln!(output).unwrap();
+}
+
+fn dump_enum_definition(output: &mut String, program: &Program, enum_: &EnumData) {
+    dump_type_definition_header(
+        output,
+        program,
+        "enum",
+        enum_.module_id,
+        &enum_.name,
+        &enum_.type_params,
+    );
+
+    for variant in &enum_.variants {
+        write!(output, "  {}", variant.name).unwrap();
+
+        if !variant.fields.is_empty() {
+            write!(output, "(").unwrap();
+
+            for (idx, field) in variant.fields.iter().enumerate() {
+                if idx > 0 {
+                    write!(output, ", ").unwrap();
+                }
+
+                if let Some(name) = &field.name {
+                    write!(output, "{}: ", name).unwrap();
+                }
+
+                write!(
+                    output,
+                    "{}",
+                    fmt_ty(
+                        program,
+                        &field.ty,
+                        TypeParamMode::TypeParams(&enum_.type_params),
+                        false,
+                    )
+                )
+                .unwrap();
+            }
+
+            write!(output, ")").unwrap();
+        }
+
+        writeln!(output).unwrap();
+    }
+
+    writeln!(output).unwrap();
+}
+
+fn dump_type_definition_header(
+    output: &mut String,
+    program: &Program,
+    kind: &str,
+    module_id: ModuleId,
+    name: &str,
+    type_params: &TypeParamData,
+) {
+    write!(
+        output,
+        "{} {}",
+        kind,
+        module_path_name(program, module_id, name)
+    )
+    .unwrap();
+
+    if !type_params.names.is_empty() {
+        write!(output, "[{}]", type_params.names.join(", ")).unwrap();
+    }
+
+    writeln!(output, ":").unwrap();
+}
+
+fn is_program_module(program: &Program, mut module_id: ModuleId) -> bool {
+    let program_module_id = program.program_module_id();
+
+    loop {
+        if module_id == program_module_id {
+            return true;
+        }
+
+        let Some(parent_id) = program.module(module_id).parent_id else {
+            return false;
+        };
+
+        module_id = parent_id;
+    }
 }
