@@ -1,0 +1,25 @@
+error: `ref` type is not allowed here.
+--> ref-type-field.dora:4:5
+ | 
+ | class ClassWithRef {
+ |     value: ref Int32,
+       ~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `ref` type is not allowed here.
+--> ref-type-field.dora:8:5
+ | 
+ | struct StructWithRef {
+ |     value: ref Int32,
+       ~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `ref` type is not allowed here.
+--> ref-type-field.dora:12:13
+ | 
+ | enum EnumWithRef {
+ |     Value { value: ref Int32 },
+               ~~~~~~~~~~~~~~~~
+ | }
+ | 
+3 errors found.

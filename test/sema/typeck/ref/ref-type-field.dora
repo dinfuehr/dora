@@ -1,0 +1,13 @@
+//= error
+
+class ClassWithRef {
+    value: ref Int32,
+}
+
+struct StructWithRef {
+    value: ref Int32,
+}
+
+enum EnumWithRef {
+    Value { value: ref Int32 },
+}

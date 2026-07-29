@@ -1,0 +1,16 @@
+error: `ref` type is not allowed here.
+--> ref-trait-bound.dora:9:20
+ | }
+ | 
+ | fn left[T]() where ref Int32: Bound {}
+                      ~~~~~~~~~
+ | 
+ | fn binding[T: Associated[Item=ref Int32]]() {}
+error: `ref` type is not allowed here.
+--> ref-trait-bound.dora:11:15
+ | fn left[T]() where ref Int32: Bound {}
+ | 
+ | fn binding[T: Associated[Item=ref Int32]]() {}
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | 
+2 errors found.

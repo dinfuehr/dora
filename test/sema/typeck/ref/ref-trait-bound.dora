@@ -1,0 +1,11 @@
+//= error
+
+trait Bound {}
+
+trait Associated {
+    type Item;
+}
+
+fn left[T]() where ref Int32: Bound {}
+
+fn binding[T: Associated[Item=ref Int32]]() {}

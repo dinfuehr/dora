@@ -6,7 +6,7 @@ use crate::sema::{
     AliasDefinitionId, Element, Sema, SourceFileId, TraitDefinition, TraitDefinitionId,
     TypeContext, TypeParamDefinition, TypeRefId, check_trait_type_ref, check_type_ref,
     convert_trait_type_ref, convert_type_ref, implements_trait, parent_element_or_self,
-    parse_type_ref,
+    parse_type_ref, type_ref_span,
 };
 use crate::sym::{ModuleSymTable, SymbolKind};
 use crate::{
@@ -59,6 +59,14 @@ impl ParsedType {
 
     pub fn set_ty(&self, ty: SourceType) {
         *self.ty.borrow_mut() = Some(ty);
+    }
+
+    pub fn span(&self, sa: &Sema, element: &dyn Element) -> Span {
+        if let Some(type_ref_id) = self.type_ref_id {
+            type_ref_span(sa, element.type_ref_arena(), element.file_id(), type_ref_id)
+        } else {
+            element.span()
+        }
     }
 
     pub fn parse(&self, sa: &Sema, table: &ModuleSymTable, element: &dyn Element) {
@@ -140,6 +148,14 @@ impl ParsedTraitType {
 
     pub fn set_ty(&self, ty: Option<TraitType>) {
         *self.ty.borrow_mut() = ty;
+    }
+
+    pub fn span(&self, sa: &Sema, element: &dyn Element) -> Span {
+        if let Some(type_ref_id) = self.type_ref_id {
+            type_ref_span(sa, element.type_ref_arena(), element.file_id(), type_ref_id)
+        } else {
+            element.span()
+        }
     }
 
     /// Get the trait ID from the underlying TraitType, if available.

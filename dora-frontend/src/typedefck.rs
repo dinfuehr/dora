@@ -1,3 +1,5 @@
+use crate::args;
+use crate::error::diagnostics as diag;
 use crate::sema::{AliasParent, Element, FctDefinition, FctParent, Sema, TypeParamDefinition};
 use crate::{ModuleSymTable, SourceType, SymbolKind, parsety};
 
@@ -438,8 +440,20 @@ fn expand_function_types(sa: &Sema) {
             p.parsed_ty().expand(sa, fct, replace_self.clone());
         }
 
-        fct.parsed_return_type()
+        let return_type = fct
+            .parsed_return_type()
             .expand(sa, fct, replace_self.clone());
+
+        if return_type.contains_ref_type() {
+            sa.report(
+                fct.file_id,
+                fct.parsed_return_type().span(sa, fct),
+                &diag::REF_TYPE_NOT_ALLOWED,
+                args!(),
+            );
+            fct.parsed_return_type().set_ty(SourceType::Error);
+        }
+
         expand_type_param_definition(sa, fct, fct.type_param_definition(sa), replace_self);
     }
 }
@@ -476,8 +490,7 @@ fn expand_const_types(sa: &Sema) {
 fn expand_class_types(sa: &Sema) {
     for (_id, cls) in sa.classes.iter() {
         for &field_id in cls.field_ids() {
-            let field = sa.field(field_id);
-            field.parsed_ty().expand(sa, cls, None);
+            expand_field_type(sa, cls, field_id);
         }
 
         expand_type_param_definition(sa, cls, cls.type_param_definition(sa), None);
@@ -487,8 +500,7 @@ fn expand_class_types(sa: &Sema) {
 fn expand_struct_types(sa: &Sema) {
     for (_id, struct_) in sa.structs.iter() {
         for &field_id in struct_.field_ids() {
-            let field = sa.field(field_id);
-            field.parsed_ty().expand(sa, struct_, None);
+            expand_field_type(sa, struct_, field_id);
         }
 
         expand_type_param_definition(sa, struct_, struct_.type_param_definition(sa), None);
@@ -500,12 +512,26 @@ fn expand_enum_types(sa: &Sema) {
         for &variant_id in enum_.variant_ids() {
             let variant = sa.variant(variant_id);
             for &field_id in variant.field_ids() {
-                let field = sa.field(field_id);
-                field.parsed_ty().expand(sa, enum_, None);
+                expand_field_type(sa, enum_, field_id);
             }
         }
 
         expand_type_param_definition(sa, enum_, enum_.type_param_definition(sa), None);
+    }
+}
+
+fn expand_field_type(sa: &Sema, element: &dyn Element, field_id: crate::sema::FieldDefinitionId) {
+    let field = sa.field(field_id);
+    let ty = field.parsed_ty().expand(sa, element, None);
+
+    if ty.contains_ref_type() {
+        sa.report(
+            element.file_id(),
+            field.span(),
+            &diag::REF_TYPE_NOT_ALLOWED,
+            args!(),
+        );
+        field.parsed_ty().set_ty(SourceType::Error);
     }
 }
 
@@ -516,13 +542,38 @@ fn expand_type_param_definition(
     replace_self: Option<SourceType>,
 ) {
     for bound in type_param_definition.own_bounds(sa) {
-        bound.parsed_ty().expand(sa, element, replace_self.clone());
+        let ty = bound.parsed_ty().expand(sa, element, replace_self.clone());
+
+        if ty.contains_ref_type() {
+            sa.report(
+                element.file_id(),
+                bound.parsed_ty().span(sa, element),
+                &diag::REF_TYPE_NOT_ALLOWED,
+                args!(),
+            );
+            bound.parsed_ty().set_ty(SourceType::Error);
+        }
+
         parsety::expand_parsed_trait_type(
             sa,
             element,
             bound.parsed_trait_ty(),
             replace_self.clone(),
         );
+
+        if bound
+            .parsed_trait_ty()
+            .ty()
+            .is_some_and(|ty| ty.contains_ref_type())
+        {
+            sa.report(
+                element.file_id(),
+                bound.parsed_trait_ty().span(sa, element),
+                &diag::REF_TYPE_NOT_ALLOWED,
+                args!(),
+            );
+            bound.parsed_trait_ty().set_ty(None);
+        }
     }
 }
 

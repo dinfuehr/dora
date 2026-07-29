@@ -477,6 +477,11 @@ pub static REF_REQUIRES_VARIABLE_OR_FIELD: DiagnosticDescriptor = DiagnosticDesc
     level: ErrorLevel::Error,
 };
 
+pub static REF_TYPE_NOT_ALLOWED: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`ref` type is not allowed here.",
+    level: ErrorLevel::Error,
+};
+
 pub static INVALID_LHS_ASSIGNMENT: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "invalid left-hand-side of assignment.",
     level: ErrorLevel::Error,

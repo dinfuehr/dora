@@ -1,0 +1,5 @@
+//= error
+
+fn identity(value: ref Int32): ref Int32 {
+    value
+}
