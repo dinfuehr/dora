@@ -201,7 +201,7 @@ pub extern "C" fn capture_stack_trace(mut obj: Handle<Stacktrace>) {
         array.set_at(i + 1, elem.offset as i32);
         i += 2;
     }
-    obj.backtrace = array.direct();
+    obj.set_backtrace(array.direct());
 }
 
 #[dora_native("std::symbolize_stacktrace_element")]
@@ -233,7 +233,8 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
         "{} ({}:{})",
         function_info.name, function_info.file, location
     );
-    obj.text = Str::from_buffer(rt, text.as_bytes());
+    let text = Str::from_buffer(rt, text.as_bytes());
+    obj.set_text(text);
     obj.inlined_function_id = next_inlined_function_id.0 as i32;
 }
 

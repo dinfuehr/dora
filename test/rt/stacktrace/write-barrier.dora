@@ -1,0 +1,6 @@
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-stress --gc-verify"
+
+fn main() {
+    std::Stacktrace::new().symbolize();
+}

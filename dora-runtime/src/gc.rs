@@ -15,7 +15,7 @@ use crate::gc::tlab::MAX_TLAB_OBJECT_SIZE;
 pub use crate::gc::worklist::{Worklist, WorklistSegment};
 use crate::gc::zero::ZeroCollector;
 use crate::mem;
-use crate::mirror::{Header, Object};
+use crate::mirror::{Header, Object, Ref};
 use crate::runtime::{CollectorName, Runtime, RuntimeFlags, Trap};
 use crate::safepoint;
 use crate::snapshot::SnapshotGenerator;
@@ -45,6 +45,17 @@ pub const M: usize = K * K;
 
 const CHUNK_SIZE: usize = 8 * K;
 pub const DEFAULT_READONLY_SPACE_LIMIT: usize = 2 * M;
+
+#[inline]
+pub(crate) fn write_barrier<R>(header: &Header, value: Ref<R>) {
+    let rt = crate::runtime::get_runtime();
+    let object_address = Address::from_ptr(header);
+    let value_address = value.address();
+
+    if rt.gc.needs_write_barrier() && value_address.is_non_null() && !header.is_remembered() {
+        swiper::object_write_barrier_slow_path(object_address, value_address);
+    }
+}
 
 pub struct Gc {
     collector: Box<dyn Collector + Sync>,

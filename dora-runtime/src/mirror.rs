@@ -262,6 +262,11 @@ impl Header {
         self.word.set_remembered()
     }
 
+    #[inline]
+    pub fn write_barrier<T>(&self, value: Ref<T>) {
+        crate::gc::write_barrier(self, value);
+    }
+
     pub fn compute_header_word(
         vtblptr: Address,
         shape_base: Address,
@@ -678,14 +683,33 @@ pub fn alloc(rt: &Runtime, shape: &Shape) -> Ref<Object> {
 #[repr(C)]
 pub struct Stacktrace {
     pub header: Header,
-    pub backtrace: Ref<Int32Array>,
-    pub elements: Ref<Object>,
+    backtrace: Ref<Int32Array>,
+    elements: Ref<Object>,
+}
+
+impl Stacktrace {
+    pub fn set_backtrace(&mut self, value: Ref<Int32Array>) {
+        self.backtrace = value;
+        self.header.write_barrier(value);
+    }
+
+    pub fn set_elements(&mut self, value: Ref<Object>) {
+        self.elements = value;
+        self.header.write_barrier(value);
+    }
 }
 
 #[repr(C)]
 pub struct StacktraceElement {
     pub header: Header,
-    pub text: Ref<Str>,
+    text: Ref<Str>,
+}
+
+impl StacktraceElement {
+    pub fn set_text(&mut self, value: Ref<Str>) {
+        self.text = value;
+        self.header.write_barrier(value);
+    }
 }
 
 #[repr(C)]
@@ -694,6 +718,13 @@ pub struct StacktraceIterator {
     pub header: Header,
     pub code_id: i32,
     pub offset: i32,
-    pub text: Ref<Str>,
+    text: Ref<Str>,
     pub inlined_function_id: i32,
+}
+
+impl StacktraceIterator {
+    pub fn set_text(&mut self, value: Ref<Str>) {
+        self.text = value;
+        self.header.write_barrier(value);
+    }
 }
