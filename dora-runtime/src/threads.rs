@@ -6,10 +6,12 @@ use std::ptr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 
+use dora_runtime_macros::dora_object;
+
 use crate::gc::swiper::get_swiper;
 use crate::gc::{Address, K, Region, WorklistSegment, tlab};
 use crate::handle::HandleMemory;
-use crate::mirror::{Header, Ref, alloc};
+use crate::mirror::{Ref, alloc};
 use crate::runtime::{Runtime, get_runtime};
 use crate::stack::DoraToNativeInfo;
 use dora_compiler::ThreadState;
@@ -570,9 +572,8 @@ impl BarrierData {
     }
 }
 
-#[repr(C)]
+#[dora_object]
 pub struct ManagedThread {
-    header: Header,
     native_thread_ptr: u64,
     id: u64,
 }
@@ -580,22 +581,17 @@ pub struct ManagedThread {
 impl ManagedThread {
     pub fn alloc(rt: &Runtime) -> Ref<ManagedThread> {
         let mut managed_thread: Ref<ManagedThread> = alloc(rt, rt.known.thread_shape()).cast();
-        managed_thread.native_thread_ptr = 0;
-        managed_thread.id = 0;
+        managed_thread.set_native_thread_ptr(0);
+        managed_thread.set_id(0);
         managed_thread
     }
 
     pub fn install_native_thread(&mut self, native_thread: &Arc<DoraThread>) {
-        self.native_thread_ptr = Arc::as_ptr(native_thread) as usize as u64;
-        self.id = native_thread.id() as u64;
+        self.set_native_thread_ptr(Arc::as_ptr(native_thread) as usize as u64);
+        self.set_id(native_thread.id() as u64);
     }
 
     pub fn native_thread(&self) -> &'static DoraThread {
-        unsafe { &*(self.native_thread_ptr as *const _) }
-    }
-
-    #[allow(dead_code)]
-    pub fn id(&self) -> u64 {
-        self.id
+        unsafe { &*(self.native_thread_ptr() as *const _) }
     }
 }

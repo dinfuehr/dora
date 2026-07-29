@@ -2,28 +2,19 @@ use std::ptr;
 use std::slice;
 use std::str;
 
+use dora_runtime_macros::dora_object;
+
 use crate::gc::Address;
 use crate::mem;
-use crate::mirror::{Handle, Header, Object, Ref, create_handle};
+use crate::mirror::{Handle, Object, Ref, create_handle};
 use crate::runtime::Runtime;
 
-#[repr(C)]
+#[dora_object]
 pub struct Str {
-    header: Header,
     length: usize,
-    data: u8,
 }
 
 impl Str {
-    #[allow(dead_code)]
-    pub fn header(&self) -> &Header {
-        &self.header
-    }
-
-    pub fn header_mut(&mut self) -> &mut Header {
-        &mut self.header
-    }
-
     pub fn cast(obj: &Object) -> &Str {
         unsafe { &*(obj as *const _ as *const Str) }
     }
@@ -33,7 +24,7 @@ impl Str {
     }
 
     pub fn data(&self) -> *const u8 {
-        &self.data as *const u8
+        self.object_end_ptr()
     }
 
     pub fn content(&self) -> &[u8] {
@@ -47,7 +38,7 @@ impl Str {
     /// allocates string from buffer in permanent space
     pub fn from_buffer_in_perm(rt: &Runtime, buf: &[u8]) -> Ref<Str> {
         let mut handle = str_alloc_perm(rt, buf.len());
-        handle.length = buf.len();
+        handle.set_length(buf.len());
 
         let data = handle.data() as *mut u8;
         unsafe {
@@ -61,7 +52,7 @@ impl Str {
     /// allocates string from buffer in heap
     pub fn from_buffer(rt: &Runtime, buf: &[u8]) -> Ref<Str> {
         let mut handle = str_alloc_heap(rt, buf.len());
-        handle.length = buf.len();
+        handle.set_length(buf.len());
 
         let data = handle.data() as *mut u8;
         unsafe {
@@ -88,7 +79,7 @@ impl Str {
 
         if let Ok(_) = str::from_utf8(slice) {
             let mut handle = str_alloc_heap(rt, len);
-            handle.length = len;
+            handle.set_length(len);
 
             let dest = handle.data() as *mut u8;
             unsafe {
@@ -108,7 +99,7 @@ impl Str {
         let len = lhs.len() + rhs.len();
         let mut handle = create_handle(str_alloc_heap(rt, len));
 
-        handle.length = len;
+        handle.set_length(len);
         unsafe {
             ptr::copy_nonoverlapping(lhs.data(), handle.data() as *mut u8, lhs.len());
             ptr::copy_nonoverlapping(
@@ -126,7 +117,7 @@ impl Str {
         let len = self.len();
         let mut handle = str_alloc_heap(rt, len);
 
-        handle.length = len;
+        handle.set_length(len);
         unsafe {
             ptr::copy_nonoverlapping(self.data(), handle.data() as *mut u8, len);
         }
@@ -147,9 +138,7 @@ fn str_alloc<F>(rt: &Runtime, len: usize, alloc: F, is_readonly: bool) -> Ref<St
 where
     F: FnOnce(&Runtime, usize) -> Address,
 {
-    let size = Header::size() as usize      // Object header
-                + mem::ptr_width() as usize // length field
-                + len; // string content
+    let size = std::mem::size_of::<Str>() + len;
 
     let size = mem::align_usize_up(size, mem::ptr_width() as usize);
     let ptr = alloc(rt, size);

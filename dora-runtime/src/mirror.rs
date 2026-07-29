@@ -4,6 +4,8 @@ use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use dora_runtime_macros::dora_object;
+
 use crate::gc::Address;
 use crate::gc::root::Slot;
 use crate::handle::{Handle, create_handle};
@@ -262,9 +264,9 @@ impl Header {
         self.word.set_remembered()
     }
 
-    #[inline]
-    pub fn write_barrier<T>(&self, value: Ref<T>) {
-        crate::gc::write_barrier(self, value);
+    #[inline(always)]
+    pub fn address(&self) -> Address {
+        Address::from_ptr(self)
     }
 
     pub fn compute_header_word(
@@ -291,28 +293,10 @@ impl Header {
 }
 
 // is used to reference any object
-#[repr(C)]
-pub struct Object {
-    header: Header,
-    data: u8,
-}
+#[dora_object]
+pub struct Object {}
 
 impl Object {
-    #[inline(always)]
-    pub fn address(&self) -> Address {
-        Address::from_ptr(self as *const _)
-    }
-
-    #[inline(always)]
-    pub fn header(&self) -> &Header {
-        &self.header
-    }
-
-    #[inline(always)]
-    pub fn data(&self) -> *const u8 {
-        &self.data as *const u8
-    }
-
     pub fn size_for_vtblptr(&self, vtblptr: Address) -> usize {
         let vtbl = unsafe { &*vtblptr.to_mut_ptr::<Shape>() };
         let instance_size = vtbl.instance_size();
@@ -436,8 +420,7 @@ fn determine_array_size(obj: &Object, element_size: usize) -> usize {
         ptr: obj as *const Object as *const UInt8Array,
     };
 
-    let calc =
-        Header::size() as usize + mem::ptr_width_usize() + element_size * handle.len() as usize;
+    let calc = std::mem::size_of::<Array<u8>>() + element_size * handle.len() as usize;
 
     mem::align_usize_up(calc, mem::ptr_width_usize())
 }
@@ -509,7 +492,7 @@ impl<T> Into<Ref<T>> for Address {
 
 pub fn byte_array_from_buffer(rt: &Runtime, buf: &[u8]) -> Ref<UInt8Array> {
     let mut handle = byte_array_alloc_heap(rt, buf.len());
-    handle.length = buf.len();
+    handle.set_length(buf.len());
 
     let data = handle.data() as *mut u8;
     unsafe {
@@ -521,9 +504,7 @@ pub fn byte_array_from_buffer(rt: &Runtime, buf: &[u8]) -> Ref<UInt8Array> {
 }
 
 fn byte_array_alloc_heap(rt: &Runtime, len: usize) -> Ref<UInt8Array> {
-    let size = Header::size() as usize      // Object header
-                + mem::ptr_width() as usize // length field
-                + len; // array content
+    let size = std::mem::size_of::<UInt8Array>() + len;
 
     let size = mem::align_usize_up(size, mem::ptr_width() as usize);
     let ptr = rt.gc.alloc(rt, size);
@@ -536,7 +517,7 @@ fn byte_array_alloc_heap(rt: &Runtime, len: usize) -> Ref<UInt8Array> {
         is_marked,
         is_remembered,
     );
-    handle.length = len;
+    handle.set_length(len);
 
     handle
 }
@@ -577,11 +558,10 @@ impl ArrayElement for Ref<Str> {
     const REF: bool = true;
 }
 
-#[repr(C)]
+#[dora_object]
 pub struct Array<T: Copy> {
-    header: Header,
     length: usize,
-    data: u8,
+    #[dora_raw]
     phantom: PhantomData<T>,
 }
 
@@ -589,21 +569,12 @@ impl<T> Array<T>
 where
     T: Copy + ArrayElement,
 {
-    #[allow(dead_code)]
-    pub fn header(&self) -> &Header {
-        &self.header
-    }
-
-    pub fn header_mut(&mut self) -> &mut Header {
-        &mut self.header
-    }
-
     pub fn len(&self) -> usize {
         self.length
     }
 
     pub fn data(&self) -> *const T {
-        &self.data as *const u8 as *const T
+        self.object_end_ptr()
     }
 
     pub fn slice(&self) -> &[T] {
@@ -615,7 +586,7 @@ where
     }
 
     pub fn data_mut(&mut self) -> *mut T {
-        &self.data as *const u8 as *mut T
+        self.object_end_ptr_mut()
     }
 
     pub fn get_at(&self, idx: usize) -> T {
@@ -629,9 +600,7 @@ where
     }
 
     pub fn alloc(rt: &Runtime, len: usize, elem: T, shape: &Shape) -> Ref<Array<T>> {
-        let size = Header::size() as usize        // Object header
-                   + mem::ptr_width() as usize    // length field
-                   + len * std::mem::size_of::<T>(); // array content
+        let size = std::mem::size_of::<Self>() + len * std::mem::size_of::<T>();
 
         let ptr = rt.gc.alloc(rt, size).to_usize();
         let mut handle: Ref<Array<T>> = ptr.into();
@@ -642,7 +611,7 @@ where
             is_marked,
             is_remembered,
         );
-        handle.length = len;
+        handle.set_length(len);
 
         for i in 0..handle.len() {
             unsafe {
@@ -659,7 +628,7 @@ pub fn offset_of_array_length() -> i32 {
 }
 
 pub fn offset_of_array_data() -> i32 {
-    offset_of!(Array<i32>, data) as i32
+    std::mem::size_of::<Array<i32>>() as i32
 }
 
 pub type UInt8Array = Array<u8>;
@@ -680,51 +649,59 @@ pub fn alloc(rt: &Runtime, shape: &Shape) -> Ref<Object> {
     object
 }
 
-#[repr(C)]
+#[dora_object]
 pub struct Stacktrace {
-    pub header: Header,
+    #[dora_ref]
     backtrace: Ref<Int32Array>,
+    #[dora_ref]
     elements: Ref<Object>,
 }
 
-impl Stacktrace {
-    pub fn set_backtrace(&mut self, value: Ref<Int32Array>) {
-        self.backtrace = value;
-        self.header.write_barrier(value);
-    }
-
-    pub fn set_elements(&mut self, value: Ref<Object>) {
-        self.elements = value;
-        self.header.write_barrier(value);
-    }
-}
-
-#[repr(C)]
+#[dora_object]
 pub struct StacktraceElement {
-    pub header: Header,
+    #[dora_ref]
     text: Ref<Str>,
 }
 
-impl StacktraceElement {
-    pub fn set_text(&mut self, value: Ref<Str>) {
-        self.text = value;
-        self.header.write_barrier(value);
-    }
-}
-
-#[repr(C)]
-
+#[dora_object]
 pub struct StacktraceIterator {
-    pub header: Header,
-    pub code_id: i32,
-    pub offset: i32,
+    code_id: i32,
+    offset: i32,
+    #[dora_ref]
     text: Ref<Str>,
-    pub inlined_function_id: i32,
+    inlined_function_id: i32,
 }
 
-impl StacktraceIterator {
-    pub fn set_text(&mut self, value: Ref<Str>) {
-        self.text = value;
-        self.header.write_barrier(value);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[dora_object]
+    struct TestDoraObject {
+        value: u64,
+        #[dora_ref]
+        child: Ref<Object>,
+    }
+
+    #[test]
+    fn dora_object_generates_layout_and_helpers() {
+        assert_eq!(std::mem::offset_of!(TestDoraObject, header), 0);
+        assert_eq!(std::mem::size_of::<Object>(), Header::size() as usize);
+        assert_eq!(
+            std::mem::size_of::<Array<i32>>(),
+            Header::array_size() as usize
+        );
+        assert_eq!(std::mem::size_of::<Str>(), Header::array_size() as usize);
+
+        let _: fn(&TestDoraObject) -> &Header = TestDoraObject::header;
+        let _: fn(&mut TestDoraObject) -> &mut Header = TestDoraObject::header_mut;
+        let _: fn(&TestDoraObject) -> Address = TestDoraObject::address;
+        let _: fn(&TestDoraObject) -> Address = TestDoraObject::object_end_address;
+        let _: fn(&TestDoraObject) -> *const u8 = TestDoraObject::object_end_ptr::<u8>;
+        let _: fn(&mut TestDoraObject) -> *mut u8 = TestDoraObject::object_end_ptr_mut::<u8>;
+        let _: fn(&TestDoraObject) -> u64 = TestDoraObject::value;
+        let _: fn(&mut TestDoraObject, u64) = TestDoraObject::set_value;
+        let _: fn(&TestDoraObject) -> Ref<Object> = TestDoraObject::child;
+        let _: fn(&mut TestDoraObject, Ref<Object>) = TestDoraObject::set_child;
     }
 }

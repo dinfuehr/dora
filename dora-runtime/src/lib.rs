@@ -3,6 +3,7 @@
 #![recursion_limit = "256"]
 
 extern crate alloc;
+extern crate self as dora_runtime;
 
 #[cfg(target_os = "windows")]
 extern crate windows_sys;
@@ -42,6 +43,7 @@ pub use dora_compiler::{
 pub use dora_compiler::{
     LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, REMEMBERED_BIT_SHIFT, ThreadState,
 };
+pub use dora_runtime_macros::dora_object;
 pub use dora_symbol::{demangle_name, mangle_name};
 pub use gc::Address;
 pub use handle::{Handle, create_handle, handle_scope};

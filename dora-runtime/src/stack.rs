@@ -208,11 +208,11 @@ pub extern "C" fn capture_stack_trace(mut obj: Handle<Stacktrace>) {
 pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterator>) {
     let rt = get_runtime();
 
-    let code_id: CodeId = (obj.code_id as usize).into();
+    let code_id: CodeId = (obj.code_id() as usize).into();
     let code = rt.code_map.get_code(code_id);
 
-    let (function_info, location, next_inlined_function_id) = if obj.inlined_function_id == -1 {
-        let offset = obj.offset as u32;
+    let (function_info, location, next_inlined_function_id) = if obj.inlined_function_id() == -1 {
+        let offset = obj.offset() as u32;
 
         match code.location_for_offset(offset) {
             Some(inlined_location) => destruct_inlined_location(code, inlined_location),
@@ -223,7 +223,7 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
             }
         }
     } else {
-        let id = InlinedFunctionId(obj.inlined_function_id as u32);
+        let id = InlinedFunctionId(obj.inlined_function_id() as u32);
         let inlined_location = code.inlined_function(id).inlined_location.clone();
 
         destruct_inlined_location(code, inlined_location)
@@ -235,7 +235,7 @@ pub extern "C" fn symbolize_stack_trace_element(mut obj: Handle<StacktraceIterat
     );
     let text = Str::from_buffer(rt, text.as_bytes());
     obj.set_text(text);
-    obj.inlined_function_id = next_inlined_function_id.0 as i32;
+    obj.set_inlined_function_id(next_inlined_function_id.0 as i32);
 }
 
 fn destruct_inlined_location(

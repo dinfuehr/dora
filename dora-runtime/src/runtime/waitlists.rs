@@ -1,7 +1,9 @@
+use dora_runtime_macros::dora_object;
+
 use crate::gc::Address;
 use crate::gc::root::Slot;
 use crate::handle::Handle;
-use crate::mirror::{Header, Ref};
+use crate::mirror::Ref;
 use crate::runtime::get_runtime;
 use crate::threads::{DoraThreadPtr, current_thread};
 use parking_lot::Mutex;
@@ -24,7 +26,7 @@ impl WaitLists {
         let thread_ptr = DoraThreadPtr::new(thread);
 
         let queued = self.conditionally_enqueue(thread_ptr, mutex.direct_ptr(), || {
-            let atomic_object = mutex.state;
+            let atomic_object = mutex.state();
             let current_state = atomic_object.value.load(Ordering::SeqCst);
             current_state == expected_value
         });
@@ -41,7 +43,7 @@ impl WaitLists {
         let thread_ptr = DoraThreadPtr::new(thread);
 
         let queued = self.conditionally_enqueue(thread_ptr, condition.direct_ptr(), || {
-            let atomic_object = condition.state;
+            let atomic_object = condition.state();
             atomic_object.value.store(1, Ordering::SeqCst);
             true
         });
@@ -146,21 +148,21 @@ impl Default for HeadAndTail {
     }
 }
 
-#[repr(C)]
+#[dora_object]
 pub struct ManagedMutex {
-    header: Header,
+    #[dora_ref]
     state: Ref<AtomicInt32>,
 }
 
-#[repr(C)]
+#[dora_object]
 pub struct ManagedCondition {
-    header: Header,
+    #[dora_ref]
     state: Ref<AtomicInt32>,
 }
 
-#[repr(C)]
+#[dora_object]
 pub struct AtomicInt32 {
-    header: Header,
+    #[dora_raw]
     value: AtomicI32,
 }
 

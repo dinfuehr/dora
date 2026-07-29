@@ -49,7 +49,7 @@ pub const DEFAULT_READONLY_SPACE_LIMIT: usize = 2 * M;
 #[inline]
 pub(crate) fn write_barrier<R>(header: &Header, value: Ref<R>) {
     let rt = crate::runtime::get_runtime();
-    let object_address = Address::from_ptr(header);
+    let object_address = header.address();
     let value_address = value.address();
 
     if rt.gc.needs_write_barrier() && value_address.is_non_null() && !header.is_remembered() {
