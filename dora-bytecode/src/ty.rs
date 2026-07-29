@@ -82,6 +82,13 @@ impl BytecodeType {
         }
     }
 
+    pub fn is_ref(&self) -> bool {
+        match self {
+            BytecodeType::Ref(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn to_trait_id(&self) -> Option<TraitId> {
         match self {
             BytecodeType::TraitObject(id, ..) => Some(*id),

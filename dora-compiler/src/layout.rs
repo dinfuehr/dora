@@ -205,10 +205,10 @@ impl<'a> AotLayout<'a> {
             BytecodeType::Int64 => 8,
             BytecodeType::Float32 => 4,
             BytecodeType::Float64 => 8,
-            BytecodeType::Address
-            | BytecodeType::TraitObject(..)
-            | BytecodeType::Class(..)
-            | BytecodeType::Ref(..) => ptr_width(),
+            BytecodeType::Address | BytecodeType::TraitObject(..) | BytecodeType::Class(..) => {
+                ptr_width()
+            }
+            BytecodeType::Ref(..) => 2 * ptr_width(),
             BytecodeType::Tuple(subtypes) => self.tuple_layout(subtypes).size,
             BytecodeType::Enum(enum_id, type_params) => {
                 match self.enum_layout(enum_id, &type_params) {

@@ -13,7 +13,7 @@ use dora_compiler::{
     AllocationSize, AnyReg, AotLayout, AotShapeKey, ArgumentPassingMode, CodeDescriptor, FReg,
     GLOBAL_INITIALIZED, GcPoint, Header, LARGE_OBJECT_SIZE, MAX_TLAB_OBJECT_SIZE, MachineMode,
     REMEMBERED_BIT_SHIFT, Reg, RuntimeFunction, ThreadLocalData, Trap, align_i32,
-    argument_passing_mode,
+    argument_passing_mode, ptr_width,
 };
 
 pub struct BaselineAssembler<'a> {
@@ -176,14 +176,20 @@ impl<'a> BaselineAssembler<'a> {
                 unreachable!()
             }
 
-            BytecodeType::Address
-            | BytecodeType::TraitObject(..)
-            | BytecodeType::Class(..)
-            | BytecodeType::Ref(..) => {
+            BytecodeType::Address | BytecodeType::TraitObject(..) | BytecodeType::Class(..) => {
                 let mode: MachineMode = MachineMode::Ptr;
                 let reg = self.get_scratch();
                 self.load_mem(mode, (*reg).into(), src.mem());
                 self.store_mem(mode, dest.mem(), (*reg).into());
+            }
+
+            BytecodeType::Ref(..) => {
+                self.copy_bytecode_ty(BytecodeType::Address, dest, src);
+                self.copy_bytecode_ty(
+                    BytecodeType::Address,
+                    dest.offset(ptr_width()),
+                    src.offset(ptr_width()),
+                );
             }
 
             BytecodeType::Char
@@ -529,6 +535,10 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn load_int_const(&mut self, mode: MachineMode, dest: Reg, imm: i64) {
         self.masm.load_int_const(mode, dest, imm);
+    }
+
+    pub fn zero_reg(&mut self, dest: Reg) {
+        self.masm.load_int_const(MachineMode::Ptr, dest, 0);
     }
 
     pub fn load_float_const(&mut self, mode: MachineMode, dest: FReg, imm: f64) {
@@ -1522,6 +1532,9 @@ impl<'a> BaselineAssembler<'a> {
                 return_mode = Some(mode);
                 result_reg = result_reg_mode(mode);
             }
+            ArgumentPassingMode::InteriorPointer => {
+                unreachable!("ref globals are not supported")
+            }
             ArgumentPassingMode::Stack => {
                 self.increase_stack_frame(ty_size);
                 self.copy_reg(MachineMode::Ptr, REG_PARAMS[0], REG_SP);
@@ -1545,6 +1558,9 @@ impl<'a> BaselineAssembler<'a> {
                 let mode = return_mode.expect("missing return mode");
                 self.masm
                     .store_mem(mode, Mem::Base(REG_TMP1, 0), result_reg);
+            }
+            ArgumentPassingMode::InteriorPointer => {
+                unreachable!("ref globals are not supported")
             }
             ArgumentPassingMode::Stack => {
                 self.copy_bytecode_ty(

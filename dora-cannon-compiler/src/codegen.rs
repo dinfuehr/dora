@@ -68,6 +68,7 @@ pub struct CannonCodeGen<'a, 'i> {
     current_offset: BytecodeOffset,
 
     references: Vec<i32>,
+    interior_pointers: Vec<i32>,
 
     offsets: Vec<Option<i32>>,
     framesize: i32,
@@ -110,6 +111,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             aot_intrinsics,
             current_offset: BytecodeOffset(0),
             references: Vec::new(),
+            interior_pointers: Vec::new(),
             offsets: Vec::new(),
             framesize: 0,
             register_start_offset: 0,
@@ -149,7 +151,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         } else {
             match argument_passing_mode(program, &actual_object_ty) {
                 ArgumentPassingMode::None => None,
-                ArgumentPassingMode::Register(_) | ArgumentPassingMode::Stack => {
+                ArgumentPassingMode::Register(_)
+                | ArgumentPassingMode::InteriorPointer
+                | ArgumentPassingMode::Stack => {
                     let receiver_reg = Register(registers.len());
                     registers.push(actual_object_ty.clone());
                     Some(receiver_reg)
@@ -185,6 +189,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             aot_intrinsics,
             current_offset: BytecodeOffset(0),
             references: Vec::new(),
+            interior_pointers: Vec::new(),
             offsets: Vec::new(),
             framesize: 0,
             register_start_offset: 0,
@@ -231,7 +236,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         } else {
             match self.argument_passing_mode(&thunk.actual_object_ty) {
                 ArgumentPassingMode::None => {}
-                ArgumentPassingMode::Register(_) | ArgumentPassingMode::Stack => {
+                ArgumentPassingMode::Register(_)
+                | ArgumentPassingMode::InteriorPointer
+                | ArgumentPassingMode::Stack => {
                     let receiver_reg = thunk.receiver_reg.expect("missing receiver register");
                     self.emit_load_trait_object_receiver(
                         receiver_reg,
@@ -344,15 +351,22 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn compute_reference_objects(&mut self) {
         assert!(self.references.is_empty());
+        assert!(self.interior_pointers.is_empty());
+
         for (idx, ty) in self.registers.iter().enumerate() {
             let ty = self.specialize_ty(ty.clone());
             let offset = self.register_offset(Register(idx));
-            self.layout.add_ref_fields(&mut self.references, offset, ty);
+
+            if ty.is_ref() {
+                self.interior_pointers.push(offset);
+            } else {
+                self.layout.add_ref_fields(&mut self.references, offset, ty);
+            }
         }
     }
 
     fn create_gcpoint(&self) -> GcPoint {
-        GcPoint::new(self.references.clone(), Vec::new())
+        GcPoint::new(self.references.clone(), self.interior_pointers.clone())
     }
 
     fn has_result_address(&self) -> bool {
@@ -398,11 +412,42 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                     dest,
                     register_ty,
                 ),
+                ArgumentPassingMode::InteriorPointer => {
+                    self.store_ref_param_on_stack(&mut reg_idx, &mut fp_offset, dest)
+                }
                 ArgumentPassingMode::Stack => {
                     self.store_param_on_stack_indirect(&mut reg_idx, &mut fp_offset, dest, param_ty)
                 }
             }
         }
+    }
+
+    fn store_ref_param_on_stack(
+        &mut self,
+        reg_idx: &mut usize,
+        fp_offset: &mut i32,
+        dest: Register,
+    ) {
+        let mut store_pointer = |asm: &mut BaselineAssembler<'_>, dest_offset| {
+            if *reg_idx < REG_PARAMS.len() {
+                asm.store_mem(
+                    MachineMode::Ptr,
+                    Mem::Local(dest_offset),
+                    REG_PARAMS[*reg_idx].into(),
+                );
+                *reg_idx += 1;
+            } else {
+                asm.load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(*fp_offset));
+                asm.store_mem(MachineMode::Ptr, Mem::Local(dest_offset), REG_TMP1.into());
+                *fp_offset += ptr_width();
+            }
+        };
+
+        let interior_pointer_offset = self.register_ref_interior_offset(dest);
+        let base_pointer_offset = self.register_ref_base_offset(dest);
+
+        store_pointer(&mut self.asm, interior_pointer_offset);
+        store_pointer(&mut self.asm, base_pointer_offset);
     }
 
     fn store_param_on_stack_indirect(
@@ -506,6 +551,36 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     fn emit_store_register_as(&mut self, src: AnyReg, dest: Register, mode: MachineMode) {
         let offset = self.register_offset(dest);
         self.asm.store_mem(mode, Mem::Local(offset), src);
+    }
+
+    fn store_ref(&mut self, dest_ref: Register, interior_pointer: Reg, base_pointer: Reg) {
+        let interior_offset = self.register_ref_interior_offset(dest_ref);
+        let base_offset = self.register_ref_base_offset(dest_ref);
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Local(interior_offset),
+            interior_pointer.into(),
+        );
+        self.asm.store_mem(
+            MachineMode::Ptr,
+            Mem::Local(base_offset),
+            base_pointer.into(),
+        );
+    }
+
+    fn load_ref(&mut self, src_ref: Register, interior_pointer: Reg, base_pointer: Reg) {
+        let interior_offset = self.register_ref_interior_offset(src_ref);
+        let base_offset = self.register_ref_base_offset(src_ref);
+        self.asm.load_mem(
+            MachineMode::Ptr,
+            interior_pointer.into(),
+            Mem::Local(interior_offset),
+        );
+        self.asm.load_mem(
+            MachineMode::Ptr,
+            base_pointer.into(),
+            Mem::Local(base_offset),
+        );
     }
 
     fn emit_add(&mut self, dest: Register, lhs: Register, rhs: Register) {
@@ -1560,6 +1635,21 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         }
     }
 
+    fn emit_get_register_ref(&mut self, dest: Register, src: Register) {
+        let dest_type = self.bytecode().register_type(dest);
+        debug_assert_eq!(
+            dest_type,
+            BytecodeType::Ref(Box::new(self.bytecode().register_type(src).clone()))
+        );
+
+        self.asm
+            .lea(REG_TMP1, Mem::Local(self.register_offset(src)));
+        // A null base tells the GC that the interior pointer points into the stack
+        // and therefore does not need to be relocated.
+        self.asm.zero_reg(REG_TMP2);
+        self.store_ref(dest, REG_TMP1, REG_TMP2);
+    }
+
     fn emit_store_at_address(&mut self, src: Register, address: Register) {
         debug_assert_eq!(
             self.bytecode().register_type(address),
@@ -1602,7 +1692,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_get_field_ref(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         let dest_type = self.bytecode().register_type(dest);
-        debug_assert!(matches!(dest_type, BytecodeType::Ref(_)));
+        debug_assert!(dest_type.is_ref());
 
         let obj_type = self.specialize_register_type(obj);
 
@@ -1616,11 +1706,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                     [*field_id as usize]
                     .clone();
 
-                // Load the object pointer and add the field offset
-                self.emit_load_register(obj, REG_TMP1.into());
+                self.emit_load_register(obj, REG_TMP2.into());
                 self.asm
-                    .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, field.offset as i64);
-                self.emit_store_register(REG_TMP1.into(), dest);
+                    .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP2, field.offset as i64);
+                self.store_ref(dest, REG_TMP1, REG_TMP2);
             }
 
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
@@ -1635,12 +1724,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                     [field_id as usize]
                     .clone();
 
-                if matches!(obj_type, BytecodeType::Ref(_)) {
+                if obj_type.is_ref() {
                     // Input is a ref (from previous GetFieldRef)
-                    self.emit_load_register(obj, REG_TMP1.into());
+                    self.load_ref(obj, REG_TMP1, REG_TMP2);
                     self.asm
                         .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, field.offset as i64);
-                    self.emit_store_register(REG_TMP1.into(), dest);
+                    self.store_ref(dest, REG_TMP1, REG_TMP2);
                 } else {
                     // Input is a struct on the stack
                     let base_offset = self.register_offset(obj);
@@ -1648,7 +1737,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                     // Compute address on stack and store in dest register
                     self.asm.lea(REG_TMP1, Mem::Local(field_address_offset));
-                    self.emit_store_register(REG_TMP1.into(), dest);
+                    // A null base tells the GC that the interior pointer points into the stack
+                    // and therefore does not need to be relocated.
+                    self.asm.zero_reg(REG_TMP2);
+                    self.store_ref(dest, REG_TMP1, REG_TMP2);
                 }
             }
 
@@ -1658,12 +1750,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                     [*subtype_idx as usize]
                     .offset;
 
-                if matches!(obj_type, BytecodeType::Ref(_)) {
+                if obj_type.is_ref() {
                     // Input is a ref (from previous GetFieldRef)
-                    self.emit_load_register(obj, REG_TMP1.into());
+                    self.load_ref(obj, REG_TMP1, REG_TMP2);
                     self.asm
                         .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, offset as i64);
-                    self.emit_store_register(REG_TMP1.into(), dest);
+                    self.store_ref(dest, REG_TMP1, REG_TMP2);
                 } else {
                     // Input is a tuple on the stack
                     let base_offset = self.register_offset(obj);
@@ -1671,7 +1763,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                     // Compute address on stack and store in dest register
                     self.asm.lea(REG_TMP1, Mem::Local(field_address_offset));
-                    self.emit_store_register(REG_TMP1.into(), dest);
+                    // A null base tells the GC that the interior pointer points into the stack
+                    // and therefore does not need to be relocated.
+                    self.asm.zero_reg(REG_TMP2);
+                    self.store_ref(dest, REG_TMP1, REG_TMP2);
                 }
             }
 
@@ -1681,7 +1776,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_store_ref(&mut self, src: Register, reference: Register) {
         let ref_type = self.bytecode().register_type(reference);
-        debug_assert!(matches!(ref_type, BytecodeType::Ref(_)));
+        debug_assert!(ref_type.is_ref());
 
         // Load the reference (address) into a register
         self.emit_load_register(reference, REG_TMP1.into());
@@ -1699,7 +1794,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn emit_load_ref(&mut self, dest: Register, reference: Register) {
         let ref_type = self.bytecode().register_type(reference);
-        debug_assert!(matches!(ref_type, BytecodeType::Ref(_)));
+        debug_assert!(ref_type.is_ref());
 
         // Load the reference (address) into a register
         self.emit_load_register(reference, REG_TMP1.into());
@@ -2064,10 +2159,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             BytecodeType::Ref(Box::new(self.specialize_ty(value_ty)))
         );
 
-        self.emit_load_register(object, REG_TMP1.into());
+        self.emit_load_register(object, REG_TMP2.into());
         self.asm
-            .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, Header::size() as i64);
-        self.emit_store_register(REG_TMP1.into(), dest);
+            .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP2, Header::size() as i64);
+        self.store_ref(dest, REG_TMP1, REG_TMP2);
     }
 
     fn emit_return_generic(&mut self, src: Register) {
@@ -2078,6 +2173,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 let mode = self.mode(register_ty);
                 let reg = result_reg_mode(mode);
                 self.emit_load_register_as(src, reg, mode);
+            }
+            ArgumentPassingMode::InteriorPointer => {
+                unreachable!("returning ref types is not supported")
             }
             ArgumentPassingMode::Stack => {
                 let src_offset = self.register_offset(src);
@@ -2805,6 +2903,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 (result_reg_mode(mode), Some(mode))
             }
             ArgumentPassingMode::None | ArgumentPassingMode::Stack => (REG_RESULT.into(), None),
+            ArgumentPassingMode::InteriorPointer => {
+                unreachable!("returning ref types is not supported")
+            }
         }
     }
 
@@ -4098,6 +4199,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                         sp_offset += 8;
                     }
                 }
+                ArgumentPassingMode::InteriorPointer => {
+                    self.emit_ref_argument(&mut reg_idx, &mut sp_offset, src);
+                }
                 ArgumentPassingMode::Stack => {
                     if reg_idx < REG_PARAMS.len() {
                         let reg = REG_PARAMS[reg_idx];
@@ -4120,6 +4224,33 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         argsize
     }
 
+    fn emit_ref_argument(&mut self, reg_idx: &mut usize, sp_offset: &mut i32, src: Register) {
+        let mut emit_pointer = |asm: &mut BaselineAssembler<'_>, src_offset| {
+            if *reg_idx < REG_PARAMS.len() {
+                asm.load_mem(
+                    MachineMode::Ptr,
+                    REG_PARAMS[*reg_idx].into(),
+                    Mem::Local(src_offset),
+                );
+                *reg_idx += 1;
+            } else {
+                asm.load_mem(MachineMode::Ptr, REG_TMP1.into(), Mem::Local(src_offset));
+                asm.store_mem(
+                    MachineMode::Ptr,
+                    Mem::Base(REG_SP, *sp_offset),
+                    REG_TMP1.into(),
+                );
+                *sp_offset += ptr_width();
+            }
+        };
+
+        let interior_pointer_offset = self.register_ref_interior_offset(src);
+        let base_pointer_offset = self.register_ref_base_offset(src);
+
+        emit_pointer(&mut self.asm, interior_pointer_offset);
+        emit_pointer(&mut self.asm, base_pointer_offset);
+    }
+
     fn determine_argsize(
         &mut self,
         arguments: &Vec<Register>,
@@ -4135,6 +4266,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         for &src in arguments {
             let bytecode_type = self.specialize_register_type(src);
+
             match self.argument_passing_mode(&bytecode_type) {
                 ArgumentPassingMode::None => {}
                 ArgumentPassingMode::Register(register_ty) => {
@@ -4149,6 +4281,14 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                             argsize += ptr_width();
                         }
 
+                        reg_idx += 1;
+                    }
+                }
+                ArgumentPassingMode::InteriorPointer => {
+                    for _ in 0..2 {
+                        if reg_idx >= REG_PARAMS.len() {
+                            argsize += ptr_width();
+                        }
                         reg_idx += 1;
                     }
                 }
@@ -4192,6 +4332,16 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     fn register_offset(&self, reg: Register) -> i32 {
         let Register(idx) = reg;
         self.offsets[idx].expect("offset missing")
+    }
+
+    fn register_ref_interior_offset(&self, reg: Register) -> i32 {
+        debug_assert!(self.specialize_register_type(reg).is_ref());
+        self.register_offset(reg)
+    }
+
+    fn register_ref_base_offset(&self, reg: Register) -> i32 {
+        debug_assert!(self.specialize_register_type(reg).is_ref());
+        self.register_offset(reg) + ptr_width()
     }
 
     fn reg(&self, reg: Register) -> RegOrOffset {
@@ -4520,6 +4670,11 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     fn visit_load_ref(&mut self, dest: Register, reference: Register) {
         comment!(self, format!("LoadRef {}, {}", dest, reference));
         self.emit_load_ref(dest, reference);
+    }
+
+    fn visit_get_register_ref(&mut self, dest: Register, src: Register) {
+        comment!(self, format!("GetRegisterRef {}, {}", dest, src));
+        self.emit_get_register_ref(dest, src);
     }
 
     fn visit_load_global(&mut self, dest: Register, glob_id: GlobalId) {

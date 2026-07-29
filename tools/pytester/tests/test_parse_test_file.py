@@ -109,3 +109,17 @@ def test_all_configs_uses_defined_configs(tmp_path, monkeypatch):
     configs = [config for _test_case, config in results]
     assert BOOTS_CONFIG in configs
     assert CANNON_CONFIG in configs
+
+
+def test_config_directive_selects_config(tmp_path, monkeypatch):
+    monkeypatch.setattr("pytester.tests.REPO_ROOT", tmp_path)
+    monkeypatch.setattr("pytester.tests.ALL_CONFIGS", [BOOTS_CONFIG, CANNON_CONFIG])
+
+    dora_file = tmp_path / "hello.dora"
+    dora_file.write_text("//= config cannon\nfn main() {}\n")
+
+    options = RunnerOptions(select_config=None)
+    results = parse_test_file(options, str(dora_file))
+
+    configs = [config for _test_case, config in results]
+    assert configs == [CANNON_CONFIG]

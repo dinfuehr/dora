@@ -1,0 +1,21 @@
+//= config cannon
+//= runtime-args "--gc-verify"
+
+class Box { value: Int32 }
+
+fn update(value: ref Int32, expected: Int32, replacement: Int32) {
+    std::force_minor_collect();
+    assert(value == expected);
+    value = replacement;
+    assert(value == replacement);
+}
+
+fn main() {
+    let stack_value = 10i32;
+    let box = Box(20i32);
+    update(ref box.value, 20i32, 21i32);
+    assert(box.value == 21i32);
+
+    update(ref stack_value, 10i32, 11i32);
+    assert(stack_value == 11i32);
+}

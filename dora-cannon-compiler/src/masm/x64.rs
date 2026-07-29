@@ -798,14 +798,14 @@ impl MacroAssembler {
             return;
         }
 
-        if mode.is64() {
-            self.asm.addq_ri(lhs.into(), Immediate(value));
-        } else {
-            self.asm.addl_ri(lhs.into(), Immediate(value));
-        }
-
         if dest != lhs {
             self.mov_rr(mode.is64(), dest.into(), lhs.into());
+        }
+
+        if mode.is64() {
+            self.asm.addq_ri(dest.into(), Immediate(value));
+        } else {
+            self.asm.addl_ri(dest.into(), Immediate(value));
         }
     }
 

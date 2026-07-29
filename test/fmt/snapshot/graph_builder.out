@@ -813,8 +813,8 @@ impl SsaGen {
                 self.emit_load_ref(dest, reference);
                 false
             }
-            BytecodeInstruction::GetRef(dest, src) => {
-                self.emit_get_ref(dest, src);
+            BytecodeInstruction::GetRegisterRef(dest, src) => {
+                self.emit_get_register_ref(dest, src);
                 false
             }
             BytecodeInstruction::Ret(opnd) => {
@@ -1198,7 +1198,7 @@ impl SsaGen {
         self.write_variable(dest, self.current(), value);
     }
 
-    fn emit_get_ref(dest: BytecodeRegister, src: BytecodeRegister) {
+    fn emit_get_register_ref(dest: BytecodeRegister, src: BytecodeRegister) {
         unreachable[()]();
     }
 

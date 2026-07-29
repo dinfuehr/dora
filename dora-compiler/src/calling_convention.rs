@@ -6,6 +6,7 @@ use crate::specialize_ty_in_program;
 pub enum ArgumentPassingMode {
     None,
     Register(BytecodeType),
+    InteriorPointer,
     Stack,
 }
 
@@ -21,6 +22,7 @@ pub fn argument_passing_mode(program: &Program, ty: &BytecodeType) -> ArgumentPa
         }
         BytecodeType::Tuple(subtypes) => subtypes.to_vec(),
         BytecodeType::Unit => return ArgumentPassingMode::None,
+        BytecodeType::Ref(..) => return ArgumentPassingMode::InteriorPointer,
         BytecodeType::TypeAlias(..)
         | BytecodeType::Assoc { .. }
         | BytecodeType::TypeParam(..)
@@ -39,7 +41,9 @@ pub fn argument_passing_mode(program: &Program, ty: &BytecodeType) -> ArgumentPa
                 }
                 register_ty = Some(field_register_ty);
             }
-            ArgumentPassingMode::Stack => return ArgumentPassingMode::Stack,
+            ArgumentPassingMode::InteriorPointer | ArgumentPassingMode::Stack => {
+                return ArgumentPassingMode::Stack;
+            }
         }
     }
 

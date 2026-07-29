@@ -121,7 +121,7 @@ class TestCase:
         self.configs: List[Config] = []
         self.package_dir: Optional[str] = None
         self.package_name: Optional[str] = None
-        self.requires_boots = False
+        self.required_config: Optional[str] = None
         self._flaky = False
         self._ignore = False
 
@@ -158,7 +158,7 @@ class TestCase:
         test_case.configs = [config]
         test_case.package_dir = self.package_dir
         test_case.package_name = self.package_name
-        test_case.requires_boots = self.requires_boots
+        test_case.required_config = self.required_config
         test_case._flaky = self._flaky
         test_case._ignore = self._ignore
         return test_case
@@ -321,8 +321,8 @@ def parse_dora_test_file(
     read_output_files(test_case, file_on_disk)
 
     configs = dora_test_configs(options, test_dir)
-    if test_case.requires_boots:
-        configs = [c for c in configs if c is BOOTS_CONFIG]
+    if test_case.required_config is not None:
+        configs = [c for c in configs if c.name == test_case.required_config]
     test_case.configs = configs
 
     return [(test_case.for_config(config), config) for config in configs]
@@ -386,7 +386,13 @@ def parse_dora_directive(
             read_conditional_arguments(arguments[1:], file_path, line)
         )
     elif keyword == "boots":
-        test_case.requires_boots = True
+        test_case.required_config = BOOTS_CONFIG.name
+    elif keyword == "config":
+        if len(arguments) != 2 or not any(
+            config.name == arguments[1] for config in ALL_CONFIGS
+        ):
+            raise ValueError(f"unknown config in {file_path}: {line}")
+        test_case.required_config = arguments[1]
     elif keyword == "timeout":
         test_case.timeout = int(arguments[1])
     elif keyword == "flaky":
