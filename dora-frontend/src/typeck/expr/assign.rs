@@ -59,7 +59,11 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
 
     let lhs_type = match sym {
         SymbolKind::Var(var_id) => {
-            if !ck.vars.get_var(var_id).mutable {
+            let var = ck.vars.get_var(var_id);
+            let var_ty = var.ty.clone();
+            let assign_through_ref = sema_expr.op == ast::AssignOp::Assign && var_ty.is_ref();
+
+            if !assign_through_ref && !var.mutable {
                 ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
             }
 
@@ -71,7 +75,14 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
             let ident = ck.maybe_allocate_in_context(var_id);
             ck.body.insert_ident(lhs_id, ident);
 
-            ck.vars.get_var(var_id).ty.clone()
+            if assign_through_ref {
+                let SourceType::Ref(inner) = var_ty else {
+                    unreachable!()
+                };
+                inner.as_ref().clone()
+            } else {
+                var_ty
+            }
         }
 
         SymbolKind::Global(global_id) => {

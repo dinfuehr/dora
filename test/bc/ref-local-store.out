@@ -1,0 +1,16 @@
+fn update:
+  0: StoreRef r1, r0
+  3: LoadRef r3, r0
+  6: Ret r3
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => ()
+   3 => Int32
+
+  Constants:
+
+  Locations:
+   0 => 2:5
+

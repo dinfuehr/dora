@@ -1,0 +1,4 @@
+fn update(value: ref Int32, replacement: Int32): Int32 {
+    value = replacement;
+    value
+}

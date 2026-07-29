@@ -638,6 +638,15 @@ fn gen_expr_assign_var(
     let vars = g.analysis.vars();
     let var = vars.get_var(var_id);
 
+    if e.op == ast::AssignOp::Assign && var.ty.is_ref() {
+        let VarLocation::Stack = var.location else {
+            unreachable!("captured ref assignment isn't supported")
+        };
+        g.builder
+            .emit_store_ref(value, var_reg(g, var_id), g.loc_for_expr(expr_id));
+        return;
+    }
+
     let assign_value = if e.op != ast::AssignOp::Assign {
         let location = g.loc_for_expr(expr_id);
         let current = match var.location {
