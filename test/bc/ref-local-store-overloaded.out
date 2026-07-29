@@ -1,0 +1,194 @@
+struct Value:
+  0: Int32
+
+fn <impl Add for Value>::add:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => struct Value
+
+  Constants:
+
+  Locations:
+
+fn <impl Sub for Value>::sub:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => struct Value
+
+  Constants:
+
+  Locations:
+
+fn <impl Mul for Value>::mul:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => struct Value
+
+  Constants:
+
+  Locations:
+
+fn <impl Div for Value>::div:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => struct Value
+
+  Constants:
+
+  Locations:
+
+fn <impl Mod for Value>::modulo:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => struct Value
+
+  Constants:
+
+  Locations:
+
+fn <impl BitOr for Value>::bitor:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => struct Value
+
+  Constants:
+
+  Locations:
+
+fn <impl BitAnd for Value>::bitand:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => struct Value
+
+  Constants:
+
+  Locations:
+
+fn <impl BitXor for Value>::bitxor:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => struct Value
+
+  Constants:
+
+  Locations:
+
+fn <impl Shl for Value>::shl:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => Int32
+
+  Constants:
+
+  Locations:
+
+fn <impl Sar for Value>::sar:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => Int32
+
+  Constants:
+
+  Locations:
+
+fn <impl Shr for Value>::shr:
+  0: Ret r0
+
+  Registers:
+   0 => struct Value
+   1 => Int32
+
+  Constants:
+
+  Locations:
+
+fn update:
+  0: LoadRef r3, r0
+  3: InvokeDirect r3, @0, r3, r1 # <impl Add for Value>::add
+  9: StoreRef r3, r0
+ 12: LoadRef r3, r0
+ 15: InvokeDirect r3, @1, r3, r1 # <impl Sub for Value>::sub
+ 21: StoreRef r3, r0
+ 24: LoadRef r3, r0
+ 27: InvokeDirect r3, @2, r3, r1 # <impl Mul for Value>::mul
+ 33: StoreRef r3, r0
+ 36: LoadRef r3, r0
+ 39: InvokeDirect r3, @3, r3, r1 # <impl Div for Value>::div
+ 45: StoreRef r3, r0
+ 48: LoadRef r3, r0
+ 51: InvokeDirect r3, @4, r3, r1 # <impl Mod for Value>::modulo
+ 57: StoreRef r3, r0
+ 60: LoadRef r3, r0
+ 63: InvokeDirect r3, @5, r3, r1 # <impl BitOr for Value>::bitor
+ 69: StoreRef r3, r0
+ 72: LoadRef r3, r0
+ 75: InvokeDirect r3, @6, r3, r1 # <impl BitAnd for Value>::bitand
+ 81: StoreRef r3, r0
+ 84: LoadRef r3, r0
+ 87: InvokeDirect r3, @7, r3, r1 # <impl BitXor for Value>::bitxor
+ 93: StoreRef r3, r0
+ 96: LoadRef r3, r0
+ 99: InvokeDirect r3, @8, r3, r2 # <impl Shl for Value>::shl
+105: StoreRef r3, r0
+108: LoadRef r3, r0
+111: InvokeDirect r3, @9, r3, r2 # <impl Sar for Value>::sar
+117: StoreRef r3, r0
+120: LoadRef r3, r0
+123: InvokeDirect r3, @10, r3, r2 # <impl Shr for Value>::shr
+129: StoreRef r3, r0
+132: LoadRef r3, r0
+135: Ret r3
+
+  Registers:
+   0 => ref Value
+   1 => struct Value
+   2 => Int32
+   3 => struct Value
+   4 => ()
+
+  Constants:
+   0 => Fct <impl Add for Value>::add
+   1 => Fct <impl Sub for Value>::sub
+   2 => Fct <impl Mul for Value>::mul
+   3 => Fct <impl Div for Value>::div
+   4 => Fct <impl Mod for Value>::modulo
+   5 => Fct <impl BitOr for Value>::bitor
+   6 => Fct <impl BitAnd for Value>::bitand
+   7 => Fct <impl BitXor for Value>::bitxor
+   8 => Fct <impl Shl for Value>::shl
+   9 => Fct <impl Sar for Value>::sar
+   10 => Fct <impl Shr for Value>::shr
+
+  Locations:
+   3 => 70:5
+   15 => 71:5
+   27 => 72:5
+   39 => 73:5
+   51 => 74:5
+   63 => 75:5
+   75 => 76:5
+   87 => 77:5
+   99 => 78:5
+   111 => 79:5
+   123 => 80:5
+

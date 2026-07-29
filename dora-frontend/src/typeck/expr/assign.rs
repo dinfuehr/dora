@@ -61,7 +61,7 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
         SymbolKind::Var(var_id) => {
             let var = ck.vars.get_var(var_id);
             let var_ty = var.ty.clone();
-            let assign_through_ref = sema_expr.op == ast::AssignOp::Assign && var_ty.is_ref();
+            let assign_through_ref = var_ty.is_ref();
 
             if !assign_through_ref && !var.mutable {
                 ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);

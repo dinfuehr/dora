@@ -1,0 +1,82 @@
+struct Value(Int32)
+
+impl std::traits::Add for Value {
+    fn add(_rhs: Value): Value {
+        self
+    }
+}
+
+impl std::traits::Sub for Value {
+    fn sub(_rhs: Value): Value {
+        self
+    }
+}
+
+impl std::traits::Mul for Value {
+    fn mul(_rhs: Value): Value {
+        self
+    }
+}
+
+impl std::traits::Div for Value {
+    fn div(_rhs: Value): Value {
+        self
+    }
+}
+
+impl std::traits::Mod for Value {
+    fn modulo(_rhs: Value): Value {
+        self
+    }
+}
+
+impl std::traits::BitOr for Value {
+    fn bitor(_rhs: Value): Value {
+        self
+    }
+}
+
+impl std::traits::BitAnd for Value {
+    fn bitand(_rhs: Value): Value {
+        self
+    }
+}
+
+impl std::traits::BitXor for Value {
+    fn bitxor(_rhs: Value): Value {
+        self
+    }
+}
+
+impl std::traits::Shl for Value {
+    fn shl(_rhs: Int32): Value {
+        self
+    }
+}
+
+impl std::traits::Sar for Value {
+    fn sar(_rhs: Int32): Value {
+        self
+    }
+}
+
+impl std::traits::Shr for Value {
+    fn shr(_rhs: Int32): Value {
+        self
+    }
+}
+
+fn update(value: ref Value, operand: Value, count: Int32): Value {
+    value += operand;
+    value -= operand;
+    value *= operand;
+    value /= operand;
+    value %= operand;
+    value |= operand;
+    value &= operand;
+    value ^= operand;
+    value <<= count;
+    value >>= count;
+    value >>>= count;
+    value
+}

@@ -638,12 +638,38 @@ fn gen_expr_assign_var(
     let vars = g.analysis.vars();
     let var = vars.get_var(var_id);
 
-    if e.op == ast::AssignOp::Assign && var.ty.is_ref() {
+    if var.ty.is_ref() {
         let VarLocation::Stack = var.location else {
             unreachable!("captured ref assignment isn't supported")
         };
-        g.builder
-            .emit_store_ref(value, var_reg(g, var_id), g.loc_for_expr(expr_id));
+
+        let location = g.loc_for_expr(expr_id);
+        let reference = var_reg(g, var_id);
+        let assign_value = if e.op != ast::AssignOp::Assign {
+            let SourceType::Ref(inner) = var.ty.clone() else {
+                unreachable!()
+            };
+            let ty = g.emitter.convert_ty(g.sa, inner.as_ref().clone());
+            let current = g.alloc_temp(ty);
+            g.builder.emit_load_ref(current, reference);
+
+            if let Some(info) = g.get_intrinsic(expr_id) {
+                gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
+            } else {
+                gen_method_bin(g, expr_id, current, current, value, location);
+            }
+
+            current
+        } else {
+            value
+        };
+
+        g.builder.emit_store_ref(assign_value, reference, location);
+
+        if e.op != ast::AssignOp::Assign {
+            g.free_temp(assign_value);
+        }
+
         return;
     }
 

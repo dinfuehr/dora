@@ -14,3 +14,201 @@ fn update:
   Locations:
    0 => 2:5
 
+fn add:
+  0: LoadRef r2, r0
+  3: CheckedAdd r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   3 => 7:5
+
+fn subtract:
+  0: LoadRef r2, r0
+  3: CheckedSub r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   3 => 12:5
+
+fn multiply:
+  0: LoadRef r2, r0
+  3: CheckedMul r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   3 => 17:5
+
+fn divide:
+  0: LoadRef r2, r0
+  3: CheckedDiv r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   3 => 22:5
+
+fn modulo:
+  0: LoadRef r2, r0
+  3: CheckedMod r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   3 => 27:5
+
+fn bit_or:
+  0: LoadRef r2, r0
+  3: Or r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   7 => 32:5
+
+fn bit_and:
+  0: LoadRef r2, r0
+  3: And r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   7 => 37:5
+
+fn bit_xor:
+  0: LoadRef r2, r0
+  3: Xor r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   7 => 42:5
+
+fn shift_left:
+  0: LoadRef r2, r0
+  3: Shl r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   3 => 47:5
+
+fn arithmetic_shift_right:
+  0: LoadRef r2, r0
+  3: Sar r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   3 => 52:5
+
+fn logical_shift_right:
+  0: LoadRef r2, r0
+  3: Shr r2, r2, r1
+  7: StoreRef r2, r0
+ 10: LoadRef r2, r0
+ 13: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => Int32
+   3 => ()
+
+  Constants:
+
+  Locations:
+   3 => 57:5
+
