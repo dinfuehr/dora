@@ -269,6 +269,12 @@ fn encode_gc_point(writer: ByteWriter, table: GcPoint) {
     for offset in table {
         writer.emit_int32(offset);
     }
+
+    writer.emit_int32(table.interior_pointers_size().to_int32());
+
+    for interior_offset in table.interior_pointers_iter() {
+        writer.emit_int32(interior_offset);
+    }
 }
 
 fn encode_string(writer: ByteWriter, value: String) {

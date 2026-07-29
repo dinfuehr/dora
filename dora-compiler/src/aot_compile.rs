@@ -681,6 +681,7 @@ fn build_aot_compilation(
             gcpoints.push(AotGcPoint {
                 pc_offset: *pc_offset,
                 offsets: gcpoint.offsets.clone(),
+                interior_pointers: gcpoint.interior_pointers.clone(),
             });
         }
 
@@ -962,6 +963,7 @@ fn compile_runtime_function_trampoline(
     let gcpoints = vec![AotGcPoint {
         pc_offset: *pc_offset,
         offsets: gcpoint.offsets.clone(),
+        interior_pointers: gcpoint.interior_pointers.clone(),
     }];
 
     let relocations = &code.relocations.entries;

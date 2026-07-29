@@ -353,8 +353,7 @@ impl<'a> CopyTask<'a> {
             let object_address = root.get();
 
             if object_address.is_non_null() && self.is_young(object_address) {
-                let copy = self.evacuate_object(object_address);
-                root.set(copy);
+                root.relocate(self.evacuate_object(object_address));
             }
         }
     }
@@ -390,7 +389,7 @@ impl<'a> CopyTask<'a> {
             let pointer = slot.get();
 
             if pointer.is_non_null() && self.is_young(pointer) {
-                slot.set(self.evacuate_object(pointer));
+                slot.relocate(self.evacuate_object(pointer));
             }
         });
     }
@@ -421,7 +420,7 @@ impl<'a> CopyTask<'a> {
             let pointer = slot.get();
 
             if pointer.is_non_null() && self.is_young(pointer) {
-                slot.set(self.evacuate_object(pointer));
+                slot.relocate(self.evacuate_object(pointer));
             }
         });
     }
@@ -436,7 +435,7 @@ impl<'a> CopyTask<'a> {
 
             if field_ptr.is_non_null() && self.is_young(field_ptr) {
                 let copied_addr = self.evacuate_object(field_ptr);
-                slot.set(copied_addr);
+                slot.relocate(copied_addr);
 
                 if self.is_young(copied_addr) {
                     ref_to_young_gen = true;

@@ -338,7 +338,14 @@ fn decode_gcpoint(reader: &mut ByteReader) -> GcPoint {
         offsets.push(reader.read_u32() as i32);
     }
 
-    GcPoint::from_offsets(offsets)
+    let interior_pointers_length = reader.read_u32() as usize;
+    let mut interior_pointers = Vec::with_capacity(interior_pointers_length);
+
+    for _ in 0..interior_pointers_length {
+        interior_pointers.push(reader.read_u32() as i32);
+    }
+
+    GcPoint::new(offsets, interior_pointers)
 }
 
 fn decode_string(reader: &mut ByteReader) -> String {

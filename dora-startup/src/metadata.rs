@@ -14,6 +14,7 @@ pub(crate) struct ShapeMetadata {
 
 pub(crate) struct CodeMetadata {
     pub gcpoint_offsets: &'static [i32],
+    pub gcpoint_interior_pointers: &'static [i32],
     pub gcpoint_entries: &'static [AotGcPointEntry],
     pub location_entries: &'static [AotLocationEntry],
     pub function_info_entries: &'static [AotFunctionInfoEntry],
@@ -67,6 +68,11 @@ unsafe extern "C" {
     static dora_aot_gcpoint_offsets_start: u8;
     #[link_name = "dora_aot_gcpoint_offsets_end"]
     static dora_aot_gcpoint_offsets_end: u8;
+
+    #[link_name = "dora_aot_gcpoint_interior_pointers_start"]
+    static dora_aot_gcpoint_interior_pointers_start: u8;
+    #[link_name = "dora_aot_gcpoint_interior_pointers_end"]
+    static dora_aot_gcpoint_interior_pointers_end: u8;
 
     #[link_name = "dora_aot_gcpoints_start"]
     static dora_aot_gcpoints_start: u8;
@@ -164,6 +170,12 @@ pub(crate) fn code_metadata() -> CodeMetadata {
             read_table::<i32>(
                 ptr::addr_of!(dora_aot_gcpoint_offsets_start),
                 ptr::addr_of!(dora_aot_gcpoint_offsets_end),
+            )
+        },
+        gcpoint_interior_pointers: unsafe {
+            read_table::<i32>(
+                ptr::addr_of!(dora_aot_gcpoint_interior_pointers_start),
+                ptr::addr_of!(dora_aot_gcpoint_interior_pointers_end),
             )
         },
         gcpoint_entries: unsafe {

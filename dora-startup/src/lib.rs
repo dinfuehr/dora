@@ -94,16 +94,24 @@
 //   |      ...          |   +---| code_start               |    | pc_offset            |
 //   | dora_fct0_end     |<------| code_end                 |    | offsets_start -------+---+
 //   +-------------------+       | fct_id                   |    | offsets_len          |   |
-//                               | kind                     |    +----------------------+   |
+//                               | kind                     |    | interior_ptrs_start -+---+
+//                               | function_info_idx        |    | interior_ptrs_len    |   |
 //                               | gcpoints_start ----------+--->   ...                     |
 //                               | gcpoints_len             |                               |
 //                               +--------------------------+                               |
 //                                                                                          |
 //                               .dora.gcpoint_offsets (R)                                  |
-//                               (flat i32 stack-slot offsets)                              |
+//                               (ordinary root offsets)                                    |
 //                               +----------------------+                                   |
 //                               | fp_off_0             |<----------------------------------+
 //                               | fp_off_1             |
+//                               | ...                  |
+//                               +----------------------+
+//
+//                               .dora.gcpoint_interior_pointers (R)
+//                               (interior offsets; base is the following machine word)
+//                               +----------------------+
+//                               | interior_fp_off_0    |
 //                               | ...                  |
 //                               +----------------------+
 
@@ -331,6 +339,7 @@ fn run_aot(argc: c_int, argv: *const *const c_char, entry: AotStartupEntry) -> i
         code_metadata.function_entries,
         code_metadata.gcpoint_entries,
         code_metadata.gcpoint_offsets,
+        code_metadata.gcpoint_interior_pointers,
         code_metadata.function_info_entries,
         strings,
         code_metadata.location_entries,

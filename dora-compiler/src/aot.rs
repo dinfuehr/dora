@@ -191,6 +191,9 @@ pub enum AotCodeKind {
 pub struct AotGcPoint {
     pub pc_offset: u32,
     pub offsets: Vec<i32>,
+    /// Frame offsets of two-word interior pointers. The base follows the
+    /// interior address in the next machine word.
+    pub interior_pointers: Vec<i32>,
 }
 
 #[derive(Clone)]

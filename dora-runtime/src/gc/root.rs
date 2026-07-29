@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use dora_compiler::GcPoint;
+
 use crate::gc::Address;
 use crate::runtime::{CodeKind, Runtime};
 use crate::stack::DoraToNativeInfo;
@@ -113,10 +115,7 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
                 let offset = frame.pc.offset_from(code.instruction_start());
                 let gcpoint = code.gcpoint_for_offset(offset as u32).expect("no gcpoint");
 
-                for &offset in &gcpoint.offsets {
-                    let addr = frame.fp.ioffset(offset as isize);
-                    callback(Slot::at(addr.into()));
-                }
+                iterate_roots_from_gcpoint(frame.fp, gcpoint, callback);
 
                 true
             }
@@ -127,10 +126,7 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
             | CodeKind::FatalErrorTrampoline => {
                 let gcpoint = code.gcpoint_for_offset(0).expect("no gcpoint");
 
-                for &offset in &gcpoint.offsets {
-                    let addr = frame.fp.ioffset(offset as isize);
-                    callback(Slot::at(addr.into()));
-                }
+                iterate_roots_from_gcpoint(frame.fp, gcpoint, callback);
 
                 true
             }
@@ -145,6 +141,20 @@ fn iterate_roots_from_stack_frame<F: FnMut(Slot)>(
         println!("no code found at pc = {}", frame.pc);
         rt.code_map.dump(rt);
         panic!("invalid stack frame");
+    }
+}
+
+fn iterate_roots_from_gcpoint<F: FnMut(Slot)>(fp: Address, gcpoint: &GcPoint, callback: &mut F) {
+    for &offset in &gcpoint.offsets {
+        callback(Slot::at(fp.ioffset(offset as isize)));
+    }
+
+    for &interior_offset in &gcpoint.interior_pointers {
+        let slot = InteriorSlot::at(fp.ioffset(interior_offset as isize));
+
+        if slot.base().is_non_null() {
+            callback(Slot::Interior(slot));
+        }
     }
 }
 
@@ -170,11 +180,17 @@ where
 }
 
 #[derive(Copy, Clone)]
-pub struct Slot(Address);
+pub enum Slot {
+    Regular(RegularSlot),
+    Interior(InteriorSlot),
+}
 
-impl Slot {
-    pub fn at(addr: Address) -> Slot {
-        Slot(addr)
+#[derive(Copy, Clone)]
+pub struct RegularSlot(Address);
+
+impl RegularSlot {
+    pub fn at(address: Address) -> RegularSlot {
+        RegularSlot(address)
     }
 
     pub fn address(self) -> Address {
@@ -185,9 +201,69 @@ impl Slot {
         unsafe { *self.0.to_ptr::<Address>() }
     }
 
-    pub fn set(self, obj: Address) {
+    pub fn set(self, object: Address) {
         unsafe {
-            *self.0.to_mut_ptr::<Address>() = obj;
+            *self.0.to_mut_ptr::<Address>() = object;
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct InteriorSlot(Address);
+
+impl InteriorSlot {
+    fn at(address: Address) -> InteriorSlot {
+        InteriorSlot(address)
+    }
+
+    pub fn address(self) -> Address {
+        self.0
+    }
+
+    pub fn interior(self) -> Address {
+        unsafe { *self.0.to_ptr::<Address>() }
+    }
+
+    pub fn base(self) -> Address {
+        unsafe { *self.0.add_ptr(1).to_ptr::<Address>() }
+    }
+
+    pub fn relocate(self, object: Address) {
+        let old_base = self.base();
+        debug_assert!(old_base.is_non_null());
+        debug_assert!(object.is_non_null());
+        let offset = self.interior().offset_from(old_base);
+
+        unsafe {
+            *self.0.to_mut_ptr::<Address>() = object.offset(offset);
+            *self.0.add_ptr(1).to_mut_ptr::<Address>() = object;
+        }
+    }
+}
+
+impl Slot {
+    pub fn at(addr: Address) -> Slot {
+        Slot::Regular(RegularSlot::at(addr))
+    }
+
+    pub fn address(self) -> Address {
+        match self {
+            Slot::Regular(slot) => slot.address(),
+            Slot::Interior(slot) => slot.address(),
+        }
+    }
+
+    pub fn get(self) -> Address {
+        match self {
+            Slot::Regular(slot) => slot.get(),
+            Slot::Interior(slot) => slot.base(),
+        }
+    }
+
+    pub fn relocate(self, object: Address) {
+        match self {
+            Slot::Regular(slot) => slot.set(object),
+            Slot::Interior(slot) => slot.relocate(object),
         }
     }
 }

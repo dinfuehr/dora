@@ -250,18 +250,18 @@ impl GcPointTable {
 
 #[derive(Clone, Debug)]
 pub struct GcPoint {
+    /// Frame offsets containing ordinary object references.
     pub offsets: Vec<i32>,
+    /// Frame offsets of two-word interior pointers. The first word is the
+    /// interior address and the immediately following word is the object base.
+    /// The object base is null when the interior address points into the stack.
+    pub interior_pointers: Vec<i32>,
 }
 
 impl GcPoint {
-    pub fn new() -> GcPoint {
-        GcPoint {
-            offsets: Vec::new(),
-        }
-    }
-
     pub fn merge(lhs: GcPoint, rhs: GcPoint) -> GcPoint {
         let mut offsets = HashSet::new();
+        let mut interior_pointers = HashSet::new();
 
         for offset in lhs.offsets {
             offsets.insert(offset);
@@ -271,11 +271,25 @@ impl GcPoint {
             offsets.insert(offset);
         }
 
-        GcPoint::from_offsets(offsets.drain().collect())
+        for interior_pointer in lhs.interior_pointers {
+            interior_pointers.insert(interior_pointer);
+        }
+
+        for interior_pointer in rhs.interior_pointers {
+            interior_pointers.insert(interior_pointer);
+        }
+
+        GcPoint::new(
+            offsets.drain().collect(),
+            interior_pointers.drain().collect(),
+        )
     }
 
-    pub fn from_offsets(offsets: Vec<i32>) -> GcPoint {
-        GcPoint { offsets }
+    pub fn new(offsets: Vec<i32>, interior_pointers: Vec<i32>) -> GcPoint {
+        GcPoint {
+            offsets,
+            interior_pointers,
+        }
     }
 }
 

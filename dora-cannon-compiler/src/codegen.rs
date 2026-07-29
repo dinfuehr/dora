@@ -352,7 +352,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn create_gcpoint(&self) -> GcPoint {
-        GcPoint::from_offsets(self.references.clone())
+        GcPoint::new(self.references.clone(), Vec::new())
     }
 
     fn has_result_address(&self) -> bool {

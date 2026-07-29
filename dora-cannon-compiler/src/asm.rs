@@ -1571,7 +1571,7 @@ impl<'a> BaselineAssembler<'a> {
             .load_int_const(MachineMode::Int32, REG_PARAMS[0], Trap::ASSERT as i64);
         self.masm
             .raw_call_runtime_function(RuntimeFunction::TrapTrampoline);
-        self.masm.emit_gcpoint(GcPoint::new());
+        self.masm.emit_gcpoint(GcPoint::new(Vec::new(), Vec::new()));
         self.masm.emit_position(location);
     }
 }

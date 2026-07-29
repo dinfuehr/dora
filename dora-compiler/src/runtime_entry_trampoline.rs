@@ -234,7 +234,7 @@ mod x64 {
                 RelocationKind::NativeCall(self.fct.target.clone()),
                 RelocationForm::X64CallRel32,
             );
-            self.gcpoints.insert(0, GcPoint::from_offsets(offsets));
+            self.gcpoints.insert(0, GcPoint::new(offsets, Vec::new()));
 
             load_reg(
                 &mut self.asm,
@@ -630,7 +630,7 @@ mod arm64 {
                 RelocationKind::NativeCall(self.fct.target.clone()),
                 RelocationForm::Arm64Branch26,
             );
-            self.gcpoints.insert(0, GcPoint::from_offsets(offsets));
+            self.gcpoints.insert(0, GcPoint::new(offsets, Vec::new()));
 
             self.asm.ldr_mem_x(
                 temp_reg.into(),

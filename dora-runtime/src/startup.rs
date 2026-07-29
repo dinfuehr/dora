@@ -96,6 +96,10 @@ pub struct AotGcPointEntry {
     pub offsets_start: u32,
     /// Number of stack-slot offsets for this gcpoint.
     pub offsets_len: u32,
+    /// Start index into `.dora.gcpoint_interior_pointers`.
+    pub interior_pointers_start: u32,
+    /// Number of two-word interior pointers for this gcpoint.
+    pub interior_pointers_len: u32,
 }
 
 #[repr(C)]
@@ -206,6 +210,7 @@ pub fn initialize_code_map(
     functions: &[AotFunctionEntry],
     gcpoints: &[AotGcPointEntry],
     gcpoint_offsets: &[i32],
+    gcpoint_interior_pointers: &[i32],
     function_infos: &[AotFunctionInfoEntry],
     strings: &[AotStringEntry],
     locations: &[AotLocationEntry],
@@ -225,9 +230,14 @@ pub fn initialize_code_map(
         for gcpoint in &gcpoints[gcpoints_start..gcpoints_start + gcpoints_len] {
             let offsets_start = gcpoint.offsets_start as usize;
             let offsets_len = gcpoint.offsets_len as usize;
+            let interior_pointers_start = gcpoint.interior_pointers_start as usize;
+            let interior_pointers_len = gcpoint.interior_pointers_len as usize;
 
             let offsets = gcpoint_offsets[offsets_start..offsets_start + offsets_len].to_vec();
-            gcpoint_table.insert(gcpoint.pc_offset, GcPoint::from_offsets(offsets));
+            let interior_pointers = gcpoint_interior_pointers
+                [interior_pointers_start..interior_pointers_start + interior_pointers_len]
+                .to_vec();
+            gcpoint_table.insert(gcpoint.pc_offset, GcPoint::new(offsets, interior_pointers));
         }
 
         let locations_start = function.locations_start as usize;

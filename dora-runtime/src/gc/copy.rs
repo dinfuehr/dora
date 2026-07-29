@@ -139,7 +139,7 @@ impl CopyCollector {
             let root_ptr = root.get();
 
             if from_space.contains(root_ptr) {
-                root.set(self.copy(rt, root_ptr, &mut top));
+                root.relocate(self.copy(rt, root_ptr, &mut top));
             } else if root_ptr.is_non_null() {
                 assert!(self.readonly.contains(root_ptr));
             }
@@ -152,7 +152,7 @@ impl CopyCollector {
                 let field_ptr = field.get();
 
                 if from_space.contains(field_ptr) {
-                    field.set(self.copy(rt, field_ptr, &mut top));
+                    field.relocate(self.copy(rt, field_ptr, &mut top));
                 } else if field_ptr.is_non_null() {
                     assert!(self.readonly.contains(field_ptr));
                 }

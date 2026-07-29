@@ -1157,8 +1157,9 @@ fn write_function_metadata(syntax: &mut AssemblySyntax, functions: &[FunctionMet
 
     const NO_INLINED_FUNCTION_ID: u32 = u32::MAX;
 
-    let mut gcpoint_entries = Vec::<(u32, usize, usize)>::new();
+    let mut gcpoint_entries = Vec::<(u32, usize, usize, usize, usize)>::new();
     let mut gcpoint_offsets = Vec::<i32>::new();
+    let mut gcpoint_interior_pointers = Vec::<i32>::new();
     let mut function_infos = Vec::<&AotFunctionInfo>::new();
     let mut location_entries = Vec::<(u32, u32, u32, u32)>::new();
     let mut inlined_function_entries = Vec::<(usize, u32, u32, u32)>::new();
@@ -1173,7 +1174,16 @@ fn write_function_metadata(syntax: &mut AssemblySyntax, functions: &[FunctionMet
             let offsets_start = gcpoint_offsets.len();
             gcpoint_offsets.extend(gcpoint.offsets.iter().copied());
             let offsets_len = gcpoint_offsets.len() - offsets_start;
-            gcpoint_entries.push((gcpoint.pc_offset, offsets_start, offsets_len));
+            let interior_pointers_start = gcpoint_interior_pointers.len();
+            gcpoint_interior_pointers.extend(gcpoint.interior_pointers.iter().copied());
+            let interior_pointers_len = gcpoint.interior_pointers.len();
+            gcpoint_entries.push((
+                gcpoint.pc_offset,
+                offsets_start,
+                offsets_len,
+                interior_pointers_start,
+                interior_pointers_len,
+            ));
         }
 
         let gcpoint_len = gcpoint_entries.len() - gcpoint_start;
@@ -1233,14 +1243,33 @@ fn write_function_metadata(syntax: &mut AssemblySyntax, functions: &[FunctionMet
     syntax.write_label("dora_aot_gcpoint_offsets_end");
 
     syntax.write_newline();
+    syntax.write_data_section(
+        ".dora.gcpoint_interior_pointers",
+        "__dora_gcpints",
+        ReadOnly,
+    );
+    syntax.write_align4();
+    syntax.write_global("dora_aot_gcpoint_interior_pointers_start");
+    syntax.write_label("dora_aot_gcpoint_interior_pointers_start");
+    for interior_offset in &gcpoint_interior_pointers {
+        syntax.write_long(interior_offset);
+    }
+    syntax.write_global("dora_aot_gcpoint_interior_pointers_end");
+    syntax.write_label("dora_aot_gcpoint_interior_pointers_end");
+
+    syntax.write_newline();
     syntax.write_data_section(".dora.gcpoints", "__dora_gcpoints", ReadOnly);
     syntax.write_align4();
     syntax.write_global("dora_aot_gcpoints_start");
     syntax.write_label("dora_aot_gcpoints_start");
-    for (pc_offset, offsets_start, offsets_len) in &gcpoint_entries {
+    for (pc_offset, offsets_start, offsets_len, interior_pointers_start, interior_pointers_len) in
+        &gcpoint_entries
+    {
         syntax.write_long(pc_offset);
         syntax.write_long(offsets_start);
         syntax.write_long(offsets_len);
+        syntax.write_long(interior_pointers_start);
+        syntax.write_long(interior_pointers_len);
     }
     syntax.write_global("dora_aot_gcpoints_end");
     syntax.write_label("dora_aot_gcpoints_end");

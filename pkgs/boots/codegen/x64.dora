@@ -936,7 +936,7 @@ impl CodeGenX64 {
             0i32
         };
 
-        (GcPoint::from(offsets), alignment)
+        (GcPoint::new(offsets, Vec[Int32]::new()), alignment)
     }
 
     fn restore_registers_for_call(snapshot: RegisterTrackers, alignment: Int32) {
@@ -1054,7 +1054,7 @@ impl CodeGenX64 {
         let pos = self.asm.position();
         let location = inst.get_inlined_location();
         let live = inst.get_location_data().get_live_values();
-        let gc_point = GcPoint::from(compute_offsets_in_live_set(live));
+        let gc_point = GcPoint::new(compute_offsets_in_live_set(live), Vec[Int32]::new());
 
         self.locations.insert(pos, location);
         self.gc_points.insert(pos, gc_point);
@@ -2752,8 +2752,9 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emit_invoke(inst: Inst) {
-        let gc_point = GcPoint::from(
-            compute_offsets_in_live_set(inst.get_location_data().get_live_values())
+        let gc_point = GcPoint::new(
+            compute_offsets_in_live_set(inst.get_location_data().get_live_values()),
+            Vec[Int32]::new(),
         );
 
         if inst.has_runtime_function() {

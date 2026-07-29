@@ -114,6 +114,7 @@ pub fn dora_boots_compiler_main(
         code_metadata.function_entries,
         code_metadata.gcpoint_entries,
         code_metadata.gcpoint_offsets,
+        code_metadata.gcpoint_interior_pointers,
         code_metadata.function_info_entries,
         strings,
         code_metadata.location_entries,

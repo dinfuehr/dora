@@ -727,28 +727,41 @@ impl std::traits::IntoIterator for GcPointTable {
 }
 
 pub class GcPoint {
+    // Frame offsets containing ordinary object references.
     offsets: Vec[Int32],
+    // Frame offsets of two-word interior pointers. The first word is the
+    // interior address and the immediately following word is the object base.
+    // The object base is null when the interior address points into the stack.
+    interior_pointers: Vec[Int32],
 }
 
 impl GcPoint {
-    pub static fn new(): GcPoint {
-        GcPoint(offsets = Vec[Int32]::new())
-    }
-
-    pub static fn from(offsets: Vec[Int32]): GcPoint {
-        GcPoint(offsets)
+    pub static fn new(offsets: Vec[Int32], interior_pointers: Vec[Int32]): GcPoint {
+        GcPoint(offsets = offsets, interior_pointers = interior_pointers)
     }
 
     pub fn size(): Int64 {
         self.offsets.size()
     }
 
+    pub fn interior_pointers_size(): Int64 {
+        self.interior_pointers.size()
+    }
+
     pub fn clone(): GcPoint {
-        GcPoint::from(self.offsets.clone())
+        GcPoint::new(self.offsets.clone(), self.interior_pointers.clone())
     }
 
     pub fn add(offset: Int32) {
         self.offsets.push(offset);
+    }
+
+    pub fn add_interior_pointer(interior_offset: Int32) {
+        self.interior_pointers.push(interior_offset);
+    }
+
+    pub fn interior_pointers_iter(): VecIter[Int32] {
+        self.interior_pointers.iter()
     }
 }
 
