@@ -783,8 +783,8 @@ impl BytecodeGraphBuilder {
                 self.emit_load_ref(dest, reference);
                 false
             }
-            BytecodeInstruction::GetRef(dest, src) => {
-                self.emit_get_ref(dest, src);
+            BytecodeInstruction::GetRegisterRef(dest, src) => {
+                self.emit_get_register_ref(dest, src);
                 false
             }
             BytecodeInstruction::Ret(opnd) => {
@@ -1108,7 +1108,7 @@ impl BytecodeGraphBuilder {
         self.load_field_into(dest, ref_inst, InstExtraData::None, 0i32);
     }
 
-    fn emit_get_ref(_dest: BytecodeRegister, _src: BytecodeRegister) {
+    fn emit_get_register_ref(_dest: BytecodeRegister, _src: BytecodeRegister) {
         unreachable[()]();
     }
 

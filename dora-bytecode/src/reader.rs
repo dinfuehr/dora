@@ -488,10 +488,10 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::LoadRef { dest, reference }
             }
 
-            BytecodeOpcode::GetRef => {
+            BytecodeOpcode::GetRegisterRef => {
                 let dest = self.read_register();
                 let src = self.read_register();
-                BytecodeInstruction::GetRef { dest, src }
+                BytecodeInstruction::GetRegisterRef { dest, src }
             }
 
             BytecodeOpcode::Ret => {
@@ -895,8 +895,8 @@ where
                 self.visitor.visit_load_ref(dest, reference);
             }
 
-            BytecodeInstruction::GetRef { dest, src } => {
-                self.visitor.visit_get_ref(dest, src);
+            BytecodeInstruction::GetRegisterRef { dest, src } => {
+                self.visitor.visit_get_register_ref(dest, src);
             }
 
             BytecodeInstruction::Ret { opnd } => {
@@ -1205,7 +1205,7 @@ pub trait BytecodeVisitor {
         unimplemented!();
     }
 
-    fn visit_get_ref(&mut self, _dest: Register, _src: Register) {
+    fn visit_get_register_ref(&mut self, _dest: Register, _src: Register) {
         unimplemented!();
     }
 

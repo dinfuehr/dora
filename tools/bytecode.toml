@@ -74,7 +74,7 @@ variants = [
     "GetFieldRef",
     "StoreRef",
     "LoadRef",
-    "GetRef",
+    "GetRegisterRef",
     "Ret",
 ]
 

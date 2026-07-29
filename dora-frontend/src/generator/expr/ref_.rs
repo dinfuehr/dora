@@ -47,7 +47,7 @@ fn gen_expr_ref_var(
     };
 
     let src_reg = var_reg(g, var_id);
-    g.builder.emit_get_ref(dest_reg, src_reg);
+    g.builder.emit_get_register_ref(dest_reg, src_reg);
 
     dest_reg
 }

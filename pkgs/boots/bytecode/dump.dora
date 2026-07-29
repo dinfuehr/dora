@@ -319,8 +319,8 @@ pub fn dump_instruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::LoadRef(dest, reference) => {
             dumper.emit_reg2(inst, "LoadRef", dest, reference);
         }
-        BytecodeInstruction::GetRef(dest, src) => {
-            dumper.emit_reg2(inst, "GetRef", dest, src);
+        BytecodeInstruction::GetRegisterRef(dest, src) => {
+            dumper.emit_reg2(inst, "GetRegisterRef", dest, src);
         }
         BytecodeInstruction::Ret(opnd) => {
             dumper.emit_reg1(inst, "Ret", opnd);

@@ -678,9 +678,9 @@ impl BytecodeBuilder {
         self.writer.emit_get_field_ref(dest, obj, field_idx);
     }
 
-    pub fn emit_get_ref(&mut self, dest: Register, src: Register) {
+    pub fn emit_get_register_ref(&mut self, dest: Register, src: Register) {
         assert!(self.def(dest) && self.used(src));
-        self.writer.emit_get_ref(dest, src);
+        self.writer.emit_get_register_ref(dest, src);
     }
 
     pub fn emit_load_ref(&mut self, dest: Register, reference: Register) {

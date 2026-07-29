@@ -12,7 +12,7 @@ fn take_ref:
 fn f:
   0: ConstInt32 r1, @0 # 42
   3: Mov r0, r1
-  6: GetRef r3, r0
+  6: GetRegisterRef r3, r0
   9: Mov r2, r3
  12: InvokeStatic r4, @1, r2 # take_ref
  17: Ret r4

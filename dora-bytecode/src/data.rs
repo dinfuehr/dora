@@ -91,7 +91,7 @@ pub enum BytecodeOpcode {
     GetFieldRef,
     StoreRef,
     LoadRef,
-    GetRef,
+    GetRegisterRef,
     Ret,
 }
 
@@ -167,7 +167,7 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::GetFieldRef => opc::BYTECODE_OPCODE_GET_FIELD_REF,
             BytecodeOpcode::StoreRef => opc::BYTECODE_OPCODE_STORE_REF,
             BytecodeOpcode::LoadRef => opc::BYTECODE_OPCODE_LOAD_REF,
-            BytecodeOpcode::GetRef => opc::BYTECODE_OPCODE_GET_REF,
+            BytecodeOpcode::GetRegisterRef => opc::BYTECODE_OPCODE_GET_REGISTER_REF,
             BytecodeOpcode::Ret => opc::BYTECODE_OPCODE_RET,
         }
     }
@@ -247,7 +247,7 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_GET_FIELD_REF => Ok(BytecodeOpcode::GetFieldRef),
             opc::BYTECODE_OPCODE_STORE_REF => Ok(BytecodeOpcode::StoreRef),
             opc::BYTECODE_OPCODE_LOAD_REF => Ok(BytecodeOpcode::LoadRef),
-            opc::BYTECODE_OPCODE_GET_REF => Ok(BytecodeOpcode::GetRef),
+            opc::BYTECODE_OPCODE_GET_REGISTER_REF => Ok(BytecodeOpcode::GetRegisterRef),
             opc::BYTECODE_OPCODE_RET => Ok(BytecodeOpcode::Ret),
             _ => Err(()),
         }
@@ -686,7 +686,7 @@ pub enum BytecodeInstruction {
         reference: Register,
     },
 
-    GetRef {
+    GetRegisterRef {
         dest: Register,
         src: Register,
     },

@@ -962,8 +962,8 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("LoadRef", dest, reference);
     }
 
-    fn visit_get_ref(&mut self, dest: Register, src: Register) {
-        self.emit_reg2("GetRef", dest, src);
+    fn visit_get_register_ref(&mut self, dest: Register, src: Register) {
+        self.emit_reg2("GetRegisterRef", dest, src);
     }
 
     fn visit_ret(&mut self, opnd: Register) {

@@ -420,10 +420,10 @@ impl BytecodeIterator {
                 let reference = self.read_register();
                 BytecodeInstruction::LoadRef(dest, reference)
             }
-            opc::BYTECODE_OPCODE_GET_REF => {
+            opc::BYTECODE_OPCODE_GET_REGISTER_REF => {
                 let dest = self.read_register();
                 let src = self.read_register();
-                BytecodeInstruction::GetRef(dest, src)
+                BytecodeInstruction::GetRegisterRef(dest, src)
             }
             opc::BYTECODE_OPCODE_RET => {
                 let opnd = self.read_register();

@@ -540,7 +540,7 @@ impl<'a> Verifier<'a> {
                 self.assert_type(dest, &referenced_ty);
             }
 
-            BytecodeInstruction::GetRef { dest, src } => {
+            BytecodeInstruction::GetRegisterRef { dest, src } => {
                 self.assert_type(dest, &BytecodeType::Ref(Box::new(self.ty(src).clone())));
             }
 
