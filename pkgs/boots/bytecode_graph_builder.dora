@@ -1146,10 +1146,9 @@ impl BytecodeGraphBuilder {
         obj: BytecodeRegister,
         idx: ConstPoolId,
     ) {
-        let obj_inst = self.register_value(obj);
-
         match self.bc().const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
+                let obj_inst = self.register_value(obj);
                 let type_params = self.specialize_array(type_params);
                 let offset = iface::get_field_offset(
                     self.ci,
@@ -1171,6 +1170,15 @@ impl BytecodeGraphBuilder {
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                 let struct_layout = self.compute_struct_layout(struct_id, type_params);
                 let field = struct_layout.fields(field_id.0.to_int64());
+                let (obj_inst, base_inst) = if self.reg(obj).is_ref() {
+                    let reference = self.aggregate_register(obj);
+                    (self.load_ref_interior(reference), self.load_ref_base(reference))
+                } else {
+                    let obj_inst = self.register_value(obj);
+                    let base_inst = graph::create_null_const();
+                    self.current().append_inst(base_inst);
+                    (obj_inst, base_inst)
+                };
 
                 let offset_const = self.graph.ensure_const_int64_inst(
                     field.offset.to_int64()
@@ -1182,8 +1190,6 @@ impl BytecodeGraphBuilder {
                     offset_const,
                 );
                 self.current().append_inst(address_inst);
-                let base_inst = graph::create_null_const();
-                self.current().append_inst(base_inst);
                 self.store_ref(self.aggregate_register(dest), address_inst, base_inst);
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
@@ -1191,6 +1197,15 @@ impl BytecodeGraphBuilder {
                 let BytecodeType::Tuple(subtypes) = tuple_ty;
                 let tuple_layout = self.compute_tuple_layout(subtypes);
                 let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
+                let (obj_inst, base_inst) = if self.reg(obj).is_ref() {
+                    let reference = self.aggregate_register(obj);
+                    (self.load_ref_interior(reference), self.load_ref_base(reference))
+                } else {
+                    let obj_inst = self.register_value(obj);
+                    let base_inst = graph::create_null_const();
+                    self.current().append_inst(base_inst);
+                    (obj_inst, base_inst)
+                };
 
                 let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
                 let address_inst = graph::create_binary_inst(
@@ -1200,8 +1215,6 @@ impl BytecodeGraphBuilder {
                     offset_const,
                 );
                 self.current().append_inst(address_inst);
-                let base_inst = graph::create_null_const();
-                self.current().append_inst(base_inst);
                 self.store_ref(self.aggregate_register(dest), address_inst, base_inst);
             }
             _ => unreachable[()](),

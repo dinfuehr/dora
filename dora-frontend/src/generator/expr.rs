@@ -42,7 +42,7 @@ use self::lit::{
 use self::match_::gen_match;
 use self::method_call::gen_expr_method_call;
 use self::path::gen_expr_path;
-use self::ref_::gen_expr_ref;
+use self::ref_::{gen_expr_as_ref, gen_expr_ref, is_rooted_in_ref};
 use self::return_::gen_expr_return;
 pub(in crate::generator) use self::stmt::{gen_stmt_expr, gen_stmt_let};
 use self::template::gen_expr_template;

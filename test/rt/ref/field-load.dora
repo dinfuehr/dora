@@ -1,0 +1,57 @@
+//= runtime-args "--gc-verify"
+
+struct Inner { value: Int32 }
+class Box { inner: Inner }
+struct Outer { box: Box }
+class Holder {
+    outer: Outer,
+    box: Box,
+    tuple: (Int32, Int64),
+}
+
+fn collect(minor: Bool) {
+    if minor {
+        std::force_minor_collect();
+    } else {
+        std::force_collect();
+    }
+}
+
+fn read_outer_after_gc(value: ref Outer, minor: Bool): Int32 {
+    collect(minor);
+    value.box.inner.value
+}
+
+fn read_box_after_gc(value: ref Box, minor: Bool): Int32 {
+    collect(minor);
+    value.inner.value
+}
+
+fn read_tuple_after_gc(value: ref (Int32, Int64), minor: Bool): Int64 {
+    collect(minor);
+    value.1
+}
+
+fn main() {
+    let stack_outer = Outer(Box(Inner(10i32)));
+    let stack_box = Box(Inner(20i32));
+    let stack_tuple = (30i32, 31i64);
+    assert(read_outer_after_gc(ref stack_outer, false) == 10i32);
+    assert(read_outer_after_gc(ref stack_outer, true) == 10i32);
+    assert(read_box_after_gc(ref stack_box, false) == 20i32);
+    assert(read_box_after_gc(ref stack_box, true) == 20i32);
+    assert(read_tuple_after_gc(ref stack_tuple, false) == 31i64);
+    assert(read_tuple_after_gc(ref stack_tuple, true) == 31i64);
+
+    let holder = Holder(
+        outer = Outer(Box(Inner(40i32))),
+        box = Box(Inner(50i32)),
+        tuple = (60i32, 61i64),
+    );
+    assert(read_outer_after_gc(ref holder.outer, false) == 40i32);
+    assert(read_outer_after_gc(ref holder.outer, true) == 40i32);
+    assert(read_box_after_gc(ref holder.box, false) == 50i32);
+    assert(read_box_after_gc(ref holder.box, true) == 50i32);
+    assert(read_tuple_after_gc(ref holder.tuple, false) == 61i64);
+    assert(read_tuple_after_gc(ref holder.tuple, true) == 61i64);
+}

@@ -1,6 +1,6 @@
 use dora_bytecode::{BytecodeType, Register};
 
-use super::{ensure_register, gen_expr};
+use super::{ensure_register, gen_expr, gen_expr_as_ref, is_rooted_in_ref};
 use crate::generator::{AstBytecodeGen, DataDest};
 use crate::sema::{ExprId, FieldExpr, IdentType, StructDefinitionId};
 use crate::ty::{SourceType, SourceTypeArray};
@@ -11,6 +11,10 @@ pub(super) fn gen_expr_field(
     e: &FieldExpr,
     dest: DataDest,
 ) -> Register {
+    if is_rooted_in_ref(g, expr_id) {
+        return gen_expr_ref_backed_field(g, expr_id, dest);
+    }
+
     let object_ty = g.ty(e.lhs);
 
     // Auto-dereference Ref types for field access.
@@ -53,6 +57,22 @@ pub(super) fn gen_expr_field(
     g.builder
         .emit_load_field(dest, obj, field_idx, g.loc_for_expr(expr_id));
     g.free_if_temp(obj);
+
+    dest
+}
+
+fn gen_expr_ref_backed_field(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataDest) -> Register {
+    let field_ty = g.ty(expr_id);
+
+    if field_ty.is_unit() {
+        return g.ensure_unit_register();
+    }
+
+    let bytecode_ty = g.emitter.convert_ty(g.sa, field_ty.clone());
+    let dest = ensure_register(g, dest, bytecode_ty);
+    let reference = gen_expr_as_ref(g, expr_id, field_ty);
+    g.builder.emit_load_ref(dest, reference);
+    g.free_if_temp(reference);
 
     dest
 }

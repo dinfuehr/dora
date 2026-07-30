@@ -1,0 +1,86 @@
+class Box:
+  inner: Inner
+
+struct Inner:
+  value: Int32
+
+struct Outer:
+  box: Box
+
+fn read:
+  0: GetFieldRef r5, r0, @2 # Outer.box
+  4: LoadRef r4, r5
+  7: GetFieldRef r3, r4, @1 # Box.inner
+ 11: GetFieldRef r2, r3, @0 # Inner.value
+ 15: LoadRef r1, r2
+ 18: Ret r1
+
+  Registers:
+   0 => ref Outer
+   1 => Int32
+   2 => ref Int32
+   3 => ref Inner
+   4 => class Box
+   5 => ref Box
+
+  Constants:
+   0 => StructField Inner.value
+   1 => Field Box.inner
+   2 => StructField Outer.box
+
+  Locations:
+   0 => 6:5
+
+fn read_class:
+  0: LoadRef r4, r0
+  3: GetFieldRef r3, r4, @1 # Box.inner
+  7: GetFieldRef r2, r3, @0 # Inner.value
+ 11: LoadRef r1, r2
+ 14: Ret r1
+
+  Registers:
+   0 => ref Box
+   1 => Int32
+   2 => ref Int32
+   3 => ref Inner
+   4 => class Box
+
+  Constants:
+   0 => StructField Inner.value
+   1 => Field Box.inner
+
+  Locations:
+   3 => 10:5
+
+fn read_box:
+  0: LoadField r1, r0, @0 # Box.inner
+  4: LoadField r2, r1, @1 # Inner.value
+  8: Ret r2
+
+  Registers:
+   0 => class Box
+   1 => struct Inner
+   2 => Int32
+
+  Constants:
+   0 => Field Box.inner
+   1 => StructField Inner.value
+
+  Locations:
+
+fn read_tuple:
+  0: GetFieldRef r2, r0, @0 # (Int32, Int64).1
+  4: LoadRef r1, r2
+  7: Ret r1
+
+  Registers:
+   0 => ref (Int32, Int64)
+   1 => Int64
+   2 => ref Int64
+
+  Constants:
+   0 => TupleElement subtypes.0
+
+  Locations:
+   0 => 18:5
+
