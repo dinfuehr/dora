@@ -1,0 +1,13 @@
+class Foo {
+    value: Int64,
+}
+
+impl Foo {
+    mutating fn update() {
+        self.value = 10i64;
+    }
+}
+
+fn call(foo: Foo) {
+    foo.update();
+}

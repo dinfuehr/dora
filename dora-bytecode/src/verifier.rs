@@ -935,6 +935,26 @@ fn specialize_trait_type_with_self(
     }
 }
 
+fn uses_ref_self(function: &FunctionData, self_type: Option<&BytecodeType>) -> bool {
+    if function.is_static || !function.is_mutating {
+        return false;
+    }
+
+    // A mutating trait method always receives self by reference. This lets the
+    // implementation replace the value stored in a trait object for any type,
+    // including primitive and reference types.
+    if function.trait_method_impl.is_some() || matches!(function.kind, FunctionKind::Trait(_)) {
+        return true;
+    }
+
+    // Inherent mutating methods only need a reference for value types whose
+    // fields are stored inline. Classes already have reference semantics.
+    matches!(
+        self_type,
+        Some(BytecodeType::Struct(..) | BytecodeType::Tuple(..))
+    )
+}
+
 fn specialize_function_params(
     function: &FunctionData,
     type_params: &BytecodeTypeArray,
@@ -946,15 +966,10 @@ fn specialize_function_params(
         .map(|param| specialize_type_with_self(param, type_params, self_type))
         .collect::<Vec<_>>();
 
-    if !function.is_static
-        && function.is_mutating
-        && matches!(
-            self_type,
-            Some(BytecodeType::Struct(..) | BytecodeType::Tuple(..))
-        )
-    {
+    if uses_ref_self(function, self_type) {
         assert!(!params.is_empty());
-        params[0] = BytecodeType::Ref(Box::new(self_type.unwrap().clone()));
+        let receiver_ty = self_type.cloned().unwrap_or_else(|| params[0].clone());
+        params[0] = BytecodeType::Ref(Box::new(receiver_ty));
     }
 
     params

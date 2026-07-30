@@ -1,0 +1,182 @@
+class Foo:
+  value: Int32
+
+struct StructValue:
+  0: Int32
+
+fn MutableValue::update:
+  <no bytecode>
+
+fn <impl MutableValue for StructValue>::update:
+  0: ConstInt32 r1, @0 # 11
+  3: NewStruct r2, @1, r1 # StructValue
+  8: StoreRef r2, r0
+ 11: Ret r3
+
+  Registers:
+   0 => ref StructValue
+   1 => Int32
+   2 => struct StructValue
+   3 => ()
+
+  Constants:
+   0 => Int32 11
+   1 => Struct StructValue
+
+  Locations:
+   3 => 13:16
+   8 => 13:9
+
+fn <impl MutableValue for Foo>::update:
+  0: ConstInt32 r1, @0 # 10
+  3: NewObject r2, @1, r1 # Foo
+  8: StoreRef r2, r0
+ 11: Ret r3
+
+  Registers:
+   0 => ref Foo
+   1 => Int32
+   2 => class Foo
+   3 => ()
+
+  Constants:
+   0 => Int32 10
+   1 => Class Foo
+
+  Locations:
+   3 => 19:16
+   8 => 19:9
+
+fn <impl MutableValue for (Int32, Int32)>::update:
+  0: ConstInt32 r2, @0 # 21
+  3: ConstInt32 r3, @1 # 22
+  6: NewTuple r1, @2, r2, r3 # (Int32, Int32)
+ 12: StoreRef r1, r0
+ 15: Ret r4
+
+  Registers:
+   0 => ref (Int32, Int32)
+   1 => (Int32, Int32)
+   2 => Int32
+   3 => Int32
+   4 => ()
+
+  Constants:
+   0 => Int32 21
+   1 => Int32 22
+   2 => Tuple (Int32, Int32)
+
+  Locations:
+   6 => 25:16
+   12 => 25:9
+
+fn <impl MutableValue for Bool>::update:
+  0: ConstFalse r1
+  2: StoreRef r1, r0
+  5: Ret r2
+
+  Registers:
+   0 => ref Bool
+   1 => Bool
+   2 => ()
+
+  Constants:
+
+  Locations:
+   2 => 31:9
+
+fn <impl MutableValue for UInt8>::update:
+  0: ConstUInt8 r1, 31
+  3: StoreRef r1, r0
+  6: Ret r2
+
+  Registers:
+   0 => ref UInt8
+   1 => UInt8
+   2 => ()
+
+  Constants:
+
+  Locations:
+   3 => 37:9
+
+fn <impl MutableValue for Char>::update:
+  0: ConstChar r1, @0 # 'b' 0x62
+  3: StoreRef r1, r0
+  6: Ret r2
+
+  Registers:
+   0 => ref Char
+   1 => Char
+   2 => ()
+
+  Constants:
+   0 => Char b
+
+  Locations:
+   3 => 43:9
+
+fn <impl MutableValue for Int32>::update:
+  0: ConstInt32 r1, @0 # 41
+  3: StoreRef r1, r0
+  6: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => ()
+
+  Constants:
+   0 => Int32 41
+
+  Locations:
+   3 => 49:9
+
+fn <impl MutableValue for Int64>::update:
+  0: ConstInt64 r1, @0 # 51
+  3: StoreRef r1, r0
+  6: Ret r2
+
+  Registers:
+   0 => ref Int64
+   1 => Int64
+   2 => ()
+
+  Constants:
+   0 => Int64 51
+
+  Locations:
+   3 => 55:9
+
+fn <impl MutableValue for Float32>::update:
+  0: ConstFloat32 r1, @0 # 61.5
+  3: StoreRef r1, r0
+  6: Ret r2
+
+  Registers:
+   0 => ref Float32
+   1 => Float32
+   2 => ()
+
+  Constants:
+   0 => Float32 61.5
+
+  Locations:
+   3 => 61:9
+
+fn <impl MutableValue for Float64>::update:
+  0: ConstFloat64 r1, @0 # 71.5
+  3: StoreRef r1, r0
+  6: Ret r2
+
+  Registers:
+   0 => ref Float64
+   1 => Float64
+   2 => ()
+
+  Constants:
+   0 => Float64 71.5
+
+  Locations:
+   3 => 67:9
+

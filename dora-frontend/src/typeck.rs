@@ -584,8 +584,14 @@ impl<'a> TypeCheck<'a> {
             ty
         } else {
             let ty = self.self_ty.clone().expect("self expected");
-            // For mutating methods on value types, self is passed by reference.
-            if self.is_mutating && (ty.is_struct() || ty.is_tuple()) {
+            let is_trait_method = match self.parent {
+                FctParent::Trait(_) => true,
+                FctParent::Impl(impl_id) => self.sa.impl_(impl_id).trait_id().is_some(),
+                _ => false,
+            };
+            // Mutating trait methods always receive self by reference. Inherent
+            // methods only need a reference for struct and tuple receivers.
+            if self.is_mutating && (is_trait_method || ty.is_struct() || ty.is_tuple()) {
                 SourceType::Ref(Box::new(ty))
             } else {
                 ty

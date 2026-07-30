@@ -423,11 +423,7 @@ fn compile_trait_object_thunk(
         trait_fct_id,
         trait_object_ty: thunk.trait_object_ty.clone(),
         actual_object_ty: thunk.actual_object_ty.clone(),
-        receiver_by_reference: trait_fct.is_mutating
-            && matches!(
-                thunk.actual_object_ty,
-                BytecodeType::Struct(..) | BytecodeType::Tuple(..)
-            ),
+        is_mutating: trait_fct.is_mutating,
         callee_fct_id,
         callee_type_params,
         signature: FunctionSignature {

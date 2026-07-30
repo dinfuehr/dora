@@ -1,0 +1,33 @@
+class Foo:
+  value: Int64
+
+fn <impl Foo>::update:
+  0: ConstInt64 r1, @1 # 10
+  3: StoreField r1, r0, @0 # Foo.value
+  7: Ret r2
+
+  Registers:
+   0 => class Foo
+   1 => Int64
+   2 => ()
+
+  Constants:
+   0 => Field Foo.value
+   1 => Int64 10
+
+  Locations:
+
+fn call:
+  0: InvokeDirect r1, @0, r0 # <impl Foo>::update
+  5: Ret r1
+
+  Registers:
+   0 => class Foo
+   1 => ()
+
+  Constants:
+   0 => Fct <impl Foo>::update
+
+  Locations:
+   0 => 12:5
+

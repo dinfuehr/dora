@@ -59,8 +59,12 @@ impl BytecodeGraphBuilder {
         let mut arg_idx = 0i64;
         let receiver = arguments(arg_idx);
         arg_idx += 1i64;
-        if self.unwrap_trait_object_receiver(thunk, receiver) is Some(receiver) {
+        if thunk.is_mutating {
+            // A reference is passed as an interior pointer and its object base.
+            args.push(self.trait_object_payload_address(receiver));
             args.push(receiver);
+        } else if self.unwrap_trait_object_receiver(thunk, receiver) is Some(unwrapped_receiver) {
+            args.push(unwrapped_receiver);
         }
 
         for param_idx in std::range(1, self.signature.params.size()) {
@@ -108,29 +112,24 @@ impl BytecodeGraphBuilder {
         thunk: TraitObjectThunk,
         receiver: Inst,
     ): Option[Inst] {
-        if thunk.receiver_by_reference {
-            // Mutating trait methods on struct and tuple receivers need the address
-            // of the inline payload so changes affect the boxed value.
-            Some(self.trait_object_payload_address(receiver))
-        } else {
-            match cc::argument_passing_mode(self.ci, thunk.actual_object_ty) {
-                ArgumentPassingMode::None => None,
-                ArgumentPassingMode::Register(register_ty) => {
-                    let value = graph::create_load_inst(
-                        receiver,
-                        iface::OBJECT_HEADER_LENGTH,
-                        InstExtraData::None,
-                        self.graph_ty(register_ty),
-                        false,
-                    );
-                    self.current().append_inst(value);
-                    Some(value)
-                }
-                ArgumentPassingMode::Stack => {
-                    Some(self.trait_object_payload_address(receiver))
-                }
-                ArgumentPassingMode::InteriorPointer => unreachable[Option[Inst]](),
+        assert(!thunk.is_mutating);
+        match cc::argument_passing_mode(self.ci, thunk.actual_object_ty) {
+            ArgumentPassingMode::None => None,
+            ArgumentPassingMode::Register(register_ty) => {
+                let value = graph::create_load_inst(
+                    receiver,
+                    iface::OBJECT_HEADER_LENGTH,
+                    InstExtraData::None,
+                    self.graph_ty(register_ty),
+                    false,
+                );
+                self.current().append_inst(value);
+                Some(value)
             }
+            ArgumentPassingMode::Stack => {
+                Some(self.trait_object_payload_address(receiver))
+            }
+            ArgumentPassingMode::InteriorPointer => unreachable[Option[Inst]](),
         }
     }
 

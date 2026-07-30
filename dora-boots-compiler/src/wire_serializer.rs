@@ -23,7 +23,7 @@ pub fn encode_trait_object_thunk_compilation_data(
     buffer: &mut ByteBuffer,
 ) {
     encode_bytecode_type(&compilation_data.actual_object_ty, buffer);
-    buffer.emit_bool(compilation_data.receiver_by_reference);
+    buffer.emit_bool(compilation_data.is_mutating);
     buffer.emit_id(compilation_data.callee_fct_id.index());
     encode_bytecode_type_array(&compilation_data.callee_type_params, buffer);
     buffer.emit_id(compilation_data.trait_fct_id.index());

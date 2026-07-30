@@ -1,0 +1,69 @@
+trait MutableValue {
+    mutating fn update();
+}
+
+struct StructValue(Int32)
+
+class Foo {
+    value: Int32,
+}
+
+impl MutableValue for StructValue {
+    mutating fn update() {
+        self = StructValue(11i32);
+    }
+}
+
+impl MutableValue for Foo {
+    mutating fn update() {
+        self = Foo(value = 10i32);
+    }
+}
+
+impl MutableValue for (Int32, Int32) {
+    mutating fn update() {
+        self = (21i32, 22i32);
+    }
+}
+
+impl MutableValue for Bool {
+    mutating fn update() {
+        self = false;
+    }
+}
+
+impl MutableValue for UInt8 {
+    mutating fn update() {
+        self = 31u8;
+    }
+}
+
+impl MutableValue for Char {
+    mutating fn update() {
+        self = 'b';
+    }
+}
+
+impl MutableValue for Int32 {
+    mutating fn update() {
+        self = 41i32;
+    }
+}
+
+impl MutableValue for Int64 {
+    mutating fn update() {
+        self = 51i64;
+    }
+}
+
+impl MutableValue for Float32 {
+    mutating fn update() {
+        self = 61.5f32;
+    }
+}
+
+impl MutableValue for Float64 {
+    mutating fn update() {
+        self = 71.5;
+    }
+}

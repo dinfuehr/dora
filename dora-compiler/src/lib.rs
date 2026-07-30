@@ -116,7 +116,7 @@ pub struct TraitObjectThunkCompilationData<'a> {
     pub trait_fct_id: FunctionId,
     pub trait_object_ty: BytecodeType,
     pub actual_object_ty: BytecodeType,
-    pub receiver_by_reference: bool,
+    pub is_mutating: bool,
     pub callee_fct_id: FunctionId,
     pub callee_type_params: BytecodeTypeArray,
     pub signature: FunctionSignature,

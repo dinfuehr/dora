@@ -62,7 +62,7 @@ pub fn decode_function_compilation_info(reader: ByteReader): FunctionCompilation
 
 pub fn decode_trait_object_thunk(reader: ByteReader): TraitObjectThunk {
     let actual_object_ty = decode_bytecode_type(reader);
-    let receiver_by_reference = reader.read_bool();
+    let is_mutating = reader.read_bool();
     let callee_fct_id = FunctionId(reader.read_int32());
     let callee_type_params = decode_bytecode_type_array(reader);
     let fct_id = FunctionId(reader.read_int32());
@@ -71,7 +71,7 @@ pub fn decode_trait_object_thunk(reader: ByteReader): TraitObjectThunk {
         fct_id,
         signature,
         actual_object_ty,
-        receiver_by_reference,
+        is_mutating,
         callee_fct_id,
         callee_type_params,
     )

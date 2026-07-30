@@ -1,0 +1,130 @@
+//= boots
+//= runtime-args "--gc-verify"
+
+trait MutableValue {
+    mutating fn update();
+    fn is_updated(): Bool;
+}
+
+struct StructValue {
+    value: Int32,
+    guard: Int32,
+}
+
+impl MutableValue for StructValue {
+    mutating fn update() {
+        std::force_collect();
+        assert(self.guard == 100i32);
+        self = StructValue(value = 11i32, guard = 100i32);
+    }
+
+    fn is_updated(): Bool {
+        self.value == 11i32 && self.guard == 100i32
+    }
+}
+
+impl MutableValue for (Int32, Int32) {
+    mutating fn update() {
+        std::force_collect();
+        assert(self.1 == 200i32);
+        self = (22i32, 200i32);
+    }
+
+    fn is_updated(): Bool {
+        self.0 == 22i32 && self.1 == 200i32
+    }
+}
+
+impl MutableValue for Bool {
+    mutating fn update() {
+        std::force_collect();
+        self = false;
+    }
+
+    fn is_updated(): Bool {
+        !self
+    }
+}
+
+impl MutableValue for UInt8 {
+    mutating fn update() {
+        std::force_collect();
+        self = 31u8;
+    }
+
+    fn is_updated(): Bool {
+        self == 31u8
+    }
+}
+
+impl MutableValue for Char {
+    mutating fn update() {
+        std::force_collect();
+        self = 'b';
+    }
+
+    fn is_updated(): Bool {
+        self == 'b'
+    }
+}
+
+impl MutableValue for Int32 {
+    mutating fn update() {
+        std::force_collect();
+        self = 41i32;
+    }
+
+    fn is_updated(): Bool {
+        self == 41i32
+    }
+}
+
+impl MutableValue for Int64 {
+    mutating fn update() {
+        std::force_collect();
+        self = 51i64;
+    }
+
+    fn is_updated(): Bool {
+        self == 51i64
+    }
+}
+
+impl MutableValue for Float32 {
+    mutating fn update() {
+        std::force_collect();
+        self = 61.5f32;
+    }
+
+    fn is_updated(): Bool {
+        self == 61.5f32
+    }
+}
+
+impl MutableValue for Float64 {
+    mutating fn update() {
+        std::force_collect();
+        self = 71.5;
+    }
+
+    fn is_updated(): Bool {
+        self == 71.5
+    }
+}
+
+fn update_and_verify(value: MutableValue) {
+    value.update();
+    assert(value.is_updated());
+}
+
+fn main() {
+    update_and_verify(StructValue(value = 10i32, guard = 100i32) as MutableValue);
+    update_and_verify((20i32, 200i32) as MutableValue);
+    update_and_verify(true as MutableValue);
+    update_and_verify(30u8 as MutableValue);
+    update_and_verify('a' as MutableValue);
+    update_and_verify(40i32 as MutableValue);
+    update_and_verify(50i64 as MutableValue);
+    update_and_verify(60.5f32 as MutableValue);
+    update_and_verify(70.5 as MutableValue);
+}

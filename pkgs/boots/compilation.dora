@@ -100,7 +100,7 @@ pub class TraitObjectThunk {
     pub fct_id: FunctionId,
     pub signature: FunctionSignature,
     pub actual_object_ty: BytecodeType,
-    pub receiver_by_reference: Bool,
+    pub is_mutating: Bool,
     pub callee_fct_id: FunctionId,
     pub callee_type_params: Array[BytecodeType],
 }

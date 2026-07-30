@@ -37,7 +37,7 @@ struct ForwardJump {
 
 struct TraitObjectThunkData {
     actual_object_ty: BytecodeType,
-    receiver_by_reference: bool,
+    is_mutating: bool,
     callee_fct_id: FunctionId,
     callee_type_params: BytecodeTypeArray,
     receiver_reg: Option<Register>,
@@ -128,7 +128,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             trait_fct_id,
             trait_object_ty,
             actual_object_ty,
-            receiver_by_reference,
+            is_mutating,
             callee_fct_id,
             callee_type_params,
             signature,
@@ -143,7 +143,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         );
 
         let mut registers = signature.params.to_vec();
-        let receiver_reg = if receiver_by_reference {
+        let receiver_reg = if is_mutating {
             let receiver_reg = Register(registers.len());
             let ty = BytecodeType::Ref(Box::new(actual_object_ty.clone()));
             registers.push(ty);
@@ -176,7 +176,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             registers,
             trait_object_thunk: Some(TraitObjectThunkData {
                 actual_object_ty,
-                receiver_by_reference,
+                is_mutating,
                 callee_fct_id,
                 callee_type_params,
                 receiver_reg,
@@ -225,7 +225,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let object_reg = Register(0);
         let mut arguments = Vec::with_capacity(self.params.len());
 
-        if thunk.receiver_by_reference {
+        if thunk.is_mutating {
             let receiver_reg = thunk.receiver_reg.expect("missing receiver register");
             self.emit_load_trait_object_receiver_ref(
                 receiver_reg,
