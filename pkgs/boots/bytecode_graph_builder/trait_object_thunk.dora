@@ -63,7 +63,9 @@ impl BytecodeGraphBuilder {
             // A reference is passed as an interior pointer and its object base.
             args.push(self.trait_object_payload_address(receiver));
             args.push(receiver);
-        } else if self.unwrap_trait_object_receiver(thunk, receiver) is Some(unwrapped_receiver) {
+        } else if self.unwrap_trait_object_receiver(thunk, receiver)
+            is Some(unwrapped_receiver)
+        {
             args.push(unwrapped_receiver);
         }
 
