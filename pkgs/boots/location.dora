@@ -566,27 +566,39 @@ fn compute_argument_locations(
                 BytecodeType::Float32 | BytecodeType::Float64 => true,
                 _ => false,
             }
+            ArgumentPassingMode::InteriorPointer => false,
             ArgumentPassingMode::Stack => false,
             ArgumentPassingMode::None => unreachable[Bool](),
         };
 
-        if uses_fp_reg {
-            if fp_idx < fp_argument_registers.size() {
-                locations.push(fp_argument_registers(fp_idx).to_location());
-            } else {
-                locations.push(Location::fp(next_fp_offset));
-                next_fp_offset = next_fp_offset + PTR_SIZE;
-            }
-            fp_idx = fp_idx + 1;
+        let argument_parts = if passing_mode is ArgumentPassingMode::InteriorPointer {
+            2
         } else {
-            if gp_idx < gp_argument_registers.size() {
-                locations.push(gp_argument_registers(gp_idx).to_location());
+            1
+        };
+        let mut part = 0;
+
+        while part < argument_parts {
+            if uses_fp_reg {
+                if fp_idx < fp_argument_registers.size() {
+                    locations.push(fp_argument_registers(fp_idx).to_location());
+                } else {
+                    locations.push(Location::fp(next_fp_offset));
+                    next_fp_offset = next_fp_offset + PTR_SIZE;
+                }
+                fp_idx = fp_idx + 1;
             } else {
-                locations.push(Location::fp(next_fp_offset));
-                next_fp_offset = next_fp_offset + PTR_SIZE;
+                if gp_idx < gp_argument_registers.size() {
+                    locations.push(gp_argument_registers(gp_idx).to_location());
+                } else {
+                    locations.push(Location::fp(next_fp_offset));
+                    next_fp_offset = next_fp_offset + PTR_SIZE;
+                }
+
+                gp_idx = gp_idx + 1;
             }
 
-            gp_idx = gp_idx + 1;
+            part += 1;
         }
     }
 

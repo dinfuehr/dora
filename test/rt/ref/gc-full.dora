@@ -1,4 +1,3 @@
-//= config cannon
 //= runtime-args "--gc-verify"
 
 class Box { value: Int32 }

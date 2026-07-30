@@ -313,6 +313,7 @@ pub(crate) fn format_node(node: SyntaxNode, f: &mut Formatter) {
         TokenKind::QUALIFIED_PATH_TYPE => {
             ty::format_qualified_path_type(node.as_qualified_path_type(), f)
         }
+        TokenKind::REF_EXPR => expr::format_ref_expr(node.as_ref_expr(), f),
         TokenKind::REF_TYPE => ty::format_ref_type(node.as_ref_type(), f),
         TokenKind::RETURN_EXPR => expr::format_return(node.as_return_expr(), f),
         TokenKind::REST => pattern::format_rest_pattern(node.as_rest(), f),

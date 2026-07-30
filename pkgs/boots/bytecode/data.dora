@@ -243,6 +243,7 @@ pub enum BytecodeType {
     Class(ClassId, Array[BytecodeType]),
     TraitObject(TraitId, Array[BytecodeType], Array[BytecodeType]),
     Tuple(Array[BytecodeType]),
+    Ref(BytecodeType),
     TypeParam(Int32),
     TypeAlias(AliasId),
     Assoc {
@@ -281,6 +282,7 @@ impl BytecodeType {
                 _assocTypes,
             ) => type_params.is_generic(),
             BytecodeType::Tuple(subtypes) => subtypes.is_generic(),
+            BytecodeType::Ref(inner) => inner.is_generic(),
             BytecodeType::TypeParam(_idx) => true,
             BytecodeType::TypeAlias(..) => unreachable[Bool](),
         }
@@ -310,6 +312,13 @@ impl BytecodeType {
     pub fn is_enum(): Bool {
         match self {
             BytecodeType::Enum(..) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_ref(): Bool {
+        match self {
+            BytecodeType::Ref(_) => true,
             _ => false,
         }
     }
@@ -438,6 +447,13 @@ impl Equals for BytecodeType {
                 }
             }
 
+            BytecodeType::Ref(inner) => {
+                match other {
+                    BytecodeType::Ref(other_inner) => inner == other_inner,
+                    _ => false,
+                }
+            }
+
             BytecodeType::TypeParam(id) => {
                 match other {
                     BytecodeType::TypeParam(other_id) => id == other_id,
@@ -495,6 +511,10 @@ impl Hash for BytecodeType {
                 hasher.write_int32(opc::BYTECODE_TYPE_TUPLE);
                 subtypes.hash[H](hasher);
             }
+            BytecodeType::Ref(inner) => {
+                hasher.write_int32(opc::BYTECODE_TYPE_REF);
+                inner.hash[H](hasher);
+            }
             BytecodeType::TypeParam(id) => {
                 hasher.write_int32(opc::BYTECODE_TYPE_TYPE_PARAM);
                 hasher.write_int32(id);
@@ -530,6 +550,7 @@ impl Stringable for BytecodeType {
                 assoc,
             ) => "TraitObject(${id}, ${params}, ${assoc})",
             BytecodeType::Tuple(types) => "Tuple(${types})",
+            BytecodeType::Ref(inner) => "Ref(${inner})",
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
             BytecodeType::TypeAlias(id) => "TypeAlias(${id})",
             BytecodeType::Assoc(..) => unreachable[String](),

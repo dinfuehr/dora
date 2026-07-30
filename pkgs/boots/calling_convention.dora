@@ -6,30 +6,18 @@ use package::specialize::specialize_ty;
 pub enum ArgumentPassingMode {
     None,
     Register(BytecodeType),
+    InteriorPointer,
     Stack,
 }
 
 pub fn is_address_backed_aggregate(ty: BytecodeType): Bool {
-    ty.is_struct() || ty.is_tuple()
+    ty.is_struct() || ty.is_tuple() || ty.is_ref()
 }
 
 pub fn argument_passing_mode(ci: CompilationInfo, ty: BytecodeType): ArgumentPassingMode {
-    if ty.is_unit() {
-        return ArgumentPassingMode::None;
-    }
-
-    if !ty.is_struct() && !ty.is_tuple() {
-        match ty {
-            BytecodeType::This
-            | BytecodeType::TypeParam(_)
-            | BytecodeType::TypeAlias(_)
-            | BytecodeType::Assoc(..) => unreachable[()](),
-            _ => {}
-        }
-        return ArgumentPassingMode::Register(ty);
-    }
-
-    let field_types = match ty {
+    match ty {
+        BytecodeType::Unit => ArgumentPassingMode::None,
+        BytecodeType::Ref(_) => ArgumentPassingMode::InteriorPointer,
         BytecodeType::Struct(struct_id, type_params) => {
             let struct_data = iface::get_struct_data(struct_id);
             let field_types = Vec[BytecodeType]::new_with_capacity(
@@ -38,12 +26,33 @@ pub fn argument_passing_mode(ci: CompilationInfo, ty: BytecodeType): ArgumentPas
             for field_ty in struct_data.fields {
                 field_types.push(specialize_ty(ci, field_ty, type_params));
             }
-            field_types.to_array()
+            aggregate_argument_passing_mode(ci, field_types.to_array())
         }
-        BytecodeType::Tuple(subtypes) => subtypes,
-        _ => unreachable[Array[BytecodeType]](),
-    };
+        BytecodeType::Tuple(subtypes) => {
+            aggregate_argument_passing_mode(ci, subtypes)
+        }
+        BytecodeType::Address
+        | BytecodeType::UInt8
+        | BytecodeType::Bool
+        | BytecodeType::Char
+        | BytecodeType::Int32
+        | BytecodeType::Int64
+        | BytecodeType::Float32
+        | BytecodeType::Float64
+        | BytecodeType::Enum(..)
+        | BytecodeType::Class(..)
+        | BytecodeType::TraitObject(..) => ArgumentPassingMode::Register(ty),
+        BytecodeType::This
+        | BytecodeType::TypeParam(_)
+        | BytecodeType::TypeAlias(_)
+        | BytecodeType::Assoc(..) => unreachable[ArgumentPassingMode](),
+    }
+}
 
+fn aggregate_argument_passing_mode(
+    ci: CompilationInfo,
+    field_types: Array[BytecodeType],
+): ArgumentPassingMode {
     let mut register_ty = None[BytecodeType];
 
     for field_ty in field_types {
@@ -51,11 +60,14 @@ pub fn argument_passing_mode(ci: CompilationInfo, ty: BytecodeType): ArgumentPas
             ArgumentPassingMode::None => {}
             ArgumentPassingMode::Register(field_register_ty) => {
                 if register_ty.is_some() {
+                    // Structs and tuples requiring more than one register are passed
+                    // on the stack.
                     return ArgumentPassingMode::Stack;
                 }
                 register_ty = Some(field_register_ty);
             }
-            ArgumentPassingMode::Stack => return ArgumentPassingMode::Stack,
+            ArgumentPassingMode::InteriorPointer
+            | ArgumentPassingMode::Stack => return ArgumentPassingMode::Stack,
         }
     }
 

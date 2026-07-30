@@ -34,7 +34,7 @@ use package::codegen::{
     CodeGen,
     EmbeddedConstant,
     STACK_FRAME_ALIGNMENT,
-    compute_offsets_in_live_set,
+    compute_gc_point_in_live_set,
     get_live_values_without_current_inst,
     get_register_snapshot_without,
 };
@@ -881,7 +881,7 @@ impl CodeGenX64 {
     ): (GcPoint, Int32) {
         let mut extended_size: Int32 = 0i32;
         let regs_to_push = RegSet[Register]::new();
-        let offsets = compute_offsets_in_live_set(live);
+        let gc_point = compute_gc_point_in_live_set(live);
 
         for reg in snapshot.gp.used() {
             // Temporaries are not part of the snapshot, so we should
@@ -899,7 +899,7 @@ impl CodeGenX64 {
 
             if inst.get_value_type().is_ptr() {
                 let fp_offset = -(self.graph.get_stack_size() + extended_size);
-                offsets.push(fp_offset);
+                gc_point.add(fp_offset);
             }
 
             regs_to_push.add(reg);
@@ -936,7 +936,7 @@ impl CodeGenX64 {
             0i32
         };
 
-        (GcPoint::new(offsets, Vec[Int32]::new()), alignment)
+        (gc_point, alignment)
     }
 
     fn restore_registers_for_call(snapshot: RegisterTrackers, alignment: Int32) {
@@ -1054,7 +1054,7 @@ impl CodeGenX64 {
         let pos = self.asm.position();
         let location = inst.get_inlined_location();
         let live = inst.get_location_data().get_live_values();
-        let gc_point = GcPoint::new(compute_offsets_in_live_set(live), Vec[Int32]::new());
+        let gc_point = compute_gc_point_in_live_set(live);
 
         self.locations.insert(pos, location);
         self.gc_points.insert(pos, gc_point);
@@ -2752,9 +2752,8 @@ impl CodeGen for CodeGenX64 {
     }
 
     fn emit_invoke(inst: Inst) {
-        let gc_point = GcPoint::new(
-            compute_offsets_in_live_set(inst.get_location_data().get_live_values()),
-            Vec[Int32]::new(),
+        let gc_point = compute_gc_point_in_live_set(
+            inst.get_location_data().get_live_values()
         );
 
         if inst.has_runtime_function() {
@@ -3379,7 +3378,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movl_ra(dest, AsmAddress::offset(src, offset));
             }
 
-            Type::Ptr | Type::Int64 => {
+            Type::Address | Type::Ptr | Type::Int64 => {
                 let dest = loc.get_output().get_register();
                 self.asm.movq_ra(dest, AsmAddress::offset(src, offset));
             }
@@ -3426,7 +3425,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movl_ar(AsmAddress::offset(obj, offset), src);
             }
 
-            Type::Int64 | Type::Ptr => {
+            Type::Address | Type::Int64 | Type::Ptr => {
                 let src = loc.get_input(1).get_register();
                 self.asm.movq_ar(AsmAddress::offset(obj, offset), src);
             }
@@ -3871,6 +3870,13 @@ impl CodeGen for CodeGenX64 {
                 } else {
                     self.asm.movq_xr(dest, src);
                 }
+            }
+
+            Type::Address => {
+                assert(src_ty == Type::Ptr);
+                let dest = loc.get_output().get_register();
+                let src = loc.get_input(0).get_register();
+                self.asm.movq_rr(dest, src);
             }
 
             _ => unimplemented[()](),

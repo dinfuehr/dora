@@ -1075,6 +1075,16 @@ pub fn compute_struct_layout(
     compute_record_layout(ci, struct_data.fields, 0i32, 1i32, type_params)
 }
 
+pub fn compute_register_layout(ci: CompilationInfo, ty: BytecodeType): RecordLayout {
+    compute_record_layout(
+        ci,
+        Array[BytecodeType]::new(ty),
+        0i32,
+        1i32,
+        Array[BytecodeType]::new(),
+    )
+}
+
 fn compute_record_layout(
     ci: CompilationInfo,
     field_types: Array[BytecodeType],
@@ -1114,6 +1124,9 @@ fn compute_record_layout(
             BytecodeType::Int64 | BytecodeType::Float64 => {
                 add_field(8i32, 8i32, field_ty);
             }
+            BytecodeType::Address => {
+                add_field(8i32, 8i32, field_ty);
+            }
             BytecodeType::Class(..) | BytecodeType::TraitObject(..) => {
                 let offset = add_field(8i32, 8i32, field_ty);
                 refs.push(offset);
@@ -1145,6 +1158,9 @@ fn compute_record_layout(
                         refs.push(offset);
                     }
                 }
+            }
+            BytecodeType::Ref(_) => {
+                add_field(2i32 * iface::PTR_SIZE, iface::PTR_SIZE, field_ty);
             }
             _ => {
                 unimplemented[()]();
@@ -1235,6 +1251,7 @@ pub fn is_reference(ci: CompilationInfo, ty: BytecodeType): Bool {
         | BytecodeType::Int64
         | BytecodeType::Float64
         | BytecodeType::Address
+        | BytecodeType::Ref(_)
         | BytecodeType::Struct(..)
         | BytecodeType::Tuple(_) => false,
         BytecodeType::Class(..) | BytecodeType::TraitObject(..) => true,

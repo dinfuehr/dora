@@ -1,0 +1,8 @@
+fn take(value: ref Int32) {}
+
+fn main(  ) {
+let value = 10i32;
+take( ref   value );
+take(ref object . field);
+take( ref tuple . 0 );
+}

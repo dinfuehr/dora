@@ -238,6 +238,8 @@ pub fn decode_bytecode_type(reader: ByteReader): BytecodeType {
     } else if opcode == opc::BYTECODE_TYPE_TUPLE {
         let type_params = decode_bytecode_type_array(reader);
         BytecodeType::Tuple(type_params)
+    } else if opcode == opc::BYTECODE_TYPE_REF {
+        BytecodeType::Ref(decode_bytecode_type(reader))
     } else if opcode == opc::BYTECODE_TYPE_TYPE_PARAM {
         let idx = reader.read_id();
         BytecodeType::TypeParam(idx)

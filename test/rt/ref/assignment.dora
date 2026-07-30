@@ -1,5 +1,3 @@
-//= config cannon
-
 class Box { value: Int32 }
 
 fn update(value: ref Int32, replacement: Int32) {

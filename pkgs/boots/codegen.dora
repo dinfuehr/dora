@@ -1,4 +1,4 @@
-use package::CodeDescriptor;
+use package::{CodeDescriptor, GcPoint};
 use package::assembler::{FloatRegister, Label, RegSet, Register};
 use package::codegen::arm64::CodeGenArm64;
 use package::codegen::x64::CodeGenX64;
@@ -844,8 +844,9 @@ pub trait CodeGen {
     fn emit_comment(comment: String);
 }
 
-fn compute_offsets_in_live_set(live: InstSet): Vec[Int32] {
+fn compute_gc_point_in_live_set(live: InstSet): GcPoint {
     let offsets = Vec[Int32]::new();
+    let interior_pointers = Vec[Int32]::new();
 
     for inst in live {
         let loc = inst.get_location_data();
@@ -854,15 +855,19 @@ fn compute_offsets_in_live_set(live: InstSet): Vec[Int32] {
             let layout = inst.get_record_layout();
             let offset = loc.get_stack_slot();
 
-            for ref_ in layout.refs {
-                offsets.push(offset + ref_);
+            if inst.is_interior_pointer_stack_slot() {
+                interior_pointers.push(offset);
+            } else {
+                for ref_ in layout.refs {
+                    offsets.push(offset + ref_);
+                }
             }
         } else if inst.get_value_type().is_ptr() && loc.has_spill_slot() {
             offsets.push(loc.get_spill_slot());
         }
     }
 
-    offsets
+    GcPoint::new(offsets, interior_pointers)
 }
 
 fn get_register_snapshot_without(inst: Inst, without: Register...): RegisterTrackers {

@@ -1,0 +1,111 @@
+//= boots
+//= compile-args "--emit-graph=address_taken_bool;address_taken_uint8;address_taken_char;address_taken_int32;address_taken_int64;address_taken_float32;address_taken_float64"
+
+fn main() {
+    assert(address_taken_bool());
+    assert(address_taken_uint8() == 10u8);
+    assert(address_taken_char() == 'a');
+    assert(address_taken_int32() == 10i32);
+    assert(address_taken_int64() == 10i64);
+    assert(address_taken_float32() == 10.5f32);
+    assert(address_taken_float64() == 10.5);
+}
+
+fn address_taken_bool(): Bool {
+    let value = true;
+    read_bool(ref value)
+}
+
+@NeverInline
+fn read_bool(value: ref Bool): Bool {
+    value
+}
+
+// CHECK: Function address_taken_bool: final
+// CHECK: [[BOOL_SLOT:%\d+]]: AllocateStack
+// CHECK: Store.Bool(0) [[BOOL_SLOT]]
+
+fn address_taken_uint8(): UInt8 {
+    let value = 10u8;
+    read_uint8(ref value)
+}
+
+@NeverInline
+fn read_uint8(value: ref UInt8): UInt8 {
+    value
+}
+
+// CHECK: Function address_taken_uint8: final
+// CHECK: [[UINT8_SLOT:%\d+]]: AllocateStack
+// CHECK: Store.UInt8(0) [[UINT8_SLOT]]
+
+fn address_taken_char(): Char {
+    let value = 'a';
+    read_char(ref value)
+}
+
+@NeverInline
+fn read_char(value: ref Char): Char {
+    value
+}
+
+// CHECK: Function address_taken_char: final
+// CHECK: [[CHAR_SLOT:%\d+]]: AllocateStack
+// CHECK: Store.Int32(0) [[CHAR_SLOT]]
+
+fn address_taken_int32(): Int32 {
+    let value = 10i32;
+    read_int32(ref value)
+}
+
+@NeverInline
+fn read_int32(value: ref Int32): Int32 {
+    value
+}
+
+// CHECK: Function address_taken_int32: final
+// CHECK: [[INT32_SLOT:%\d+]]: AllocateStack
+// CHECK: Store.Int32(0) [[INT32_SLOT]]
+
+fn address_taken_int64(): Int64 {
+    let value = 10i64;
+    read_int64(ref value)
+}
+
+@NeverInline
+fn read_int64(value: ref Int64): Int64 {
+    value
+}
+
+// CHECK: Function address_taken_int64: final
+// CHECK: [[INT64_SLOT:%\d+]]: AllocateStack
+// CHECK: [[VALUE:%\d+]]: Const.Int64(#10)
+// CHECK: Store.Int64(0) [[INT64_SLOT]], [[VALUE]]
+
+fn address_taken_float32(): Float32 {
+    let value = 10.5f32;
+    read_float32(ref value)
+}
+
+@NeverInline
+fn read_float32(value: ref Float32): Float32 {
+    value
+}
+
+// CHECK: Function address_taken_float32: final
+// CHECK: [[FLOAT32_SLOT:%\d+]]: AllocateStack
+// CHECK: Store.Float32(0) [[FLOAT32_SLOT]]
+
+fn address_taken_float64(): Float64 {
+    let value = 10.5;
+    read_float64(ref value)
+}
+
+@NeverInline
+fn read_float64(value: ref Float64): Float64 {
+    value
+}
+
+// CHECK: Function address_taken_float64: final
+// CHECK: [[FLOAT64_SLOT:%\d+]]: AllocateStack
+// CHECK: Store.Float64(0) [[FLOAT64_SLOT]]

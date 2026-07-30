@@ -25,7 +25,10 @@ impl BytecodeGraphBuilder {
             type_params = thunk.signature.type_params,
             return_type = thunk.signature.return_type,
             signature = thunk.signature,
-            analysis = BytecodeAnalysis(BitSet::new(0i64)),
+            analysis = BytecodeAnalysis(
+                starts = BitSet::new(0i64),
+                address_taken = BitSet::new(0i64),
+            ),
             current_block = None,
             offset = 0i32,
             blocks = Array[Option[Block]]::fill(0i64, None),
@@ -47,22 +50,35 @@ impl BytecodeGraphBuilder {
         }
 
         let entry = self.create_entry_block();
-        let arguments = self.append_entry_arguments(entry);
+        let arguments = self.append_argument_insts(entry);
         let return_mode = self.return_passing_mode();
         let return_address = self.return_value_arg_inst;
         self.emit_safepoint(entry);
 
         let args = Vec[Inst]::new();
-        let receiver = arguments(0).get_or_panic();
+        let mut arg_idx = 0i64;
+        let receiver = arguments(arg_idx);
+        arg_idx += 1i64;
         if self.unwrap_trait_object_receiver(thunk, receiver) is Some(receiver) {
             args.push(receiver);
         }
 
         for param_idx in std::range(1, self.signature.params.size()) {
-            if arguments(param_idx) is Some(arg) {
-                args.push(arg);
+            let param_ty = self.specialize_ty(self.signature.params(param_idx));
+            match cc::argument_passing_mode(self.ci, param_ty) {
+                ArgumentPassingMode::None => {}
+                ArgumentPassingMode::InteriorPointer => {
+                    args.push(arguments(arg_idx));
+                    args.push(arguments(arg_idx + 1i64));
+                    arg_idx += 2i64;
+                }
+                ArgumentPassingMode::Register(_) | ArgumentPassingMode::Stack => {
+                    args.push(arguments(arg_idx));
+                    arg_idx += 1i64;
+                }
             }
         }
+        assert(arg_idx == arguments.size());
 
         let return_ty = self.return_graph_ty(return_mode);
         let intrinsic = iface::get_intrinsic_for_function(thunk.callee_fct_id);
@@ -82,6 +98,7 @@ impl BytecodeGraphBuilder {
             ArgumentPassingMode::None | ArgumentPassingMode::Stack => {
                 self.current().append_inst(graph::create_return_void_inst());
             }
+            ArgumentPassingMode::InteriorPointer => unreachable[()](),
         }
 
         self.current_block = None;
@@ -92,6 +109,8 @@ impl BytecodeGraphBuilder {
         receiver: Inst,
     ): Option[Inst] {
         if thunk.receiver_by_reference {
+            // Mutating trait methods on struct and tuple receivers need the address
+            // of the inline payload so changes affect the boxed value.
             Some(self.trait_object_payload_address(receiver))
         } else {
             match cc::argument_passing_mode(self.ci, thunk.actual_object_ty) {
@@ -110,6 +129,7 @@ impl BytecodeGraphBuilder {
                 ArgumentPassingMode::Stack => {
                     Some(self.trait_object_payload_address(receiver))
                 }
+                ArgumentPassingMode::InteriorPointer => unreachable[Option[Inst]](),
             }
         }
     }

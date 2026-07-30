@@ -1,0 +1,134 @@
+//= boots
+//= compile-args "--emit-graph=address_taken_class;address_taken_struct;address_taken_tuple;address_taken_simple_enum;address_taken_pointer_enum;address_taken_tagged_enum"
+
+class Box {
+    value: Int32,
+}
+
+struct Pair {
+    first: Int32,
+    second: Int64,
+}
+
+enum Simple {
+    First,
+    Second,
+}
+
+enum Pointer {
+    Some(Box),
+    None,
+}
+
+enum Tagged {
+    Some(Int32),
+    None,
+}
+
+fn main() {
+    assert(address_taken_class() == 10i32);
+    assert(address_taken_struct() == 20i32);
+    assert(address_taken_tuple() == 30i32);
+    assert(address_taken_simple_enum());
+    assert(address_taken_pointer_enum() == 40i32);
+    assert(address_taken_tagged_enum() == 50i32);
+}
+
+fn address_taken_class(): Int32 {
+    let value = Box(10i32);
+    read_class(ref value).value
+}
+
+@NeverInline
+fn read_class(value: ref Box): Box {
+    value
+}
+
+// CHECK: Function address_taken_class: final
+// CHECK: [[CLASS_SLOT:%\d+]]: AllocateStack
+// CHECK: [[CLASS_VALUE:%\d+]]: NewObject
+// CHECK: Store.Ptr(0) [[CLASS_SLOT]], [[CLASS_VALUE]]
+
+fn address_taken_struct(): Int32 {
+    let value = Pair(first = 20i32, second = 21i64);
+    read_struct(ref value).first
+}
+
+@NeverInline
+fn read_struct(value: ref Pair): Pair {
+    value
+}
+
+// CHECK: Function address_taken_struct: final
+// CHECK: [[STRUCT_SLOT:%\d+]]: AllocateStack
+// CHECK: Store.Int32(0) [[STRUCT_SLOT]]
+// CHECK: Store.Int64(8) [[STRUCT_SLOT]]
+
+fn address_taken_tuple(): Int32 {
+    let value = (30i32, 31i64);
+    read_tuple(ref value).0
+}
+
+@NeverInline
+fn read_tuple(value: ref (Int32, Int64)): (Int32, Int64) {
+    value
+}
+
+// CHECK: Function address_taken_tuple: final
+// CHECK: [[TUPLE_SLOT:%\d+]]: AllocateStack
+// CHECK: Store.Int32(0) [[TUPLE_SLOT]]
+// CHECK: Store.Int64(8) [[TUPLE_SLOT]]
+
+fn address_taken_simple_enum(): Bool {
+    let value = Simple::First;
+    is_first(ref value)
+}
+
+@NeverInline
+fn is_first(value: ref Simple): Bool {
+    match value {
+        Simple::First => true,
+        Simple::Second => false,
+    }
+}
+
+// CHECK: Function address_taken_simple_enum: final
+// CHECK: [[SIMPLE_ENUM_SLOT:%\d+]]: AllocateStack
+// CHECK: [[SIMPLE_ENUM_VALUE:%\d+]]: Const.Int32(#0)
+// CHECK: Store.Int32(0) [[SIMPLE_ENUM_SLOT]], [[SIMPLE_ENUM_VALUE]]
+
+fn address_taken_pointer_enum(): Int32 {
+    let value = Pointer::Some(Box(40i32));
+    pointer_value(ref value)
+}
+
+@NeverInline
+fn pointer_value(value: ref Pointer): Int32 {
+    match value {
+        Pointer::Some(box) => box.value,
+        Pointer::None => -1i32,
+    }
+}
+
+// CHECK: Function address_taken_pointer_enum: final
+// CHECK: [[POINTER_ENUM_SLOT:%\d+]]: AllocateStack
+// CHECK: [[POINTER_ENUM_VALUE:%\d+]]: NewObject
+// CHECK: Store.Ptr(0) [[POINTER_ENUM_SLOT]], [[POINTER_ENUM_VALUE]]
+
+fn address_taken_tagged_enum(): Int32 {
+    let value = Tagged::Some(50i32);
+    tagged_value(ref value)
+}
+
+@NeverInline
+fn tagged_value(value: ref Tagged): Int32 {
+    match value {
+        Tagged::Some(value) => value,
+        Tagged::None => -1i32,
+    }
+}
+
+// CHECK: Function address_taken_tagged_enum: final
+// CHECK: [[TAGGED_ENUM_SLOT:%\d+]]: AllocateStack
+// CHECK: [[TAGGED_ENUM_VALUE:%\d+]]: NewObject
+// CHECK: Store.Ptr(0) [[TAGGED_ENUM_SLOT]], [[TAGGED_ENUM_VALUE]]

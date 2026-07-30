@@ -1435,6 +1435,11 @@ impl Inst {
         self.aux != 0
     }
 
+    pub fn is_interior_pointer_stack_slot(): Bool {
+        assert(self.op() == Op::AllocateStack);
+        self.aux != 0
+    }
+
     pub fn get_maybe_value_type(): Option[Type] {
         match self.op() {
             Op::NullConst => Some(Type::Ptr),
@@ -3197,10 +3202,14 @@ pub fn create_object_initialization_fence_inst(obj: Inst): Inst {
     inst
 }
 
-pub fn create_allocate_stack_inst(layout: RecordLayout): Inst {
+pub fn create_allocate_stack_inst(layout: RecordLayout, is_interior_pointer: Bool): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::AllocateStack);
     inst.extra = InstExtraData::RecordLayout(layout);
+
+    if is_interior_pointer {
+        inst.aux = 1;
+    }
 
     inst
 }

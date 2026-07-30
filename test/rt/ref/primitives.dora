@@ -1,0 +1,71 @@
+fn replace_bool(value: ref Bool, replacement: Bool): Bool {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_uint8(value: ref UInt8, replacement: UInt8): UInt8 {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_char(value: ref Char, replacement: Char): Char {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_int32(value: ref Int32, replacement: Int32): Int32 {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_int64(value: ref Int64, replacement: Int64): Int64 {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_float32(value: ref Float32, replacement: Float32): Float32 {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_float64(value: ref Float64, replacement: Float64): Float64 {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn main() {
+    let bool_value = true;
+    assert(replace_bool(ref bool_value, false));
+    assert(!bool_value);
+
+    let uint8_value = 10u8;
+    assert(replace_uint8(ref uint8_value, 11u8) == 10u8);
+    assert(uint8_value == 11u8);
+
+    let char_value = 'a';
+    assert(replace_char(ref char_value, 'b') == 'a');
+    assert(char_value == 'b');
+
+    let int32_value = 10i32;
+    assert(replace_int32(ref int32_value, 11i32) == 10i32);
+    assert(int32_value == 11i32);
+
+    let int64_value = 10i64;
+    assert(replace_int64(ref int64_value, 11i64) == 10i64);
+    assert(int64_value == 11i64);
+
+    let float32_value = 10.5f32;
+    assert(replace_float32(ref float32_value, 11.5f32) == 10.5f32);
+    assert(float32_value == 11.5f32);
+
+    let float64_value = 10.5;
+    assert(replace_float64(ref float64_value, 11.5) == 10.5);
+    assert(float64_value == 11.5);
+}

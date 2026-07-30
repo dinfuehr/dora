@@ -1,0 +1,119 @@
+class Box {
+    value: Int32,
+}
+
+struct Pair {
+    first: Int32,
+    second: Int64,
+}
+
+enum Simple {
+    First,
+    Second,
+}
+
+enum Pointer {
+    Some(Box),
+    None,
+}
+
+enum Tagged {
+    Some(Int32),
+    None,
+}
+
+fn replace_class(value: ref Box, replacement: Box): Box {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_struct(value: ref Pair, replacement: Pair): Pair {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_tuple(value: ref (Int32, Int64), replacement: (Int32, Int64)): (Int32, Int64) {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_simple(value: ref Simple, replacement: Simple): Simple {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_pointer(value: ref Pointer, replacement: Pointer): Pointer {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_tagged(value: ref Tagged, replacement: Tagged): Tagged {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn is_first(value: Simple): Bool {
+    match value {
+        Simple::First => true,
+        Simple::Second => false,
+    }
+}
+
+fn pointer_value(value: Pointer): Int32 {
+    match value {
+        Pointer::Some(box) => box.value,
+        Pointer::None => -1i32,
+    }
+}
+
+fn tagged_value(value: Tagged): Int32 {
+    match value {
+        Tagged::Some(value) => value,
+        Tagged::None => -1i32,
+    }
+}
+
+fn main() {
+    let class_value = Box(10i32);
+    let previous_class = replace_class(ref class_value, Box(11i32));
+    assert(previous_class.value == 10i32);
+    assert(class_value.value == 11i32);
+
+    let struct_value = Pair(first = 20i32, second = 21i64);
+    let previous_struct = replace_struct(
+        ref struct_value,
+        Pair(first = 22i32, second = 23i64),
+    );
+    assert(previous_struct.first == 20i32);
+    assert(previous_struct.second == 21i64);
+    assert(struct_value.first == 22i32);
+    assert(struct_value.second == 23i64);
+
+    let tuple_value = (30i32, 31i64);
+    let previous_tuple = replace_tuple(ref tuple_value, (32i32, 33i64));
+    assert(previous_tuple.0 == 30i32);
+    assert(previous_tuple.1 == 31i64);
+    assert(tuple_value.0 == 32i32);
+    assert(tuple_value.1 == 33i64);
+
+    let simple_value = Simple::First;
+    let previous_simple = replace_simple(ref simple_value, Simple::Second);
+    assert(is_first(previous_simple));
+    assert(!is_first(simple_value));
+
+    let pointer_value_local = Pointer::Some(Box(40i32));
+    let previous_pointer = replace_pointer(ref pointer_value_local, Pointer::None);
+    assert(pointer_value(previous_pointer) == 40i32);
+    assert(pointer_value(pointer_value_local) == -1i32);
+
+    let tagged_value_local = Tagged::Some(50i32);
+    let previous_tagged = replace_tagged(ref tagged_value_local, Tagged::None);
+    assert(tagged_value(previous_tagged) == 50i32);
+    assert(tagged_value(tagged_value_local) == -1i32);
+}

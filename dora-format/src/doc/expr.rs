@@ -3,8 +3,9 @@ use dora_parser::ast::{
     AstArgument, AstArgumentList, AstAsExpr, AstBlockExpr, AstBreakExpr, AstCallExpr,
     AstContinueExpr, AstExpr, AstFieldExpr, AstForExpr, AstIfExpr, AstIsExpr, AstLambdaExpr,
     AstMatchArm, AstMatchExpr, AstMethodCallExpr, AstParamList, AstParenExpr, AstPathExpr,
-    AstPathSegment, AstPattern, AstReturnExpr, AstStmt, AstTemplateExpr, AstTupleExpr, AstType,
-    AstTypeArgumentList, AstUnExpr, AstWhileExpr, SyntaxElement, SyntaxNodeBase, SyntaxToken,
+    AstPathSegment, AstPattern, AstRefExpr, AstReturnExpr, AstStmt, AstTemplateExpr, AstTupleExpr,
+    AstType, AstTypeArgumentList, AstUnExpr, AstWhileExpr, SyntaxElement, SyntaxNodeBase,
+    SyntaxToken,
 };
 
 use crate::doc::Doc;
@@ -398,6 +399,14 @@ pub(crate) fn format_paren(node: AstParenExpr, f: &mut Formatter) {
     });
 }
 
+pub(crate) fn format_ref_expr(node: AstRefExpr, f: &mut Formatter) {
+    with_iter!(node, f, |iter, opt| {
+        print_token(f, &mut iter, REF_KW, &opt);
+        f.text(" ");
+        print_node::<AstExpr>(f, &mut iter, &opt);
+    });
+}
+
 pub(crate) fn format_return(node: AstReturnExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, RETURN_KW, &opt);
@@ -679,6 +688,13 @@ mod tests {
     fn formats_as_expr() {
         let input = "fn  main (  ) {  let  x  =  a  as  Int ; }";
         let expected = "fn main() {\n    let x = a as Int;\n}\n";
+        assert_source(input, expected);
+    }
+
+    #[test]
+    fn formats_ref_expr() {
+        let input = "fn  main (  ) {  take ( ref   value ) ; take ( ref  object . field ) ; }";
+        let expected = "fn main() {\n    take(ref value);\n    take(ref object.field);\n}\n";
         assert_source(input, expected);
     }
 

@@ -59,6 +59,7 @@ pub fn compute_inline_return_type(
 
     match cc::argument_passing_mode(ci, return_type) {
         ArgumentPassingMode::None | ArgumentPassingMode::Stack => None,
+        ArgumentPassingMode::InteriorPointer => unreachable[Option[Type]](),
         ArgumentPassingMode::Register(register_ty) => {
             Some(bytecode_graph_ty(ci, fct.signature.type_params, register_ty))
         }
@@ -206,13 +207,50 @@ impl BytecodeGraphBuilder {
         while reg_idx < self.bc().registers.size().to_int32() {
             let ty = self.reg_id(reg_idx);
 
-            if cc::is_address_backed_aggregate(ty) && self.is_non_zero_type(ty) {
-                let layout = self.compute_aggregate_layout(ty);
-                let slot = graph::create_allocate_stack_inst(layout);
+            if (
+                    cc::is_address_backed_aggregate(ty) ||
+                    self.is_address_taken(BytecodeRegister(reg_idx))
+                ) &&
+                self.is_non_zero_type(ty)
+            {
+                let layout = if ty.is_ref() {
+                    regalloc::compute_register_layout(self.ci, ty)
+                } else if cc::is_address_backed_aggregate(ty) {
+                    self.compute_aggregate_layout(ty)
+                } else {
+                    regalloc::compute_register_layout(self.ci, ty)
+                };
+                let slot = graph::create_allocate_stack_inst(layout, ty.is_ref());
                 block.append_inst(slot);
                 self.aggregate_registers(reg_idx.to_int64()) = Some(slot);
 
-                if !layout.refs.is_empty() {
+                if ty.is_ref() {
+                    assert(layout.refs.is_empty());
+
+                    let zero = graph::create_null_const();
+                    block.append_inst(zero);
+
+                    let zero_address = graph::create_bitcast_inst(Type::Address, zero);
+                    block.append_inst(zero_address);
+
+                    let store_interior = graph::create_store_inst(
+                        slot,
+                        InstExtraData::None,
+                        0i32,
+                        zero_address,
+                        Type::Address,
+                    );
+                    block.append_inst(store_interior);
+
+                    let store_base = graph::create_store_inst(
+                        slot,
+                        InstExtraData::None,
+                        iface::PTR_SIZE,
+                        zero,
+                        Type::Ptr,
+                    );
+                    block.append_inst(store_base);
+                } else if !layout.refs.is_empty() {
                     let zero = graph::create_null_const();
                     block.append_inst(zero);
 
@@ -234,33 +272,52 @@ impl BytecodeGraphBuilder {
     }
 
     fn setup_arguments(block: Block) {
-        let arguments = self.append_entry_arguments(block);
+        let arguments = self.append_argument_insts(block);
 
         self.setup_aggregate_registers(block);
 
+        let mut arg_idx = 0i64;
         let mut reg_idx = 0i32;
         while reg_idx < self.signature.params.size().to_int32() {
-            if arguments(reg_idx.to_int64()) is Some(arg_inst) {
-                let ty = self.reg_id(reg_idx);
-                let passing_mode = cc::argument_passing_mode(self.ci, ty);
+            let ty = self.reg_id(reg_idx);
+            let passing_mode = cc::argument_passing_mode(self.ci, ty);
 
-                if cc::is_address_backed_aggregate(ty) {
-                    self.initialize_aggregate_argument(
-                        block,
-                        BytecodeRegister(reg_idx),
-                        arg_inst,
-                        passing_mode,
+            match passing_mode {
+                ArgumentPassingMode::None => {}
+                ArgumentPassingMode::InteriorPointer => {
+                    let interior = arguments(arg_idx);
+                    let base = arguments(arg_idx + 1i64);
+                    self.store_ref(
+                        self.aggregate_register(BytecodeRegister(reg_idx)),
+                        interior,
+                        base,
                     );
-                } else {
-                    self.append_local_set(block, BytecodeRegister(reg_idx), arg_inst);
+                    arg_idx += 2i64;
+                }
+                ArgumentPassingMode::Register(_) | ArgumentPassingMode::Stack => {
+                    let argument = arguments(arg_idx);
+                    arg_idx += 1i64;
+
+                    if cc::is_address_backed_aggregate(ty) {
+                        self.initialize_aggregate_argument(
+                            block,
+                            BytecodeRegister(reg_idx),
+                            argument,
+                            passing_mode,
+                        );
+                    } else {
+                        self.append_local_set(block, BytecodeRegister(reg_idx), argument);
+                    }
                 }
             }
 
             reg_idx += 1i32;
         }
+
+        assert(arg_idx == arguments.size());
     }
 
-    fn append_entry_arguments(block: Block): Array[Option[Inst]] {
+    fn append_argument_insts(block: Block): Vec[Inst] {
         let mut arg_idx = 0i32;
         if self.return_passing_mode() is ArgumentPassingMode::Stack {
             let arg = graph::create_arg_inst(arg_idx, Type::Address);
@@ -269,16 +326,31 @@ impl BytecodeGraphBuilder {
             arg_idx += 1i32;
         }
 
-        let arguments = Array[Option[Inst]]::fill(self.signature.params.size(), None);
+        let arguments = Vec[Inst]::new();
         for idx in std::range(0, self.signature.params.size()) {
             let param_ty = self.specialize_ty(self.signature.params(idx));
             let passing_mode = cc::argument_passing_mode(self.ci, param_ty);
-            if !(passing_mode is ArgumentPassingMode::None) {
-                let arg_ty = self.argument_graph_ty_for_passing_mode(passing_mode);
-                let arg = graph::create_arg_inst(arg_idx, arg_ty);
-                block.append_inst(arg);
-                arguments(idx) = Some(arg);
-                arg_idx += 1i32;
+
+            match passing_mode {
+                ArgumentPassingMode::None => {}
+                ArgumentPassingMode::InteriorPointer => {
+                    let interior = graph::create_arg_inst(arg_idx, Type::Address);
+                    block.append_inst(interior);
+                    arguments.push(interior);
+                    arg_idx += 1i32;
+
+                    let base = graph::create_arg_inst(arg_idx, Type::Ptr);
+                    block.append_inst(base);
+                    arguments.push(base);
+                    arg_idx += 1i32;
+                }
+                ArgumentPassingMode::Register(_) | ArgumentPassingMode::Stack => {
+                    let arg_ty = self.argument_graph_ty_for_passing_mode(passing_mode);
+                    let arg = graph::create_arg_inst(arg_idx, arg_ty);
+                    block.append_inst(arg);
+                    arguments.push(arg);
+                    arg_idx += 1i32;
+                }
             }
         }
 
@@ -293,6 +365,7 @@ impl BytecodeGraphBuilder {
     fn argument_graph_ty_for_passing_mode(passing_mode: ArgumentPassingMode): Type {
         match passing_mode {
             ArgumentPassingMode::None => unreachable[Type](),
+            ArgumentPassingMode::InteriorPointer => unreachable[Type](),
             ArgumentPassingMode::Stack => Type::Address,
             ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
         }
@@ -301,6 +374,7 @@ impl BytecodeGraphBuilder {
     fn return_graph_ty(passing_mode: ArgumentPassingMode): Type {
         match passing_mode {
             ArgumentPassingMode::None | ArgumentPassingMode::Stack => Type::Unit,
+            ArgumentPassingMode::InteriorPointer => unreachable[Type](),
             ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
         }
     }
@@ -320,20 +394,33 @@ impl BytecodeGraphBuilder {
             let ty = self.reg_id(reg_idx);
 
             let passing_mode = cc::argument_passing_mode(self.ci, ty);
-            if !(passing_mode is ArgumentPassingMode::None) {
-                let arg = call_inst.get_input(arg_idx).get_value();
-
-                if cc::is_address_backed_aggregate(ty) {
-                    self.initialize_aggregate_argument(
-                        block,
-                        BytecodeRegister(reg_idx),
-                        arg,
-                        passing_mode,
+            match passing_mode {
+                ArgumentPassingMode::None => {}
+                ArgumentPassingMode::InteriorPointer => {
+                    let interior = call_inst.get_input(arg_idx).get_value();
+                    let base = call_inst.get_input(arg_idx + 1).get_value();
+                    self.store_ref(
+                        self.aggregate_register(BytecodeRegister(reg_idx)),
+                        interior,
+                        base,
                     );
-                } else {
-                    self.append_local_set(block, BytecodeRegister(reg_idx), arg);
+                    arg_idx += 2;
                 }
-                arg_idx += 1;
+                ArgumentPassingMode::Register(_) | ArgumentPassingMode::Stack => {
+                    let argument = call_inst.get_input(arg_idx).get_value();
+                    arg_idx += 1;
+
+                    if cc::is_address_backed_aggregate(ty) {
+                        self.initialize_aggregate_argument(
+                            block,
+                            BytecodeRegister(reg_idx),
+                            argument,
+                            passing_mode,
+                        );
+                    } else {
+                        self.append_local_set(block, BytecodeRegister(reg_idx), argument);
+                    }
+                }
             }
 
             reg_idx += 1i32;
@@ -375,6 +462,7 @@ impl BytecodeGraphBuilder {
                     );
                 }
             }
+            ArgumentPassingMode::InteriorPointer => unreachable[()](),
             ArgumentPassingMode::None => unreachable[()](),
         }
     }
@@ -438,11 +526,20 @@ impl BytecodeGraphBuilder {
         assert(!self.reg(register).is_unit());
         assert(!cc::is_address_backed_aggregate(self.reg(register)));
         assert(value.has_id());
-        let inst = graph::create_local_set_inst(
-            register.0,
-            value,
-            self.reg_graph_ty(register),
-        );
+
+        // Address-taken locals need a stable stack location that can be observed
+        // through a ref, so writes must update the stack slot instead of an SSA local.
+        let inst = if self.is_address_taken(register) {
+            graph::create_store_inst(
+                self.aggregate_register(register),
+                InstExtraData::None,
+                0i32,
+                value,
+                self.reg_graph_ty(register),
+            )
+        } else {
+            graph::create_local_set_inst(register.0, value, self.reg_graph_ty(register))
+        };
         block.append_inst(inst);
     }
 
@@ -450,9 +547,24 @@ impl BytecodeGraphBuilder {
         assert(!cc::is_address_backed_aggregate(self.reg(register)));
         let ty = self.reg_graph_ty(register);
         assert(!ty.is_unit());
-        let inst = graph::create_local_get_inst(register.0, ty);
+
+        let inst = if self.is_address_taken(register) {
+            graph::create_load_inst(
+                self.aggregate_register(register),
+                0i32,
+                InstExtraData::None,
+                ty,
+                false,
+            )
+        } else {
+            graph::create_local_get_inst(register.0, ty)
+        };
         self.current().append_inst(inst);
         inst
+    }
+
+    fn is_address_taken(register: BytecodeRegister): Bool {
+        self.analysis.address_taken.contains(register.0.to_int64())
     }
 
     fn aggregate_register(register: BytecodeRegister): Inst {
@@ -474,16 +586,22 @@ impl BytecodeGraphBuilder {
         let src = self.aggregate_register(src);
 
         if dest != src {
-            self.copy_field(
-                ty,
-                dest,
-                InstExtraData::None,
-                0i32,
-                src,
-                InstExtraData::None,
-                0i32,
-                false,
-            );
+            if ty.is_ref() {
+                let interior = self.load_ref_interior(src);
+                let base = self.load_ref_base(src);
+                self.store_ref(dest, interior, base);
+            } else {
+                self.copy_field(
+                    ty,
+                    dest,
+                    InstExtraData::None,
+                    0i32,
+                    src,
+                    InstExtraData::None,
+                    0i32,
+                    false,
+                );
+            }
         }
     }
 
@@ -1048,7 +1166,7 @@ impl BytecodeGraphBuilder {
                     offset_const,
                 );
                 self.current().append_inst(address_inst);
-                self.emit_local_set(dest, address_inst);
+                self.store_ref(self.aggregate_register(dest), address_inst, obj_inst);
             }
             ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
                 let struct_layout = self.compute_struct_layout(struct_id, type_params);
@@ -1064,7 +1182,9 @@ impl BytecodeGraphBuilder {
                     offset_const,
                 );
                 self.current().append_inst(address_inst);
-                self.emit_local_set(dest, address_inst);
+                let base_inst = graph::create_null_const();
+                self.current().append_inst(base_inst);
+                self.store_ref(self.aggregate_register(dest), address_inst, base_inst);
             }
             ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
                 assert(tuple_ty.is_tuple());
@@ -1080,7 +1200,9 @@ impl BytecodeGraphBuilder {
                     offset_const,
                 );
                 self.current().append_inst(address_inst);
-                self.emit_local_set(dest, address_inst);
+                let base_inst = graph::create_null_const();
+                self.current().append_inst(base_inst);
+                self.store_ref(self.aggregate_register(dest), address_inst, base_inst);
             }
             _ => unreachable[()](),
         }
@@ -1093,7 +1215,7 @@ impl BytecodeGraphBuilder {
         }
 
         let src_inst = self.register_value(src);
-        let ref_inst = self.emit_local_get(reference);
+        let ref_inst = self.load_ref_interior(self.aggregate_register(reference));
 
         self.store_field(src_type, ref_inst, InstExtraData::None, 0i32, src_inst, false);
     }
@@ -1104,12 +1226,59 @@ impl BytecodeGraphBuilder {
             return;
         }
 
-        let ref_inst = self.emit_local_get(reference);
+        let ref_inst = self.load_ref_interior(self.aggregate_register(reference));
         self.load_field_into(dest, ref_inst, InstExtraData::None, 0i32);
     }
 
-    fn emit_get_register_ref(_dest: BytecodeRegister, _src: BytecodeRegister) {
-        unreachable[()]();
+    fn emit_get_register_ref(dest: BytecodeRegister, src: BytecodeRegister) {
+        let interior = self.aggregate_register(src);
+        let base = graph::create_null_const();
+        self.current().append_inst(base);
+        self.store_ref(self.aggregate_register(dest), interior, base);
+    }
+
+    fn store_ref(dest: Inst, interior: Inst, base: Inst) {
+        let store_interior = graph::create_store_inst(
+            dest,
+            InstExtraData::None,
+            0i32,
+            interior,
+            Type::Address,
+        );
+        self.current().append_inst(store_interior);
+
+        let store_base = graph::create_store_inst(
+            dest,
+            InstExtraData::None,
+            iface::PTR_SIZE,
+            base,
+            Type::Ptr,
+        );
+        self.current().append_inst(store_base);
+    }
+
+    fn load_ref_interior(reference: Inst): Inst {
+        let interior = graph::create_load_inst(
+            reference,
+            0i32,
+            InstExtraData::None,
+            Type::Address,
+            false,
+        );
+        self.current().append_inst(interior);
+        interior
+    }
+
+    fn load_ref_base(reference: Inst): Inst {
+        let base = graph::create_load_inst(
+            reference,
+            iface::PTR_SIZE,
+            InstExtraData::None,
+            Type::Ptr,
+            false,
+        );
+        self.current().append_inst(base);
+        base
     }
 
     fn emit_load_enum_variant(
@@ -1379,6 +1548,7 @@ impl BytecodeGraphBuilder {
             let ty = match cc::argument_passing_mode(self.ci, dest_type) {
                 ArgumentPassingMode::None => Type::Unit,
                 ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
+                ArgumentPassingMode::InteriorPointer => Type::Address,
                 ArgumentPassingMode::Stack => Type::Address,
             };
             let inst = graph::create_ensure_global_initialized_inst(glob, ty);
@@ -1571,6 +1741,7 @@ impl BytecodeGraphBuilder {
                 ArgumentPassingMode::Stack => {
                     self.copy_return_value_to_stack(opnd, ty);
                 }
+                ArgumentPassingMode::InteriorPointer => unreachable[()](),
             }
 
             let exit_block = self.exit_block.get_or_panic();
@@ -1593,6 +1764,7 @@ impl BytecodeGraphBuilder {
                     let inst = graph::create_return_void_inst();
                     self.current().append_inst(inst);
                 }
+                ArgumentPassingMode::InteriorPointer => unreachable[()](),
             }
         }
     }
@@ -1702,9 +1874,7 @@ impl BytecodeGraphBuilder {
         };
 
         for reg in arguments {
-            if self.prepare_call_argument(reg) is Some(arg) {
-                args.push(arg);
-            }
+            self.append_call_arguments(args, reg);
         }
 
         let inst = self.emit_call(fct_id, type_params, args, return_address, return_ty);
@@ -1748,6 +1918,7 @@ impl BytecodeGraphBuilder {
         let passing_mode = cc::argument_passing_mode(self.ci, dest_ty);
         let return_ty = match passing_mode {
             ArgumentPassingMode::None | ArgumentPassingMode::Stack => Type::Unit,
+            ArgumentPassingMode::InteriorPointer => unreachable[Type](),
             ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
         };
         if passing_mode is ArgumentPassingMode::Stack {
@@ -1757,9 +1928,7 @@ impl BytecodeGraphBuilder {
         let receiver_is_first = args.size() == 0;
 
         for reg in arguments {
-            if self.prepare_call_argument(reg) is Some(arg) {
-                args.push(arg);
-            }
+            self.append_call_arguments(args, reg);
         }
 
         let ConstPoolEntry::TraitObjectMethod(
@@ -1777,11 +1946,16 @@ impl BytecodeGraphBuilder {
         self.store_call_result(dest, dest_ty, passing_mode, inst, return_ty);
     }
 
-    fn prepare_call_argument(reg: BytecodeRegister): Option[Inst] {
+    fn append_call_arguments(args: Vec[Inst], reg: BytecodeRegister) {
         let bytecode_ty = self.reg(reg);
         match cc::argument_passing_mode(self.ci, bytecode_ty) {
-            ArgumentPassingMode::None => None,
-            ArgumentPassingMode::Stack => Some(self.aggregate_register(reg)),
+            ArgumentPassingMode::None => {}
+            ArgumentPassingMode::InteriorPointer => {
+                let reference = self.aggregate_register(reg);
+                args.push(self.load_ref_interior(reference));
+                args.push(self.load_ref_base(reference));
+            }
+            ArgumentPassingMode::Stack => args.push(self.aggregate_register(reg)),
             ArgumentPassingMode::Register(register_ty) => {
                 let register_ty = self.graph_ty(register_ty);
                 let arg = if cc::is_address_backed_aggregate(bytecode_ty) {
@@ -1798,7 +1972,7 @@ impl BytecodeGraphBuilder {
                 } else {
                     self.emit_local_get(reg)
                 };
-                Some(arg)
+                args.push(arg);
             }
         }
     }
@@ -1828,6 +2002,7 @@ impl BytecodeGraphBuilder {
                 }
             }
             ArgumentPassingMode::Stack => {}
+            ArgumentPassingMode::InteriorPointer => unreachable[()](),
         }
     }
 
@@ -2741,12 +2916,26 @@ impl BytecodeGraphBuilder {
 
 pub fn analyze_bytecode(bc: BytecodeBody): BytecodeAnalysis {
     let starts = find_block_starts(bc);
+    let address_taken = find_address_taken_registers(bc);
 
-    BytecodeAnalysis(starts)
+    BytecodeAnalysis(starts, address_taken)
 }
 
 pub class BytecodeAnalysis {
     pub starts: BitSet,
+    pub address_taken: BitSet,
+}
+
+fn find_address_taken_registers(bc: BytecodeBody): BitSet {
+    let address_taken = BitSet::new(bc.registers.size());
+
+    for inst in BytecodeIterator::new(bc.code) {
+        if inst.op is BytecodeInstruction::GetRegisterRef(_, src) {
+            address_taken.insert(src.0.to_int64());
+        }
+    }
+
+    address_taken
 }
 
 fn find_block_starts(bc: BytecodeBody): BitSet {
@@ -2832,7 +3021,9 @@ pub fn bytecode_graph_ty(
                 EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => Type::Ptr,
             }
         }
-        BytecodeType::Struct(..) | BytecodeType::Tuple(_) => Type::Address,
+        BytecodeType::Struct(..)
+        | BytecodeType::Tuple(_)
+        | BytecodeType::Ref(_) => Type::Address,
         BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
         BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
     }

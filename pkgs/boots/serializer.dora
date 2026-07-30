@@ -363,6 +363,10 @@ pub fn encode_bytecode_type(writer: ByteWriter, ty: BytecodeType) {
             writer.emit_byte(opc::BYTECODE_TYPE_TUPLE.to_uint8());
             encode_bytecode_type_array(writer, subtypes);
         }
+        BytecodeType::Ref(inner) => {
+            writer.emit_byte(opc::BYTECODE_TYPE_REF.to_uint8());
+            encode_bytecode_type(writer, inner);
+        }
         BytecodeType::TypeParam(type_param_id) => {
             writer.emit_byte(opc::BYTECODE_TYPE_TYPE_PARAM.to_uint8());
             writer.emit_int32(type_param_id);
