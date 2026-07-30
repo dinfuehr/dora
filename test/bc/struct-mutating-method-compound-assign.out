@@ -1,0 +1,128 @@
+struct Counter:
+  value: Int32
+
+fn identity:
+  0: Ret r0
+
+  Registers:
+   0 => Int32
+
+  Constants:
+
+  Locations:
+
+fn <impl Counter>::update:
+  0: GetFieldRef r3, r0, @0 # Counter.value
+  4: InvokeStatic r4, @1, r1 # identity
+  9: LoadRef r5, r3
+ 12: CheckedAdd r5, r5, r4
+ 16: StoreRef r5, r3
+ 19: GetFieldRef r3, r0, @2 # Counter.value
+ 23: LoadRef r4, r3
+ 26: CheckedSub r4, r4, r1
+ 30: StoreRef r4, r3
+ 33: GetFieldRef r3, r0, @3 # Counter.value
+ 37: LoadRef r4, r3
+ 40: CheckedMul r4, r4, r1
+ 44: StoreRef r4, r3
+ 47: GetFieldRef r3, r0, @4 # Counter.value
+ 51: LoadRef r4, r3
+ 54: CheckedDiv r4, r4, r1
+ 58: StoreRef r4, r3
+ 61: GetFieldRef r3, r0, @5 # Counter.value
+ 65: LoadRef r4, r3
+ 68: CheckedMod r4, r4, r1
+ 72: StoreRef r4, r3
+ 75: GetFieldRef r3, r0, @6 # Counter.value
+ 79: LoadRef r4, r3
+ 82: Or r4, r4, r1
+ 86: StoreRef r4, r3
+ 89: GetFieldRef r3, r0, @7 # Counter.value
+ 93: LoadRef r4, r3
+ 96: And r4, r4, r1
+100: StoreRef r4, r3
+103: GetFieldRef r3, r0, @8 # Counter.value
+107: LoadRef r4, r3
+110: Xor r4, r4, r1
+114: StoreRef r4, r3
+117: GetFieldRef r3, r0, @9 # Counter.value
+121: LoadRef r4, r3
+124: Shl r4, r4, r2
+128: StoreRef r4, r3
+131: GetFieldRef r3, r0, @10 # Counter.value
+135: LoadRef r4, r3
+138: Sar r4, r4, r2
+142: StoreRef r4, r3
+145: GetFieldRef r3, r0, @11 # Counter.value
+149: LoadRef r4, r3
+152: Shr r4, r4, r2
+156: StoreRef r4, r3
+159: Ret r6
+
+  Registers:
+   0 => ref Counter
+   1 => Int32
+   2 => Int32
+   3 => ref Int32
+   4 => Int32
+   5 => Int32
+   6 => ()
+
+  Constants:
+   0 => StructField Counter.value
+   1 => Fct identity
+   2 => StructField Counter.value
+   3 => StructField Counter.value
+   4 => StructField Counter.value
+   5 => StructField Counter.value
+   6 => StructField Counter.value
+   7 => StructField Counter.value
+   8 => StructField Counter.value
+   9 => StructField Counter.value
+   10 => StructField Counter.value
+   11 => StructField Counter.value
+
+  Locations:
+   0 => 9:9
+   4 => 9:23
+   12 => 9:9
+   19 => 10:9
+   33 => 11:9
+   47 => 12:9
+   61 => 13:9
+   75 => 14:9
+   89 => 15:9
+   103 => 16:9
+   117 => 17:9
+   131 => 18:9
+   145 => 19:9
+
+fn test_update:
+  0: ConstInt32 r1, @0 # 10
+  3: NewStruct r2, @1, r1 # Counter
+  8: Mov r0, r2
+ 11: GetRegisterRef r4, r0
+ 14: ConstInt32 r1, @3 # 2
+ 17: ConstInt32 r5, @4 # 1
+ 20: InvokeDirect r3, @2, r4, r1, r5 # <impl Counter>::update
+ 27: Ret r3
+
+  Registers:
+   0 => struct Counter
+   1 => Int32
+   2 => struct Counter
+   3 => ()
+   4 => ref Counter
+   5 => Int32
+
+  Constants:
+   0 => Int32 10
+   1 => Struct Counter
+   2 => Fct <impl Counter>::update
+   3 => Int32 2
+   4 => Int32 1
+
+  Locations:
+   3 => 24:23
+   20 => 25:5
+

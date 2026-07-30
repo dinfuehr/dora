@@ -1,5 +1,3 @@
-//= ignore
-
 struct Point { x: Int32, y: Int32 }
 
 impl Point {

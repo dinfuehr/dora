@@ -2,4 +2,4 @@ struct A { b: B }
 struct B { c: C }
 struct C { d: Int32 }
 struct X { a: A }
-fn f(mut x: X, v: Int32): X { x.a.b.c.d = v; x }
+fn f(x: X): Int32 { x.a.b.c.d }

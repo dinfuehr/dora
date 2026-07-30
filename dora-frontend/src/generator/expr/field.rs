@@ -70,9 +70,9 @@ fn gen_expr_ref_backed_field(g: &mut AstBytecodeGen, expr_id: ExprId, dest: Data
 
     let bytecode_ty = g.emitter.convert_ty(g.sa, field_ty.clone());
     let dest = ensure_register(g, dest, bytecode_ty);
-    let reference = gen_expr_as_ref(g, expr_id, field_ty);
-    g.builder.emit_load_ref(dest, reference);
-    g.free_if_temp(reference);
+    let generated_ref = gen_expr_as_ref(g, expr_id, field_ty);
+    g.builder.emit_load_ref(dest, generated_ref.reference);
+    g.free_generated_ref(generated_ref);
 
     dest
 }

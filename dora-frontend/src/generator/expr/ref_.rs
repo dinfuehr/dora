@@ -5,33 +5,83 @@ use crate::generator::{AstBytecodeGen, DataDest, var_reg};
 use crate::sema::{Expr, ExprId, FieldExpr, IdentType, RefExpr, VarLocation};
 use crate::ty::SourceType;
 
-/// Produces a ref for loading a field chain rooted in a variable of type `ref T`.
-pub(super) fn gen_expr_as_ref(g: &mut AstBytecodeGen, expr_id: ExprId, ty: SourceType) -> Register {
+pub(super) struct GeneratedRef {
+    pub reference: Register,
+    pub backing: Option<Register>,
+}
+
+impl AstBytecodeGen<'_> {
+    pub(super) fn free_generated_ref(&mut self, generated_ref: GeneratedRef) {
+        self.free_if_temp(generated_ref.reference);
+
+        if let Some(backing) = generated_ref.backing {
+            self.free_if_temp(backing);
+        }
+    }
+}
+
+/// Produces a ref to an expression for mutating method receivers and ref-backed field access.
+/// Addressable paths and fields refer directly to their storage; other expressions use a
+/// temporary value that is kept alive in `GeneratedRef::backing`.
+pub(super) fn gen_expr_as_ref(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    ty: SourceType,
+) -> GeneratedRef {
     match g.analysis.expr(expr_id) {
         Expr::Path(..) => gen_expr_as_ref_path(g, expr_id),
         Expr::Field(field_expr) => gen_expr_as_ref_field(g, expr_id, field_expr, ty),
         Expr::Paren(inner_expr) => gen_expr_as_ref(g, *inner_expr, ty),
-        _ => unreachable!("expected field chain rooted in a ref variable"),
+        _ => {
+            let value = gen_expr(g, expr_id, DataDest::Alloc);
+            let inner_ty = g.emitter.convert_ty(g.sa, ty);
+            let reference = g.alloc_temp(BytecodeType::Ref(Box::new(inner_ty)));
+            g.builder.emit_get_register_ref(reference, value);
+
+            GeneratedRef {
+                reference,
+                backing: Some(value),
+            }
+        }
     }
 }
 
-fn gen_expr_as_ref_path(g: &mut AstBytecodeGen, expr_id: ExprId) -> Register {
+fn gen_expr_as_ref_path(g: &mut AstBytecodeGen, expr_id: ExprId) -> GeneratedRef {
     let ident_type = g
         .analysis
         .get_ident(expr_id)
-        .expect("missing ident for ref-rooted field expression");
-    let IdentType::Var(var_id) = ident_type else {
-        unreachable!("expected ref variable")
-    };
+        .expect("missing ident for mutating receiver");
 
-    let vars = g.analysis.vars();
-    let var = vars.get_var(var_id);
-    assert!(var.ty.is_ref());
-    let VarLocation::Stack = var.location else {
-        unreachable!("captured ref field access isn't supported")
-    };
+    match ident_type {
+        IdentType::Var(var_id) => {
+            let vars = g.analysis.vars();
+            let var = vars.get_var(var_id);
+            let VarLocation::Stack = var.location else {
+                unreachable!("captured ref assignment isn't supported")
+            };
 
-    var_reg(g, var_id)
+            if var.ty.is_ref() {
+                return GeneratedRef {
+                    reference: var_reg(g, var_id),
+                    backing: None,
+                };
+            }
+
+            let inner_ty = g.emitter.convert_ty(g.sa, var.ty.clone());
+            let reference = g.alloc_temp(BytecodeType::Ref(Box::new(inner_ty)));
+            g.builder
+                .emit_get_register_ref(reference, var_reg(g, var_id));
+
+            GeneratedRef {
+                reference,
+                backing: None,
+            }
+        }
+        IdentType::Global(..) => {
+            unimplemented!("mutating methods on global value types")
+        }
+        _ => unreachable!("unexpected mutating receiver"),
+    }
 }
 
 fn gen_expr_as_ref_field(
@@ -39,23 +89,24 @@ fn gen_expr_as_ref_field(
     expr_id: ExprId,
     field_expr: &FieldExpr,
     field_ty: SourceType,
-) -> Register {
+) -> GeneratedRef {
     let inner_ty = g.emitter.convert_ty(g.sa, field_ty);
     let reference = g.alloc_temp(BytecodeType::Ref(Box::new(inner_ty)));
     let field_idx = add_field_const_pool_entry(g, expr_id);
     let object_ty = g.ty(field_expr.lhs);
 
-    let obj = if object_ty.is_ref() || object_ty.is_struct() || object_ty.is_tuple() {
-        gen_expr_as_ref(g, field_expr.lhs, object_ty)
+    let (obj, backing) = if object_ty.is_ref() || object_ty.is_struct() || object_ty.is_tuple() {
+        let object = gen_expr_as_ref(g, field_expr.lhs, object_ty);
+        (object.reference, object.backing)
     } else {
-        gen_expr(g, field_expr.lhs, DataDest::Alloc)
+        (gen_expr(g, field_expr.lhs, DataDest::Alloc), None)
     };
 
     g.builder
         .emit_get_field_ref(reference, obj, field_idx, g.loc_for_expr(expr_id));
     g.free_if_temp(obj);
 
-    reference
+    GeneratedRef { reference, backing }
 }
 
 /// Returns whether a path or field chain is rooted in a variable whose type is already `ref T`.

@@ -1,26 +1,36 @@
-struct Inner:
-  value: Int32
+struct A:
+  b: B
 
-struct Outer:
-  inner: Inner
+struct B:
+  c: C
+
+struct C:
+  d: Int32
+
+struct X:
+  a: A
 
 fn f:
-  0: GetFieldAddress r2, r0, @0 # Outer.inner
-  4: GetFieldAddress r3, r2, @1 # Inner.value
-  8: StoreAddress r1, r3
- 11: Ret r0
+  0: GetFieldAddress r2, r0, @0 # X.a
+  4: GetFieldAddress r3, r2, @1 # A.b
+  8: GetFieldAddress r2, r3, @2 # B.c
+ 12: GetFieldAddress r3, r2, @3 # C.d
+ 16: StoreAddress r1, r3
+ 19: Ret r0
 
   Registers:
-   0 => struct Outer
+   0 => struct X
    1 => Int32
    2 => Address
    3 => Address
    4 => ()
 
   Constants:
-   0 => StructField Outer.inner
-   1 => StructField Inner.value
+   0 => StructField X.a
+   1 => StructField A.b
+   2 => StructField B.c
+   3 => StructField C.d
 
   Locations:
-   0 => 3:39
+   0 => 5:31
 

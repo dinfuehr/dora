@@ -1,0 +1,24 @@
+fn identity(value: Int32): Int32 {
+    value
+}
+
+impl (Int32, Int32) {
+    mutating fn update(operand: Int32, count: Int32) {
+        self.0 += identity(operand);
+        self.0 -= operand;
+        self.0 *= operand;
+        self.0 /= operand;
+        self.0 %= operand;
+        self.0 |= operand;
+        self.0 &= operand;
+        self.0 ^= operand;
+        self.0 <<= count;
+        self.0 >>= count;
+        self.0 >>>= count;
+    }
+}
+
+fn test_update() {
+    let mut counter = (10i32, 20i32);
+    counter.update(2i32, 1i32);
+}

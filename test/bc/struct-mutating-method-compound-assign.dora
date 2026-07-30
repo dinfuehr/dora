@@ -1,0 +1,26 @@
+struct Counter { value: Int32 }
+
+fn identity(value: Int32): Int32 {
+    value
+}
+
+impl Counter {
+    mutating fn update(operand: Int32, count: Int32) {
+        self.value += identity(operand);
+        self.value -= operand;
+        self.value *= operand;
+        self.value /= operand;
+        self.value %= operand;
+        self.value |= operand;
+        self.value &= operand;
+        self.value ^= operand;
+        self.value <<= count;
+        self.value >>= count;
+        self.value >>>= count;
+    }
+}
+
+fn test_update() {
+    let mut counter = Counter(value = 10i32);
+    counter.update(2i32, 1i32);
+}

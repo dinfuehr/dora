@@ -1,0 +1,52 @@
+class Box:
+  c: C
+
+struct A:
+  b: Box
+
+struct C:
+  d: Int32
+
+struct X:
+  a: A
+
+fn identity:
+  0: Ret r0
+
+  Registers:
+   0 => Int32
+
+  Constants:
+
+  Locations:
+
+fn f:
+  0: LoadField r2, r0, @0 # X.a
+  4: LoadField r3, r2, @1 # A.b
+  8: InvokeStatic r4, @2, r1 # identity
+ 13: GetFieldAddress r5, r3, @3 # Box.c
+ 17: GetFieldAddress r6, r5, @4 # C.d
+ 21: StoreAddress r4, r6
+ 24: Ret r7
+
+  Registers:
+   0 => struct X
+   1 => Int32
+   2 => struct A
+   3 => class Box
+   4 => Int32
+   5 => Address
+   6 => Address
+   7 => ()
+
+  Constants:
+   0 => StructField X.a
+   1 => StructField A.b
+   2 => Fct identity
+   3 => Field Box.c
+   4 => StructField C.d
+
+  Locations:
+   8 => 6:36
+   13 => 6:24
+

@@ -1,0 +1,127 @@
+fn identity:
+  0: Ret r0
+
+  Registers:
+   0 => Int32
+
+  Constants:
+
+  Locations:
+
+fn <impl (Int32, Int32)>::update:
+  0: GetFieldRef r3, r0, @0 # (Int32, Int32).0
+  4: InvokeStatic r4, @1, r1 # identity
+  9: LoadRef r5, r3
+ 12: CheckedAdd r5, r5, r4
+ 16: StoreRef r5, r3
+ 19: GetFieldRef r3, r0, @2 # (Int32, Int32).0
+ 23: LoadRef r4, r3
+ 26: CheckedSub r4, r4, r1
+ 30: StoreRef r4, r3
+ 33: GetFieldRef r3, r0, @3 # (Int32, Int32).0
+ 37: LoadRef r4, r3
+ 40: CheckedMul r4, r4, r1
+ 44: StoreRef r4, r3
+ 47: GetFieldRef r3, r0, @4 # (Int32, Int32).0
+ 51: LoadRef r4, r3
+ 54: CheckedDiv r4, r4, r1
+ 58: StoreRef r4, r3
+ 61: GetFieldRef r3, r0, @5 # (Int32, Int32).0
+ 65: LoadRef r4, r3
+ 68: CheckedMod r4, r4, r1
+ 72: StoreRef r4, r3
+ 75: GetFieldRef r3, r0, @6 # (Int32, Int32).0
+ 79: LoadRef r4, r3
+ 82: Or r4, r4, r1
+ 86: StoreRef r4, r3
+ 89: GetFieldRef r3, r0, @7 # (Int32, Int32).0
+ 93: LoadRef r4, r3
+ 96: And r4, r4, r1
+100: StoreRef r4, r3
+103: GetFieldRef r3, r0, @8 # (Int32, Int32).0
+107: LoadRef r4, r3
+110: Xor r4, r4, r1
+114: StoreRef r4, r3
+117: GetFieldRef r3, r0, @9 # (Int32, Int32).0
+121: LoadRef r4, r3
+124: Shl r4, r4, r2
+128: StoreRef r4, r3
+131: GetFieldRef r3, r0, @10 # (Int32, Int32).0
+135: LoadRef r4, r3
+138: Sar r4, r4, r2
+142: StoreRef r4, r3
+145: GetFieldRef r3, r0, @11 # (Int32, Int32).0
+149: LoadRef r4, r3
+152: Shr r4, r4, r2
+156: StoreRef r4, r3
+159: Ret r6
+
+  Registers:
+   0 => ref (Int32, Int32)
+   1 => Int32
+   2 => Int32
+   3 => ref Int32
+   4 => Int32
+   5 => Int32
+   6 => ()
+
+  Constants:
+   0 => TupleElement subtypes.0
+   1 => Fct identity
+   2 => TupleElement subtypes.2
+   3 => TupleElement subtypes.3
+   4 => TupleElement subtypes.4
+   5 => TupleElement subtypes.5
+   6 => TupleElement subtypes.6
+   7 => TupleElement subtypes.7
+   8 => TupleElement subtypes.8
+   9 => TupleElement subtypes.9
+   10 => TupleElement subtypes.10
+   11 => TupleElement subtypes.11
+
+  Locations:
+   0 => 7:9
+   4 => 7:19
+   12 => 7:9
+   19 => 8:9
+   33 => 9:9
+   47 => 10:9
+   61 => 11:9
+   75 => 12:9
+   89 => 13:9
+   103 => 14:9
+   117 => 15:9
+   131 => 16:9
+   145 => 17:9
+
+fn test_update:
+  0: ConstInt32 r2, @0 # 10
+  3: ConstInt32 r3, @1 # 20
+  6: NewTuple r1, @2, r2, r3 # (Int32, Int32)
+ 12: Mov r0, r1
+ 15: GetRegisterRef r5, r0
+ 18: ConstInt32 r3, @4 # 2
+ 21: ConstInt32 r2, @5 # 1
+ 24: InvokeDirect r4, @3, r5, r3, r2 # <impl (Int32, Int32)>::update
+ 31: Ret r4
+
+  Registers:
+   0 => (Int32, Int32)
+   1 => (Int32, Int32)
+   2 => Int32
+   3 => Int32
+   4 => ()
+   5 => ref (Int32, Int32)
+
+  Constants:
+   0 => Int32 10
+   1 => Int32 20
+   2 => Tuple (Int32, Int32)
+   3 => Fct <impl (Int32, Int32)>::update
+   4 => Int32 2
+   5 => Int32 1
+
+  Locations:
+   6 => 22:23
+   24 => 23:5
+

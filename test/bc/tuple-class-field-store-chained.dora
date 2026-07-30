@@ -1,0 +1,3 @@
+class Box { data: (Int32, Bool) }
+fn identity(v: Int32): Int32 { v }
+fn f(x: ((Box, Int64), Bool), v: Int32) { (x.0).0.data.0 = identity(v); }

@@ -5,7 +5,7 @@ use super::call::{
     determine_callee_types, emit_array_with_variadic_call_arguments, emit_call_inst,
     emit_intrinsic_array_set, emit_intrinsic_bin, emit_intrinsic_un_id,
 };
-use super::{add_const_pool_entry_for_call, ensure_register, gen_expr};
+use super::{add_const_pool_entry_for_call, ensure_register, gen_expr, gen_expr_as_ref};
 use crate::generator::{AstBytecodeGen, DataDest, IntrinsicInfo};
 use crate::sema::{
     CallType, Element, ExprId, IdentType, Intrinsic, MethodCallExpr, emit_as_bytecode_operation,
@@ -60,10 +60,16 @@ pub(super) fn gen_expr_method_call(
 
     // Evaluate object/self argument
     // For CallType::Expr (calling a field), we need to load the field value first
-    let object_reg = if matches!(*call_type, CallType::Expr(..)) {
-        gen_expr_method_call_field_object(g, expr_id, e)
+    let object_ty = g.ty(e.object);
+    let receiver_by_reference =
+        callee.is_mutating && (object_ty.is_struct() || object_ty.is_tuple());
+    let (object_reg, object_backing) = if receiver_by_reference {
+        let generated_ref = gen_expr_as_ref(g, e.object, object_ty);
+        (generated_ref.reference, generated_ref.backing)
+    } else if matches!(*call_type, CallType::Expr(..)) {
+        (gen_expr_method_call_field_object(g, expr_id, e), None)
     } else {
-        gen_expr(g, e.object, DataDest::Alloc)
+        (gen_expr(g, e.object, DataDest::Alloc), None)
     };
 
     // Evaluate function arguments
@@ -84,6 +90,9 @@ pub(super) fn gen_expr_method_call(
     g.free_if_temp(object_reg);
     for arg_reg in arguments {
         g.free_if_temp(arg_reg);
+    }
+    if let Some(backing) = object_backing {
+        g.free_if_temp(backing);
     }
 
     return_reg

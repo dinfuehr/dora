@@ -1,0 +1,12 @@
+class Box { data: (Int32, Bool) }
+
+fn collect_and_return(value: Int32): Int32 {
+    std::force_collect();
+    value
+}
+
+fn main() {
+    let x = ((Box((1i32, false)), 2i64), true);
+    (x.0).0.data.0 = collect_and_return(42i32);
+    assert((x.0).0.data.0 == 42i32);
+}

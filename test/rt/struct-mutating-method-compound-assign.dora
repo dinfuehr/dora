@@ -1,0 +1,31 @@
+//= runtime-args "--gc-verify"
+
+struct Counter { value: Int32 }
+class Holder { counter: Counter }
+
+fn collect_full(value: Int32): Int32 {
+    std::force_collect();
+    value
+}
+
+fn collect_minor(value: Int32): Int32 {
+    std::force_minor_collect();
+    value
+}
+
+impl Counter {
+    mutating fn update(addend: Int32, subtrahend: Int32) {
+        self.value += collect_full(addend);
+        self.value -= collect_minor(subtrahend);
+    }
+}
+
+fn main() {
+    let mut counter = Counter(value = 10i32);
+    counter.update(5i32, 2i32);
+    assert(counter.value == 13i32);
+
+    let holder = Holder(Counter(value = 20i32));
+    holder.counter.update(7i32, 3i32);
+    assert(holder.counter.value == 24i32);
+}

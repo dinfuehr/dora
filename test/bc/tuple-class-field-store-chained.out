@@ -1,0 +1,43 @@
+class Box:
+  data: (Int32, Bool)
+
+fn identity:
+  0: Ret r0
+
+  Registers:
+   0 => Int32
+
+  Constants:
+
+  Locations:
+
+fn f:
+  0: LoadField r2, r0, @0 # ((Box, Int64), Bool).0
+  4: LoadField r3, r2, @1 # (Box, Int64).0
+  8: InvokeStatic r4, @2, r1 # identity
+ 13: GetFieldAddress r5, r3, @3 # Box.data
+ 17: GetFieldAddress r6, r5, @4 # (Int32, Bool).0
+ 21: StoreAddress r4, r6
+ 24: Ret r7
+
+  Registers:
+   0 => ((Box, Int64), Bool)
+   1 => Int32
+   2 => (Box, Int64)
+   3 => class Box
+   4 => Int32
+   5 => Address
+   6 => Address
+   7 => ()
+
+  Constants:
+   0 => TupleElement subtypes.0
+   1 => TupleElement subtypes.1
+   2 => Fct identity
+   3 => Field Box.data
+   4 => TupleElement subtypes.4
+
+  Locations:
+   8 => 3:60
+   13 => 3:43
+

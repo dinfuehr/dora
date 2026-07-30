@@ -1,0 +1,6 @@
+struct A { b: Box }
+class Box { c: C }
+struct C { d: Int32 }
+struct X { a: A }
+fn identity(v: Int32): Int32 { v }
+fn f(x: X, v: Int32) { x.a.b.c.d = identity(v); }

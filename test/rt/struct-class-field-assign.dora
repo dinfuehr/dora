@@ -1,0 +1,15 @@
+struct A { b: Box }
+class Box { c: C }
+struct C { d: Int32 }
+struct X { a: A }
+
+fn collect_and_return(value: Int32): Int32 {
+    std::force_collect();
+    value
+}
+
+fn main() {
+    let x = X(A(Box(C(1i32))));
+    x.a.b.c.d = collect_and_return(42i32);
+    assert(x.a.b.c.d == 42i32);
+}

@@ -5,7 +5,7 @@ use super::bin::gen_intrinsic_bin;
 use super::path::load_from_context;
 use super::{
     add_const_pool_entry_for_call, emit_invoke_direct, emit_invoke_generic_direct, gen_expr,
-    specialize_type_for_call,
+    gen_expr_as_ref, is_rooted_in_ref, specialize_type_for_call,
 };
 use crate::generator::{
     AstBytecodeGen, DataDest, field_id_from_context_idx, load_outer_context_object,
@@ -448,6 +448,11 @@ fn gen_expr_assign_tuple_field(
     let subtypes = tuple_ty.tuple_subtypes().expect("tuple expected");
     let element_ty = subtypes[element_idx as usize].clone();
 
+    if is_rooted_in_ref(g, e.lhs) {
+        gen_expr_assign_ref_backed_field(g, expr_id, e, element_ty);
+        return;
+    }
+
     // Collect chain of value-type field accesses, including the field being assigned to
     let chain = collect_value_type_field_chain(g, e.lhs);
 
@@ -496,6 +501,17 @@ fn gen_expr_assign_struct_field(
 ) {
     let (struct_id, type_params) = struct_ty.to_struct().expect("struct expected");
 
+    let struct_ = g.sa.struct_(struct_id);
+    let field_id = struct_.field_id(field_index);
+    let field_ty = g.sa.field(field_id).ty();
+    let type_args = TypeArgs::from_own(g.sa, struct_.type_param_definition(g.sa), &type_params);
+    let field_ty = specialize_type(g.sa, field_ty, &type_args);
+
+    if is_rooted_in_ref(g, e.lhs) {
+        gen_expr_assign_ref_backed_field(g, expr_id, e, field_ty);
+        return;
+    }
+
     // Collect chain of value-type field accesses, including the field being assigned to
     let chain = collect_value_type_field_chain(g, e.lhs);
 
@@ -508,12 +524,7 @@ fn gen_expr_assign_struct_field(
     let address = emit_field_chain_addresses(g, base, &chain.field_chain, location);
 
     let assign_value = if e.op != ast::AssignOp::Assign {
-        let struct_ = g.sa.struct_(struct_id);
-        let field_id = struct_.field_id(field_index);
-        let ty = g.sa.field(field_id).ty();
-        let type_args = TypeArgs::from_own(g.sa, struct_.type_param_definition(g.sa), &type_params);
-        let ty = specialize_type(g.sa, ty, &type_args);
-        let ty = g.emitter.convert_ty(g.sa, ty);
+        let ty = g.emitter.convert_ty(g.sa, field_ty);
         let current = g.alloc_temp(ty);
         g.builder.emit_load_address(current, address);
 
@@ -537,6 +548,43 @@ fn gen_expr_assign_struct_field(
     }
 
     g.free_if_temp(base);
+    g.free_if_temp(value);
+}
+
+fn gen_expr_assign_ref_backed_field(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    e: &AssignExpr,
+    field_ty: SourceType,
+) {
+    let generated_ref = gen_expr_as_ref(g, e.lhs, field_ty.clone());
+    let value = gen_expr(g, e.rhs, DataDest::Alloc);
+    let location = g.loc_for_expr(expr_id);
+
+    let assign_value = if e.op != ast::AssignOp::Assign {
+        let ty = g.emitter.convert_ty(g.sa, field_ty);
+        let current = g.alloc_temp(ty);
+        g.builder.emit_load_ref(current, generated_ref.reference);
+
+        if let Some(info) = g.get_intrinsic(expr_id) {
+            gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
+        } else {
+            gen_method_bin(g, expr_id, current, current, value, location);
+        }
+
+        current
+    } else {
+        value
+    };
+
+    g.builder
+        .emit_store_ref(assign_value, generated_ref.reference, location);
+    g.free_generated_ref(generated_ref);
+
+    if e.op != ast::AssignOp::Assign {
+        g.free_temp(assign_value);
+    }
+
     g.free_if_temp(value);
 }
 

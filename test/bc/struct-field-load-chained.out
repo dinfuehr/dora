@@ -1,0 +1,34 @@
+struct A:
+  b: B
+
+struct B:
+  c: C
+
+struct C:
+  d: Int32
+
+struct X:
+  a: A
+
+fn f:
+  0: LoadField r1, r0, @0 # X.a
+  4: LoadField r2, r1, @1 # A.b
+  8: LoadField r3, r2, @2 # B.c
+ 12: LoadField r4, r3, @3 # C.d
+ 16: Ret r4
+
+  Registers:
+   0 => struct X
+   1 => struct A
+   2 => struct B
+   3 => struct C
+   4 => Int32
+
+  Constants:
+   0 => StructField X.a
+   1 => StructField A.b
+   2 => StructField B.c
+   3 => StructField C.d
+
+  Locations:
+
