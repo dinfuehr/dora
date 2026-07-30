@@ -349,6 +349,123 @@ impl<'a> BaselineAssembler<'a> {
         }
     }
 
+    pub fn store_value_through_ref(
+        &mut self,
+        interior_reg: Reg,
+        base_reg: Reg,
+        address_offset: i32,
+        value: RegOrOffset,
+        ty: BytecodeType,
+    ) {
+        match &ty {
+            BytecodeType::Unit => {
+                // nothing to do
+            }
+
+            BytecodeType::Tuple(subtypes) => {
+                let tuple = self.layout.tuple_layout(subtypes.clone());
+
+                for field in tuple.fields {
+                    self.store_value_through_ref(
+                        interior_reg,
+                        base_reg,
+                        address_offset + field.offset,
+                        value.offset(field.offset),
+                        field.ty,
+                    );
+                }
+            }
+
+            BytecodeType::Struct(struct_id, type_params) => {
+                let struct_ = self.layout.struct_layout(*struct_id, type_params);
+
+                for field in struct_.fields {
+                    self.store_value_through_ref(
+                        interior_reg,
+                        base_reg,
+                        address_offset + field.offset,
+                        value.offset(field.offset),
+                        field.ty,
+                    );
+                }
+            }
+
+            BytecodeType::Enum(enum_id, type_params) => {
+                let value_reg = self.masm.get_scratch();
+                let mode = self.mode(BytecodeType::Enum(*enum_id, type_params.clone()));
+
+                self.load_mem(mode, (*value_reg).into(), value.mem());
+                self.store_mem(
+                    mode,
+                    Mem::Base(interior_reg, address_offset),
+                    (*value_reg).into(),
+                );
+
+                if self.needs_write_barrier() && mode == MachineMode::Ptr {
+                    self.emit_write_barrier_if_non_null(base_reg, (*value_reg).into());
+                }
+            }
+
+            BytecodeType::TypeAlias(..)
+            | BytecodeType::Assoc { .. }
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::This
+            | BytecodeType::Ref(..)
+            | BytecodeType::Address => {
+                unreachable!()
+            }
+
+            BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64 => {
+                let value_reg = self.masm.get_scratch();
+                let mode = self.mode(ty.clone());
+
+                self.load_mem(mode, (*value_reg).into(), value.mem());
+                self.store_mem(
+                    mode,
+                    Mem::Base(interior_reg, address_offset),
+                    (*value_reg).into(),
+                );
+            }
+
+            BytecodeType::Float32 | BytecodeType::Float64 => {
+                let value_reg = self.masm.get_scratch();
+                let mode = if ty == BytecodeType::Float32 {
+                    MachineMode::Int32
+                } else {
+                    assert_eq!(ty, BytecodeType::Float64);
+                    MachineMode::Int64
+                };
+
+                self.load_mem(mode, (*value_reg).into(), value.mem());
+                self.store_mem(
+                    mode,
+                    Mem::Base(interior_reg, address_offset),
+                    (*value_reg).into(),
+                );
+            }
+
+            BytecodeType::TraitObject(..) | BytecodeType::Class(..) => {
+                let value_reg = self.masm.get_scratch();
+                let mode = MachineMode::Ptr;
+
+                self.load_mem(mode, (*value_reg).into(), value.mem());
+                self.store_mem(
+                    mode,
+                    Mem::Base(interior_reg, address_offset),
+                    (*value_reg).into(),
+                );
+
+                if self.needs_write_barrier() {
+                    self.emit_write_barrier_if_non_null(base_reg, (*value_reg).into());
+                }
+            }
+        }
+    }
+
     pub fn store_array(
         &mut self,
         arr_reg: Reg,
@@ -594,6 +711,12 @@ impl<'a> BaselineAssembler<'a> {
             host,
             value,
         });
+    }
+
+    fn emit_write_barrier_if_non_null(&mut self, host: Reg, value: Reg) {
+        let lbl_skip = self.masm.test_if_nil(host);
+        self.emit_write_barrier(host, value);
+        self.masm.bind_label(lbl_skip);
     }
 
     pub fn emit_jump_table(&mut self, table: JumpTable) -> u32 {

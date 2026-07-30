@@ -1,0 +1,104 @@
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify"
+//= config cannon
+
+class Foo {
+    value: Int32,
+}
+
+enum PointerValue {
+    Some(Foo),
+    None,
+}
+
+enum TaggedValue {
+    First(Foo),
+    Second,
+    Third,
+}
+
+enum SimpleValue {
+    First,
+    Second,
+}
+
+class PointerHolder {
+    value: PointerValue,
+}
+
+class TaggedHolder {
+    value: TaggedValue,
+}
+
+class SimpleHolder {
+    value: SimpleValue,
+}
+
+fn replace_pointer(value: ref PointerValue, replacement: PointerValue) {
+    value = replacement;
+}
+
+fn replace_tagged(value: ref TaggedValue, replacement: TaggedValue) {
+    value = replacement;
+}
+
+fn replace_simple(value: ref SimpleValue, replacement: SimpleValue) {
+    value = replacement;
+}
+
+fn pointer_value(value: PointerValue): Int32 {
+    match value {
+        PointerValue::Some(foo) => foo.value,
+        PointerValue::None => -1i32,
+    }
+}
+
+fn tagged_value(value: TaggedValue): Int32 {
+    match value {
+        TaggedValue::First(foo) => foo.value,
+        TaggedValue::Second | TaggedValue::Third => -1i32,
+    }
+}
+
+fn is_second(value: SimpleValue): Bool {
+    match value {
+        SimpleValue::First => false,
+        SimpleValue::Second => true,
+    }
+}
+
+fn test_pointer() {
+    let holder = PointerHolder(PointerValue::None);
+    std::force_collect();
+
+    replace_pointer(ref holder.value, PointerValue::Some(Foo(1i32)));
+
+    std::force_minor_collect();
+    assert(pointer_value(holder.value) == 1i32);
+}
+
+fn test_tagged() {
+    let holder = TaggedHolder(TaggedValue::Second);
+    std::force_collect();
+
+    replace_tagged(ref holder.value, TaggedValue::First(Foo(2i32)));
+
+    std::force_minor_collect();
+    assert(tagged_value(holder.value) == 2i32);
+}
+
+fn test_simple() {
+    let holder = SimpleHolder(SimpleValue::First);
+    std::force_collect();
+
+    replace_simple(ref holder.value, SimpleValue::Second);
+
+    std::force_minor_collect();
+    assert(is_second(holder.value));
+}
+
+fn main() {
+    test_pointer();
+    test_tagged();
+    test_simple();
+}

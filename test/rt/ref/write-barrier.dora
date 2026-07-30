@@ -1,0 +1,29 @@
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify"
+//= config cannon
+
+class Foo {
+    value: Int32,
+}
+
+class Bar {
+    foo: Foo,
+}
+
+fn replace(value: ref Foo, replacement: Foo) {
+    value = replacement;
+}
+
+fn main() {
+    let bar = Bar(Foo(1i32));
+
+    // Move Bar and its current Foo into the old generation.
+    std::force_collect();
+
+    // Store a young Foo into the old Bar through StoreRef.
+    replace(ref bar.foo, Foo(2i32));
+
+    // The verifier requires Bar to be in the remembered set here.
+    std::force_minor_collect();
+    assert(bar.foo.value == 2i32);
+}

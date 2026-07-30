@@ -1778,18 +1778,19 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let ref_type = self.bytecode().register_type(reference);
         debug_assert!(ref_type.is_ref());
 
-        // Load the reference (address) into a register
-        self.emit_load_register(reference, REG_TMP1.into());
+        // Load both the interior address and its heap base. A null base means
+        // that the reference points into the stack.
+        let interior_reg = REG_TMP1;
+        let base_reg = REG_TMP2;
+        self.load_ref(reference, interior_reg, base_reg);
 
         // Get the type of the value to store
         let bytecode_type = self.specialize_register_type(src);
 
-        // Copy from src to the memory location pointed to by the reference
-        self.asm.copy_bytecode_ty(
-            bytecode_type,
-            RegOrOffset::RegWithOffset(REG_TMP1, 0),
-            self.reg(src),
-        );
+        // Copy from src to the memory location pointed to by the reference and
+        // use the base object as the write-barrier host when it is non-null.
+        self.asm
+            .store_value_through_ref(interior_reg, base_reg, 0, self.reg(src), bytecode_type);
     }
 
     fn emit_load_ref(&mut self, dest: Register, reference: Register) {

@@ -1,0 +1,37 @@
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify"
+//= config cannon
+
+trait Value {
+    fn get(): Int32;
+}
+
+class Foo {
+    value: Int32,
+}
+
+impl Value for Foo {
+    fn get(): Int32 {
+        self.value
+    }
+}
+
+class Holder {
+    value: Value,
+}
+
+fn replace(value: ref Value, replacement: Value) {
+    value = replacement;
+}
+
+fn main() {
+    let holder = Holder(Foo(1i32) as Value);
+
+    // Move Holder and its current trait object into the old generation.
+    std::force_collect();
+
+    replace(ref holder.value, Foo(2i32) as Value);
+
+    std::force_minor_collect();
+    assert(holder.value.get() == 2i32);
+}
