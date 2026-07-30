@@ -394,9 +394,9 @@ fn emit_inst(codegen: CodeGen, inst: Inst) {
             codegen.emit_store_array_wb(inst);
         }
 
-        Op::StoreArrayAddressWb => {
-            codegen.emit_comment("StoreArrayAddressWb");
-            codegen.emit_store_array_address_wb(inst);
+        Op::StoreAddressWb => {
+            codegen.emit_comment("StoreAddressWb");
+            codegen.emit_store_address_wb(inst);
         }
 
         Op::GetElementPtr => {
@@ -791,7 +791,7 @@ pub trait CodeGen {
 
     fn emit_store_array_wb(inst: Inst);
 
-    fn emit_store_array_address_wb(inst: Inst);
+    fn emit_store_address_wb(inst: Inst);
 
     fn emit_abort(inst: Inst);
 

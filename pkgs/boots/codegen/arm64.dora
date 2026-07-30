@@ -2997,7 +2997,7 @@ impl CodeGen for CodeGenArm64 {
         );
     }
 
-    fn emit_store_array_address_wb(inst: Inst) {
+    fn emit_store_address_wb(inst: Inst) {
         let loc = inst.get_location_data();
         let array = loc.get_input(0).get_register();
         let dest = loc.get_input(1).get_register();

@@ -394,7 +394,7 @@ impl LocationAnnotation {
                 needs_register_snapshot(inst);
             }
 
-            Op::StoreArrayAddressWb => {
+            Op::StoreAddressWb => {
                 use_input_register(inst, 0);
                 use_input_register(inst, 1);
                 use_input_register(inst, 2);

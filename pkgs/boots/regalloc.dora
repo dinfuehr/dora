@@ -270,7 +270,7 @@ impl SimpleRegisterAllocator {
             if inst.get_location_data().needs_register_snapshot() {
                 assert(
                     inst.op() == Op::StoreArrayWb ||
-                    inst.op() == Op::StoreArrayAddressWb ||
+                    inst.op() == Op::StoreAddressWb ||
                     inst.op() == Op::StoreWb ||
                     inst.op() == Op::EnsureGlobalInitialized ||
                     inst.op() == Op::Safepoint

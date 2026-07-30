@@ -340,7 +340,7 @@ fn is_memory_barrier(op: Op): Bool {
         | Op::Store
         | Op::StoreWb
         | Op::StoreArrayWb
-        | Op::StoreArrayAddressWb
+        | Op::StoreAddressWb
         | Op::Unreachable
         | Op::Debug
         | Op::AtomicLoad

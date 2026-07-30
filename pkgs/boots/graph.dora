@@ -1015,7 +1015,7 @@ pub enum Op {
     Store,
     StoreWb,
     StoreArrayWb,
-    StoreArrayAddressWb,
+    StoreAddressWb,
 
     ThreadCurrent,
     // Convert between integer and floats.
@@ -1209,7 +1209,7 @@ pub fn op_name(op: Op): String {
         Op::Store => "Store",
         Op::StoreWb => "StoreWb",
         Op::StoreArrayWb => "StoreArrayWb",
-        Op::StoreArrayAddressWb => "StoreArrayAddressWb",
+        Op::StoreAddressWb => "StoreAddressWb",
         Op::ThreadCurrent => "ThreadCurrent",
         Op::Convert => "Convert",
         Op::CompareOrdering => "CompareOrdering",
@@ -1521,7 +1521,7 @@ impl Inst {
             Op::ObjectInitializationFence => None,
             Op::AllocateStack => Some(Type::Address),
             Op::Load => Some(self.ty),
-            Op::Store | Op::StoreWb | Op::StoreArrayWb | Op::StoreArrayAddressWb => None,
+            Op::Store | Op::StoreWb | Op::StoreArrayWb | Op::StoreAddressWb => None,
             Op::ThreadCurrent => Some(Type::Ptr),
             Op::Convert => Some(self.ty),
             Op::CompareOrdering => Some(Type::Int32),
@@ -1570,7 +1570,7 @@ impl Inst {
             | Op::Store
             | Op::StoreWb
             | Op::StoreArrayWb
-            | Op::StoreArrayAddressWb
+            | Op::StoreAddressWb
             | Op::LocalSet
             | Op::IsNegOverflowing
             | Op::IsAddOverflowing
@@ -1867,7 +1867,7 @@ impl Inst {
             self.op() == Op::Load ||
             self.op() == Op::Store ||
             self.op() == Op::StoreWb ||
-            self.op() == Op::StoreArrayAddressWb
+            self.op() == Op::StoreAddressWb
         );
         self.aux.to_int32()
     }
@@ -2123,7 +2123,7 @@ impl Inst {
             Op::ObjectInitializationFence => true,
             Op::AllocateStack => false,
             Op::Load => false,
-            Op::Store | Op::StoreWb | Op::StoreArrayWb | Op::StoreArrayAddressWb => true,
+            Op::Store | Op::StoreWb | Op::StoreArrayWb | Op::StoreAddressWb => true,
             Op::ThreadCurrent => false,
             Op::Convert => false,
             Op::CompareOrdering => false,
@@ -3030,7 +3030,7 @@ pub fn create_store_array_wb_inst(array: Inst, index: Inst, value: Inst, ty: Typ
     inst
 }
 
-pub fn create_store_array_address_wb_inst(
+pub fn create_store_address_wb_inst(
     array: Inst,
     dest: Inst,
     dest_offset: Int32,
@@ -3038,7 +3038,7 @@ pub fn create_store_array_address_wb_inst(
     ty: Type,
 ): Inst {
     let inst = Inst::new();
-    inst._op = Some(Op::StoreArrayAddressWb);
+    inst._op = Some(Op::StoreAddressWb);
     inst.ty = ty;
     inst.add_input(array);
     inst.add_input(dest);

@@ -175,7 +175,7 @@ impl GraphVerifier {
 
             Op::StoreArray
             | Op::StoreArrayWb
-            | Op::StoreArrayAddressWb
+            | Op::StoreAddressWb
             | Op::AtomicCompareExchange => {
                 self.assert_input_count(inst, 3i64);
             }

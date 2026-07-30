@@ -2617,7 +2617,7 @@ impl BytecodeGraphBuilder {
             );
             self.current().append_inst(value);
 
-            let inst = graph::create_store_array_address_wb_inst(
+            let inst = graph::create_store_address_wb_inst(
                 array,
                 dest,
                 dest_offset,

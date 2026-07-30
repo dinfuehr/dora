@@ -69,7 +69,7 @@ fn is_store_op(op: Op): Bool {
         | Op::StoreWb
         | Op::StoreArray
         | Op::StoreArrayWb
-        | Op::StoreArrayAddressWb => true,
+        | Op::StoreAddressWb => true,
         _ => false,
     }
 }
