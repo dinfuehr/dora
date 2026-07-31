@@ -1,3 +1,9 @@
-fn f(r: ref Int32) {
+fn capture_parameter(r: ref Int32) {
+    || { r; };
+}
+
+fn capture_local() {
+    let value = 1i32;
+    let r = ref value;
     || { r; };
 }
