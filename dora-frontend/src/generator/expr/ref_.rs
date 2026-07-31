@@ -32,6 +32,11 @@ pub(super) fn gen_expr_as_ref(
         Expr::Path(..) => gen_expr_as_ref_path(g, expr_id),
         Expr::Field(field_expr) => gen_expr_as_ref_field(g, expr_id, field_expr, ty),
         Expr::Paren(inner_expr) => gen_expr_as_ref(g, *inner_expr, ty),
+        // `(ref value).field` already has a reference to use as the chain root.
+        Expr::Ref(_) => GeneratedRef {
+            reference: gen_expr(g, expr_id, DataDest::Alloc),
+            backing: None,
+        },
         _ => {
             let value = gen_expr(g, expr_id, DataDest::Alloc);
             let inner_ty = g.emitter.convert_ty(g.sa, ty);
@@ -44,6 +49,122 @@ pub(super) fn gen_expr_as_ref(
             }
         }
     }
+}
+
+enum FieldRefBase {
+    Value(ExprId),
+    Ref(ExprId),
+}
+
+pub(super) struct FieldRefPath {
+    base: FieldRefBase,
+    /// Field expressions ordered from the base towards the final field.
+    fields: Vec<ExprId>,
+}
+
+/// Returns the aggregate field segment that should be loaded through references. A single field
+/// on an ordinary value returns `None` and remains a `LoadField`.
+pub(super) fn field_ref_path(g: &AstBytecodeGen, expr_id: ExprId) -> Option<FieldRefPath> {
+    let mut current_expr = expr_id;
+    let mut fields = Vec::new();
+
+    // Parentheses intentionally end this field segment and are generated as part of its base.
+    let (base_expr, base_needs_ref) = loop {
+        match g.analysis.expr(current_expr) {
+            Expr::Field(field_expr) => {
+                fields.push(current_expr);
+
+                let object_ty = g.ty(field_expr.lhs);
+                if !object_ty.is_ref() && !object_ty.is_struct() && !object_ty.is_tuple() {
+                    break (field_expr.lhs, false);
+                }
+
+                current_expr = field_expr.lhs;
+            }
+            _ => break (current_expr, true),
+        }
+    };
+
+    let (base_is_ref, base_is_addressable) = ref_base_info(g, base_expr);
+    if fields.len() == 1 && !base_is_ref {
+        return None;
+    }
+
+    let base = if base_needs_ref {
+        if !base_is_addressable {
+            return None;
+        }
+
+        FieldRefBase::Ref(base_expr)
+    } else {
+        FieldRefBase::Value(base_expr)
+    };
+
+    fields.reverse();
+    Some(FieldRefPath { base, fields })
+}
+
+/// Returns whether the base is already a `ref` and whether it can safely be addressed.
+fn ref_base_info(g: &AstBytecodeGen, expr_id: ExprId) -> (bool, bool) {
+    match g.analysis.expr(expr_id) {
+        Expr::Path(..) => {
+            let Some(IdentType::Var(var_id)) = g.analysis.get_ident(expr_id) else {
+                return (false, false);
+            };
+            let vars = g.analysis.vars();
+            let var = vars.get_var(var_id);
+
+            (var.ty.is_ref(), matches!(var.location, VarLocation::Stack))
+        }
+        Expr::Ref(_) => (true, true),
+        // The parenthesis split the field path, but do not change the base's storage properties.
+        Expr::Paren(inner_expr) => ref_base_info(g, *inner_expr),
+        _ => (false, false),
+    }
+}
+
+pub(super) fn gen_expr_field_via_ref(
+    g: &mut AstBytecodeGen,
+    path: FieldRefPath,
+    dest: DataDest,
+) -> Register {
+    let expr_id = *path.fields.last().expect("field path is empty");
+    let field_ty = g.ty(expr_id);
+
+    if field_ty.is_unit() {
+        return g.ensure_unit_register();
+    }
+
+    let bytecode_ty = g.emitter.convert_ty(g.sa, field_ty.clone());
+    let dest = ensure_register(g, dest, bytecode_ty);
+
+    let (mut obj, backing) = match path.base {
+        FieldRefBase::Ref(base) => {
+            let base_ty = g.ty(base);
+            let generated_ref = gen_expr_as_ref(g, base, base_ty);
+            (generated_ref.reference, generated_ref.backing)
+        }
+        FieldRefBase::Value(base) => (gen_expr(g, base, DataDest::Alloc), None),
+    };
+
+    for &field_expr_id in &path.fields {
+        let field_ty = g.ty(field_expr_id);
+        let inner_ty = g.emitter.convert_ty(g.sa, field_ty);
+        let next = g.alloc_temp(BytecodeType::Ref(Box::new(inner_ty)));
+        let field_idx = add_field_const_pool_entry(g, field_expr_id);
+        g.builder
+            .emit_get_field_ref(next, obj, field_idx, g.loc_for_expr(field_expr_id));
+        g.free_if_temp(obj);
+        obj = next;
+    }
+
+    g.builder.emit_load_ref(dest, obj);
+    g.free_generated_ref(GeneratedRef {
+        reference: obj,
+        backing,
+    });
+
+    dest
 }
 
 fn gen_expr_as_ref_path(g: &mut AstBytecodeGen, expr_id: ExprId) -> GeneratedRef {
@@ -107,23 +228,6 @@ fn gen_expr_as_ref_field(
     g.free_if_temp(obj);
 
     GeneratedRef { reference, backing }
-}
-
-/// Returns whether a path or field chain is rooted in a variable whose type is already `ref T`.
-/// Fields of such expressions are accessed through `GetFieldRef` to avoid copying the aggregate.
-pub(super) fn is_rooted_in_ref(g: &AstBytecodeGen, expr_id: ExprId) -> bool {
-    match g.analysis.expr(expr_id) {
-        Expr::Path(..) => {
-            let Some(IdentType::Var(var_id)) = g.analysis.get_ident(expr_id) else {
-                return false;
-            };
-
-            g.analysis.vars().get_var(var_id).ty.is_ref()
-        }
-        Expr::Field(field_expr) => is_rooted_in_ref(g, field_expr.lhs),
-        Expr::Paren(inner_expr) => is_rooted_in_ref(g, *inner_expr),
-        _ => false,
-    }
 }
 
 pub(super) fn gen_expr_ref(

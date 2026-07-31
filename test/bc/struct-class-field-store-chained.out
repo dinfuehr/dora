@@ -21,23 +21,27 @@ fn identity:
   Locations:
 
 fn f:
-  0: LoadField r4, r0, @2 # X.a
-  4: LoadField r5, r4, @3 # A.b
-  8: GetFieldRef r3, r5, @1 # Box.c
- 12: GetFieldRef r2, r3, @0 # C.d
- 16: InvokeStatic r6, @4, r1 # identity
- 21: StoreRef r6, r2
- 24: Ret r7
+  0: GetRegisterRef r5, r0
+  3: GetFieldRef r6, r5, @2 # X.a
+  7: GetFieldRef r7, r6, @3 # A.b
+ 11: LoadRef r4, r7
+ 14: GetFieldRef r3, r4, @1 # Box.c
+ 18: GetFieldRef r2, r3, @0 # C.d
+ 22: InvokeStatic r8, @4, r1 # identity
+ 27: StoreRef r8, r2
+ 30: Ret r9
 
   Registers:
    0 => struct X
    1 => Int32
    2 => ref Int32
    3 => ref C
-   4 => struct A
-   5 => class Box
-   6 => Int32
-   7 => ()
+   4 => class Box
+   5 => ref X
+   6 => ref A
+   7 => ref Box
+   8 => Int32
+   9 => ()
 
   Constants:
    0 => StructField C.d
@@ -47,7 +51,7 @@ fn f:
    4 => Fct identity
 
   Locations:
-   8 => 6:24
-   16 => 6:36
-   21 => 6:24
+   3 => 6:24
+   22 => 6:36
+   27 => 6:24
 

@@ -17,3 +17,7 @@ fn read_box(value: Box): Int32 {
 fn read_tuple(value: ref (Int32, Int64)): Int64 {
     value.1
 }
+
+fn read_ref_expr(value: Inner): Int32 {
+    (ref value).value
+}

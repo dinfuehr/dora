@@ -11,24 +11,42 @@ struct X:
   a: A
 
 fn f:
-  0: LoadField r1, r0, @0 # X.a
-  4: LoadField r2, r1, @1 # A.b
-  8: LoadField r3, r2, @2 # B.c
- 12: LoadField r4, r3, @3 # C.d
- 16: Ret r4
+  0: GetRegisterRef r2, r0
+  3: GetFieldRef r3, r2, @0 # X.a
+  7: GetFieldRef r4, r3, @1 # A.b
+ 11: GetFieldRef r5, r4, @2 # B.c
+ 15: GetFieldRef r6, r5, @3 # C.d
+ 19: LoadRef r1, r6
+ 22: Ret r1
 
   Registers:
    0 => struct X
-   1 => struct A
-   2 => struct B
-   3 => struct C
-   4 => Int32
+   1 => Int32
+   2 => ref X
+   3 => ref A
+   4 => ref B
+   5 => ref C
+   6 => ref Int32
 
   Constants:
    0 => StructField X.a
    1 => StructField A.b
    2 => StructField B.c
    3 => StructField C.d
+
+  Locations:
+   3 => 5:21
+
+fn load_single:
+  0: LoadField r1, r0, @0 # X.a
+  4: Ret r1
+
+  Registers:
+   0 => struct X
+   1 => struct A
+
+  Constants:
+   0 => StructField X.a
 
   Locations:
 

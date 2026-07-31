@@ -8,65 +8,68 @@ struct Outer:
   box: Box
 
 fn read:
-  0: GetFieldRef r5, r0, @2 # Outer.box
-  4: LoadRef r4, r5
-  7: GetFieldRef r3, r4, @1 # Box.inner
- 11: GetFieldRef r2, r3, @0 # Inner.value
- 15: LoadRef r1, r2
+  0: GetFieldRef r3, r0, @0 # Outer.box
+  4: LoadRef r2, r3
+  7: GetFieldRef r4, r2, @1 # Box.inner
+ 11: GetFieldRef r5, r4, @2 # Inner.value
+ 15: LoadRef r1, r5
  18: Ret r1
 
   Registers:
    0 => ref Outer
    1 => Int32
-   2 => ref Int32
-   3 => ref Inner
-   4 => class Box
-   5 => ref Box
+   2 => class Box
+   3 => ref Box
+   4 => ref Inner
+   5 => ref Int32
 
   Constants:
-   0 => StructField Inner.value
+   0 => StructField Outer.box
    1 => Field Box.inner
-   2 => StructField Outer.box
+   2 => StructField Inner.value
 
   Locations:
    0 => 6:5
 
 fn read_class:
-  0: LoadRef r4, r0
-  3: GetFieldRef r3, r4, @1 # Box.inner
-  7: GetFieldRef r2, r3, @0 # Inner.value
- 11: LoadRef r1, r2
+  0: LoadRef r2, r0
+  3: GetFieldRef r3, r2, @0 # Box.inner
+  7: GetFieldRef r4, r3, @1 # Inner.value
+ 11: LoadRef r1, r4
  14: Ret r1
 
   Registers:
    0 => ref Box
    1 => Int32
-   2 => ref Int32
+   2 => class Box
    3 => ref Inner
-   4 => class Box
-
-  Constants:
-   0 => StructField Inner.value
-   1 => Field Box.inner
-
-  Locations:
-   3 => 10:5
-
-fn read_box:
-  0: LoadField r1, r0, @0 # Box.inner
-  4: LoadField r2, r1, @1 # Inner.value
-  8: Ret r2
-
-  Registers:
-   0 => class Box
-   1 => struct Inner
-   2 => Int32
+   4 => ref Int32
 
   Constants:
    0 => Field Box.inner
    1 => StructField Inner.value
 
   Locations:
+   3 => 10:5
+
+fn read_box:
+  0: GetFieldRef r2, r0, @0 # Box.inner
+  4: GetFieldRef r3, r2, @1 # Inner.value
+  8: LoadRef r1, r3
+ 11: Ret r1
+
+  Registers:
+   0 => class Box
+   1 => Int32
+   2 => ref Inner
+   3 => ref Int32
+
+  Constants:
+   0 => Field Box.inner
+   1 => StructField Inner.value
+
+  Locations:
+   0 => 14:5
 
 fn read_tuple:
   0: GetFieldRef r2, r0, @0 # (Int32, Int64).1
@@ -83,4 +86,22 @@ fn read_tuple:
 
   Locations:
    0 => 18:5
+
+fn read_ref_expr:
+  0: GetRegisterRef r2, r0
+  3: GetFieldRef r3, r2, @0 # Inner.value
+  7: LoadRef r1, r3
+ 10: Ret r1
+
+  Registers:
+   0 => struct Inner
+   1 => Int32
+   2 => ref Inner
+   3 => ref Int32
+
+  Constants:
+   0 => StructField Inner.value
+
+  Locations:
+   3 => 22:5
 

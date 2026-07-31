@@ -73,13 +73,14 @@ fn main:
  13: NewObject r4, @3, r3 # Holder
  18: Mov r0, r4
  21: InvokeStatic r5, @4, r0 # update
- 26: LoadField r3, r0, @5 # Holder.outer
- 30: LoadField r2, r3, @6 # Outer.value
- 34: LoadField r1, r2, @7 # Value.0
- 38: ConstInt32 r6, @8 # 3
- 41: TestEq r7, r1, r6
- 45: InvokeStatic r5, @9, r7 # std::assert
- 50: Ret r5
+ 26: GetFieldRef r6, r0, @5 # Holder.outer
+ 30: GetFieldRef r7, r6, @6 # Outer.value
+ 34: GetFieldRef r8, r7, @7 # Value.0
+ 38: LoadRef r1, r8
+ 41: ConstInt32 r9, @8 # 3
+ 44: TestEq r10, r1, r9
+ 48: InvokeStatic r5, @9, r10 # std::assert
+ 53: Ret r5
 
   Registers:
    0 => class Holder
@@ -88,8 +89,11 @@ fn main:
    3 => struct Outer
    4 => class Holder
    5 => ()
-   6 => Int32
-   7 => Bool
+   6 => ref Outer
+   7 => ref Value
+   8 => ref Int32
+   9 => Int32
+   10 => Bool
 
   Constants:
    0 => Int32 1
@@ -108,5 +112,6 @@ fn main:
    8 => 23:25
    13 => 23:18
    21 => 24:5
-   45 => 25:5
+   26 => 25:12
+   48 => 25:5
 
