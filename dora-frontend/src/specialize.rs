@@ -418,6 +418,14 @@ pub fn specialize_ty_for_trait_object(
             assoc_types,
         )),
 
+        SourceType::Ref(inner) => SourceType::Ref(Box::new(specialize_ty_for_trait_object(
+            sa,
+            *inner,
+            trait_id,
+            type_args,
+            assoc_types,
+        ))),
+
         SourceType::TypeParam(id) => type_args[id].clone(),
 
         SourceType::Unit
@@ -430,7 +438,7 @@ pub fn specialize_ty_for_trait_object(
         | SourceType::Float64
         | SourceType::Error => ty,
 
-        SourceType::This | SourceType::Any | SourceType::Ref(..) | SourceType::TypeVar(..) => {
+        SourceType::This | SourceType::Any | SourceType::TypeVar(..) => {
             unreachable!()
         }
     }
@@ -923,6 +931,15 @@ pub fn specialize_ty_for_generic(
             type_params,
         )),
 
+        SourceType::Ref(inner) => SourceType::Ref(Box::new(specialize_ty_for_generic(
+            sa,
+            *inner,
+            element,
+            type_param_id,
+            trait_ty,
+            type_params,
+        ))),
+
         SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
@@ -940,7 +957,7 @@ pub fn specialize_ty_for_generic(
             .cloned()
             .expect("Self type required for generic specialization"),
 
-        SourceType::Any | SourceType::Ref(..) | SourceType::TypeVar(..) => {
+        SourceType::Any | SourceType::TypeVar(..) => {
             unreachable!()
         }
     }

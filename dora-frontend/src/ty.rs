@@ -754,7 +754,8 @@ impl SourceType {
 
 pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
     match ty {
-        SourceType::Any | SourceType::Ref(..) => unreachable!(),
+        SourceType::Any => unreachable!(),
+        SourceType::Ref(inner) => contains_self(sa, *inner),
         SourceType::This => true,
         SourceType::Error
         | SourceType::Unit
