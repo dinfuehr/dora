@@ -660,6 +660,19 @@ fn trait_and_impl_arg_ty_compatible(
             }
         }
 
+        SourceType::Ref(trait_inner_ty) => match impl_arg_ty {
+            SourceType::Ref(impl_inner_ty) => trait_and_impl_arg_ty_compatible(
+                sa,
+                *trait_inner_ty,
+                trait_type_args,
+                trait_alias_map,
+                *impl_inner_ty,
+                self_ty,
+            ),
+
+            _ => false,
+        },
+
         SourceType::TypeParam(id) => trait_type_args[id].allows(sa, impl_arg_ty),
 
         SourceType::This => self_ty.allows(sa, impl_arg_ty),
@@ -750,7 +763,7 @@ fn trait_and_impl_arg_ty_compatible(
             }
         }
 
-        SourceType::Alias(..) | SourceType::Any | SourceType::Ref(..) | SourceType::TypeVar(..) => {
+        SourceType::Alias(..) | SourceType::Any | SourceType::TypeVar(..) => {
             unreachable!()
         }
     }

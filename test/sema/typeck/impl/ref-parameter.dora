@@ -1,0 +1,13 @@
+//= ok
+
+trait RefParameter[T] {
+    fn update(_value: ref T);
+    fn updateSelf(_value: ref Self);
+}
+
+class Foo
+
+impl RefParameter[Int32] for Foo {
+    fn update(_value: ref Int32) {}
+    fn updateSelf(_value: ref Foo) {}
+}

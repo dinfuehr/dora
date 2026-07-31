@@ -1,0 +1,17 @@
+trait Update {
+    fn update(value: ref Int32, replacement: Int32);
+}
+
+class Updater
+
+impl Update for Updater {
+    fn update(value: ref Int32, replacement: Int32) {
+        value = replacement;
+    }
+}
+
+fn main() {
+    let value = 10i32;
+    Updater().update(ref value, 11i32);
+    assert(value == 11i32);
+}
