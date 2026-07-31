@@ -1,0 +1,6 @@
+class Foo
+class Wrapper[T]
+
+type Direct = ref Foo;
+type Tuple = (ref Foo, Int32);
+type TypeArgument = Wrapper[ref Foo];

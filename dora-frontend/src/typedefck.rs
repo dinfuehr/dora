@@ -413,7 +413,17 @@ fn expand_alias_types(sa: &Sema) {
         expand_type_param_definition(sa, alias, alias.type_param_definition(sa), None);
 
         if let Some(parsed_ty) = alias.parsed_ty() {
-            parsed_ty.expand(sa, alias, None);
+            let ty = parsed_ty.expand(sa, alias, None);
+
+            if ty.contains_ref_type() {
+                sa.report(
+                    alias.file_id(),
+                    parsed_ty.span(sa, alias),
+                    &diag::REF_TYPE_NOT_ALLOWED,
+                    args!(),
+                );
+                parsed_ty.set_ty(SourceType::Error);
+            }
         }
     }
 }
@@ -491,13 +501,33 @@ fn compute_function_replace_self(sa: &Sema, fct: &FctDefinition) -> Option<Sourc
 
 fn expand_global_types(sa: &Sema) {
     for (_id, global) in sa.globals.iter() {
-        global.parsed_ty().expand(sa, global, None);
+        let ty = global.parsed_ty().expand(sa, global, None);
+
+        if ty.contains_ref_type() {
+            sa.report(
+                global.file_id,
+                global.parsed_ty().span(sa, global),
+                &diag::REF_TYPE_NOT_ALLOWED,
+                args!(),
+            );
+            global.parsed_ty().set_ty(SourceType::Error);
+        }
     }
 }
 
 fn expand_const_types(sa: &Sema) {
     for (_id, const_) in sa.consts.iter() {
-        const_.parsed_ty().expand(sa, const_, None);
+        let ty = const_.parsed_ty().expand(sa, const_, None);
+
+        if ty.contains_ref_type() {
+            sa.report(
+                const_.file_id,
+                const_.parsed_ty().span(sa, const_),
+                &diag::REF_TYPE_NOT_ALLOWED,
+                args!(),
+            );
+            const_.parsed_ty().set_ty(SourceType::Error);
+        }
     }
 }
 

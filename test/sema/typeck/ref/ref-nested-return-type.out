@@ -1,0 +1,24 @@
+error: `ref` type is not allowed here.
+--> ref-nested-return-type.dora:4:13
+ | class Wrapper[T]
+ | 
+ | fn tuple(): (ref Foo, Int32) {}
+               ~~~~~~~~~~~~~~~~
+ | fn type_argument(): Wrapper[ref Foo] {}
+ | fn nested_ref(): ref ref Foo {}
+error: `ref` type is not allowed here.
+--> ref-nested-return-type.dora:5:21
+ | 
+ | fn tuple(): (ref Foo, Int32) {}
+ | fn type_argument(): Wrapper[ref Foo] {}
+                       ~~~~~~~~~~~~~~~~
+ | fn nested_ref(): ref ref Foo {}
+ | 
+error: `ref` type is not allowed here.
+--> ref-nested-return-type.dora:6:18
+ | fn tuple(): (ref Foo, Int32) {}
+ | fn type_argument(): Wrapper[ref Foo] {}
+ | fn nested_ref(): ref ref Foo {}
+                    ~~~~~~~~~~~
+ | 
+3 errors found.

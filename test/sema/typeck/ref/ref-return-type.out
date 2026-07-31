@@ -1,9 +1,17 @@
 error: `ref` type is not allowed here.
---> ref-return-type.dora:3:32
- | //= error
+--> ref-return-type.dora:3:30
+ | class Foo
  | 
- | fn identity(value: ref Int32): ref Int32 {
-                                  ~~~~~~~~~
+ | fn identity(value: ref Foo): ref Foo {
+                                ~~~~~~~
  |     value
  | }
-1 error found.
+error: `ref` type is not allowed here.
+--> ref-return-type.dora:8:34
+ | 
+ | trait Trait {
+ |     fn identity(value: ref Foo): ref Foo;
+                                    ~~~~~~~
+ | }
+ | 
+2 errors found.

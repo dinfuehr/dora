@@ -1,5 +1,9 @@
-//= error
+class Foo
 
-fn identity(value: ref Int32): ref Int32 {
+fn identity(value: ref Foo): ref Foo {
     value
+}
+
+trait Trait {
+    fn identity(value: ref Foo): ref Foo;
 }

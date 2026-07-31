@@ -1,0 +1,9 @@
+//= ok
+
+class Foo
+
+fn function(_value: ref Foo) {}
+
+trait Trait {
+    fn method(_value: ref Foo);
+}

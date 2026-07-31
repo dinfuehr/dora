@@ -1,0 +1,6 @@
+class Foo
+class Wrapper[T]
+
+fn tuple(): (ref Foo, Int32) {}
+fn type_argument(): Wrapper[ref Foo] {}
+fn nested_ref(): ref ref Foo {}

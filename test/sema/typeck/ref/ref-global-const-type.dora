@@ -1,0 +1,10 @@
+class Foo
+class Wrapper[T]
+
+let direct_global: ref Foo = 0i32;
+let tuple_global: (ref Foo, Int32) = 0i32;
+let type_argument_global: Wrapper[ref Foo] = 0i32;
+
+const DIRECT_CONST: ref Foo = 0i32;
+const TUPLE_CONST: (ref Foo, Int32) = 0i32;
+const TYPE_ARGUMENT_CONST: Wrapper[ref Foo] = 0i32;

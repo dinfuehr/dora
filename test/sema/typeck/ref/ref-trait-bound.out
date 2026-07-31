@@ -1,16 +1,32 @@
 error: `ref` type is not allowed here.
---> ref-trait-bound.dora:9:20
+--> ref-trait-bound.dora:11:20
  | }
  | 
- | fn left[T]() where ref Int32: Bound {}
-                      ~~~~~~~~~
+ | fn left[T]() where ref Foo: Bound {}
+                      ~~~~~~~
  | 
- | fn binding[T: Associated[Item=ref Int32]]() {}
+ | fn type_argument[T: Generic[ref Foo]]() {}
 error: `ref` type is not allowed here.
---> ref-trait-bound.dora:11:15
- | fn left[T]() where ref Int32: Bound {}
+--> ref-trait-bound.dora:13:21
+ | fn left[T]() where ref Foo: Bound {}
  | 
- | fn binding[T: Associated[Item=ref Int32]]() {}
-                 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | fn type_argument[T: Generic[ref Foo]]() {}
+                       ~~~~~~~~~~~~~~~~
  | 
-2 errors found.
+ | fn where_type_argument[T]() where T: Generic[ref Foo] {}
+error: `ref` type is not allowed here.
+--> ref-trait-bound.dora:15:38
+ | fn type_argument[T: Generic[ref Foo]]() {}
+ | 
+ | fn where_type_argument[T]() where T: Generic[ref Foo] {}
+                                        ~~~~~~~~~~~~~~~~
+ | 
+ | fn binding[T: Associated[Item=ref Foo]]() {}
+error: `ref` type is not allowed here.
+--> ref-trait-bound.dora:17:15
+ | fn where_type_argument[T]() where T: Generic[ref Foo] {}
+ | 
+ | fn binding[T: Associated[Item=ref Foo]]() {}
+                 ~~~~~~~~~~~~~~~~~~~~~~~~
+ | 
+4 errors found.

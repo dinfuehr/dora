@@ -1,6 +1,6 @@
-class Foo[T]
-class Bar
+class Foo
+class Wrapper[T]
 
-fn tuple(_value: (ref Bar, Int32)) {}
-fn type_argument(_value: Foo[ref Bar]) {}
-fn nested_ref(_value: ref ref Bar) {}
+fn tuple(_value: (ref Foo, Int32)) {}
+fn type_argument(_value: Wrapper[ref Foo]) {}
+fn nested_ref(_value: ref ref Foo) {}

@@ -1,0 +1,19 @@
+class Foo
+
+trait Bound {}
+
+trait Generic[T] {}
+
+trait Associated {
+    type Item;
+}
+
+trait RefSubject where ref Foo: Bound {}
+
+trait TypeArgument[T: Generic[ref Foo]] {}
+
+trait WhereTypeArgument[T] where T: Generic[ref Foo] {}
+
+trait Binding[T: Associated[Item=ref Foo]] {}
+
+trait SuperTrait: Generic[ref Foo] {}

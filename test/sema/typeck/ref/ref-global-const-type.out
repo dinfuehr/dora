@@ -1,0 +1,48 @@
+error: `ref` type is not allowed here.
+--> ref-global-const-type.dora:4:20
+ | class Wrapper[T]
+ | 
+ | let direct_global: ref Foo = 0i32;
+                      ~~~~~~~
+ | let tuple_global: (ref Foo, Int32) = 0i32;
+ | let type_argument_global: Wrapper[ref Foo] = 0i32;
+error: `ref` type is not allowed here.
+--> ref-global-const-type.dora:5:19
+ | 
+ | let direct_global: ref Foo = 0i32;
+ | let tuple_global: (ref Foo, Int32) = 0i32;
+                     ~~~~~~~~~~~~~~~~
+ | let type_argument_global: Wrapper[ref Foo] = 0i32;
+ | 
+error: `ref` type is not allowed here.
+--> ref-global-const-type.dora:6:27
+ | let direct_global: ref Foo = 0i32;
+ | let tuple_global: (ref Foo, Int32) = 0i32;
+ | let type_argument_global: Wrapper[ref Foo] = 0i32;
+                             ~~~~~~~~~~~~~~~~
+ | 
+ | const DIRECT_CONST: ref Foo = 0i32;
+error: `ref` type is not allowed here.
+--> ref-global-const-type.dora:8:21
+ | let type_argument_global: Wrapper[ref Foo] = 0i32;
+ | 
+ | const DIRECT_CONST: ref Foo = 0i32;
+                       ~~~~~~~
+ | const TUPLE_CONST: (ref Foo, Int32) = 0i32;
+ | const TYPE_ARGUMENT_CONST: Wrapper[ref Foo] = 0i32;
+error: `ref` type is not allowed here.
+--> ref-global-const-type.dora:9:20
+ | 
+ | const DIRECT_CONST: ref Foo = 0i32;
+ | const TUPLE_CONST: (ref Foo, Int32) = 0i32;
+                      ~~~~~~~~~~~~~~~~
+ | const TYPE_ARGUMENT_CONST: Wrapper[ref Foo] = 0i32;
+ | 
+error: `ref` type is not allowed here.
+--> ref-global-const-type.dora:10:28
+ | const DIRECT_CONST: ref Foo = 0i32;
+ | const TUPLE_CONST: (ref Foo, Int32) = 0i32;
+ | const TYPE_ARGUMENT_CONST: Wrapper[ref Foo] = 0i32;
+                              ~~~~~~~~~~~~~~~~
+ | 
+6 errors found.

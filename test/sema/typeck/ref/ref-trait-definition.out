@@ -1,0 +1,40 @@
+error: `ref` type is not allowed here.
+--> ref-trait-definition.dora:11:24
+ | }
+ | 
+ | trait RefSubject where ref Foo: Bound {}
+                          ~~~~~~~
+ | 
+ | trait TypeArgument[T: Generic[ref Foo]] {}
+error: `ref` type is not allowed here.
+--> ref-trait-definition.dora:13:23
+ | trait RefSubject where ref Foo: Bound {}
+ | 
+ | trait TypeArgument[T: Generic[ref Foo]] {}
+                         ~~~~~~~~~~~~~~~~
+ | 
+ | trait WhereTypeArgument[T] where T: Generic[ref Foo] {}
+error: `ref` type is not allowed here.
+--> ref-trait-definition.dora:15:37
+ | trait TypeArgument[T: Generic[ref Foo]] {}
+ | 
+ | trait WhereTypeArgument[T] where T: Generic[ref Foo] {}
+                                       ~~~~~~~~~~~~~~~~
+ | 
+ | trait Binding[T: Associated[Item=ref Foo]] {}
+error: `ref` type is not allowed here.
+--> ref-trait-definition.dora:17:18
+ | trait WhereTypeArgument[T] where T: Generic[ref Foo] {}
+ | 
+ | trait Binding[T: Associated[Item=ref Foo]] {}
+                    ~~~~~~~~~~~~~~~~~~~~~~~~
+ | 
+ | trait SuperTrait: Generic[ref Foo] {}
+error: `ref` type is not allowed here.
+--> ref-trait-definition.dora:19:19
+ | trait Binding[T: Associated[Item=ref Foo]] {}
+ | 
+ | trait SuperTrait: Generic[ref Foo] {}
+                     ~~~~~~~~~~~~~~~~
+ | 
+5 errors found.

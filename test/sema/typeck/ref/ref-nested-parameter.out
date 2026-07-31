@@ -1,24 +1,24 @@
 error: `ref` type is not allowed here.
 --> ref-nested-parameter.dora:4:18
- | class Bar
+ | class Wrapper[T]
  | 
- | fn tuple(_value: (ref Bar, Int32)) {}
+ | fn tuple(_value: (ref Foo, Int32)) {}
                     ~~~~~~~~~~~~~~~~
- | fn type_argument(_value: Foo[ref Bar]) {}
- | fn nested_ref(_value: ref ref Bar) {}
+ | fn type_argument(_value: Wrapper[ref Foo]) {}
+ | fn nested_ref(_value: ref ref Foo) {}
 error: `ref` type is not allowed here.
 --> ref-nested-parameter.dora:5:26
  | 
- | fn tuple(_value: (ref Bar, Int32)) {}
- | fn type_argument(_value: Foo[ref Bar]) {}
-                            ~~~~~~~~~~~~
- | fn nested_ref(_value: ref ref Bar) {}
+ | fn tuple(_value: (ref Foo, Int32)) {}
+ | fn type_argument(_value: Wrapper[ref Foo]) {}
+                            ~~~~~~~~~~~~~~~~
+ | fn nested_ref(_value: ref ref Foo) {}
  | 
 error: `ref` type is not allowed here.
 --> ref-nested-parameter.dora:6:23
- | fn tuple(_value: (ref Bar, Int32)) {}
- | fn type_argument(_value: Foo[ref Bar]) {}
- | fn nested_ref(_value: ref ref Bar) {}
+ | fn tuple(_value: (ref Foo, Int32)) {}
+ | fn type_argument(_value: Wrapper[ref Foo]) {}
+ | fn nested_ref(_value: ref ref Foo) {}
                          ~~~~~~~~~~~
  | 
 3 errors found.

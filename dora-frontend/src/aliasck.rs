@@ -112,6 +112,14 @@ fn expand_type(
             SourceType::Tuple(expand_sta(sa, subtypes, visited, visiting, context))
         }
 
+        SourceType::Ref(inner) => SourceType::Ref(Box::new(expand_type(
+            sa,
+            inner.as_ref().clone(),
+            visited,
+            visiting,
+            context,
+        ))),
+
         SourceType::Alias(id, ..) => {
             let alias = sa.alias(*id);
             let found_cycle = detect_cycles_for_alias(sa, visited, visiting, context, alias);
@@ -144,7 +152,7 @@ fn expand_type(
         | SourceType::TypeVar(..)
         | SourceType::Assoc { .. } => ty,
 
-        SourceType::Any | SourceType::Ref(..) => {
+        SourceType::Any => {
             panic!("unexpected type = {:?}", ty);
         }
     }

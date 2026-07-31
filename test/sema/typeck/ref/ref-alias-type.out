@@ -1,0 +1,24 @@
+error: `ref` type is not allowed here.
+--> ref-alias-type.dora:4:15
+ | class Wrapper[T]
+ | 
+ | type Direct = ref Foo;
+                 ~~~~~~~
+ | type Tuple = (ref Foo, Int32);
+ | type TypeArgument = Wrapper[ref Foo];
+error: `ref` type is not allowed here.
+--> ref-alias-type.dora:5:14
+ | 
+ | type Direct = ref Foo;
+ | type Tuple = (ref Foo, Int32);
+                ~~~~~~~~~~~~~~~~
+ | type TypeArgument = Wrapper[ref Foo];
+ | 
+error: `ref` type is not allowed here.
+--> ref-alias-type.dora:6:21
+ | type Direct = ref Foo;
+ | type Tuple = (ref Foo, Int32);
+ | type TypeArgument = Wrapper[ref Foo];
+                       ~~~~~~~~~~~~~~~~
+ | 
+3 errors found.
