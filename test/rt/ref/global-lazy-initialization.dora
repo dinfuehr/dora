@@ -1,0 +1,25 @@
+let mut initialization_count: Int32 = 0i32;
+let mut value: Int32 = initialize_value();
+
+fn initialize_value(): Int32 {
+    initialization_count += 1i32;
+    42i32
+}
+
+@NeverInline
+fn get_initialization_count(): Int32 {
+    initialization_count
+}
+
+fn main() {
+    assert(get_initialization_count() == 0i32);
+
+    let value_ref: ref Int32 = ref value;
+    assert(get_initialization_count() == 1i32);
+    assert(value_ref == 42i32);
+
+    let second_ref: ref Int32 = ref value;
+    assert(get_initialization_count() == 1i32);
+    second_ref = 43i32;
+    assert(value == 43i32);
+}

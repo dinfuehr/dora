@@ -176,7 +176,8 @@ impl<'a> TransitiveClosureComputation<'a> {
                 }
 
                 BytecodeInstruction::LoadGlobal { global_id, .. }
-                | BytecodeInstruction::StoreGlobal { global_id, .. } => {
+                | BytecodeInstruction::StoreGlobal { global_id, .. }
+                | BytecodeInstruction::GetGlobalRef { global_id, .. } => {
                     let global = self.program.global(global_id);
                     if let Some(callee_id) = global.initial_value {
                         self.push(callee_id, BytecodeTypeArray::empty());

@@ -710,6 +710,10 @@ impl BytecodeGraphBuilder {
                 self.emit_store_global(src, global_id);
                 false
             }
+            BytecodeInstruction::GetGlobalRef(dest, global_id) => {
+                self.emit_get_global_ref(dest, global_id);
+                false
+            }
             BytecodeInstruction::LoadConst(dest, const_id) => {
                 self.emit_load_const(dest, const_id);
                 false
@@ -1641,18 +1645,7 @@ impl BytecodeGraphBuilder {
 
     fn emit_load_global(dest: BytecodeRegister, glob: GlobalId) {
         let dest_type = self.reg(dest);
-
-        if iface::has_global_initial_value(glob) {
-            let ty = match cc::argument_passing_mode(self.ci, dest_type) {
-                ArgumentPassingMode::None => Type::Unit,
-                ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
-                ArgumentPassingMode::InteriorPointer => Type::Address,
-                ArgumentPassingMode::Stack => Type::Address,
-            };
-            let inst = graph::create_ensure_global_initialized_inst(glob, ty);
-            self.current().append_inst(inst);
-            self.set_current_inlined_location(inst);
-        }
+        self.ensure_global_initialized(glob, dest_type);
 
         if self.is_non_zero_type(dest_type) {
             self.load_global_into(dest, glob);
@@ -1671,6 +1664,33 @@ impl BytecodeGraphBuilder {
             let inst = graph::create_mark_global_initialized_inst(glob);
             self.current().append_inst(inst);
         }
+    }
+
+    fn emit_get_global_ref(dest: BytecodeRegister, glob: GlobalId) {
+        let BytecodeType::Ref(global_type) = self.reg(dest);
+        self.ensure_global_initialized(glob, global_type);
+
+        let interior = graph::create_get_global_address_inst(glob);
+        self.current().append_inst(interior);
+        let base = graph::create_null_const();
+        self.current().append_inst(base);
+        self.store_ref(self.aggregate_register(dest), interior, base);
+    }
+
+    fn ensure_global_initialized(glob: GlobalId, global_type: BytecodeType) {
+        if !iface::has_global_initial_value(glob) {
+            return;
+        }
+
+        let ty = match cc::argument_passing_mode(self.ci, global_type) {
+            ArgumentPassingMode::None => Type::Unit,
+            ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
+            ArgumentPassingMode::InteriorPointer => Type::Address,
+            ArgumentPassingMode::Stack => Type::Address,
+        };
+        let inst = graph::create_ensure_global_initialized_inst(glob, ty);
+        self.current().append_inst(inst);
+        self.set_current_inlined_location(inst);
     }
 
     fn emit_load_const(dest: BytecodeRegister, const_id: ConstId) {

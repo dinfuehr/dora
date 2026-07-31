@@ -725,6 +725,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_global("StoreGlobal", src, global_id);
     }
 
+    fn visit_get_global_ref(&mut self, dest: Register, global_id: GlobalId) {
+        self.emit_global("GetGlobalRef", dest, global_id);
+    }
+
     fn visit_load_const(&mut self, dest: Register, const_id: ConstId) {
         self.emit_const("LoadConst", dest, const_id);
     }

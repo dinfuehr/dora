@@ -1,8 +1,11 @@
 use crate::SourceType;
 use crate::SymbolKind;
+use crate::access::global_accessible_from;
 use crate::args;
-use crate::error::diagnostics::{NO_TYPE_PARAMS_EXPECTED, REF_REQUIRES_VARIABLE_OR_FIELD};
-use crate::sema::{Expr, ExprId, RefExpr};
+use crate::error::diagnostics::{
+    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, REF_REQUIRES_VARIABLE_OR_FIELD,
+};
+use crate::sema::{Expr, ExprId, IdentType, RefExpr};
 use crate::ty::error as ty_error;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
@@ -33,22 +36,32 @@ pub(super) fn check_expr_ref(
                 Err(()) => return ty_error(),
             };
 
-            // Check if the path resolves to a local variable
-            let PathResolution::Symbol(SymbolKind::Var(var_id)) = resolution else {
-                ck.report(
-                    ck.expr_span(expr_id),
-                    &REF_REQUIRES_VARIABLE_OR_FIELD,
-                    args![],
-                );
-                return ty_error();
+            let (inner_ty, ident) = match resolution {
+                PathResolution::Symbol(SymbolKind::Var(var_id)) => {
+                    let inner_ty = ck.vars.get_var(var_id).ty.clone();
+                    ck.vars.mark_used(var_id);
+                    let ident = ck.maybe_allocate_in_context(var_id);
+                    (inner_ty, ident)
+                }
+                PathResolution::Symbol(SymbolKind::Global(global_id)) => {
+                    if !global_accessible_from(ck.sa, global_id, ck.module_id) {
+                        ck.report(ck.expr_span(expr_id), &NOT_ACCESSIBLE, args![]);
+                    }
+
+                    let inner_ty = ck.sa.global(global_id).ty();
+                    (inner_ty, IdentType::Global(global_id))
+                }
+                _ => {
+                    ck.report(
+                        ck.expr_span(expr_id),
+                        &REF_REQUIRES_VARIABLE_OR_FIELD,
+                        args![],
+                    );
+                    return ty_error();
+                }
             };
 
-            // Get the variable's type
-            let inner_ty = ck.vars.get_var(var_id).ty.clone();
-
             // Record the identifier type for the inner expression
-            ck.vars.mark_used(var_id);
-            let ident = ck.maybe_allocate_in_context(var_id);
             ck.body.insert_ident(sema_expr.expr, ident.clone());
             ck.body.set_ty(sema_expr.expr, inner_ty.clone());
 

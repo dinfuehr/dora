@@ -1,0 +1,21 @@
+let mut value: Int32 = 10i32;
+
+struct Inner {
+    value: Int32,
+}
+
+struct Outer {
+    inner: Inner,
+}
+
+let aggregate: Outer = Outer(inner = Inner(value = 20i32));
+
+fn take_ref(value: ref Int32) {}
+
+fn f() {
+    take_ref(ref value);
+}
+
+fn load_nested_field(): Int32 {
+    aggregate.inner.value
+}

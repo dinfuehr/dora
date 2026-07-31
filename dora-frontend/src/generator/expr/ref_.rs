@@ -107,15 +107,16 @@ pub(super) fn field_ref_path(g: &AstBytecodeGen, expr_id: ExprId) -> Option<Fiel
 /// Returns whether the base is already a `ref` and whether it can safely be addressed.
 fn ref_base_info(g: &AstBytecodeGen, expr_id: ExprId) -> (bool, bool) {
     match g.analysis.expr(expr_id) {
-        Expr::Path(..) => {
-            let Some(IdentType::Var(var_id)) = g.analysis.get_ident(expr_id) else {
-                return (false, false);
-            };
-            let vars = g.analysis.vars();
-            let var = vars.get_var(var_id);
+        Expr::Path(..) => match g.analysis.get_ident(expr_id) {
+            Some(IdentType::Var(var_id)) => {
+                let vars = g.analysis.vars();
+                let var = vars.get_var(var_id);
 
-            (var.ty.is_ref(), matches!(var.location, VarLocation::Stack))
-        }
+                (var.ty.is_ref(), matches!(var.location, VarLocation::Stack))
+            }
+            Some(IdentType::Global(_)) => (false, true),
+            _ => (false, false),
+        },
         Expr::Ref(_) => (true, true),
         // The parenthesis split the field path, but do not change the base's storage properties.
         Expr::Paren(inner_expr) => ref_base_info(g, *inner_expr),
@@ -198,8 +199,18 @@ fn gen_expr_as_ref_path(g: &mut AstBytecodeGen, expr_id: ExprId) -> GeneratedRef
                 backing: None,
             }
         }
-        IdentType::Global(..) => {
-            unimplemented!("mutating methods on global value types")
+        IdentType::Global(global_id) => {
+            let global = g.sa.global(global_id);
+            let inner_ty = g.emitter.convert_ty(g.sa, global.ty());
+            let reference = g.alloc_temp(BytecodeType::Ref(Box::new(inner_ty)));
+            let global_id = g.emitter.convert_global_id(g.sa, global_id);
+            g.builder
+                .emit_get_global_ref(reference, global_id, g.loc_for_expr(expr_id));
+
+            GeneratedRef {
+                reference,
+                backing: None,
+            }
         }
         _ => unreachable!("unexpected mutating receiver"),
     }
@@ -239,15 +250,15 @@ pub(super) fn gen_expr_ref(
     let inner_expr = g.analysis.expr(e.expr);
 
     match inner_expr {
-        Expr::Path(..) => gen_expr_ref_var(g, expr_id, e, dest),
+        Expr::Path(..) => gen_expr_ref_path(g, expr_id, e, dest),
         Expr::Field(field_expr) => gen_expr_ref_field(g, expr_id, e, field_expr, dest),
         _ => unreachable!("ref expression should only be on variables or fields"),
     }
 }
 
-fn gen_expr_ref_var(
+fn gen_expr_ref_path(
     g: &mut AstBytecodeGen,
-    _expr_id: ExprId,
+    expr_id: ExprId,
     e: &RefExpr,
     dest: DataDest,
 ) -> Register {
@@ -256,24 +267,28 @@ fn gen_expr_ref_var(
         .get_ident(e.expr)
         .expect("missing ident for ref expression");
 
-    let IdentType::Var(var_id) = ident_type else {
-        unreachable!("ref expression should only be on variables");
-    };
-
-    let vars = g.analysis.vars();
-    let var = vars.get_var(var_id);
-
-    // Get the type of the reference
-    let inner_ty = g.emitter.convert_ty(g.sa, var.ty.clone());
+    let inner_ty = g.emitter.convert_ty(g.sa, g.ty(e.expr));
     let ref_ty = BytecodeType::Ref(Box::new(inner_ty));
     let dest_reg = ensure_register(g, dest, ref_ty);
 
-    let VarLocation::Stack = var.location else {
-        unimplemented!("ref on context variable");
-    };
+    match ident_type {
+        IdentType::Var(var_id) => {
+            let vars = g.analysis.vars();
+            let var = vars.get_var(var_id);
+            let VarLocation::Stack = var.location else {
+                unimplemented!("ref on context variable");
+            };
 
-    let src_reg = var_reg(g, var_id);
-    g.builder.emit_get_register_ref(dest_reg, src_reg);
+            let src_reg = var_reg(g, var_id);
+            g.builder.emit_get_register_ref(dest_reg, src_reg);
+        }
+        IdentType::Global(global_id) => {
+            let global_id = g.emitter.convert_global_id(g.sa, global_id);
+            g.builder
+                .emit_get_global_ref(dest_reg, global_id, g.loc_for_expr(expr_id));
+        }
+        _ => unreachable!("ref expression should only be on variables"),
+    }
 
     dest_reg
 }

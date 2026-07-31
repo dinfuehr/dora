@@ -184,6 +184,9 @@ pub fn dump_instruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::StoreGlobal(src, global_id) => {
             dumper.emit_global(inst, "StoreGlobal", src, global_id);
         }
+        BytecodeInstruction::GetGlobalRef(dest, global_id) => {
+            dumper.emit_global(inst, "GetGlobalRef", dest, global_id);
+        }
 
         BytecodeInstruction::LoadConst(dest, const_id) => {
             dumper.emit_const(inst, "LoadConst", dest, const_id);

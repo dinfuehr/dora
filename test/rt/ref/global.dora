@@ -1,0 +1,49 @@
+class Box {
+    value: Int32,
+}
+
+struct Pair {
+    first: Int32,
+    second: Int64,
+}
+
+let mut int_value: Int32 = 10i32;
+let mut class_value: Box = Box(20i32);
+let mut struct_value: Pair = Pair(first = 30i32, second = 31i64);
+
+fn replace_int(value: ref Int32, replacement: Int32): Int32 {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_class(value: ref Box, replacement: Box): Box {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_struct(value: ref Pair, replacement: Pair): Pair {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn main() {
+    assert(replace_int(ref int_value, 11i32) == 10i32);
+    assert(int_value == 11i32);
+
+    let previous_class = replace_class(ref class_value, Box(21i32));
+    assert(previous_class.value == 20i32);
+    std::force_collect();
+    assert(class_value.value == 21i32);
+
+    let previous_struct = replace_struct(
+        ref struct_value,
+        Pair(first = 32i32, second = 33i64),
+    );
+    assert(previous_struct.first == 30i32);
+    assert(previous_struct.second == 31i64);
+    assert(struct_value.first == 32i32);
+    assert(struct_value.second == 33i64);
+}

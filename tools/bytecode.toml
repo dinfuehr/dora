@@ -72,6 +72,7 @@ variants = [
     "StoreRef",
     "LoadRef",
     "GetRegisterRef",
+    "GetGlobalRef",
     "Ret",
 ]
 

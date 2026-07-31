@@ -229,6 +229,10 @@ impl BytecodeBuilder {
         self.emit_global(opc::BYTECODE_OPCODE_STORE_GLOBAL, src, glob);
     }
 
+    pub fn emit_get_global_ref(dest: BytecodeRegister, glob: GlobalId) {
+        self.emit_global(opc::BYTECODE_OPCODE_GET_GLOBAL_REF, dest, glob);
+    }
+
     pub fn emit_const_true(dest: BytecodeRegister) {
         self.emit_reg1(opc::BYTECODE_OPCODE_CONST_TRUE, dest);
     }

@@ -452,6 +452,12 @@ impl BytecodeBuilder {
         self.writer.emit_store_global(src, gid);
     }
 
+    pub fn emit_get_global_ref(&mut self, dest: Register, gid: GlobalId, location: Location) {
+        assert!(self.def(dest));
+        self.writer.set_location(location);
+        self.writer.emit_get_global_ref(dest, gid);
+    }
+
     pub fn emit_load_const(&mut self, dest: Register, const_id: ConstId) {
         assert!(self.def(dest));
         self.writer.emit_load_const(dest, const_id);

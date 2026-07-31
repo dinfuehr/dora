@@ -189,6 +189,11 @@ impl BytecodeIterator {
                 let glob = self.read_global_id();
                 BytecodeInstruction::StoreGlobal(src, glob)
             }
+            opc::BYTECODE_OPCODE_GET_GLOBAL_REF => {
+                let dest = self.read_register();
+                let glob = self.read_global_id();
+                BytecodeInstruction::GetGlobalRef(dest, glob)
+            }
             opc::BYTECODE_OPCODE_LOAD_CONST => {
                 let dest = self.read_register();
                 let glob = self.read_const_id();

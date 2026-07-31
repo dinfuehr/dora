@@ -261,6 +261,11 @@ impl<'a> Verifier<'a> {
                 self.assert_type(src, &self.program.global(global_id).ty);
             }
 
+            BytecodeInstruction::GetGlobalRef { dest, global_id } => {
+                let global_ty = self.program.global(global_id).ty.clone();
+                self.assert_type(dest, &BytecodeType::Ref(Box::new(global_ty)));
+            }
+
             BytecodeInstruction::LoadConst { dest, const_id } => {
                 self.assert_type(dest, &self.program.const_(const_id).ty);
             }

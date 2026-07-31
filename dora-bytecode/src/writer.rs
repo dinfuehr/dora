@@ -294,6 +294,10 @@ impl BytecodeWriter {
         self.emit_store_global_inst(BytecodeOpcode::StoreGlobal, src, gid);
     }
 
+    pub fn emit_get_global_ref(&mut self, dest: Register, gid: GlobalId) {
+        self.emit_load_global_inst(BytecodeOpcode::GetGlobalRef, dest, gid);
+    }
+
     pub fn emit_load_const(&mut self, dest: Register, const_id: ConstId) {
         self.emit_values(
             BytecodeOpcode::LoadConst,

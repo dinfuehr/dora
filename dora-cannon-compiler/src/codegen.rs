@@ -1738,6 +1738,28 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         }
     }
 
+    fn emit_get_global_ref(&mut self, dest: Register, global_id: GlobalId) {
+        let global_var = self.program.global(global_id);
+        assert_eq!(
+            self.bytecode().register_type(dest),
+            BytecodeType::Ref(Box::new(global_var.ty.clone()))
+        );
+
+        if let Some(initializer) = global_var.initial_value {
+            let position = self
+                .bytecode()
+                .offset_location(self.current_offset.to_u32());
+            let gcpoint = self.create_gcpoint();
+            self.asm
+                .ensure_global(global_id, initializer, position, gcpoint);
+        }
+
+        self.asm.load_global_value_address(REG_TMP1, global_id);
+        // Global storage has a stable address and needs no relocatable heap base.
+        self.asm.zero_reg(REG_TMP2);
+        self.store_ref(dest, REG_TMP1, REG_TMP2);
+    }
+
     fn emit_load_const(&mut self, dest: Register, const_id: ConstId) {
         let const_data = self.program.const_(const_id);
         let ty = self.bytecode().register_type(dest);
@@ -4539,6 +4561,19 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
             )
         });
         self.emit_store_global(src, global_id);
+    }
+
+    fn visit_get_global_ref(&mut self, dest: Register, global_id: GlobalId) {
+        comment!(self, {
+            let global_var = &self.program.global(global_id);
+            format!(
+                "GetGlobalRef {}, GlobalId({}) # {}",
+                dest,
+                global_id.index(),
+                global_var.name
+            )
+        });
+        self.emit_get_global_ref(dest, global_id);
     }
 
     fn visit_load_const(&mut self, dest: Register, const_id: ConstId) {

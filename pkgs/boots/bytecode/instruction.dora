@@ -80,6 +80,7 @@ pub enum BytecodeInstruction {
     StoreRef(BytecodeRegister, BytecodeRegister),
     LoadRef(BytecodeRegister, BytecodeRegister),
     GetRegisterRef(BytecodeRegister, BytecodeRegister),
+    GetGlobalRef(BytecodeRegister, GlobalId),
 
     Ret(BytecodeRegister),
 }

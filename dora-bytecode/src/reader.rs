@@ -201,6 +201,12 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::StoreGlobal { src, global_id }
             }
 
+            BytecodeOpcode::GetGlobalRef => {
+                let dest = self.read_register();
+                let global_id = self.read_global();
+                BytecodeInstruction::GetGlobalRef { dest, global_id }
+            }
+
             BytecodeOpcode::LoadConst => {
                 let dest = self.read_register();
                 let const_id = self.read_const();
@@ -691,6 +697,10 @@ where
                 self.visitor.visit_store_global(src, global_id);
             }
 
+            BytecodeInstruction::GetGlobalRef { dest, global_id } => {
+                self.visitor.visit_get_global_ref(dest, global_id);
+            }
+
             BytecodeInstruction::LoadConst { dest, const_id } => {
                 self.visitor.visit_load_const(dest, const_id);
             }
@@ -981,6 +991,10 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_store_global(&mut self, _src: Register, _global_id: GlobalId) {
+        unimplemented!();
+    }
+
+    fn visit_get_global_ref(&mut self, _dest: Register, _global_id: GlobalId) {
         unimplemented!();
     }
 

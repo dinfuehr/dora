@@ -1,0 +1,85 @@
+struct Inner:
+  value: Int32
+
+struct Outer:
+  inner: Inner
+
+fn take_ref:
+  0: Ret r1
+
+  Registers:
+   0 => ref Int32
+   1 => ()
+
+  Constants:
+
+  Locations:
+
+fn f:
+  0: GetGlobalRef r1, GlobalId(10) # value
+  3: InvokeStatic r0, @0, r1 # take_ref
+  8: Ret r0
+
+  Registers:
+   0 => ()
+   1 => ref Int32
+
+  Constants:
+   0 => Fct take_ref
+
+  Locations:
+   0 => 16:14
+   3 => 16:5
+
+fn load_nested_field:
+  0: GetGlobalRef r1, GlobalId(11) # aggregate
+  3: GetFieldRef r2, r1, @0 # Outer.inner
+  7: GetFieldRef r3, r2, @1 # Inner.value
+ 11: LoadRef r0, r3
+ 14: Ret r0
+
+  Registers:
+   0 => Int32
+   1 => ref Outer
+   2 => ref Inner
+   3 => ref Int32
+
+  Constants:
+   0 => StructField Outer.inner
+   1 => StructField Inner.value
+
+  Locations:
+   0 => 20:5
+
+fn value:
+  0: ConstInt32 r0, @0 # 10
+  3: Ret r0
+
+  Registers:
+   0 => Int32
+
+  Constants:
+   0 => Int32 10
+
+  Locations:
+
+fn aggregate:
+  0: ConstInt32 r0, @0 # 20
+  3: NewStruct r1, @1, r0 # Inner
+  8: NewStruct r2, @2, r1 # Outer
+ 13: Ret r2
+
+  Registers:
+   0 => Int32
+   1 => struct Inner
+   2 => struct Outer
+
+  Constants:
+   0 => Int32 20
+   1 => Struct Inner
+   2 => Struct Outer
+
+  Locations:
+   3 => 11:38
+   8 => 11:24
+

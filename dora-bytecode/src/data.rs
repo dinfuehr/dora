@@ -89,6 +89,7 @@ pub enum BytecodeOpcode {
     StoreRef,
     LoadRef,
     GetRegisterRef,
+    GetGlobalRef,
     Ret,
 }
 
@@ -162,6 +163,7 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::StoreRef => opc::BYTECODE_OPCODE_STORE_REF,
             BytecodeOpcode::LoadRef => opc::BYTECODE_OPCODE_LOAD_REF,
             BytecodeOpcode::GetRegisterRef => opc::BYTECODE_OPCODE_GET_REGISTER_REF,
+            BytecodeOpcode::GetGlobalRef => opc::BYTECODE_OPCODE_GET_GLOBAL_REF,
             BytecodeOpcode::Ret => opc::BYTECODE_OPCODE_RET,
         }
     }
@@ -239,6 +241,7 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_STORE_REF => Ok(BytecodeOpcode::StoreRef),
             opc::BYTECODE_OPCODE_LOAD_REF => Ok(BytecodeOpcode::LoadRef),
             opc::BYTECODE_OPCODE_GET_REGISTER_REF => Ok(BytecodeOpcode::GetRegisterRef),
+            opc::BYTECODE_OPCODE_GET_GLOBAL_REF => Ok(BytecodeOpcode::GetGlobalRef),
             opc::BYTECODE_OPCODE_RET => Ok(BytecodeOpcode::Ret),
             _ => Err(()),
         }
@@ -320,6 +323,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadEnumElement
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::LoadGlobal
+            | BytecodeOpcode::GetGlobalRef
             | BytecodeOpcode::GetFieldRef
             | BytecodeOpcode::StoreRef => true,
             _ => false,
@@ -470,7 +474,6 @@ pub enum BytecodeInstruction {
         src: Register,
         global_id: GlobalId,
     },
-
     LoadConst {
         dest: Register,
         const_id: ConstId,
@@ -664,6 +667,11 @@ pub enum BytecodeInstruction {
     GetRegisterRef {
         dest: Register,
         src: Register,
+    },
+
+    GetGlobalRef {
+        dest: Register,
+        global_id: GlobalId,
     },
 
     Ret {
