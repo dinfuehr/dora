@@ -377,23 +377,6 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::LoadArray, dest, array, idx);
     }
 
-    pub fn emit_get_field_address(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        field_idx: ConstPoolIdx,
-    ) {
-        self.emit_access_field(BytecodeOpcode::GetFieldAddress, dest, obj, field_idx);
-    }
-
-    pub fn emit_store_at_address(&mut self, src: Register, address: Register) {
-        self.emit_reg2(BytecodeOpcode::StoreAddress, src, address);
-    }
-
-    pub fn emit_load_address(&mut self, dest: Register, address: Register) {
-        self.emit_reg2(BytecodeOpcode::LoadAddress, dest, address);
-    }
-
     pub fn emit_get_field_ref(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         self.emit_access_field(BytecodeOpcode::GetFieldRef, dest, obj, field_idx);
     }

@@ -5,21 +5,21 @@ struct Data:
   value: Int32
 
 fn f:
-  0: GetFieldAddress r2, r0, @0 # Container.data
-  4: GetFieldAddress r3, r2, @1 # Data.value
-  8: StoreAddress r1, r3
+  0: GetFieldRef r3, r0, @1 # Container.data
+  4: GetFieldRef r2, r3, @0 # Data.value
+  8: StoreRef r1, r2
  11: Ret r4
 
   Registers:
    0 => class Container
    1 => Int32
-   2 => Address
-   3 => Address
+   2 => ref Int32
+   3 => ref Data
    4 => ()
 
   Constants:
-   0 => Field Container.data
-   1 => StructField Data.value
+   0 => StructField Data.value
+   1 => Field Container.data
 
   Locations:
    0 => 3:32

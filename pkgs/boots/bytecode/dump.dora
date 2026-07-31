@@ -301,15 +301,6 @@ pub fn dump_instruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::StoreArray(src, arr, index) => {
             dumper.emit_reg3(inst, "StoreArray", src, arr, index);
         }
-        BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
-            dumper.emit_reg2_and_idx(inst, "GetFieldAddress", dest, obj, idx);
-        }
-        BytecodeInstruction::StoreAddress(src, address) => {
-            dumper.emit_reg2(inst, "StoreAddress", src, address);
-        }
-        BytecodeInstruction::LoadAddress(dest, address) => {
-            dumper.emit_reg2(inst, "LoadAddress", dest, address);
-        }
         BytecodeInstruction::GetFieldRef(dest, obj, idx) => {
             dumper.emit_reg2_and_idx(inst, "GetFieldRef", dest, obj, idx);
         }

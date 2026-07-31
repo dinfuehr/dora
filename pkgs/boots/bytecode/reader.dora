@@ -388,22 +388,6 @@ impl BytecodeIterator {
                 let idx = self.read_register();
                 BytecodeInstruction::StoreArray(src, arr, idx)
             }
-            opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS => {
-                let dest = self.read_register();
-                let obj = self.read_register();
-                let idx = self.read_const_pool_id();
-                BytecodeInstruction::GetFieldAddress(dest, obj, idx)
-            }
-            opc::BYTECODE_OPCODE_STORE_ADDRESS => {
-                let src = self.read_register();
-                let address = self.read_register();
-                BytecodeInstruction::StoreAddress(src, address)
-            }
-            opc::BYTECODE_OPCODE_LOAD_ADDRESS => {
-                let dest = self.read_register();
-                let address = self.read_register();
-                BytecodeInstruction::LoadAddress(dest, address)
-            }
             opc::BYTECODE_OPCODE_GET_FIELD_REF => {
                 let dest = self.read_register();
                 let obj = self.read_register();

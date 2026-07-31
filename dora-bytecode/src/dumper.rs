@@ -938,18 +938,6 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg2("ArrayLength", dest, arr);
     }
 
-    fn visit_get_field_address(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
-        self.emit_field("GetFieldAddress", dest, obj, field_idx);
-    }
-
-    fn visit_store_at_address(&mut self, src: Register, address: Register) {
-        self.emit_reg2("StoreAddress", src, address);
-    }
-
-    fn visit_load_address(&mut self, dest: Register, address: Register) {
-        self.emit_reg2("LoadAddress", dest, address);
-    }
-
     fn visit_get_field_ref(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         self.emit_field("GetFieldRef", dest, obj, field_idx);
     }

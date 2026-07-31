@@ -2,21 +2,21 @@ class Container:
   data: (Int32, Bool)
 
 fn f:
-  0: GetFieldAddress r2, r0, @0 # Container.data
-  4: GetFieldAddress r3, r2, @1 # (Int32, Bool).0
-  8: StoreAddress r1, r3
+  0: GetFieldRef r3, r0, @1 # Container.data
+  4: GetFieldRef r2, r3, @0 # (Int32, Bool).0
+  8: StoreRef r1, r2
  11: Ret r4
 
   Registers:
    0 => class Container
    1 => Int32
-   2 => Address
-   3 => Address
+   2 => ref Int32
+   3 => ref (Int32, Bool)
    4 => ()
 
   Constants:
-   0 => Field Container.data
-   1 => TupleElement subtypes.1
+   0 => TupleElement subtypes.0
+   1 => Field Container.data
 
   Locations:
    0 => 2:32

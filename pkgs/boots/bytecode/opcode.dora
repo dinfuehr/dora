@@ -64,14 +64,11 @@ pub const BYTECODE_OPCODE_NEW_TRAIT_OBJECT: Int32 = 59;
 pub const BYTECODE_OPCODE_ARRAY_LENGTH: Int32 = 60;
 pub const BYTECODE_OPCODE_LOAD_ARRAY: Int32 = 61;
 pub const BYTECODE_OPCODE_STORE_ARRAY: Int32 = 62;
-pub const BYTECODE_OPCODE_GET_FIELD_ADDRESS: Int32 = 63;
-pub const BYTECODE_OPCODE_STORE_ADDRESS: Int32 = 64;
-pub const BYTECODE_OPCODE_LOAD_ADDRESS: Int32 = 65;
-pub const BYTECODE_OPCODE_GET_FIELD_REF: Int32 = 66;
-pub const BYTECODE_OPCODE_STORE_REF: Int32 = 67;
-pub const BYTECODE_OPCODE_LOAD_REF: Int32 = 68;
-pub const BYTECODE_OPCODE_GET_REGISTER_REF: Int32 = 69;
-pub const BYTECODE_OPCODE_RET: Int32 = 70;
+pub const BYTECODE_OPCODE_GET_FIELD_REF: Int32 = 63;
+pub const BYTECODE_OPCODE_STORE_REF: Int32 = 64;
+pub const BYTECODE_OPCODE_LOAD_REF: Int32 = 65;
+pub const BYTECODE_OPCODE_GET_REGISTER_REF: Int32 = 66;
+pub const BYTECODE_OPCODE_RET: Int32 = 67;
 
 pub const BYTECODE_TYPE_UNIT: Int32 = 0;
 pub const BYTECODE_TYPE_BOOL: Int32 = 1;
@@ -510,15 +507,6 @@ pub fn bytecode_name(opcode: Int32): String {
     }
     if opcode == BYTECODE_OPCODE_STORE_ARRAY {
         return "StoreArray";
-    }
-    if opcode == BYTECODE_OPCODE_GET_FIELD_ADDRESS {
-        return "GetFieldAddress";
-    }
-    if opcode == BYTECODE_OPCODE_STORE_ADDRESS {
-        return "StoreAddress";
-    }
-    if opcode == BYTECODE_OPCODE_LOAD_ADDRESS {
-        return "LoadAddress";
     }
     if opcode == BYTECODE_OPCODE_GET_FIELD_REF {
         return "GetFieldRef";

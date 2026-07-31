@@ -85,9 +85,6 @@ pub enum BytecodeOpcode {
     ArrayLength,
     LoadArray,
     StoreArray,
-    GetFieldAddress,
-    StoreAddress,
-    LoadAddress,
     GetFieldRef,
     StoreRef,
     LoadRef,
@@ -161,9 +158,6 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::ArrayLength => opc::BYTECODE_OPCODE_ARRAY_LENGTH,
             BytecodeOpcode::LoadArray => opc::BYTECODE_OPCODE_LOAD_ARRAY,
             BytecodeOpcode::StoreArray => opc::BYTECODE_OPCODE_STORE_ARRAY,
-            BytecodeOpcode::GetFieldAddress => opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS,
-            BytecodeOpcode::StoreAddress => opc::BYTECODE_OPCODE_STORE_ADDRESS,
-            BytecodeOpcode::LoadAddress => opc::BYTECODE_OPCODE_LOAD_ADDRESS,
             BytecodeOpcode::GetFieldRef => opc::BYTECODE_OPCODE_GET_FIELD_REF,
             BytecodeOpcode::StoreRef => opc::BYTECODE_OPCODE_STORE_REF,
             BytecodeOpcode::LoadRef => opc::BYTECODE_OPCODE_LOAD_REF,
@@ -241,9 +235,6 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_ARRAY_LENGTH => Ok(BytecodeOpcode::ArrayLength),
             opc::BYTECODE_OPCODE_LOAD_ARRAY => Ok(BytecodeOpcode::LoadArray),
             opc::BYTECODE_OPCODE_STORE_ARRAY => Ok(BytecodeOpcode::StoreArray),
-            opc::BYTECODE_OPCODE_GET_FIELD_ADDRESS => Ok(BytecodeOpcode::GetFieldAddress),
-            opc::BYTECODE_OPCODE_STORE_ADDRESS => Ok(BytecodeOpcode::StoreAddress),
-            opc::BYTECODE_OPCODE_LOAD_ADDRESS => Ok(BytecodeOpcode::LoadAddress),
             opc::BYTECODE_OPCODE_GET_FIELD_REF => Ok(BytecodeOpcode::GetFieldRef),
             opc::BYTECODE_OPCODE_STORE_REF => Ok(BytecodeOpcode::StoreRef),
             opc::BYTECODE_OPCODE_LOAD_REF => Ok(BytecodeOpcode::LoadRef),
@@ -329,8 +320,6 @@ impl BytecodeOpcode {
             | BytecodeOpcode::LoadEnumElement
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::LoadGlobal
-            | BytecodeOpcode::GetFieldAddress
-            | BytecodeOpcode::StoreAddress
             | BytecodeOpcode::GetFieldRef
             | BytecodeOpcode::StoreRef => true,
             _ => false,
@@ -656,20 +645,6 @@ pub enum BytecodeInstruction {
         src: Register,
         arr: Register,
         idx: Register,
-    },
-
-    GetFieldAddress {
-        dest: Register,
-        obj: Register,
-        field: ConstPoolIdx,
-    },
-    StoreAddress {
-        src: Register,
-        address: Register,
-    },
-    LoadAddress {
-        dest: Register,
-        address: Register,
     },
 
     GetFieldRef {

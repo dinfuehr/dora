@@ -505,22 +505,6 @@ impl<'a> Verifier<'a> {
                 self.assert_type(idx, &BytecodeType::Int64);
             }
 
-            BytecodeInstruction::GetFieldAddress { dest, obj, field } => {
-                self.assert_type(dest, &BytecodeType::Address);
-                let (object_ty, _) = self.field_types(field);
-                assert!(self.ty(obj) == &object_ty || *self.ty(obj) == BytecodeType::Address);
-            }
-
-            BytecodeInstruction::StoreAddress { src, address } => {
-                self.ty(src);
-                self.assert_type(address, &BytecodeType::Address);
-            }
-
-            BytecodeInstruction::LoadAddress { dest, address } => {
-                self.ty(dest);
-                self.assert_type(address, &BytecodeType::Address);
-            }
-
             BytecodeInstruction::GetFieldRef { dest, obj, field } => {
                 let (object_ty, field_ty) = self.field_types(field);
                 assert!(

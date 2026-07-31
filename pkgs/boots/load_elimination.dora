@@ -319,7 +319,7 @@ impl LoadEliminationPass {
                     data.class_field_infos.insert(field, new_value);
                 } else {
                     // Store without ClassInfo could alias with any class field
-                    // (e.g., StoreAddress to a computed address within a class object)
+                    // (e.g., a store through a computed address within a class object)
                     data.class_field_infos.clear();
                 }
             } else if op.is_call() {

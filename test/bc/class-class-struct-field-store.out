@@ -8,24 +8,24 @@ struct Data:
   value: Int32
 
 fn f:
-  0: LoadField r2, r0, @0 # OuterContainer.inner
-  4: GetFieldAddress r3, r2, @1 # InnerContainer.data
-  8: GetFieldAddress r4, r3, @2 # Data.value
- 12: StoreAddress r1, r4
+  0: LoadField r4, r0, @2 # OuterContainer.inner
+  4: GetFieldRef r3, r4, @1 # InnerContainer.data
+  8: GetFieldRef r2, r3, @0 # Data.value
+ 12: StoreRef r1, r2
  15: Ret r5
 
   Registers:
    0 => class OuterContainer
    1 => Int32
-   2 => class InnerContainer
-   3 => Address
-   4 => Address
+   2 => ref Int32
+   3 => ref Data
+   4 => class InnerContainer
    5 => ()
 
   Constants:
-   0 => Field OuterContainer.inner
+   0 => StructField Data.value
    1 => Field InnerContainer.data
-   2 => StructField Data.value
+   2 => Field OuterContainer.inner
 
   Locations:
    4 => 4:37

@@ -1,0 +1,27 @@
+//= compile-args "--gc=copy"
+struct Value(Int32)
+
+impl std::traits::Add for Value {
+    fn add(rhs: Value): Value {
+        std::force_collect();
+        Value(self.0 + rhs.0)
+    }
+}
+
+struct Outer {
+    value: Value,
+}
+
+class Holder {
+    outer: Outer,
+}
+
+fn update(holder: Holder) {
+    holder.outer.value += Value(2i32);
+}
+
+fn main() {
+    let holder = Holder(Outer(Value(1i32)));
+    update(holder);
+    assert(holder.outer.value.0 == 3i32);
+}

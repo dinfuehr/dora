@@ -1,0 +1,112 @@
+class Holder:
+  outer: Outer
+
+struct Value:
+  0: Int32
+
+struct Outer:
+  value: Value
+
+fn <impl Add for Value>::add:
+  0: InvokeStatic r2, @0 # std::force_collect
+  4: LoadField r4, r0, @1 # Value.0
+  8: LoadField r5, r1, @2 # Value.0
+ 12: CheckedAdd r3, r4, r5
+ 16: NewStruct r6, @3, r3 # Value
+ 21: Ret r6
+
+  Registers:
+   0 => struct Value
+   1 => struct Value
+   2 => ()
+   3 => Int32
+   4 => Int32
+   5 => Int32
+   6 => struct Value
+
+  Constants:
+   0 => Fct std::force_collect
+   1 => StructField Value.0
+   2 => StructField Value.0
+   3 => Struct Value
+
+  Locations:
+   0 => 5:9
+   12 => 6:15
+   16 => 6:9
+
+fn update:
+  0: GetFieldRef r2, r0, @1 # Holder.outer
+  4: GetFieldRef r1, r2, @0 # Outer.value
+  8: ConstInt32 r3, @2 # 2
+ 11: NewStruct r4, @3, r3 # Value
+ 16: LoadRef r5, r1
+ 19: InvokeDirect r5, @4, r5, r4 # <impl Add for Value>::add
+ 25: StoreRef r5, r1
+ 28: Ret r6
+
+  Registers:
+   0 => class Holder
+   1 => ref Value
+   2 => ref Outer
+   3 => Int32
+   4 => struct Value
+   5 => struct Value
+   6 => ()
+
+  Constants:
+   0 => StructField Outer.value
+   1 => Field Holder.outer
+   2 => Int32 2
+   3 => Struct Value
+   4 => Fct <impl Add for Value>::add
+
+  Locations:
+   0 => 19:5
+   11 => 19:27
+   19 => 19:5
+
+fn main:
+  0: ConstInt32 r1, @0 # 1
+  3: NewStruct r2, @1, r1 # Value
+  8: NewStruct r3, @2, r2 # Outer
+ 13: NewObject r4, @3, r3 # Holder
+ 18: Mov r0, r4
+ 21: InvokeStatic r5, @4, r0 # update
+ 26: LoadField r3, r0, @5 # Holder.outer
+ 30: LoadField r2, r3, @6 # Outer.value
+ 34: LoadField r1, r2, @7 # Value.0
+ 38: ConstInt32 r6, @8 # 3
+ 41: TestEq r7, r1, r6
+ 45: InvokeStatic r5, @9, r7 # std::assert
+ 50: Ret r5
+
+  Registers:
+   0 => class Holder
+   1 => Int32
+   2 => struct Value
+   3 => struct Outer
+   4 => class Holder
+   5 => ()
+   6 => Int32
+   7 => Bool
+
+  Constants:
+   0 => Int32 1
+   1 => Struct Value
+   2 => Struct Outer
+   3 => Class Holder
+   4 => Fct update
+   5 => Field Holder.outer
+   6 => StructField Outer.value
+   7 => StructField Value.0
+   8 => Int32 3
+   9 => Fct std::assert
+
+  Locations:
+   3 => 23:31
+   8 => 23:25
+   13 => 23:18
+   21 => 24:5
+   45 => 25:5
+

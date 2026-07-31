@@ -450,25 +450,6 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::StoreArray { src, arr, idx }
             }
 
-            BytecodeOpcode::GetFieldAddress => {
-                let dest = self.read_register();
-                let obj = self.read_register();
-                let field = self.read_const_pool_idx();
-                BytecodeInstruction::GetFieldAddress { dest, obj, field }
-            }
-
-            BytecodeOpcode::StoreAddress => {
-                let src = self.read_register();
-                let address = self.read_register();
-                BytecodeInstruction::StoreAddress { src, address }
-            }
-
-            BytecodeOpcode::LoadAddress => {
-                let dest = self.read_register();
-                let address = self.read_register();
-                BytecodeInstruction::LoadAddress { dest, address }
-            }
-
             BytecodeOpcode::GetFieldRef => {
                 let dest = self.read_register();
                 let obj = self.read_register();
@@ -871,18 +852,6 @@ where
                 self.visitor.visit_store_array(src, arr, idx);
             }
 
-            BytecodeInstruction::GetFieldAddress { dest, obj, field } => {
-                self.visitor.visit_get_field_address(dest, obj, field);
-            }
-
-            BytecodeInstruction::StoreAddress { src, address } => {
-                self.visitor.visit_store_at_address(src, address);
-            }
-
-            BytecodeInstruction::LoadAddress { dest, address } => {
-                self.visitor.visit_load_address(dest, address);
-            }
-
             BytecodeInstruction::GetFieldRef { dest, obj, field } => {
                 self.visitor.visit_get_field_ref(dest, obj, field);
             }
@@ -1178,18 +1147,6 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_store_array(&mut self, _src: Register, _arr: Register, _idx: Register) {
-        unimplemented!();
-    }
-
-    fn visit_get_field_address(&mut self, _dest: Register, _obj: Register, _field: ConstPoolIdx) {
-        unimplemented!();
-    }
-
-    fn visit_store_at_address(&mut self, _src: Register, _address: Register) {
-        unimplemented!();
-    }
-
-    fn visit_load_address(&mut self, _dest: Register, _address: Register) {
         unimplemented!();
     }
 

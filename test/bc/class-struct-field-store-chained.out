@@ -8,23 +8,24 @@ struct Middle:
   inner: Inner
 
 fn f:
-  0: GetFieldAddress r2, r0, @0 # Wrapper.middle
-  4: GetFieldAddress r3, r2, @1 # Middle.inner
-  8: GetFieldAddress r2, r3, @2 # Inner.value
- 12: StoreAddress r1, r2
- 15: Ret r4
+  0: GetFieldRef r4, r0, @2 # Wrapper.middle
+  4: GetFieldRef r3, r4, @1 # Middle.inner
+  8: GetFieldRef r2, r3, @0 # Inner.value
+ 12: StoreRef r1, r2
+ 15: Ret r5
 
   Registers:
    0 => class Wrapper
    1 => Int32
-   2 => Address
-   3 => Address
-   4 => ()
+   2 => ref Int32
+   3 => ref Inner
+   4 => ref Middle
+   5 => ()
 
   Constants:
-   0 => Field Wrapper.middle
+   0 => StructField Inner.value
    1 => StructField Middle.inner
-   2 => StructField Inner.value
+   2 => Field Wrapper.middle
 
   Locations:
    0 => 4:30

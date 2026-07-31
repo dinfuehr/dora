@@ -641,31 +641,6 @@ impl BytecodeBuilder {
         self.writer.emit_load_array(dest, array, index);
     }
 
-    #[allow(unused)]
-    pub fn emit_get_field_address(
-        &mut self,
-        dest: Register,
-        obj: Register,
-        field_idx: ConstPoolIdx,
-        location: Location,
-    ) {
-        assert!(self.def(dest) && self.used(obj));
-        self.writer.set_location(location);
-        self.writer.emit_get_field_address(dest, obj, field_idx);
-    }
-
-    #[allow(unused)]
-    pub fn emit_store_at_address(&mut self, src: Register, address: Register, location: Location) {
-        assert!(self.used(src) && self.used(address));
-        self.writer.set_location(location);
-        self.writer.emit_store_at_address(src, address);
-    }
-
-    pub fn emit_load_address(&mut self, dest: Register, address: Register) {
-        assert!(self.used(dest) && self.used(address));
-        self.writer.emit_load_address(dest, address);
-    }
-
     pub fn emit_get_field_ref(
         &mut self,
         dest: Register,

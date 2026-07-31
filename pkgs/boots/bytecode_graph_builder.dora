@@ -876,18 +876,6 @@ impl BytecodeGraphBuilder {
                 self.emit_store_array(src, arr, idx);
                 false
             }
-            BytecodeInstruction::GetFieldAddress(dest, obj, idx) => {
-                self.emit_get_field_address(dest, obj, idx);
-                false
-            }
-            BytecodeInstruction::StoreAddress(src, address) => {
-                self.emit_store_address(src, address);
-                false
-            }
-            BytecodeInstruction::LoadAddress(dest, address) => {
-                self.emit_load_address(dest, address);
-                false
-            }
             BytecodeInstruction::GetFieldRef(dest, obj, idx) => {
                 self.emit_get_field_ref(dest, obj, idx);
                 false
@@ -1046,98 +1034,6 @@ impl BytecodeGraphBuilder {
             }
             _ => unreachable[()](),
         }
-    }
-
-    fn emit_get_field_address(
-        dest: BytecodeRegister,
-        obj: BytecodeRegister,
-        idx: ConstPoolId,
-    ) {
-        let obj_inst = self.register_value(obj);
-
-        match self.bc().const_pool_entry(idx) {
-            ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
-                let type_params = self.specialize_array(type_params);
-                let offset = iface::get_field_offset(
-                    self.ci,
-                    cls_id,
-                    type_params,
-                    field_id,
-                );
-
-                let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
-                let address_inst = graph::create_binary_inst(
-                    Op::Add,
-                    Type::Address,
-                    obj_inst,
-                    offset_const,
-                );
-                self.current().append_inst(address_inst);
-                self.emit_local_set(dest, address_inst);
-            }
-            ConstPoolEntry::StructField(struct_id, type_params, field_id) => {
-                let struct_layout = self.compute_struct_layout(struct_id, type_params);
-                let field = struct_layout.fields(field_id.0.to_int64());
-
-                let offset_const = self.graph.ensure_const_int64_inst(
-                    field.offset.to_int64()
-                );
-                let address_inst = graph::create_binary_inst(
-                    Op::Add,
-                    Type::Address,
-                    obj_inst,
-                    offset_const,
-                );
-                self.current().append_inst(address_inst);
-                self.emit_local_set(dest, address_inst);
-            }
-            ConstPoolEntry::TupleElement(tuple_ty, subtype_idx) => {
-                assert(tuple_ty.is_tuple());
-                let BytecodeType::Tuple(subtypes) = tuple_ty;
-                let tuple_layout = self.compute_tuple_layout(subtypes);
-                let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
-
-                let offset_const = self.graph.ensure_const_int64_inst(offset.to_int64());
-                let address_inst = graph::create_binary_inst(
-                    Op::Add,
-                    Type::Address,
-                    obj_inst,
-                    offset_const,
-                );
-                self.current().append_inst(address_inst);
-                self.emit_local_set(dest, address_inst);
-            }
-            _ => unreachable[()](),
-        }
-    }
-
-    fn emit_store_address(src: BytecodeRegister, address: BytecodeRegister) {
-        let src_type = self.reg(src);
-        if self.is_zero_type(src_type) {
-            return;
-        }
-
-        let src_inst = self.register_value(src);
-        let address_inst = self.emit_local_get(address);
-
-        self.store_field(
-            src_type,
-            address_inst,
-            InstExtraData::None,
-            0i32,
-            src_inst,
-            false,
-        );
-    }
-
-    fn emit_load_address(dest: BytecodeRegister, address: BytecodeRegister) {
-        let dest_type = self.reg(dest);
-        if self.is_zero_type(dest_type) {
-            return;
-        }
-
-        let address_inst = self.emit_local_get(address);
-        self.load_field_into(dest, address_inst, InstExtraData::None, 0i32);
     }
 
     fn emit_get_field_ref(

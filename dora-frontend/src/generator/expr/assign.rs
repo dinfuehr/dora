@@ -1,11 +1,11 @@
-use dora_bytecode::{BytecodeType, ConstPoolIdx, Location, Register};
+use dora_bytecode::{BytecodeType, Location, Register};
 use dora_parser::ast;
 
 use super::bin::gen_intrinsic_bin;
 use super::path::load_from_context;
 use super::{
     add_const_pool_entry_for_call, emit_invoke_direct, emit_invoke_generic_direct, gen_expr,
-    gen_expr_as_ref, is_rooted_in_ref, specialize_type_for_call,
+    gen_expr_as_ref, specialize_type_for_call,
 };
 use crate::generator::{
     AstBytecodeGen, DataDest, field_id_from_context_idx, load_outer_context_object,
@@ -17,126 +17,6 @@ use crate::sema::{
 };
 use crate::specialize::specialize_type;
 use crate::ty::{SourceType, TypeArgs};
-
-/// Represents a chain of value-type (struct/tuple) field accesses.
-/// For an expression like `a.b.c.d` where all are struct fields,
-/// `base_expr` would be `a` and `field_chain` would be `[a.b, a.b.c, a.b.c.d]`
-/// (the field expressions in order from outermost to innermost).
-struct ValueTypeFieldChain {
-    /// The base expression to evaluate first (e.g., `a` or `obj.class_field`)
-    base_expr: ExprId,
-    /// Field expressions for value-type field accesses, in order
-    field_chain: Vec<ExprId>,
-}
-
-/// Collects a chain of field accesses starting from a field expression.
-/// Includes both value-type (struct/tuple) fields and the first class field
-/// encountered. Stops at the object expression before the class field.
-fn collect_value_type_field_chain(
-    g: &AstBytecodeGen,
-    field_expr_id: ExprId,
-) -> ValueTypeFieldChain {
-    let mut chain = Vec::new();
-    let mut current_expr = field_expr_id;
-
-    loop {
-        let expr = g.analysis.expr(current_expr);
-        match expr {
-            Expr::Paren(inner_expr) => {
-                // Look through parentheses
-                current_expr = *inner_expr;
-            }
-            Expr::Field(field_expr) => {
-                // Check if this field access is a value type (struct or tuple)
-                if let Some(ident_type) = g.analysis.get_ident(current_expr) {
-                    match ident_type {
-                        IdentType::StructField(..) | IdentType::TupleField(..) => {
-                            // This is a value-type field access, add to chain and continue
-                            chain.push(current_expr);
-                            current_expr = field_expr.lhs;
-                        }
-                        IdentType::ClassField(..) => {
-                            // Class field - include in chain but stop after this
-                            // The base becomes the object expression (field_expr.lhs)
-                            chain.push(current_expr);
-                            current_expr = field_expr.lhs;
-                            break;
-                        }
-                        _ => break,
-                    }
-                } else {
-                    break;
-                }
-            }
-            _ => {
-                // Not a field expression, stop
-                break;
-            }
-        }
-    }
-
-    // Reverse the chain so it's in order from outermost to innermost
-    chain.reverse();
-
-    ValueTypeFieldChain {
-        base_expr: current_expr,
-        field_chain: chain,
-    }
-}
-
-/// Emits GetFieldAddress instructions for a chain of value-type field accesses.
-/// Returns the final address register.
-fn emit_field_chain_addresses(
-    g: &mut AstBytecodeGen,
-    base_reg: Register,
-    field_chain: &[ExprId],
-    location: Location,
-) -> Register {
-    assert!(!field_chain.is_empty());
-
-    let mut current_addr = base_reg;
-
-    for (i, &field_expr_id) in field_chain.iter().enumerate() {
-        let ident_type = g.analysis.get_ident(field_expr_id).expect("missing ident");
-        let field_idx = add_field_const_pool_entry(g, &ident_type);
-
-        let new_addr = g.alloc_temp(BytecodeType::Address);
-        g.builder
-            .emit_get_field_address(new_addr, current_addr, field_idx, location);
-
-        if i > 0 {
-            g.free_temp(current_addr);
-        }
-        current_addr = new_addr;
-    }
-
-    current_addr
-}
-
-/// Adds a const pool entry for a field access (class, struct, or tuple).
-fn add_field_const_pool_entry(g: &mut AstBytecodeGen, ident_type: &IdentType) -> ConstPoolIdx {
-    match ident_type {
-        IdentType::ClassField(cls_ty, field_index) => {
-            let (cls_id, type_params) = cls_ty.to_class().expect("class expected");
-            let bc_class_id = g.emitter.convert_class_id(g.sa, cls_id);
-            let bc_type_params = g.convert_tya(&type_params);
-            g.builder
-                .add_const_field_types(bc_class_id, bc_type_params, field_index.0 as u32)
-        }
-        IdentType::StructField(struct_ty, field_index) => {
-            let (struct_id, type_params) = struct_ty.to_struct().expect("struct expected");
-            let bc_struct_id = g.emitter.convert_struct_id(g.sa, struct_id);
-            let bc_type_params = g.convert_tya(&type_params);
-            g.builder
-                .add_const_struct_field(bc_struct_id, bc_type_params, field_index.0 as u32)
-        }
-        IdentType::TupleField(tuple_ty, element_idx) => {
-            let bc_tuple_ty = g.emitter.convert_ty(g.sa, tuple_ty.clone());
-            g.builder.add_const_tuple_element(bc_tuple_ty, *element_idx)
-        }
-        _ => unreachable!(),
-    }
-}
 
 pub(super) fn gen_expr_assign(
     g: &mut AstBytecodeGen,
@@ -447,49 +327,7 @@ fn gen_expr_assign_tuple_field(
 ) {
     let subtypes = tuple_ty.tuple_subtypes().expect("tuple expected");
     let element_ty = subtypes[element_idx as usize].clone();
-
-    if is_rooted_in_ref(g, e.lhs) {
-        gen_expr_assign_ref_backed_field(g, expr_id, e, element_ty);
-        return;
-    }
-
-    // Collect chain of value-type field accesses, including the field being assigned to
-    let chain = collect_value_type_field_chain(g, e.lhs);
-
-    let base = gen_expr(g, chain.base_expr, DataDest::Alloc);
-    let value = gen_expr(g, e.rhs, DataDest::Alloc);
-
-    let location = g.loc_for_expr(expr_id);
-
-    // Emit GetFieldAddress for all fields in the chain
-    let address = emit_field_chain_addresses(g, base, &chain.field_chain, location);
-
-    let assign_value = if e.op != ast::AssignOp::Assign {
-        let ty = g.emitter.convert_ty(g.sa, element_ty);
-        let current = g.alloc_temp(ty);
-        g.builder.emit_load_address(current, address);
-
-        if let Some(info) = g.get_intrinsic(expr_id) {
-            gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
-        } else {
-            gen_method_bin(g, expr_id, current, current, value, location);
-        }
-
-        current
-    } else {
-        value
-    };
-
-    g.builder
-        .emit_store_at_address(assign_value, address, location);
-    g.free_temp(address);
-
-    if e.op != ast::AssignOp::Assign {
-        g.free_temp(assign_value);
-    }
-
-    g.free_if_temp(base);
-    g.free_if_temp(value);
+    gen_expr_assign_value_field(g, expr_id, e, element_ty);
 }
 
 fn gen_expr_assign_struct_field(
@@ -506,52 +344,10 @@ fn gen_expr_assign_struct_field(
     let field_ty = g.sa.field(field_id).ty();
     let type_args = TypeArgs::from_own(g.sa, struct_.type_param_definition(g.sa), &type_params);
     let field_ty = specialize_type(g.sa, field_ty, &type_args);
-
-    if is_rooted_in_ref(g, e.lhs) {
-        gen_expr_assign_ref_backed_field(g, expr_id, e, field_ty);
-        return;
-    }
-
-    // Collect chain of value-type field accesses, including the field being assigned to
-    let chain = collect_value_type_field_chain(g, e.lhs);
-
-    let base = gen_expr(g, chain.base_expr, DataDest::Alloc);
-    let value = gen_expr(g, e.rhs, DataDest::Alloc);
-
-    let location = g.loc_for_expr(expr_id);
-
-    // Emit GetFieldAddress for all fields in the chain
-    let address = emit_field_chain_addresses(g, base, &chain.field_chain, location);
-
-    let assign_value = if e.op != ast::AssignOp::Assign {
-        let ty = g.emitter.convert_ty(g.sa, field_ty);
-        let current = g.alloc_temp(ty);
-        g.builder.emit_load_address(current, address);
-
-        if let Some(info) = g.get_intrinsic(expr_id) {
-            gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
-        } else {
-            gen_method_bin(g, expr_id, current, current, value, location);
-        }
-
-        current
-    } else {
-        value
-    };
-
-    g.builder
-        .emit_store_at_address(assign_value, address, location);
-    g.free_temp(address);
-
-    if e.op != ast::AssignOp::Assign {
-        g.free_temp(assign_value);
-    }
-
-    g.free_if_temp(base);
-    g.free_if_temp(value);
+    gen_expr_assign_value_field(g, expr_id, e, field_ty);
 }
 
-fn gen_expr_assign_ref_backed_field(
+fn gen_expr_assign_value_field(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
     e: &AssignExpr,
