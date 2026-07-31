@@ -1,8 +1,12 @@
 use dora_bytecode::{BytecodeType, Register};
 
 use super::{ensure_register, gen_expr};
-use crate::generator::{AstBytecodeGen, DataDest, var_reg};
-use crate::sema::{Expr, ExprId, FieldExpr, IdentType, RefExpr, VarLocation};
+use crate::generator::{
+    AstBytecodeGen, DataDest, field_id_from_context_idx, load_outer_context_object, var_reg,
+};
+use crate::sema::{
+    ContextFieldId, ContextId, Expr, ExprId, FieldExpr, IdentType, RefExpr, ScopeId, VarLocation,
+};
 use crate::ty::SourceType;
 
 pub(super) struct GeneratedRef {
@@ -275,12 +279,18 @@ fn gen_expr_ref_path(
         IdentType::Var(var_id) => {
             let vars = g.analysis.vars();
             let var = vars.get_var(var_id);
-            let VarLocation::Stack = var.location else {
-                unimplemented!("ref on context variable");
-            };
-
-            let src_reg = var_reg(g, var_id);
-            g.builder.emit_get_register_ref(dest_reg, src_reg);
+            match var.location {
+                VarLocation::Stack => {
+                    let src_reg = var_reg(g, var_id);
+                    g.builder.emit_get_register_ref(dest_reg, src_reg);
+                }
+                VarLocation::Context(scope_id, field_id) => {
+                    gen_expr_ref_context_var(g, dest_reg, scope_id, field_id, expr_id);
+                }
+            }
+        }
+        IdentType::Context(context_id, field_id) => {
+            gen_expr_ref_outer_context_var(g, dest_reg, context_id, field_id, expr_id);
         }
         IdentType::Global(global_id) => {
             let global_id = g.emitter.convert_global_id(g.sa, global_id);
@@ -291,6 +301,51 @@ fn gen_expr_ref_path(
     }
 
     dest_reg
+}
+
+fn gen_expr_ref_context_var(
+    g: &mut AstBytecodeGen,
+    dest: Register,
+    scope_id: ScopeId,
+    field_id: ContextFieldId,
+    expr_id: ExprId,
+) {
+    let entered_context = &g.entered_contexts[scope_id.0];
+    let context_id = entered_context.context_id;
+    let context_reg = entered_context.register.expect("missing context register");
+    emit_get_context_field_ref(g, dest, context_reg, context_id, field_id, expr_id);
+}
+
+fn gen_expr_ref_outer_context_var(
+    g: &mut AstBytecodeGen,
+    dest: Register,
+    context_id: ContextId,
+    field_id: ContextFieldId,
+    expr_id: ExprId,
+) {
+    let location = g.loc_for_expr(expr_id);
+    let context_reg = load_outer_context_object(g, context_id, location);
+    emit_get_context_field_ref(g, dest, context_reg, context_id, field_id, expr_id);
+    g.free_temp(context_reg);
+}
+
+fn emit_get_context_field_ref(
+    g: &mut AstBytecodeGen,
+    dest: Register,
+    context_reg: Register,
+    context_id: ContextId,
+    field_id: ContextFieldId,
+    expr_id: ExprId,
+) {
+    let context = g.sa.context(context_id);
+    let field_index = field_id_from_context_idx(field_id, context.has_parent_slot());
+    let class_id = g.emitter.convert_class_id(g.sa, context.class_id());
+    let type_params = g.context_type_params(context_id);
+    let field_idx = g
+        .builder
+        .add_const_field_types(class_id, type_params, field_index.0 as u32);
+    g.builder
+        .emit_get_field_ref(dest, context_reg, field_idx, g.loc_for_expr(expr_id));
 }
 
 fn gen_expr_ref_field(

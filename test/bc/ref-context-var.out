@@ -1,0 +1,84 @@
+class $Context1:
+  value: Int64
+
+struct $Lambda1Env:
+  context: $Context1
+
+fn update:
+  0: ConstInt64 r1, @0 # 1
+  3: LoadRef r2, r0
+  6: CheckedAdd r2, r2, r1
+ 10: StoreRef r2, r0
+ 13: Ret r3
+
+  Registers:
+   0 => ref Int64
+   1 => Int64
+   2 => Int64
+   3 => ()
+
+  Constants:
+   0 => Int64 1
+
+  Locations:
+   6 => 2:5
+
+fn f:
+  0: NewObject r0, @0 # $Context1
+  4: ConstInt64 r1, @1 # 10
+  7: StoreField r1, r0, @2 # $Context1.value
+ 11: NewStruct r4, @3, r0 # $Lambda1Env
+ 16: NewTraitObject r3, r4, @4 # Fn0[()] wrapping $Lambda1Env
+ 20: Mov r2, r3
+ 23: GetFieldRef r6, r0, @6 # $Context1.value
+ 27: InvokeStatic r5, @5, r6 # update
+ 32: InvokeVirtual r5, @7, r2 # std::callable::Fn0::call[R]
+ 37: Ret r5
+
+  Registers:
+   0 => class $Context1
+   1 => Int64
+   2 => Fn0[()]
+   3 => Fn0[()]
+   4 => struct $Lambda1Env
+   5 => ()
+   6 => ref Int64
+
+  Constants:
+   0 => Class $Context1
+   1 => Int64 10
+   2 => Field $Context1.value
+   3 => Struct $Lambda1Env
+   4 => Trait Fn0[()] from $Lambda1Env
+   5 => Fct update
+   6 => Field $Context1.value
+   7 => TraitObjectMethod Fn0[()].std::callable::Fn0::call[R]
+
+  Locations:
+   0 => 5:1
+   11 => 7:18
+   23 => 8:12
+   27 => 8:5
+   32 => 9:5
+
+fn <impl Fn0[()] for $Lambda1Env>::call:
+  0: LoadField r3, r0, @1 # $Lambda1Env.context
+  4: GetFieldRef r2, r3, @2 # $Context1.value
+  8: InvokeStatic r1, @0, r2 # update
+ 13: Ret r1
+
+  Registers:
+   0 => struct $Lambda1Env
+   1 => ()
+   2 => ref Int64
+   3 => class $Context1
+
+  Constants:
+   0 => Fct update
+   1 => StructField $Lambda1Env.context
+   2 => Field $Context1.value
+
+  Locations:
+   4 => 7:30
+   8 => 7:23
+

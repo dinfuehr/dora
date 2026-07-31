@@ -1,0 +1,10 @@
+fn update(value: ref Int64) {
+    value += 1;
+}
+
+fn f() {
+    let value = 10;
+    let lambda = || { update(ref value); };
+    update(ref value);
+    lambda();
+}

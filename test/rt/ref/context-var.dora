@@ -1,0 +1,11 @@
+fn read(value: ref Int64): Int64 {
+    value
+}
+
+fn main() {
+    let value = 10;
+    let read_in_lambda = ||: Int64 { read(ref value) };
+
+    assert(read(ref value) == 10);
+    assert(read_in_lambda() == 10);
+}

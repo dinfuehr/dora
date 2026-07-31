@@ -1,0 +1,16 @@
+fn read(value: ref Int64): Int64 {
+    value
+}
+
+fn main() {
+    let outer_value = 10;
+    let middle_lambda = ||: Int64 {
+        let middle_value = 20;
+        let inner_lambda = ||: Int64 {
+            read(ref outer_value) + read(ref middle_value)
+        };
+        inner_lambda()
+    };
+
+    assert(middle_lambda() == 30);
+}

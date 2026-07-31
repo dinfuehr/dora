@@ -1,0 +1,14 @@
+fn take_ref(value: ref Int64) {}
+
+fn f() {
+    let outer_value = 10;
+    let middle_lambda = || {
+        let middle_value = 20;
+        let inner_lambda = || {
+            take_ref(ref outer_value);
+            take_ref(ref middle_value);
+        };
+        inner_lambda();
+    };
+    middle_lambda();
+}
