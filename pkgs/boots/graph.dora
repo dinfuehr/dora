@@ -1872,6 +1872,11 @@ impl Inst {
         self.aux.to_int32()
     }
 
+    pub fn host_may_be_null(): Bool {
+        assert(self.op() == Op::StoreAddressWb);
+        (self.aux & (1i64 << 32)) != 0
+    }
+
     pub fn get_global_id(): GlobalId {
         let op = self.op();
 
@@ -3030,20 +3035,38 @@ pub fn create_store_array_wb_inst(array: Inst, index: Inst, value: Inst, ty: Typ
     inst
 }
 
+pub enum HostNullability {
+    NonNull,
+    MayBeNull,
+}
+
 pub fn create_store_address_wb_inst(
-    array: Inst,
+    host: Inst,
     dest: Inst,
     dest_offset: Int32,
     value: Inst,
     ty: Type,
+    host_nullability: HostNullability,
 ): Inst {
     let inst = Inst::new();
     inst._op = Some(Op::StoreAddressWb);
     inst.ty = ty;
-    inst.add_input(array);
+    inst.add_input(host);
     inst.add_input(dest);
     inst.add_input(value);
-    inst.aux = dest_offset.to_int64();
+    let offset = dest_offset.to_int64();
+    assert(offset.to_int32().to_int64() == offset);
+    let offset = offset & ((1i64 << 32) - 1i64);
+    let host_may_be_null = match host_nullability {
+        HostNullability::NonNull => false,
+        HostNullability::MayBeNull => true,
+    };
+    let host_may_be_null = if host_may_be_null {
+        1i64 << 32
+    } else {
+        0i64
+    };
+    inst.aux = offset | host_may_be_null;
     inst
 }
 

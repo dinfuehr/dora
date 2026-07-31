@@ -1,6 +1,5 @@
 //= compile-args "--gc=swiper"
 //= runtime-args "--gc-verify"
-//= config cannon
 
 class Foo {
     value: Int32,

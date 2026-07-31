@@ -1,0 +1,32 @@
+//= boots
+//= compile-args "--emit-graph=store_ref_invalidates_field"
+
+class Foo {
+    value: Int32,
+}
+
+class Bar {
+    foo: Foo,
+}
+
+fn store_ref_invalidates_field(bar: Bar, field: ref Foo, replacement: Foo): Int32 {
+    let old_value = bar.foo.value;
+    field = replacement;
+    old_value * 10i32 + bar.foo.value
+}
+
+// CHECK: Function store_ref_invalidates_field: final
+// CHECK: [[BAR:%\d+]]: Arg.Ptr(0)
+// CHECK: [[OLD_FOO:%\d+]]: Load.Ptr(8) [[BAR]]
+// CHECK: Load.Int32(8) [[OLD_FOO]]
+// CHECK: StoreAddressWb
+// CHECK: [[NEW_FOO:%\d+]]: Load.Ptr(8) [[BAR]]
+// CHECK: Load.Int32(8) [[NEW_FOO]]
+
+fn main() {
+    let bar = Bar(Foo(1i32));
+    let result = store_ref_invalidates_field(bar, ref bar.foo, Foo(2i32));
+
+    assert(result == 12i32);
+    assert(bar.foo.value == 2i32);
+}

@@ -587,8 +587,7 @@ impl BytecodeGraphBuilder {
 
         if dest != src {
             if ty.is_ref() {
-                let interior = self.load_ref_interior(src);
-                let base = self.load_ref_base(src);
+                let (interior, base) = self.load_ref(src);
                 self.store_ref(dest, interior, base);
             } else {
                 self.copy_field(
@@ -1172,7 +1171,7 @@ impl BytecodeGraphBuilder {
                 let field = struct_layout.fields(field_id.0.to_int64());
                 let (obj_inst, base_inst) = if self.reg(obj).is_ref() {
                     let reference = self.aggregate_register(obj);
-                    (self.load_ref_interior(reference), self.load_ref_base(reference))
+                    self.load_ref(reference)
                 } else {
                     let obj_inst = self.register_value(obj);
                     let base_inst = graph::create_null_const();
@@ -1199,7 +1198,7 @@ impl BytecodeGraphBuilder {
                 let offset = tuple_layout.fields(subtype_idx.to_int64()).offset;
                 let (obj_inst, base_inst) = if self.reg(obj).is_ref() {
                     let reference = self.aggregate_register(obj);
-                    (self.load_ref_interior(reference), self.load_ref_base(reference))
+                    self.load_ref(reference)
                 } else {
                     let obj_inst = self.register_value(obj);
                     let base_inst = graph::create_null_const();
@@ -1228,9 +1227,195 @@ impl BytecodeGraphBuilder {
         }
 
         let src_inst = self.register_value(src);
-        let ref_inst = self.load_ref_interior(self.aggregate_register(reference));
+        let reference = self.aggregate_register(reference);
+        let (interior_inst, base_inst) = self.load_ref(reference);
 
-        self.store_field(src_type, ref_inst, InstExtraData::None, 0i32, src_inst, false);
+        self.store_value_through_ref(interior_inst, base_inst, 0i32, src_inst, src_type);
+    }
+
+    fn store_value_through_ref(
+        interior: Inst,
+        base: Inst,
+        interior_offset: Int32,
+        value: Inst,
+        ty: BytecodeType,
+    ) {
+        match ty {
+            BytecodeType::Unit => {}
+            BytecodeType::Tuple(_) => {
+                self.copy_tuple_through_ref(
+                    interior,
+                    base,
+                    interior_offset,
+                    value,
+                    0i32,
+                    ty,
+                );
+            }
+            BytecodeType::Struct(..) => {
+                self.copy_struct_through_ref(
+                    interior,
+                    base,
+                    interior_offset,
+                    value,
+                    0i32,
+                    ty,
+                );
+            }
+            BytecodeType::Enum(..)
+            | BytecodeType::Class(..)
+            | BytecodeType::TraitObject(..) => {
+                let graph_ty = self.graph_ty(ty);
+                let inst = if config.needs_write_barrier && is_reference(self.ci, ty) {
+                    graph::create_store_address_wb_inst(
+                        base,
+                        interior,
+                        interior_offset,
+                        value,
+                        graph_ty,
+                        graph::HostNullability::MayBeNull,
+                    )
+                } else {
+                    graph::create_store_inst(
+                        interior,
+                        InstExtraData::None,
+                        interior_offset,
+                        value,
+                        graph_ty,
+                    )
+                };
+                self.current().append_inst(inst);
+            }
+            BytecodeType::Address
+            | BytecodeType::This
+            | BytecodeType::Ref(_)
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::TypeAlias(_)
+            | BytecodeType::Assoc(..) => unreachable[()](),
+            BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64 => {
+                let graph_ty = self.graph_ty(ty);
+                let inst = graph::create_store_inst(
+                    interior,
+                    InstExtraData::None,
+                    interior_offset,
+                    value,
+                    graph_ty,
+                );
+                self.current().append_inst(inst);
+            }
+        }
+    }
+
+    fn copy_value_through_ref(
+        interior: Inst,
+        base: Inst,
+        interior_offset: Int32,
+        src: Inst,
+        src_offset: Int32,
+        ty: BytecodeType,
+    ) {
+        match ty {
+            BytecodeType::Unit => {}
+            BytecodeType::Struct(..) => {
+                self.copy_struct_through_ref(
+                    interior,
+                    base,
+                    interior_offset,
+                    src,
+                    src_offset,
+                    ty,
+                );
+            }
+            BytecodeType::Tuple(_) => {
+                self.copy_tuple_through_ref(
+                    interior,
+                    base,
+                    interior_offset,
+                    src,
+                    src_offset,
+                    ty,
+                );
+            }
+            BytecodeType::Address
+            | BytecodeType::This
+            | BytecodeType::Ref(_)
+            | BytecodeType::TypeParam(_)
+            | BytecodeType::TypeAlias(_)
+            | BytecodeType::Assoc(..) => unreachable[()](),
+            BytecodeType::UInt8
+            | BytecodeType::Bool
+            | BytecodeType::Char
+            | BytecodeType::Int32
+            | BytecodeType::Int64
+            | BytecodeType::Float32
+            | BytecodeType::Float64
+            | BytecodeType::Enum(..)
+            | BytecodeType::Class(..)
+            | BytecodeType::TraitObject(..) => {
+                let graph_ty = self.graph_ty(ty);
+                let value = graph::create_load_inst(
+                    src,
+                    src_offset,
+                    InstExtraData::None,
+                    graph_ty,
+                    false,
+                );
+                self.current().append_inst(value);
+                self.store_value_through_ref(interior, base, interior_offset, value, ty);
+            }
+        }
+    }
+
+    fn copy_tuple_through_ref(
+        interior: Inst,
+        base: Inst,
+        interior_offset: Int32,
+        src: Inst,
+        src_offset: Int32,
+        ty: BytecodeType,
+    ) {
+        let BytecodeType::Tuple(subtypes) = ty;
+        let tuple_layout = self.compute_tuple_layout(subtypes);
+
+        for field in tuple_layout.fields {
+            self.copy_value_through_ref(
+                interior,
+                base,
+                interior_offset + field.offset,
+                src,
+                src_offset + field.offset,
+                field.ty,
+            );
+        }
+    }
+
+    fn copy_struct_through_ref(
+        interior: Inst,
+        base: Inst,
+        interior_offset: Int32,
+        src: Inst,
+        src_offset: Int32,
+        ty: BytecodeType,
+    ) {
+        let BytecodeType::Struct(struct_id, type_params) = ty;
+        let struct_layout = self.compute_struct_layout(struct_id, type_params);
+
+        for field in struct_layout.fields {
+            self.copy_value_through_ref(
+                interior,
+                base,
+                interior_offset + field.offset,
+                src,
+                src_offset + field.offset,
+                field.ty,
+            );
+        }
     }
 
     fn emit_load_ref(dest: BytecodeRegister, reference: BytecodeRegister) {
@@ -1292,6 +1477,10 @@ impl BytecodeGraphBuilder {
         );
         self.current().append_inst(base);
         base
+    }
+
+    fn load_ref(reference: Inst): (Inst, Inst) {
+        (self.load_ref_interior(reference), self.load_ref_base(reference))
     }
 
     fn emit_load_enum_variant(
@@ -1965,8 +2154,9 @@ impl BytecodeGraphBuilder {
             ArgumentPassingMode::None => {}
             ArgumentPassingMode::InteriorPointer => {
                 let reference = self.aggregate_register(reg);
-                args.push(self.load_ref_interior(reference));
-                args.push(self.load_ref_base(reference));
+                let (interior, base) = self.load_ref(reference);
+                args.push(interior);
+                args.push(base);
             }
             ArgumentPassingMode::Stack => args.push(self.aggregate_register(reg)),
             ArgumentPassingMode::Register(register_ty) => {
@@ -2623,6 +2813,7 @@ impl BytecodeGraphBuilder {
                 dest_offset,
                 value,
                 ty,
+                graph::HostNullability::NonNull,
             );
             self.current().append_inst(inst);
         } else {

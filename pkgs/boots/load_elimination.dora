@@ -292,6 +292,9 @@ impl LoadEliminationPass {
                         data.set_immutable_value(object, offset, inst);
                     }
                 }
+            } else if op == Op::StoreAddressWb {
+                // StoreAddressWb writes through a ref and can alias any mutable memory.
+                data.kill();
             } else if op == Op::Store || op == Op::StoreWb {
                 if inst.has_class_info() {
                     let class_info = inst.get_class_info();

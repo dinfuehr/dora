@@ -173,11 +173,13 @@ impl GraphVerifier {
                 self.assert_input_count(inst, 2i64);
             }
 
-            Op::StoreArray
-            | Op::StoreArrayWb
-            | Op::StoreAddressWb
-            | Op::AtomicCompareExchange => {
+            Op::StoreArray | Op::StoreArrayWb | Op::AtomicCompareExchange => {
                 self.assert_input_count(inst, 3i64);
+            }
+
+            Op::StoreAddressWb => {
+                self.assert_input_count(inst, 3i64);
+                inst.host_may_be_null();
             }
 
             Op::CheckDivZero => self.assert_unary_int_input(inst),

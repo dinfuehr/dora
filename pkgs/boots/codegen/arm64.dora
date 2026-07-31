@@ -2999,7 +2999,7 @@ impl CodeGen for CodeGenArm64 {
 
     fn emit_store_address_wb(inst: Inst) {
         let loc = inst.get_location_data();
-        let array = loc.get_input(0).get_register();
+        let host = loc.get_input(0).get_register();
         let dest = loc.get_input(1).get_register();
         let offset = inst.get_offset();
 
@@ -3008,14 +3008,27 @@ impl CodeGen for CodeGenArm64 {
         assert(config.needs_write_barrier);
 
         let src = loc.get_input(2).get_register();
-        self.asm.str_imm(src, dest, offset);
-        self.emit_write_barrier(
-            array,
-            src,
-            REG_TEMP,
-            loc.get_register_snapshot(),
-            loc.get_live_values(),
-        );
+        self.str(src, dest, offset);
+        if inst.host_may_be_null() {
+            let lbl_skip = self.asm.create_label();
+            self.asm.cbz(host, lbl_skip);
+            self.emit_write_barrier(
+                host,
+                src,
+                REG_TEMP,
+                loc.get_register_snapshot(),
+                loc.get_live_values(),
+            );
+            self.asm.bind_label(lbl_skip);
+        } else {
+            self.emit_write_barrier(
+                host,
+                src,
+                REG_TEMP,
+                loc.get_register_snapshot(),
+                loc.get_live_values(),
+            );
+        }
     }
 
     fn emit_abort(_inst: Inst) {

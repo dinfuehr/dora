@@ -1,6 +1,5 @@
 //= compile-args "--gc=swiper"
 //= runtime-args "--gc-verify"
-//= config cannon
 
 trait Value {
     fn get(): Int32;
