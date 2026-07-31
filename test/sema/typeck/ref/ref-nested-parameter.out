@@ -1,0 +1,24 @@
+error: `ref` type is not allowed here.
+--> ref-nested-parameter.dora:4:18
+ | class Bar
+ | 
+ | fn tuple(_value: (ref Bar, Int32)) {}
+                    ~~~~~~~~~~~~~~~~
+ | fn type_argument(_value: Foo[ref Bar]) {}
+ | fn nested_ref(_value: ref ref Bar) {}
+error: `ref` type is not allowed here.
+--> ref-nested-parameter.dora:5:26
+ | 
+ | fn tuple(_value: (ref Bar, Int32)) {}
+ | fn type_argument(_value: Foo[ref Bar]) {}
+                            ~~~~~~~~~~~~
+ | fn nested_ref(_value: ref ref Bar) {}
+ | 
+error: `ref` type is not allowed here.
+--> ref-nested-parameter.dora:6:23
+ | fn tuple(_value: (ref Bar, Int32)) {}
+ | fn type_argument(_value: Foo[ref Bar]) {}
+ | fn nested_ref(_value: ref ref Bar) {}
+                         ~~~~~~~~~~~
+ | 
+3 errors found.

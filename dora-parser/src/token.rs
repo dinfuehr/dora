@@ -68,7 +68,8 @@ pub const USE_TREE_FIRST: TokenSet =
     USE_PATH_SEGMENT_FIRST.union(TokenSet::new(&[TokenKind::L_BRACE]));
 pub const MODIFIER_FIRST: TokenSet = TokenSet::new(&[AT, PUB_KW, STATIC_KW, MUTATING_KW]);
 pub const FIELD_FIRST: TokenSet = TokenSet::new(&[IDENTIFIER, COLON]).union(MODIFIER_FIRST);
-pub const TYPE_FIRST: TokenSet = TokenSet::new(&[IDENTIFIER, UPCASE_SELF_KW, UNDERSCORE, L_PAREN]);
+pub const TYPE_FIRST: TokenSet =
+    TokenSet::new(&[IDENTIFIER, UPCASE_SELF_KW, UNDERSCORE, L_PAREN, REF_KW]);
 pub const UNNAMED_FIELD_FIRST: TokenSet = TYPE_FIRST.union(MODIFIER_FIRST);
 pub const FIELD_RS: TokenSet = ELEM_FIRST;
 pub const LET_PATTERN_FIRST: TokenSet = TokenSet::new(&[L_PAREN, MUT_KW, UNDERSCORE, IDENTIFIER]);

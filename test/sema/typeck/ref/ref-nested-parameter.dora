@@ -1,0 +1,6 @@
+class Foo[T]
+class Bar
+
+fn tuple(_value: (ref Bar, Int32)) {}
+fn type_argument(_value: Foo[ref Bar]) {}
+fn nested_ref(_value: ref ref Bar) {}

@@ -436,8 +436,22 @@ fn expand_function_types(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
         let replace_self = compute_function_replace_self(sa, fct);
 
-        for p in fct.params_with_self() {
-            p.parsed_ty().expand(sa, fct, replace_self.clone());
+        for param in fct.params_with_self() {
+            let param_ty = param.parsed_ty().expand(sa, fct, replace_self.clone());
+            let contains_nested_ref = match &param_ty {
+                SourceType::Ref(inner) => inner.contains_ref_type(),
+                _ => param_ty.contains_ref_type(),
+            };
+
+            if contains_nested_ref {
+                sa.report(
+                    fct.file_id,
+                    param.parsed_ty().span(sa, fct),
+                    &diag::REF_TYPE_NOT_ALLOWED,
+                    args!(),
+                );
+                param.parsed_ty().set_ty(SourceType::Error);
+            }
         }
 
         let return_type = fct

@@ -1771,6 +1771,8 @@ fn parse_qualified_type() {
 fn parse_ref_type() {
     parse_type("ref Foo");
     parse_type("ref Foo[Bar]");
+    parse_type("(ref Foo, Bar)");
+    parse_type("Foo[ref Bar]");
 }
 
 #[test]
