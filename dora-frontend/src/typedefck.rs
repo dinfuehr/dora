@@ -385,13 +385,38 @@ fn expand_impl_types(sa: &Sema) {
             continue;
         }
 
-        impl_.parsed_extended_ty().expand(sa, impl_, None);
+        let extended_ty = impl_.parsed_extended_ty().expand(sa, impl_, None);
+
+        if extended_ty.contains_ref_type() {
+            sa.report(
+                impl_.file_id,
+                impl_.parsed_extended_ty().span(sa, impl_),
+                &diag::REF_TYPE_NOT_ALLOWED,
+                args!(),
+            );
+            impl_.parsed_extended_ty().set_ty(SourceType::Error);
+        }
+
         parsety::expand_parsed_trait_type(
             sa,
             impl_,
             impl_.parsed_trait_ty(),
             Some(impl_.extended_ty()),
         );
+
+        if impl_
+            .parsed_trait_ty()
+            .ty()
+            .is_some_and(|ty| ty.contains_ref_type())
+        {
+            sa.report(
+                impl_.file_id,
+                impl_.parsed_trait_ty().span(sa, impl_),
+                &diag::REF_TYPE_NOT_ALLOWED,
+                args!(),
+            );
+            impl_.parsed_trait_ty().set_ty(None);
+        }
 
         expand_type_param_definition(sa, impl_, impl_.type_param_definition(sa), None);
     }
@@ -430,9 +455,20 @@ fn expand_alias_types(sa: &Sema) {
 
 fn expand_extension_types(sa: &Sema) {
     for (_id, extension) in sa.extensions.iter() {
-        extension
+        let ty = extension
             .parsed_ty()
             .expand(sa, extension, Some(extension.ty()));
+
+        if ty.contains_ref_type() {
+            sa.report(
+                extension.file_id(),
+                extension.parsed_ty().span(sa, extension),
+                &diag::REF_TYPE_NOT_ALLOWED,
+                args!(),
+            );
+            extension.parsed_ty().set_ty(SourceType::Error);
+        }
+
         expand_type_param_definition(
             sa,
             extension,

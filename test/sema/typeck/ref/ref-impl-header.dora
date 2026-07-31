@@ -1,0 +1,10 @@
+class Foo
+class Bla
+
+trait Trait[T] {}
+
+impl Trait[Foo] for ref Foo {}
+
+impl Trait[ref Foo] for Bla {}
+
+impl ref Foo {}

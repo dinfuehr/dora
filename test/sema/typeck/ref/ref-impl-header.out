@@ -1,0 +1,24 @@
+error: `ref` type is not allowed here.
+--> ref-impl-header.dora:6:21
+ | trait Trait[T] {}
+ | 
+ | impl Trait[Foo] for ref Foo {}
+                       ~~~~~~~
+ | 
+ | impl Trait[ref Foo] for Bla {}
+error: `ref` type is not allowed here.
+--> ref-impl-header.dora:8:6
+ | impl Trait[Foo] for ref Foo {}
+ | 
+ | impl Trait[ref Foo] for Bla {}
+        ~~~~~~~~~~~~~~
+ | 
+ | impl ref Foo {}
+error: `ref` type is not allowed here.
+--> ref-impl-header.dora:10:6
+ | impl Trait[ref Foo] for Bla {}
+ | 
+ | impl ref Foo {}
+        ~~~~~~~
+ | 
+3 errors found.
