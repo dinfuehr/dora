@@ -1,0 +1,9 @@
+class Foo
+class Wrapper[T]
+
+fn main() {
+    let _direct = |_value: ref Foo| {};
+    let _tuple = |_value: (ref Foo, Int32)| {};
+    let _type_argument = |_value: Wrapper[ref Foo]| {};
+    let _nested_ref = |_value: ref ref Foo| {};
+}

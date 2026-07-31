@@ -1,0 +1,5 @@
+fn main() {
+    let value = 1i32;
+    let get_ref = ||: ref Int32 { ref value };
+    get_ref();
+}

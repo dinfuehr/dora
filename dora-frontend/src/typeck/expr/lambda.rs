@@ -3,8 +3,12 @@ use crate::SourceType;
 use crate::SourceTypeArray;
 use crate::args;
 use crate::element_collector::Annotations;
-use crate::error::diagnostics::{LAMBDA_PARAM_LIMIT_EXCEEDED, VARIADIC_PARAMETER_NEEDS_TO_BE_LAST};
-use crate::sema::{Body, ExprId, FctDefinition, FctParent, LambdaExpr, LambdaId, Param, Params};
+use crate::error::diagnostics::{
+    LAMBDA_PARAM_LIMIT_EXCEEDED, REF_TYPE_NOT_ALLOWED, VARIADIC_PARAMETER_NEEDS_TO_BE_LAST,
+};
+use crate::sema::{
+    Body, ExprId, FctDefinition, FctParent, LambdaExpr, LambdaId, Param, Params, type_ref_span,
+};
 use crate::typeck::TypeCheck;
 
 pub(super) fn check_expr_lambda(
@@ -40,7 +44,15 @@ pub(super) fn check_expr_lambda(
 
     let lambda_return_type = if let Some(ret_ty) = sema_expr.return_ty {
         // Explicit annotation takes precedence
-        ck.read_type(ret_ty)
+        let ty = ck.read_type(ret_ty);
+
+        if ty.contains_ref_type() {
+            let span = type_ref_span(ck.sa, ck.body.type_refs(), ck.file_id, ret_ty);
+            ck.report(span, &REF_TYPE_NOT_ALLOWED, args!());
+            SourceType::Error
+        } else {
+            ty
+        }
     } else if let Some(expected_ret) = expected_return_type {
         // Use expected return type from context
         expected_ret
@@ -72,7 +84,19 @@ pub(super) fn check_expr_lambda(
     for (idx, lambda_param) in sema_expr.params.iter().enumerate() {
         let ty = if let Some(ty_id) = lambda_param.ty {
             // Explicit annotation takes precedence
-            ck.read_type(ty_id)
+            let ty = ck.read_type(ty_id);
+            let contains_nested_ref = match &ty {
+                SourceType::Ref(inner) => inner.contains_ref_type(),
+                _ => ty.contains_ref_type(),
+            };
+
+            if contains_nested_ref {
+                let span = type_ref_span(ck.sa, ck.body.type_refs(), ck.file_id, ty_id);
+                ck.report(span, &REF_TYPE_NOT_ALLOWED, args!());
+                SourceType::Error
+            } else {
+                ty
+            }
         } else if let Some(ref expected) = expected_params {
             if param_count_mismatch {
                 SourceType::Error
