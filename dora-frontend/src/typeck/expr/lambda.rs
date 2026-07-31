@@ -85,12 +85,13 @@ pub(super) fn check_expr_lambda(
         let ty = if let Some(ty_id) = lambda_param.ty {
             // Explicit annotation takes precedence
             let ty = ck.read_type(ty_id);
-            let contains_nested_ref = match &ty {
-                SourceType::Ref(inner) => inner.contains_ref_type(),
+            let is_variadic_param = is_variadic && idx + 1 == sema_expr.params.len();
+            let ref_type_not_allowed = match &ty {
+                SourceType::Ref(inner) if !is_variadic_param => inner.contains_ref_type(),
                 _ => ty.contains_ref_type(),
             };
 
-            if contains_nested_ref {
+            if ref_type_not_allowed {
                 let span = type_ref_span(ck.sa, ck.body.type_refs(), ck.file_id, ty_id);
                 ck.report(span, &REF_TYPE_NOT_ALLOWED, args!());
                 SourceType::Error

@@ -1,0 +1,7 @@
+class Foo
+
+fn function(_values: ref Foo...) {}
+
+fn main() {
+    let _lambda = |_values: ref Foo...| {};
+}

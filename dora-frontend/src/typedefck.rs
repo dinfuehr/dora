@@ -446,14 +446,17 @@ fn expand_function_types(sa: &Sema) {
     for (_id, fct) in sa.fcts.iter() {
         let replace_self = compute_function_replace_self(sa, fct);
 
-        for param in fct.params_with_self() {
+        let params = fct.params_with_self();
+
+        for (idx, param) in params.iter().enumerate() {
             let param_ty = param.parsed_ty().expand(sa, fct, replace_self.clone());
-            let contains_nested_ref = match &param_ty {
-                SourceType::Ref(inner) => inner.contains_ref_type(),
+            let is_variadic_param = fct.params.is_variadic && idx + 1 == params.len();
+            let ref_type_not_allowed = match &param_ty {
+                SourceType::Ref(inner) if !is_variadic_param => inner.contains_ref_type(),
                 _ => param_ty.contains_ref_type(),
             };
 
-            if contains_nested_ref {
+            if ref_type_not_allowed {
                 sa.report(
                     fct.file_id,
                     param.parsed_ty().span(sa, fct),

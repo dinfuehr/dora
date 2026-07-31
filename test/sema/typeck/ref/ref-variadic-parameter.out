@@ -1,0 +1,17 @@
+error: `ref` type is not allowed here.
+--> ref-variadic-parameter.dora:3:22
+ | class Foo
+ | 
+ | fn function(_values: ref Foo...) {}
+                        ~~~~~~~
+ | 
+ | fn main() {
+error: `ref` type is not allowed here.
+--> ref-variadic-parameter.dora:6:29
+ | 
+ | fn main() {
+ |     let _lambda = |_values: ref Foo...| {};
+                               ~~~~~~~
+ | }
+ | 
+2 errors found.
