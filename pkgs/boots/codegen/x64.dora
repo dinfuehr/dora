@@ -4187,11 +4187,11 @@ impl CodeGen for CodeGenX64 {
 
         match inst.get_value_type() {
             Type::Int32 => {
-                self.asm.movl_ra(dest, AsmAddress::offset(src, OBJECT_HEADER_LENGTH));
+                self.asm.movl_ra(dest, AsmAddress::offset(src, 0i32));
             }
 
             Type::Int64 => {
-                self.asm.movq_ra(dest, AsmAddress::offset(src, OBJECT_HEADER_LENGTH));
+                self.asm.movq_ra(dest, AsmAddress::offset(src, 0i32));
             }
 
             _ => unreachable[()](),
@@ -4212,18 +4212,12 @@ impl CodeGen for CodeGenX64 {
         match inst.get_operation_type() {
             Type::Int32 => {
                 self.asm.movl_rr(REG_TEMP, value);
-                self.asm.xchgl_ar(
-                    AsmAddress::offset(obj, OBJECT_HEADER_LENGTH),
-                    REG_TEMP,
-                );
+                self.asm.xchgl_ar(AsmAddress::offset(obj, 0i32), REG_TEMP);
             }
 
             Type::Int64 => {
                 self.asm.movq_rr(REG_TEMP, value);
-                self.asm.xchgq_ar(
-                    AsmAddress::offset(obj, OBJECT_HEADER_LENGTH),
-                    REG_TEMP,
-                );
+                self.asm.xchgq_ar(AsmAddress::offset(obj, 0i32), REG_TEMP);
             }
 
             _ => unreachable[()](),
@@ -4245,19 +4239,13 @@ impl CodeGen for CodeGenX64 {
         match inst.get_value_type() {
             Type::Int32 => {
                 self.asm.movl_rr(REG_TEMP, new_value);
-                self.asm.xchgl_ar(
-                    AsmAddress::offset(obj, OBJECT_HEADER_LENGTH),
-                    REG_TEMP,
-                );
+                self.asm.xchgl_ar(AsmAddress::offset(obj, 0i32), REG_TEMP);
                 self.asm.movl_rr(dest, REG_TEMP);
             }
 
             Type::Int64 => {
                 self.asm.movq_rr(REG_TEMP, new_value);
-                self.asm.xchgq_ar(
-                    AsmAddress::offset(obj, OBJECT_HEADER_LENGTH),
-                    REG_TEMP,
-                );
+                self.asm.xchgq_ar(AsmAddress::offset(obj, 0i32), REG_TEMP);
                 self.asm.movq_rr(dest, REG_TEMP);
             }
 
@@ -4285,19 +4273,13 @@ impl CodeGen for CodeGenX64 {
         match inst.get_value_type() {
             Type::Int32 => {
                 self.asm.movl_rr(RAX, expected);
-                self.asm.lock_cmpxchgl_ar(
-                    AsmAddress::offset(obj, OBJECT_HEADER_LENGTH),
-                    new_value,
-                );
+                self.asm.lock_cmpxchgl_ar(AsmAddress::offset(obj, 0i32), new_value);
                 self.asm.movl_rr(dest, RAX);
             }
 
             Type::Int64 => {
                 self.asm.movq_rr(RAX, expected);
-                self.asm.lock_cmpxchgq_ar(
-                    AsmAddress::offset(obj, OBJECT_HEADER_LENGTH),
-                    new_value,
-                );
+                self.asm.lock_cmpxchgq_ar(AsmAddress::offset(obj, 0i32), new_value);
                 self.asm.movq_rr(dest, RAX);
             }
 
@@ -4320,19 +4302,13 @@ impl CodeGen for CodeGenX64 {
         match inst.get_value_type() {
             Type::Int32 => {
                 self.asm.movl_rr(REG_TEMP, increment);
-                self.asm.lock_xaddl_ar(
-                    AsmAddress::offset(obj, OBJECT_HEADER_LENGTH),
-                    REG_TEMP,
-                );
+                self.asm.lock_xaddl_ar(AsmAddress::offset(obj, 0i32), REG_TEMP);
                 self.asm.movl_rr(dest, REG_TEMP);
             }
 
             Type::Int64 => {
                 self.asm.movq_rr(REG_TEMP, increment);
-                self.asm.lock_xaddq_ar(
-                    AsmAddress::offset(obj, OBJECT_HEADER_LENGTH),
-                    REG_TEMP,
-                );
+                self.asm.lock_xaddq_ar(AsmAddress::offset(obj, 0i32), REG_TEMP);
                 self.asm.movq_rr(dest, REG_TEMP);
             }
 

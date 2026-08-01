@@ -18,7 +18,7 @@ impl Thread {
 @native
 pub fn spawn(action: (): ()): Thread;
 
-pub class AtomicInt32 {
+pub struct AtomicInt32 {
     value: Int32,
 }
 
@@ -28,22 +28,22 @@ impl AtomicInt32 {
     }
 
     @internal
-    pub fn get(): Int32;
+    pub mutating fn get(): Int32;
 
     @internal
-    pub fn set(value: Int32);
+    pub mutating fn set(value: Int32);
 
     @internal
-    pub fn exchange(value: Int32): Int32;
+    pub mutating fn exchange(value: Int32): Int32;
 
     @internal
-    pub fn compare_exchange(expected: Int32, value: Int32): Int32;
+    pub mutating fn compare_exchange(expected: Int32, value: Int32): Int32;
 
     @internal
-    pub fn fetch_add(value: Int32): Int32;
+    pub mutating fn fetch_add(value: Int32): Int32;
 }
 
-pub class AtomicInt64 {
+pub struct AtomicInt64 {
     value: Int64,
 }
 
@@ -53,19 +53,19 @@ impl AtomicInt64 {
     }
 
     @internal
-    pub fn get(): Int64;
+    pub mutating fn get(): Int64;
 
     @internal
-    pub fn set(value: Int64);
+    pub mutating fn set(value: Int64);
 
     @internal
-    pub fn exchange(value: Int64): Int64;
+    pub mutating fn exchange(value: Int64): Int64;
 
     @internal
-    pub fn compare_exchange(expected: Int64, value: Int64): Int64;
+    pub mutating fn compare_exchange(expected: Int64, value: Int64): Int64;
 
     @internal
-    pub fn fetch_add(value: Int64): Int64;
+    pub mutating fn fetch_add(value: Int64): Int64;
 }
 
 const UNLOCKED: Int32 = 0i32;

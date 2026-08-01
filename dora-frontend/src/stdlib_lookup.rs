@@ -56,9 +56,6 @@ pub fn lookup_known_fundamental_types(sa: &mut Sema) {
 
     sa.known.classes.string_buffer = Some(find_class(sa, "std::string::StringBuffer"));
 
-    sa.known.classes.atomic_int32 = Some(find_class(sa, "std::thread::AtomicInt32"));
-    sa.known.classes.atomic_int64 = Some(find_class(sa, "std::thread::AtomicInt64"));
-
     let cls = &mut sa.classes[sa.known.classes.string()];
     cls.is_str = true;
 

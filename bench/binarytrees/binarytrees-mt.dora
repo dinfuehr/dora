@@ -24,7 +24,7 @@ fn main() {
 
     let mut i = 0i32;
     let threads = Vec[std::Thread]::new();
-    let nextDepth = std::AtomicInt32::new(MIN_DEPTH);
+    let nextDepth = SharedCounter::new(MIN_DEPTH);
     let results = Array[String]::fill((maxDepth - MIN_DEPTH).to_int64() / 2i64 + 1i64, "");
 
     while i < number_threads {
@@ -47,14 +47,28 @@ fn main() {
         + "\t check: " + checkTree(longLastingNode).to_string());
 }
 
+class SharedCounter {
+    value: std::AtomicInt32,
+}
+
+impl SharedCounter {
+    static fn new(value: Int32): SharedCounter {
+        SharedCounter(value = std::AtomicInt32::new(value))
+    }
+
+    fn fetch_add(value: Int32): Int32 {
+        self.value.fetch_add(value)
+    }
+}
+
 class TreeThread {
-    nextDepth: std::AtomicInt32,
+    nextDepth: SharedCounter,
     maxDepth: Int32,
     results: Array[String],
 }
 
 impl TreeThread {
-    static fn new(nextDepth: std::AtomicInt32, maxDepth: Int32, results: Array[String]): TreeThread {
+    static fn new(nextDepth: SharedCounter, maxDepth: Int32, results: Array[String]): TreeThread {
         TreeThread(nextDepth, maxDepth, results)
     }
 

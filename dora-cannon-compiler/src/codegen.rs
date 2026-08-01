@@ -3157,12 +3157,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 let obj_reg = arguments[0];
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    Header::size() as i64,
-                );
                 self.asm.load_int32_synchronized(REG_RESULT, REG_RESULT);
                 self.emit_store_register(REG_RESULT.into(), dest);
             }
@@ -3172,12 +3166,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 let obj_reg = arguments[0];
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    Header::size() as i64,
-                );
                 self.asm.load_int64_synchronized(REG_RESULT, REG_RESULT);
                 self.emit_store_register(REG_RESULT.into(), dest);
             }
@@ -3189,12 +3177,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP1.into());
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    Header::size() as i64,
-                );
                 self.asm
                     .exchange_int32_synchronized(REG_TMP2, REG_TMP1, REG_RESULT);
                 self.emit_store_register(REG_TMP2.into(), dest);
@@ -3209,8 +3191,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 self.emit_load_register(obj_reg, REG_TMP1.into());
                 self.emit_load_register(expected_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP2.into());
-                self.asm
-                    .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, Header::size() as i64);
                 let current = self
                     .asm
                     .compare_exchange_int32_synchronized(REG_RESULT, REG_TMP2, REG_TMP1);
@@ -3226,8 +3206,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 self.emit_load_register(obj_reg, REG_TMP1.into());
                 self.emit_load_register(expected_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP2.into());
-                self.asm
-                    .int_add_imm(MachineMode::Ptr, REG_TMP1, REG_TMP1, Header::size() as i64);
                 let current = self
                     .asm
                     .compare_exchange_int64_synchronized(REG_RESULT, REG_TMP2, REG_TMP1);
@@ -3241,12 +3219,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP1.into());
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    Header::size() as i64,
-                );
                 let previous = self
                     .asm
                     .fetch_add_int32_synchronized(REG_TMP2, REG_TMP1, REG_RESULT);
@@ -3260,12 +3232,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP1.into());
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    Header::size() as i64,
-                );
                 let previous = self
                     .asm
                     .fetch_add_int64_synchronized(REG_TMP2, REG_TMP1, REG_RESULT);
@@ -3279,12 +3245,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP1.into());
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    Header::size() as i64,
-                );
                 self.asm
                     .exchange_int64_synchronized(REG_TMP2, REG_TMP1, REG_RESULT);
                 self.emit_store_register(REG_TMP2.into(), dest);
@@ -3297,12 +3257,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP1.into());
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    Header::size() as i64,
-                );
                 self.asm.store_int32_synchronized(REG_TMP1, REG_RESULT);
             }
 
@@ -3313,12 +3267,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
                 self.emit_load_register(obj_reg, REG_RESULT.into());
                 self.emit_load_register(value_reg, REG_TMP1.into());
-                self.asm.int_add_imm(
-                    MachineMode::Ptr,
-                    REG_RESULT,
-                    REG_RESULT,
-                    Header::size() as i64,
-                );
                 self.asm.store_int64_synchronized(REG_TMP1, REG_RESULT);
             }
 

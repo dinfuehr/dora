@@ -17,14 +17,14 @@ impl MyThread {
 }
 
 fn main() {
-    let shared = AtomicInt32::new(0i32);
+    let shared = MyThread(AtomicInt32::new(0i32));
     let threads = Vec[std::Thread]::new();
 
     let mut i = 0i32;
 
     while i < THREADS {
         let thread = std::thread::spawn(|| {
-            MyThread(shared).run();
+            shared.run();
         });
         threads.push(thread);
         i = i + 1i32;
@@ -34,5 +34,5 @@ fn main() {
         thread.join();
     }
 
-    assert(shared.get() == THREADS * ITERATIONS);
+    assert(shared.counter.get() == THREADS * ITERATIONS);
 }

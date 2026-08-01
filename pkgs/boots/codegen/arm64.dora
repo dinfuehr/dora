@@ -3516,7 +3516,7 @@ impl CodeGen for CodeGenArm64 {
         let dest = loc.get_output().get_register();
         let src = loc.get_input(0).get_register();
 
-        self.asm.add_imm(REG_TEMP, src, OBJECT_HEADER_LENGTH);
+        self.asm.add_imm(REG_TEMP, src, 0i32);
 
         match inst.get_value_type() {
             Type::Int32 => {
@@ -3542,7 +3542,7 @@ impl CodeGen for CodeGenArm64 {
         let obj = loc.get_input(0).get_register();
         let value = loc.get_input(1).get_register();
 
-        self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
+        self.asm.add_imm(REG_TEMP, obj, 0i32);
 
         match inst.get_operation_type() {
             Type::Int32 => {
@@ -3569,7 +3569,7 @@ impl CodeGen for CodeGenArm64 {
         let new_value = loc.get_input(1).get_register();
         let dest = loc.get_output().get_register();
 
-        self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
+        self.asm.add_imm(REG_TEMP, obj, 0i32);
 
         match inst.get_value_type() {
             Type::Int32 => {
@@ -3612,7 +3612,7 @@ impl CodeGen for CodeGenArm64 {
         let expected = loc.get_input(1).get_register();
         let new_value = loc.get_input(2).get_register();
 
-        self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
+        self.asm.add_imm(REG_TEMP, obj, 0i32);
 
         match inst.get_value_type() {
             Type::Int32 => {
@@ -3667,7 +3667,7 @@ impl CodeGen for CodeGenArm64 {
         let obj = loc.get_input(0).get_register();
         let increment = loc.get_input(1).get_register();
 
-        self.asm.add_imm(REG_TEMP, obj, OBJECT_HEADER_LENGTH);
+        self.asm.add_imm(REG_TEMP, obj, 0i32);
 
         match inst.get_value_type() {
             Type::Int32 => {
