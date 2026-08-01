@@ -360,13 +360,34 @@ fn gen_expr_ref_field(
     let ref_ty = BytecodeType::Ref(Box::new(inner_ty));
     let dest_reg = ensure_register(g, dest, ref_ty);
     let field_idx = add_field_const_pool_entry(g, e.expr);
-    let obj = gen_expr(g, field_expr.lhs, DataDest::Alloc);
+    let object_ty = g.ty(field_expr.lhs);
+    let (obj, backing) = if is_nested_value_field(g, field_expr.lhs) {
+        let object = gen_expr_as_ref(g, field_expr.lhs, object_ty);
+        (object.reference, object.backing)
+    } else {
+        (gen_expr(g, field_expr.lhs, DataDest::Alloc), None)
+    };
     let location = g.loc_for_expr(e.expr);
     g.builder
         .emit_get_field_ref(dest_reg, obj, field_idx, location);
     g.free_if_temp(obj);
 
+    if let Some(backing) = backing {
+        g.free_if_temp(backing);
+    }
+
     dest_reg
+}
+
+fn is_nested_value_field(g: &AstBytecodeGen, expr_id: ExprId) -> bool {
+    match g.analysis.expr(expr_id) {
+        Expr::Field(_) => {
+            let ty = g.ty(expr_id);
+            ty.is_struct() || ty.is_tuple()
+        }
+        Expr::Paren(inner_expr) => is_nested_value_field(g, *inner_expr),
+        _ => false,
+    }
 }
 
 fn add_field_const_pool_entry(
