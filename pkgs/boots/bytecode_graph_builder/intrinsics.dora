@@ -31,11 +31,7 @@ impl BytecodeGraphBuilder {
         );
         for idx in std::range(0, argument_registers.size()) {
             let arg = argument_registers(idx);
-            let value = if self.reg(arg).is_ref() {
-                self.load_ref_interior(self.aggregate_register(arg))
-            } else {
-                self.emit_local_get(arg)
-            };
+            let value = self.register_value(arg);
             args.push(value);
             argument_types(idx) = self.reg(arg);
         }
@@ -987,6 +983,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn emit_intrinsic_atomic_load(obj: Inst, ty: Type): Inst {
+        let obj = self.load_ref_interior(obj);
         assert(obj.get_value_type() == Type::Address);
         let inst = graph::create_atomic_load_inst(ty, obj);
         self.current().append_inst(inst);
@@ -994,6 +991,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn emit_intrinsic_atomic_store(obj: Inst, value: Inst, ty: Type) {
+        let obj = self.load_ref_interior(obj);
         assert(obj.get_value_type() == Type::Address);
         assert(value.get_value_type() == ty);
         let inst = graph::create_atomic_store_inst(ty, obj, value);
@@ -1001,6 +999,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn emit_intrinsic_atomic_exchange(obj: Inst, new_value: Inst, ty: Type): Inst {
+        let obj = self.load_ref_interior(obj);
         assert(obj.get_value_type() == Type::Address);
         assert(new_value.get_value_type() == ty);
         let inst = graph::create_atomic_exchange_inst(ty, obj, new_value);
@@ -1014,6 +1013,7 @@ impl BytecodeGraphBuilder {
         new_value: Inst,
         ty: Type,
     ): Inst {
+        let obj = self.load_ref_interior(obj);
         assert(obj.get_value_type() == Type::Address);
         assert(expected.get_value_type() == ty);
         assert(new_value.get_value_type() == ty);
@@ -1028,6 +1028,7 @@ impl BytecodeGraphBuilder {
     }
 
     fn emit_intrinsic_atomic_fetch_add(obj: Inst, increment: Inst, ty: Type): Inst {
+        let obj = self.load_ref_interior(obj);
         assert(obj.get_value_type() == Type::Address);
         assert(increment.get_value_type() == ty);
         let inst = graph::create_atomic_fetch_add_inst(ty, obj, increment);
