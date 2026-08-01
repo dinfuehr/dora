@@ -1,0 +1,17 @@
+error: unknown field `field` for type `ref Named`
+--> ref-expression-field-access.dora:5:5
+ | 
+ | fn named(value: Named) {
+ |     (ref value).field;
+       ~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: unknown field `0` for type `ref Unnamed`
+--> ref-expression-field-access.dora:9:17
+ | 
+ | fn unnamed(value: Unnamed) {
+ |     (ref value).0;
+                   ~
+ | }
+ | 
+2 errors found.

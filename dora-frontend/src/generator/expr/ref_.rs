@@ -36,7 +36,7 @@ pub(super) fn gen_expr_as_ref(
         Expr::Path(..) => gen_expr_as_ref_path(g, expr_id),
         Expr::Field(field_expr) => gen_expr_as_ref_field(g, expr_id, field_expr, ty),
         Expr::Paren(inner_expr) => gen_expr_as_ref(g, *inner_expr, ty),
-        // `(ref value).field` already has a reference to use as the chain root.
+        // An explicit `ref` expression already provides a reference to use.
         Expr::Ref(_) => GeneratedRef {
             reference: gen_expr(g, expr_id, DataDest::Alloc),
             backing: None,

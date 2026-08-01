@@ -53,12 +53,6 @@ pub(super) fn check_expr_field_named(
     let mut error_span = Some(error_span);
     let mut span = || error_span.take().expect("field span already computed")(ck);
 
-    // Auto-dereference Ref types for field access.
-    let object_type = match object_type {
-        SourceType::Ref(inner) => (*inner).clone(),
-        ty => ty,
-    };
-
     match object_type.clone() {
         SourceType::Error
         | SourceType::Any
@@ -162,12 +156,6 @@ fn check_expr_field_unnamed(
     };
     ck.body
         .set_const_value(expr_id, ConstValue::Int(index as i64));
-
-    // Auto-dereference Ref types for field access.
-    let object_type = match object_type {
-        SourceType::Ref(inner) => (*inner).clone(),
-        ty => ty,
-    };
 
     match object_type.clone() {
         SourceType::Error

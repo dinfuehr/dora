@@ -87,21 +87,3 @@ fn read_tuple:
   Locations:
    0 => 18:5
 
-fn read_ref_expr:
-  0: GetRegisterRef r2, r0
-  3: GetFieldRef r3, r2, @0 # Inner.value
-  7: LoadRef r1, r3
- 10: Ret r1
-
-  Registers:
-   0 => struct Inner
-   1 => Int32
-   2 => ref Inner
-   3 => ref Int32
-
-  Constants:
-   0 => StructField Inner.value
-
-  Locations:
-   3 => 22:5
-

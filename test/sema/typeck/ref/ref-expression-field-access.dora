@@ -1,0 +1,10 @@
+struct Named { field: Int32 }
+struct Unnamed(Int32)
+
+fn named(value: Named) {
+    (ref value).field;
+}
+
+fn unnamed(value: Unnamed) {
+    (ref value).0;
+}
