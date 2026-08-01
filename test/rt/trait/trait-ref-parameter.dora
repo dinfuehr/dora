@@ -11,7 +11,7 @@ impl Update[Int32] for Updater {
 }
 
 fn update[T: Update[Int32]](updater: T, value: ref Int32, replacement: Int32) {
-    updater.update(value, replacement);
+    updater.update(ref value, replacement);
 }
 
 fn main() {
