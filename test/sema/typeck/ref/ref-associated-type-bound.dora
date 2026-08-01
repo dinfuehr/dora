@@ -1,0 +1,13 @@
+class Foo
+
+trait Generic[T] {}
+trait Plain {}
+
+trait Associated {
+    type Item;
+}
+
+trait Trait {
+    type Direct: Plain + Generic[ref Foo];
+    type Binding: Associated[Item=ref Foo];
+}

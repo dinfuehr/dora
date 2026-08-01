@@ -1,0 +1,17 @@
+error: `ref` type is not allowed here.
+--> ref-associated-type-bound.dora:11:26
+ | 
+ | trait Trait {
+ |     type Direct: Plain + Generic[ref Foo];
+                            ~~~~~~~~~~~~~~~~
+ |     type Binding: Associated[Item=ref Foo];
+ | }
+error: `ref` type is not allowed here.
+--> ref-associated-type-bound.dora:12:19
+ | trait Trait {
+ |     type Direct: Plain + Generic[ref Foo];
+ |     type Binding: Associated[Item=ref Foo];
+                     ~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+2 errors found.

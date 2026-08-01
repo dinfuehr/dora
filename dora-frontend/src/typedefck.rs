@@ -437,6 +437,24 @@ fn expand_alias_types(sa: &Sema) {
     for (_id, alias) in sa.aliases.iter() {
         expand_type_param_definition(sa, alias, alias.type_param_definition(sa), None);
 
+        for bound in alias.bounds() {
+            parsety::expand_parsed_trait_type(sa, alias, bound.parsed_ty(), None);
+
+            if bound
+                .parsed_ty()
+                .ty()
+                .is_some_and(|ty| ty.contains_ref_type())
+            {
+                sa.report(
+                    alias.file_id(),
+                    bound.parsed_ty().span(sa, alias),
+                    &diag::REF_TYPE_NOT_ALLOWED,
+                    args!(),
+                );
+                bound.parsed_ty().set_ty(None);
+            }
+        }
+
         if let Some(parsed_ty) = alias.parsed_ty() {
             let ty = parsed_ty.expand(sa, alias, None);
 
