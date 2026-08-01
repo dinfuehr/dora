@@ -9,6 +9,10 @@ fn main() {
     update(ref stack_value, 11i32);
     assert(stack_value == 11i32);
 
+    let stack_value_ref: ref Int32 = ref stack_value;
+    update(ref stack_value_ref, 12i32);
+    assert(stack_value == 12i32);
+
     let box = Box(20i32);
     update(ref box.value, 21i32);
     assert(box.value == 21i32);

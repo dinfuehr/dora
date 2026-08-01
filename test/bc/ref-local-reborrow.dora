@@ -3,5 +3,5 @@ fn take_ref(value: ref Int32) {}
 fn f() {
     let a: Int32 = 42;
     let r: ref Int32 = ref a;
-    take_ref(r);
+    take_ref(ref r);
 }

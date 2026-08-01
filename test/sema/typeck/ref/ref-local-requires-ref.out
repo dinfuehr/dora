@@ -1,0 +1,9 @@
+error: Argument expects value of type `ref Int32` but got `Int32`.
+--> ref-local-requires-ref.dora:6:14
+ |     let a: Int32 = 42;
+ |     let r: ref Int32 = ref a;
+ |     take_ref(r);
+                ~
+ | }
+ | 
+1 error found.

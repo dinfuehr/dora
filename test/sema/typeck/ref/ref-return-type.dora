@@ -1,7 +1,7 @@
 class Foo
 
 fn identity(value: ref Foo): ref Foo {
-    value
+    ref value
 }
 
 trait Trait {

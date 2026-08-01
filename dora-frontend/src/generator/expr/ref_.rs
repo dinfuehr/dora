@@ -273,7 +273,6 @@ fn gen_expr_ref_path(
 
     let inner_ty = g.emitter.convert_ty(g.sa, g.ty(e.expr));
     let ref_ty = BytecodeType::Ref(Box::new(inner_ty));
-    let dest_reg = ensure_register(g, dest, ref_ty);
 
     match ident_type {
         IdentType::Var(var_id) => {
@@ -282,25 +281,41 @@ fn gen_expr_ref_path(
             match var.location {
                 VarLocation::Stack => {
                     let src_reg = var_reg(g, var_id);
-                    g.builder.emit_get_register_ref(dest_reg, src_reg);
+                    if var.ty.is_ref() {
+                        if dest.is_alloc() {
+                            src_reg
+                        } else {
+                            let dest_reg = dest.reg();
+                            g.builder.emit_mov(dest_reg, src_reg);
+                            dest_reg
+                        }
+                    } else {
+                        let dest_reg = ensure_register(g, dest, ref_ty);
+                        g.builder.emit_get_register_ref(dest_reg, src_reg);
+                        dest_reg
+                    }
                 }
                 VarLocation::Context(scope_id, field_id) => {
+                    let dest_reg = ensure_register(g, dest, ref_ty);
                     gen_expr_ref_context_var(g, dest_reg, scope_id, field_id, expr_id);
+                    dest_reg
                 }
             }
         }
         IdentType::Context(context_id, field_id) => {
+            let dest_reg = ensure_register(g, dest, ref_ty);
             gen_expr_ref_outer_context_var(g, dest_reg, context_id, field_id, expr_id);
+            dest_reg
         }
         IdentType::Global(global_id) => {
+            let dest_reg = ensure_register(g, dest, ref_ty);
             let global_id = g.emitter.convert_global_id(g.sa, global_id);
             g.builder
                 .emit_get_global_ref(dest_reg, global_id, g.loc_for_expr(expr_id));
+            dest_reg
         }
         _ => unreachable!("ref expression should only be on variables"),
     }
-
-    dest_reg
 }
 
 fn gen_expr_ref_context_var(

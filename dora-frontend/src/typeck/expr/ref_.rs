@@ -38,7 +38,11 @@ pub(super) fn check_expr_ref(
 
             let (inner_ty, ident) = match resolution {
                 PathResolution::Symbol(SymbolKind::Var(var_id)) => {
-                    let inner_ty = ck.vars.get_var(var_id).ty.clone();
+                    let var_ty = ck.vars.get_var(var_id).ty.clone();
+                    let inner_ty = match var_ty {
+                        SourceType::Ref(inner) => *inner,
+                        _ => var_ty,
+                    };
                     ck.vars.mark_used(var_id);
                     let ident = ck.maybe_allocate_in_context(var_id);
                     (inner_ty, ident)
