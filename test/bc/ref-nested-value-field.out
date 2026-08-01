@@ -1,0 +1,43 @@
+struct Inner:
+  value: Int32
+
+struct Outer:
+  inner: Inner
+
+fn update:
+  0: ConstInt32 r1, @0 # 7
+  3: StoreRef r1, r0
+  6: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => Int32
+   2 => ()
+
+  Constants:
+   0 => Int32 7
+
+  Locations:
+   3 => 5:5
+
+fn update_nested:
+  0: LoadField r3, r0, @2 # Outer.inner
+  4: GetFieldRef r2, r3, @1 # Inner.value
+  8: InvokeStatic r1, @0, r2 # update
+ 13: Ret r1
+
+  Registers:
+   0 => struct Outer
+   1 => ()
+   2 => ref Int32
+   3 => struct Inner
+
+  Constants:
+   0 => Fct update
+   1 => StructField Inner.value
+   2 => StructField Outer.inner
+
+  Locations:
+   4 => 9:16
+   8 => 9:5
+

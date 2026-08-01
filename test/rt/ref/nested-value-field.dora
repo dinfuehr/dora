@@ -1,0 +1,14 @@
+//= ignore
+
+struct Inner { value: Int32 }
+struct Outer { inner: Inner }
+
+fn update(value: ref Int32) {
+    value = 7i32;
+}
+
+fn main() {
+    let outer = Outer(inner = Inner(value = 1i32));
+    update(ref outer.inner.value);
+    assert(outer.inner.value == 7i32);
+}

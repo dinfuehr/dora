@@ -1,0 +1,10 @@
+struct Inner { value: Int32 }
+struct Outer { inner: Inner }
+
+fn update(value: ref Int32) {
+    value = 7i32;
+}
+
+fn update_nested(outer: Outer) {
+    update(ref outer.inner.value);
+}
