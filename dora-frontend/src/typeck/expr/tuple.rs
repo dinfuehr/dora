@@ -1,7 +1,8 @@
-use crate::SourceType;
+use crate::error::diagnostics as diag;
 use crate::sema::{ExprId, TupleExpr, create_tuple};
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
+use crate::{SourceType, args};
 
 pub(super) fn check_expr_tuple(
     ck: &mut TypeCheck,
@@ -27,6 +28,13 @@ pub(super) fn check_expr_tuple(
     }
 
     let ty = create_tuple(ck.sa, subtypes);
+
+    if ty.contains_ref_type() {
+        ck.report(ck.expr_span(expr_id), &diag::REF_TYPE_NOT_ALLOWED, args!());
+        ck.body.set_ty(expr_id, SourceType::Error);
+        return SourceType::Error;
+    }
+
     ck.body.set_ty(expr_id, ty.clone());
 
     ty

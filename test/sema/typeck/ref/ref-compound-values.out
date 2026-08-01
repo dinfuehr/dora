@@ -1,0 +1,89 @@
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:14:27
+ | fn test() {
+ |     let foo = Foo();
+ |     let _class_explicit = BoxClass[ref Foo](ref foo);
+                             ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _class_inferred = BoxClass(ref foo);
+ |     let _struct_explicit = BoxStruct[ref Foo](ref foo);
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:15:27
+ |     let foo = Foo();
+ |     let _class_explicit = BoxClass[ref Foo](ref foo);
+ |     let _class_inferred = BoxClass(ref foo);
+                             ~~~~~~~~~~~~~~~~~
+ |     let _struct_explicit = BoxStruct[ref Foo](ref foo);
+ |     let _struct_inferred = BoxStruct(ref foo);
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:16:28
+ |     let _class_explicit = BoxClass[ref Foo](ref foo);
+ |     let _class_inferred = BoxClass(ref foo);
+ |     let _struct_explicit = BoxStruct[ref Foo](ref foo);
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _struct_inferred = BoxStruct(ref foo);
+ |     let _enum_explicit = BoxEnum[ref Foo]::Value(ref foo);
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:17:28
+ |     let _class_inferred = BoxClass(ref foo);
+ |     let _struct_explicit = BoxStruct[ref Foo](ref foo);
+ |     let _struct_inferred = BoxStruct(ref foo);
+                              ~~~~~~~~~~~~~~~~~~
+ |     let _enum_explicit = BoxEnum[ref Foo]::Value(ref foo);
+ |     let _enum_inferred = BoxEnum::Value(ref foo);
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:18:26
+ |     let _struct_explicit = BoxStruct[ref Foo](ref foo);
+ |     let _struct_inferred = BoxStruct(ref foo);
+ |     let _enum_explicit = BoxEnum[ref Foo]::Value(ref foo);
+                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _enum_inferred = BoxEnum::Value(ref foo);
+ |     let _tuple_explicit: (ref Foo, Int32) = (ref foo, 1i32);
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:19:26
+ |     let _struct_inferred = BoxStruct(ref foo);
+ |     let _enum_explicit = BoxEnum[ref Foo]::Value(ref foo);
+ |     let _enum_inferred = BoxEnum::Value(ref foo);
+                            ~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _tuple_explicit: (ref Foo, Int32) = (ref foo, 1i32);
+ |     let _tuple_inferred = (ref foo, 1i32);
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:20:45
+ |     let _enum_explicit = BoxEnum[ref Foo]::Value(ref foo);
+ |     let _enum_inferred = BoxEnum::Value(ref foo);
+ |     let _tuple_explicit: (ref Foo, Int32) = (ref foo, 1i32);
+                                               ~~~~~~~~~~~~~~~
+ |     let _tuple_inferred = (ref foo, 1i32);
+ |     let _static_method = Vec[ref Foo]::new();
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:21:27
+ |     let _enum_inferred = BoxEnum::Value(ref foo);
+ |     let _tuple_explicit: (ref Foo, Int32) = (ref foo, 1i32);
+ |     let _tuple_inferred = (ref foo, 1i32);
+                             ~~~~~~~~~~~~~~~
+ |     let _static_method = Vec[ref Foo]::new();
+ |     let _generic = Factory::identity(ref foo);
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:22:26
+ |     let _tuple_explicit: (ref Foo, Int32) = (ref foo, 1i32);
+ |     let _tuple_inferred = (ref foo, 1i32);
+ |     let _static_method = Vec[ref Foo]::new();
+                            ~~~~~~~~~~~~~~~~~~~
+ |     let _generic = Factory::identity(ref foo);
+ |     let _trait_object = Foo() as BoxTrait[ref Foo];
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:23:20
+ |     let _tuple_inferred = (ref foo, 1i32);
+ |     let _static_method = Vec[ref Foo]::new();
+ |     let _generic = Factory::identity(ref foo);
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _trait_object = Foo() as BoxTrait[ref Foo];
+ |     let _ok = 0;
+error: `ref` type is not allowed here.
+--> ref-compound-values.dora:24:25
+ |     let _static_method = Vec[ref Foo]::new();
+ |     let _generic = Factory::identity(ref foo);
+ |     let _trait_object = Foo() as BoxTrait[ref Foo];
+                           ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _ok = 0;
+ | }
+11 errors found.

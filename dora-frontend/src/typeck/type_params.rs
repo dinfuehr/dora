@@ -1,7 +1,7 @@
 use dora_parser::Span;
 
 use crate::args;
-use crate::error::diagnostics::{TYPE_NOT_IMPLEMENTING_TRAIT, WRONG_NUMBER_TYPE_PARAMS};
+use crate::error::diagnostics as diag;
 use crate::sema::{Element, Sema, SourceFileId, TypeParamDefinition, implements_trait};
 use crate::{SourceType, TypeArgs, specialize_trait_type_generic};
 
@@ -24,6 +24,7 @@ pub fn check_type_params<'a>(
         caller_element,
         caller_type_param_defs,
         callee_element,
+        params,
         file_id,
         span,
         specialize,
@@ -49,7 +50,7 @@ pub fn check_type_param_arity(
         sa.report(
             file_id,
             span(),
-            &WRONG_NUMBER_TYPE_PARAMS,
+            &diag::WRONG_NUMBER_TYPE_PARAMS,
             args!(expected_own, params.own_len()),
         );
         return false;
@@ -63,10 +64,16 @@ pub fn check_type_param_bounds<'a>(
     caller_element: &'a dyn Element,
     caller_type_param_defs: &'a TypeParamDefinition,
     callee_element: &'a dyn Element,
+    params: &'a TypeArgs,
     file_id: SourceFileId,
     span: impl Fn() -> Span,
     specialize: impl Fn(SourceType) -> SourceType,
 ) -> bool {
+    if params.iter().any(|ty| ty.contains_ref_type()) {
+        sa.report(file_id, span(), &diag::REF_TYPE_NOT_ALLOWED, args!());
+        return false;
+    }
+
     let callee_type_param_defs = callee_element.type_param_definition(sa);
     let mut succeeded = true;
 
@@ -82,7 +89,7 @@ pub fn check_type_param_bounds<'a>(
                 sa.report(
                     file_id,
                     span(),
-                    &TYPE_NOT_IMPLEMENTING_TRAIT,
+                    &diag::TYPE_NOT_IMPLEMENTING_TRAIT,
                     args!(name, trait_name),
                 );
                 succeeded = false;

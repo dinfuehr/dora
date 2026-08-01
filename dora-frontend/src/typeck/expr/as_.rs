@@ -1,5 +1,5 @@
 use crate::args;
-use crate::error::diagnostics::{TRAIT_EXPECTED, TYPE_NOT_IMPLEMENTING_TRAIT};
+use crate::error::diagnostics as diag;
 use crate::sema::{AsExpr, ExprId, implements_trait};
 use crate::ty::TraitType;
 use crate::typeck::TypeCheck;
@@ -23,6 +23,13 @@ pub(super) fn check_expr_as(
     let check_type = ck.read_type(sema_expr.ty);
     ck.body.set_ty(sema_expr.ty, check_type.clone());
 
+    if check_type.contains_ref_type() {
+        ck.report(ck.expr_span(expr_id), &diag::REF_TYPE_NOT_ALLOWED, args!());
+        ck.body.set_ty(sema_expr.ty, SourceType::Error);
+        ck.body.set_ty(expr_id, SourceType::Error);
+        return SourceType::Error;
+    }
+
     if check_type.is_trait_object() {
         let implements = implements_trait(
             ck.sa,
@@ -37,7 +44,7 @@ pub(super) fn check_expr_as(
 
             ck.report(
                 ck.expr_span(expr_id),
-                &TYPE_NOT_IMPLEMENTING_TRAIT,
+                &diag::TYPE_NOT_IMPLEMENTING_TRAIT,
                 args![object_type, check_type_name],
             );
         }
@@ -46,7 +53,7 @@ pub(super) fn check_expr_as(
         check_type
     } else if !check_type.is_error() {
         let name = ck.ty_name(&check_type);
-        ck.report(ck.expr_span(expr_id), &TRAIT_EXPECTED, args!(name));
+        ck.report(ck.expr_span(expr_id), &diag::TRAIT_EXPECTED, args!(name));
         let ty = ty_error();
         ck.body.set_ty(expr_id, ty.clone());
         ty

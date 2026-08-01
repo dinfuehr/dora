@@ -1,0 +1,26 @@
+class Foo
+class BoxClass[T](T)
+struct BoxStruct[T](T)
+enum BoxEnum[T] { Value(T) }
+trait BoxTrait[T] {}
+
+class Factory
+impl Factory {
+    static fn identity[T](value: T): T { value }
+}
+
+fn test() {
+    let foo = Foo();
+    let _class_explicit = BoxClass[ref Foo](ref foo);
+    let _class_inferred = BoxClass(ref foo);
+    let _struct_explicit = BoxStruct[ref Foo](ref foo);
+    let _struct_inferred = BoxStruct(ref foo);
+    let _enum_explicit = BoxEnum[ref Foo]::Value(ref foo);
+    let _enum_inferred = BoxEnum::Value(ref foo);
+    let _tuple_explicit: (ref Foo, Int32) = (ref foo, 1i32);
+    let _tuple_inferred = (ref foo, 1i32);
+    let _static_method = Vec[ref Foo]::new();
+    let _generic = Factory::identity(ref foo);
+    let _trait_object = Foo() as BoxTrait[ref Foo];
+    let _ok = 0;
+}
