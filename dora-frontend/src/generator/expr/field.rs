@@ -3,7 +3,7 @@ use dora_bytecode::{BytecodeType, Register};
 use super::{ensure_register, field_ref_path, gen_expr, gen_expr_field_via_ref};
 use crate::generator::{AstBytecodeGen, DataDest};
 use crate::sema::{ExprId, FieldExpr, IdentType, StructDefinitionId};
-use crate::ty::{SourceType, SourceTypeArray};
+use crate::ty::SourceTypeArray;
 
 pub(super) fn gen_expr_field(
     g: &mut AstBytecodeGen,
@@ -16,12 +16,6 @@ pub(super) fn gen_expr_field(
     }
 
     let object_ty = g.ty(e.lhs);
-
-    // Auto-dereference Ref types for field access.
-    let object_ty = match object_ty {
-        SourceType::Ref(inner) => (*inner).clone(),
-        ty => ty,
-    };
 
     if object_ty.is_tuple() {
         return gen_expr_field_tuple(g, expr_id, e, dest);

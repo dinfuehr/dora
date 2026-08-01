@@ -115,12 +115,6 @@ fn check_expr_call_method(
     method_name: String,
     mtd_type_params: SourceTypeArray,
 ) -> SourceType {
-    // Auto-dereference Ref types for method calls.
-    let object_type = match object_type {
-        SourceType::Ref(inner) => inner.as_ref().clone(),
-        ty => ty,
-    };
-
     if let SourceType::TypeParam(id) = object_type {
         return check_method_call_on_type_param(
             ck,

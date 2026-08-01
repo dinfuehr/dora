@@ -1,0 +1,17 @@
+error: no method with name `method` in type `ref Value`.
+--> ref-expression-member-operations.dora:8:5
+ | 
+ | fn method_call(value: Value) {
+ |     (ref value).method();
+       ~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: unknown field `0` for type `ref (Int32, Int32)`
+--> ref-expression-member-operations.dora:12:21
+ | 
+ | fn unnamed_field_assignment(value: (Int32, Int32)) {
+ |     (ref value).0 = 1i32;
+                       ~~~~
+ | }
+ | 
+2 errors found.

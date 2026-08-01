@@ -898,12 +898,6 @@ fn check_expr_assign_unnamed_field(
         return;
     };
 
-    // Auto-dereference Ref types for field assignment.
-    let object_type = match object_type {
-        SourceType::Ref(inner) => (*inner).clone(),
-        ty => ty,
-    };
-
     match object_type.clone() {
         SourceType::Error
         | SourceType::Any

@@ -15,6 +15,11 @@ pub fn find_method_call_candidates(
     is_static: bool,
 ) -> Vec<Candidate> {
     let mut candidates = Vec::with_capacity(1);
+
+    if object_type.is_ref() {
+        return candidates;
+    }
+
     let package_id = sa.module(table.module_id()).package_id();
 
     if let SourceType::TraitObject(trait_id, trait_type_params, _bindings) = object_type.clone() {

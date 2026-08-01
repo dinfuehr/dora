@@ -1,0 +1,13 @@
+struct Value
+
+impl Value {
+    fn method() {}
+}
+
+fn method_call(value: Value) {
+    (ref value).method();
+}
+
+fn unnamed_field_assignment(value: (Int32, Int32)) {
+    (ref value).0 = 1i32;
+}
