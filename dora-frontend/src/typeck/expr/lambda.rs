@@ -46,7 +46,12 @@ pub(super) fn check_expr_lambda(
         // Explicit annotation takes precedence
         let ty = ck.read_type(ret_ty);
 
-        if ty.contains_ref_type() {
+        let ref_type_not_allowed = match &ty {
+            SourceType::Ref(inner) => inner.contains_ref_type(),
+            _ => ty.contains_ref_type(),
+        };
+
+        if ref_type_not_allowed {
             let span = type_ref_span(ck.sa, ck.body.type_refs(), ck.file_id, ret_ty);
             ck.report(span, &REF_TYPE_NOT_ALLOWED, args!());
             SourceType::Error

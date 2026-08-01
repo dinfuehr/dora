@@ -7,3 +7,5 @@ fn identity(value: ref Foo): ref Foo {
 trait Trait {
     fn identity(value: ref Foo): ref Foo;
 }
+
+fn nested_ref(): ref ref Foo {}

@@ -302,7 +302,8 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn compute_register_offsets(&mut self) {
-        self.register_start_offset = if self.has_result_address() {
+        let return_type = self.specialize_ty(self.return_type.clone());
+        self.register_start_offset = if self.has_hidden_result_address(&return_type) {
             ptr_width()
         } else {
             0
@@ -369,17 +370,13 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         GcPoint::new(self.references.clone(), self.interior_pointers.clone())
     }
 
-    fn has_result_address(&self) -> bool {
-        let return_type = self.specialize_ty(self.return_type.clone());
-        self.argument_passing_mode(&return_type) == ArgumentPassingMode::Stack
-    }
-
     fn store_params_in_registers(&mut self) {
         let mut reg_idx = 0;
         let mut freg_idx = 0;
         let mut fp_offset = 2 * ptr_width();
 
-        if self.has_result_address() {
+        let return_type = self.specialize_ty(self.return_type.clone());
+        if self.has_hidden_result_address(&return_type) {
             self.asm.store_mem(
                 MachineMode::Ptr,
                 Mem::Local(result_address_offset()),
@@ -2079,10 +2076,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 let reg = result_reg_mode(mode);
                 self.emit_load_register_as(src, reg, mode);
             }
-            ArgumentPassingMode::InteriorPointer => {
-                unreachable!("returning ref types is not supported")
-            }
-            ArgumentPassingMode::Stack => {
+            ArgumentPassingMode::InteriorPointer | ArgumentPassingMode::Stack => {
                 let src_offset = self.register_offset(src);
                 self.asm.load_mem(
                     MachineMode::Ptr,
@@ -2635,8 +2629,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type.clone());
 
-        let self_index = if self.argument_passing_mode(&bytecode_type) == ArgumentPassingMode::Stack
-        {
+        let self_index = if self.has_hidden_result_address(&bytecode_type) {
             1
         } else {
             0
@@ -2807,10 +2800,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
                 let mode = self.mode(register_ty);
                 (result_reg_mode(mode), Some(mode))
             }
-            ArgumentPassingMode::None | ArgumentPassingMode::Stack => (REG_RESULT.into(), None),
-            ArgumentPassingMode::InteriorPointer => {
-                unreachable!("returning ref types is not supported")
-            }
+            ArgumentPassingMode::None
+            | ArgumentPassingMode::InteriorPointer
+            | ArgumentPassingMode::Stack => (REG_RESULT.into(), None),
         }
     }
 
@@ -4009,7 +4001,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let mut freg_idx = 0;
         let mut sp_offset = 0;
 
-        if self.argument_passing_mode(&fct_return_type) == ArgumentPassingMode::Stack {
+        if self.has_hidden_result_address(&fct_return_type) {
             let offset = self.register_offset(dest);
             self.asm.lea(REG_PARAMS[0], Mem::Local(offset));
             reg_idx += 1;
@@ -4113,7 +4105,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let mut freg_idx = 0;
         let mut argsize = 0;
 
-        if self.argument_passing_mode(&fct_return_type) == ArgumentPassingMode::Stack {
+        if self.has_hidden_result_address(&fct_return_type) {
             reg_idx += 1;
         }
 
@@ -4164,6 +4156,13 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn argument_passing_mode(&self, ty: &BytecodeType) -> ArgumentPassingMode {
         argument_passing_mode(self.program, ty)
+    }
+
+    fn has_hidden_result_address(&self, ty: &BytecodeType) -> bool {
+        matches!(
+            self.argument_passing_mode(ty),
+            ArgumentPassingMode::InteriorPointer | ArgumentPassingMode::Stack
+        )
     }
 
     fn mode(&self, ty: BytecodeType) -> MachineMode {

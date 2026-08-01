@@ -1,0 +1,19 @@
+//= runtime-args "--gc-verify"
+
+class Holder {
+    value: Int32,
+}
+
+fn main() {
+    let get_value = |holder: Holder|: ref Int32 {
+        ref holder.value
+    };
+    let value = get_value(Holder(17i32));
+
+    std::force_minor_collect();
+    assert(value == 17i32);
+
+    value = 23i32;
+    std::force_collect();
+    assert(value == 23i32);
+}

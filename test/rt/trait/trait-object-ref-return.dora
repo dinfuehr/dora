@@ -1,0 +1,31 @@
+//= runtime-args "--gc-verify"
+
+trait Value {
+    fn value(): ref Int32;
+}
+
+class Holder {
+    value: Int32,
+}
+
+impl Value for Holder {
+    fn value(): ref Int32 {
+        ref self.value
+    }
+}
+
+@NeverInline
+fn get_value(object: Value): ref Int32 {
+    object.value()
+}
+
+fn main() {
+    let value = get_value(Holder(17i32) as Value);
+
+    std::force_minor_collect();
+    assert(value == 17i32);
+
+    value = 23i32;
+    std::force_collect();
+    assert(value == 23i32);
+}

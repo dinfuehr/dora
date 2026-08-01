@@ -58,8 +58,9 @@ pub fn compute_inline_return_type(
     );
 
     match cc::argument_passing_mode(ci, return_type) {
-        ArgumentPassingMode::None | ArgumentPassingMode::Stack => None,
-        ArgumentPassingMode::InteriorPointer => unreachable[Option[Type]](),
+        ArgumentPassingMode::None
+        | ArgumentPassingMode::InteriorPointer
+        | ArgumentPassingMode::Stack => None,
         ArgumentPassingMode::Register(register_ty) => {
             Some(bytecode_graph_ty(ci, fct.signature.type_params, register_ty))
         }
@@ -319,7 +320,10 @@ impl BytecodeGraphBuilder {
 
     fn append_argument_insts(block: Block): Vec[Inst] {
         let mut arg_idx = 0i32;
-        if self.return_passing_mode() is ArgumentPassingMode::Stack {
+        let return_mode = self.return_passing_mode();
+        if return_mode is ArgumentPassingMode::Stack ||
+            return_mode is ArgumentPassingMode::InteriorPointer
+        {
             let arg = graph::create_arg_inst(arg_idx, Type::Address);
             block.append_inst(arg);
             self.return_value_arg_inst = Some(arg);
@@ -373,8 +377,9 @@ impl BytecodeGraphBuilder {
 
     fn return_graph_ty(passing_mode: ArgumentPassingMode): Type {
         match passing_mode {
-            ArgumentPassingMode::None | ArgumentPassingMode::Stack => Type::Unit,
-            ArgumentPassingMode::InteriorPointer => unreachable[Type](),
+            ArgumentPassingMode::None
+            | ArgumentPassingMode::InteriorPointer
+            | ArgumentPassingMode::Stack => Type::Unit,
             ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
         }
     }
@@ -383,7 +388,10 @@ impl BytecodeGraphBuilder {
         let mut arg_idx = 0;
         let ret_ty = self.specialize_ty(self.return_type);
 
-        if cc::argument_passing_mode(self.ci, ret_ty) is ArgumentPassingMode::Stack {
+        let return_mode = cc::argument_passing_mode(self.ci, ret_ty);
+        if return_mode is ArgumentPassingMode::Stack ||
+            return_mode is ArgumentPassingMode::InteriorPointer
+        {
             let arg = call_inst.get_input(arg_idx).get_value();
             self.return_value_arg_inst = Some(arg);
             arg_idx += 1;
@@ -1383,6 +1391,49 @@ impl BytecodeGraphBuilder {
         (self.load_ref_interior(reference), self.load_ref_base(reference))
     }
 
+    fn copy_ref(
+        dest: Inst,
+        dest_info: InstExtraData,
+        dest_offset: Int32,
+        src: Inst,
+        src_info: InstExtraData,
+        src_offset: Int32,
+    ) {
+        let interior = graph::create_load_inst(
+            src,
+            src_offset,
+            src_info,
+            Type::Address,
+            false,
+        );
+        self.current().append_inst(interior);
+        let store_interior = graph::create_store_inst(
+            dest,
+            dest_info,
+            dest_offset,
+            interior,
+            Type::Address,
+        );
+        self.current().append_inst(store_interior);
+
+        let base = graph::create_load_inst(
+            src,
+            src_offset + iface::PTR_SIZE,
+            src_info,
+            Type::Ptr,
+            false,
+        );
+        self.current().append_inst(base);
+        let store_base = graph::create_store_inst(
+            dest,
+            dest_info,
+            dest_offset + iface::PTR_SIZE,
+            base,
+            Type::Ptr,
+        );
+        self.current().append_inst(store_base);
+    }
+
     fn emit_load_enum_variant(
         dest: BytecodeRegister,
         src: BytecodeRegister,
@@ -1856,10 +1907,9 @@ impl BytecodeGraphBuilder {
                     let inst = graph::create_inline_return_inst(value, register_ty);
                     self.current().append_inst(inst);
                 }
-                ArgumentPassingMode::Stack => {
+                ArgumentPassingMode::InteriorPointer | ArgumentPassingMode::Stack => {
                     self.copy_return_value_to_stack(opnd, ty);
                 }
-                ArgumentPassingMode::InteriorPointer => unreachable[()](),
             }
 
             let exit_block = self.exit_block.get_or_panic();
@@ -1877,12 +1927,11 @@ impl BytecodeGraphBuilder {
                     let inst = graph::create_return_inst(value, value.get_value_type());
                     self.current().append_inst(inst);
                 }
-                ArgumentPassingMode::Stack => {
+                ArgumentPassingMode::InteriorPointer | ArgumentPassingMode::Stack => {
                     self.copy_return_value_to_stack(opnd, ty);
                     let inst = graph::create_return_void_inst();
                     self.current().append_inst(inst);
                 }
-                ArgumentPassingMode::InteriorPointer => unreachable[()](),
             }
         }
     }
@@ -1985,7 +2034,9 @@ impl BytecodeGraphBuilder {
         let dest_ty = self.reg(dest);
         let passing_mode = cc::argument_passing_mode(self.ci, dest_ty);
         let return_ty = self.return_graph_ty(passing_mode);
-        let return_address = if passing_mode is ArgumentPassingMode::Stack {
+        let return_address = if passing_mode is ArgumentPassingMode::Stack ||
+            passing_mode is ArgumentPassingMode::InteriorPointer
+        {
             Some(self.aggregate_register(dest))
         } else {
             None[Inst]
@@ -2035,11 +2086,14 @@ impl BytecodeGraphBuilder {
         let dest_ty = self.reg(dest);
         let passing_mode = cc::argument_passing_mode(self.ci, dest_ty);
         let return_ty = match passing_mode {
-            ArgumentPassingMode::None | ArgumentPassingMode::Stack => Type::Unit,
-            ArgumentPassingMode::InteriorPointer => unreachable[Type](),
+            ArgumentPassingMode::None
+            | ArgumentPassingMode::InteriorPointer
+            | ArgumentPassingMode::Stack => Type::Unit,
             ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
         };
-        if passing_mode is ArgumentPassingMode::Stack {
+        if passing_mode is ArgumentPassingMode::Stack ||
+            passing_mode is ArgumentPassingMode::InteriorPointer
+        {
             args.push(self.aggregate_register(dest));
         }
 
@@ -2120,8 +2174,7 @@ impl BytecodeGraphBuilder {
                     self.emit_local_set(dest, result);
                 }
             }
-            ArgumentPassingMode::Stack => {}
-            ArgumentPassingMode::InteriorPointer => unreachable[()](),
+            ArgumentPassingMode::InteriorPointer | ArgumentPassingMode::Stack => {}
         }
     }
 
@@ -2836,6 +2889,8 @@ impl BytecodeGraphBuilder {
                 src_offset,
                 heap,
             );
+        } else if ty.is_ref() {
+            self.copy_ref(dest, dest_info, dest_offset, src, src_info, src_offset);
         } else if (heap && config.needs_write_barrier && is_reference(self.ci, ty)) {
             let ty = Type::Ptr;
             let value = graph::create_load_inst(src, src_offset, src_info, ty, false);

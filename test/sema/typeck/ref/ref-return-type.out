@@ -1,17 +1,8 @@
 error: `ref` type is not allowed here.
---> ref-return-type.dora:3:30
- | class Foo
- | 
- | fn identity(value: ref Foo): ref Foo {
-                                ~~~~~~~
- |     value
- | }
-error: `ref` type is not allowed here.
---> ref-return-type.dora:8:34
- | 
- | trait Trait {
- |     fn identity(value: ref Foo): ref Foo;
-                                    ~~~~~~~
+--> ref-return-type.dora:11:18
  | }
  | 
-2 errors found.
+ | fn nested_ref(): ref ref Foo {}
+                    ~~~~~~~~~~~
+ | 
+1 error found.

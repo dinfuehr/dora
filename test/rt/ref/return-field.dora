@@ -1,0 +1,20 @@
+//= runtime-args "--gc-verify"
+
+class Box { value: Int32 }
+
+@NeverInline
+fn make_ref(value: Int32): ref Int32 {
+    let obj = Box(value);
+    ref obj.value
+}
+
+fn main() {
+    let value = make_ref(17i32);
+
+    std::force_minor_collect();
+    assert(value == 17i32);
+
+    value = 23i32;
+    std::force_collect();
+    assert(value == 23i32);
+}

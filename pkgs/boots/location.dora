@@ -547,7 +547,10 @@ fn compute_argument_locations(
 
     let ret_ty = specialize_ty(ci, signature.return_type, signature.type_params);
 
-    if cc::argument_passing_mode(ci, ret_ty) is ArgumentPassingMode::Stack {
+    let return_mode = cc::argument_passing_mode(ci, ret_ty);
+    if return_mode is ArgumentPassingMode::Stack ||
+        return_mode is ArgumentPassingMode::InteriorPointer
+    {
         locations.push(gp_argument_registers(gp_idx).to_location());
         gp_idx = gp_idx + 1;
     }

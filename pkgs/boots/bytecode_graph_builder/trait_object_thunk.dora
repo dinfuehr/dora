@@ -101,10 +101,11 @@ impl BytecodeGraphBuilder {
                 let return_inst = graph::create_return_inst(invoke, return_ty);
                 self.current().append_inst(return_inst);
             }
-            ArgumentPassingMode::None | ArgumentPassingMode::Stack => {
+            ArgumentPassingMode::None
+            | ArgumentPassingMode::InteriorPointer
+            | ArgumentPassingMode::Stack => {
                 self.current().append_inst(graph::create_return_void_inst());
             }
-            ArgumentPassingMode::InteriorPointer => unreachable[()](),
         }
 
         self.current_block = None;

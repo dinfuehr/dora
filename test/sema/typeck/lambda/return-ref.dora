@@ -1,5 +1,6 @@
 fn main() {
     let value = 1i32;
     let get_ref = ||: ref Int32 { ref value };
+    let _get_nested_ref = ||: ref ref Int32 {};
     get_ref();
 }

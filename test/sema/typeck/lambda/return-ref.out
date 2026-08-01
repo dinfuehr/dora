@@ -1,9 +1,9 @@
 error: `ref` type is not allowed here.
---> return-ref.dora:3:23
- | fn main() {
+--> return-ref.dora:4:31
  |     let value = 1i32;
  |     let get_ref = ||: ref Int32 { ref value };
-                         ~~~~~~~~~
+ |     let _get_nested_ref = ||: ref ref Int32 {};
+                                 ~~~~~~~~~~~~~
  |     get_ref();
  | }
 1 error found.

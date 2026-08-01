@@ -525,7 +525,12 @@ fn expand_function_types(sa: &Sema) {
             .parsed_return_type()
             .expand(sa, fct, replace_self.clone());
 
-        if return_type.contains_ref_type() {
+        let ref_type_not_allowed = match &return_type {
+            SourceType::Ref(inner) => inner.contains_ref_type(),
+            _ => return_type.contains_ref_type(),
+        };
+
+        if ref_type_not_allowed {
             sa.report(
                 fct.file_id,
                 fct.parsed_return_type().span(sa, fct),
