@@ -1,3 +1,9 @@
+class $Context1:
+  x: X
+
+class $Context2:
+  x: X
+
 struct A:
   b: B
 
@@ -9,6 +15,12 @@ struct C:
 
 struct X:
   a: A
+
+struct $Lambda1Env:
+  context: $Context1
+
+struct $Lambda2Env:
+  context: $Context2
 
 fn f:
   0: GetRegisterRef r2, r0
@@ -47,6 +59,159 @@ fn load_single:
 
   Constants:
    0 => StructField X.a
+
+  Locations:
+
+fn identity:
+  0: Ret r0
+
+  Registers:
+   0 => struct X
+
+  Constants:
+
+  Locations:
+
+fn load_temporary:
+  0: InvokeStatic r2, @0, r0 # identity
+  5: GetRegisterRef r3, r2
+  8: GetFieldRef r4, r3, @1 # X.a
+ 12: GetFieldRef r5, r4, @2 # A.b
+ 16: GetFieldRef r6, r5, @3 # B.c
+ 20: GetFieldRef r7, r6, @4 # C.d
+ 24: LoadRef r1, r7
+ 27: Ret r1
+
+  Registers:
+   0 => struct X
+   1 => Int32
+   2 => struct X
+   3 => ref X
+   4 => ref A
+   5 => ref B
+   6 => ref C
+   7 => ref Int32
+
+  Constants:
+   0 => Fct identity
+   1 => StructField X.a
+   2 => StructField A.b
+   3 => StructField B.c
+   4 => StructField C.d
+
+  Locations:
+   0 => 8:34
+
+fn load_captured:
+  0: NewObject r1, @0 # $Context1
+  4: StoreField r0, r1, @1 # $Context1.x
+  8: NewStruct r3, @2, r1 # $Lambda1Env
+ 13: NewTraitObject r2, r3, @3 # Fn0[Int32] wrapping $Lambda1Env
+ 17: Ret r2
+
+  Registers:
+   0 => struct X
+   1 => class $Context1
+   2 => Fn0[Int32]
+   3 => struct $Lambda1Env
+
+  Constants:
+   0 => Class $Context1
+   1 => Field $Context1.x
+   2 => Struct $Lambda1Env
+   3 => Trait Fn0[Int32] from $Lambda1Env
+
+  Locations:
+   0 => 9:1
+   8 => 9:37
+
+fn load_context_local:
+  0: NewObject r1, @0 # $Context2
+  4: StoreField r0, r1, @1 # $Context2.x
+  8: NewStruct r4, @2, r1 # $Lambda2Env
+ 13: NewTraitObject r3, r4, @3 # Fn0[X] wrapping $Lambda2Env
+ 17: Mov r2, r3
+ 20: GetFieldRef r6, r1, @4 # $Context2.x
+ 24: GetFieldRef r7, r6, @5 # X.a
+ 28: GetFieldRef r8, r7, @6 # A.b
+ 32: GetFieldRef r9, r8, @7 # B.c
+ 36: GetFieldRef r10, r9, @8 # C.d
+ 40: LoadRef r5, r10
+ 43: Ret r5
+
+  Registers:
+   0 => struct X
+   1 => class $Context2
+   2 => Fn0[X]
+   3 => Fn0[X]
+   4 => struct $Lambda2Env
+   5 => Int32
+   6 => ref X
+   7 => ref A
+   8 => ref B
+   9 => ref C
+   10 => ref Int32
+
+  Constants:
+   0 => Class $Context2
+   1 => Field $Context2.x
+   2 => Struct $Lambda2Env
+   3 => Trait Fn0[X] from $Lambda2Env
+   4 => Field $Context2.x
+   5 => StructField X.a
+   6 => StructField A.b
+   7 => StructField B.c
+   8 => StructField C.d
+
+  Locations:
+   0 => 10:1
+   8 => 10:51
+   20 => 10:64
+
+fn <impl Fn0[Int32] for $Lambda1Env>::call:
+  0: LoadField r3, r0, @0 # $Lambda1Env.context
+  4: GetFieldRef r2, r3, @1 # $Context1.x
+  8: GetFieldRef r4, r2, @2 # X.a
+ 12: GetFieldRef r5, r4, @3 # A.b
+ 16: GetFieldRef r6, r5, @4 # B.c
+ 20: GetFieldRef r7, r6, @5 # C.d
+ 24: LoadRef r1, r7
+ 27: Ret r1
+
+  Registers:
+   0 => struct $Lambda1Env
+   1 => Int32
+   2 => ref X
+   3 => class $Context1
+   4 => ref A
+   5 => ref B
+   6 => ref C
+   7 => ref Int32
+
+  Constants:
+   0 => StructField $Lambda1Env.context
+   1 => Field $Context1.x
+   2 => StructField X.a
+   3 => StructField A.b
+   4 => StructField B.c
+   5 => StructField C.d
+
+  Locations:
+   4 => 9:49
+
+fn <impl Fn0[X] for $Lambda2Env>::call:
+  0: LoadField r1, r0, @0 # $Lambda2Env.context
+  4: LoadField r2, r1, @1 # $Context2.x
+  8: Ret r2
+
+  Registers:
+   0 => struct $Lambda2Env
+   1 => class $Context2
+   2 => struct X
+
+  Constants:
+   0 => StructField $Lambda2Env.context
+   1 => Field $Context2.x
 
   Locations:
 
