@@ -10,6 +10,13 @@ struct Pair {
 let mut int_value: Int32 = 10i32;
 let mut class_value: Box = Box(20i32);
 let mut struct_value: Pair = Pair(first = 30i32, second = 31i64);
+let mut initialization_count: Int32 = 0i32;
+let mut lazy_value: Int32 = initialize_lazy_value();
+
+fn initialize_lazy_value(): Int32 {
+    initialization_count += 1i32;
+    40i32
+}
 
 fn replace_int(value: ref Int32, replacement: Int32): Int32 {
     let previous = value;
@@ -29,7 +36,32 @@ fn replace_struct(value: ref Pair, replacement: Pair): Pair {
     previous
 }
 
+@NeverInline
+fn int_ref(): ref Int32 {
+    ref int_value
+}
+
+@NeverInline
+fn class_ref(): ref Box {
+    ref class_value
+}
+
+@NeverInline
+fn struct_ref(): ref Pair {
+    ref struct_value
+}
+
+@NeverInline
+fn lazy_ref(): ref Int32 {
+    ref lazy_value
+}
+
 fn main() {
+    assert(initialization_count == 0i32);
+    let returned_lazy_ref = lazy_ref();
+    assert(initialization_count == 1i32);
+    assert(returned_lazy_ref == 40i32);
+
     assert(replace_int(ref int_value, 11i32) == 10i32);
     assert(int_value == 11i32);
 
@@ -46,4 +78,19 @@ fn main() {
     assert(previous_struct.second == 31i64);
     assert(struct_value.first == 32i32);
     assert(struct_value.second == 33i64);
+
+    let returned_int_ref = int_ref();
+    returned_int_ref = 12i32;
+    assert(int_value == 12i32);
+
+    let returned_class_ref = class_ref();
+    std::force_collect();
+    returned_class_ref = Box(22i32);
+    assert(class_value.value == 22i32);
+
+    let returned_struct_ref = struct_ref();
+    std::force_collect();
+    returned_struct_ref = Pair(first = 34i32, second = 35i64);
+    assert(struct_value.first == 34i32);
+    assert(struct_value.second == 35i64);
 }

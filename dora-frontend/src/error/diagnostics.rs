@@ -482,8 +482,8 @@ pub static REF_TYPE_NOT_ALLOWED: DiagnosticDescriptor = DiagnosticDescriptor {
     level: ErrorLevel::Error,
 };
 
-pub static REF_RETURN_REQUIRES_HEAP_LOCATION: DiagnosticDescriptor = DiagnosticDescriptor {
-    message: "`ref` return requires an object field or array element.",
+pub static REF_RETURN_LIFETIME: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`ref` return requires a global, object field, or array element.",
     level: ErrorLevel::Error,
 };
 

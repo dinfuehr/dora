@@ -16,6 +16,10 @@ fn f() {
     take_ref(ref value);
 }
 
+fn return_ref(): ref Int32 {
+    ref value
+}
+
 fn load_nested_field(): Int32 {
     aggregate.inner.value
 }

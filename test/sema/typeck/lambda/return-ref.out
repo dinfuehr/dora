@@ -1,4 +1,4 @@
-error: `ref` return requires an object field or array element.
+error: `ref` return requires a global, object field, or array element.
 --> return-ref.dora:3:35
  | fn main() {
  |     let value = 1i32;

@@ -384,12 +384,8 @@ impl<'a> TypeCheck<'a> {
             }
             Expr::Paren(expr_id) => self.check_ref_return_value(*expr_id),
             Expr::Ref(expr) => {
-                if !self.ref_target_is_heap_location(expr.expr) {
-                    self.report(
-                        self.expr_span(expr_id),
-                        &diag::REF_RETURN_REQUIRES_HEAP_LOCATION,
-                        args!(),
-                    );
+                if !self.ref_target_is_returnable_location(expr.expr) {
+                    self.report(self.expr_span(expr_id), &diag::REF_RETURN_LIFETIME, args!());
                 }
             }
             // Ref-returning callees have already validated the lifetime of their return value.
@@ -404,17 +400,18 @@ impl<'a> TypeCheck<'a> {
         }
     }
 
-    fn ref_target_is_heap_location(&self, expr_id: ExprId) -> bool {
+    fn ref_target_is_returnable_location(&self, expr_id: ExprId) -> bool {
         match self.expr(expr_id) {
+            Expr::Path(_) => matches!(self.body.get_ident(expr_id), Some(IdentType::Global(..))),
             Expr::Call(_) => is_array_get(self, expr_id),
             Expr::Field(expr) => match self.body.get_ident(expr_id) {
                 Some(IdentType::ClassField(..)) => true,
                 Some(IdentType::StructField(..) | IdentType::TupleField(..)) => {
-                    self.ref_target_is_heap_location(expr.lhs)
+                    self.ref_target_is_returnable_location(expr.lhs)
                 }
                 _ => false,
             },
-            Expr::Paren(expr_id) => self.ref_target_is_heap_location(*expr_id),
+            Expr::Paren(expr_id) => self.ref_target_is_returnable_location(*expr_id),
             _ => false,
         }
     }

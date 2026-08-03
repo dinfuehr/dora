@@ -1,0 +1,24 @@
+//= ok
+
+struct Inner { value: Int32 }
+struct Outer { inner: Inner }
+
+let mut value: Int32 = 1i32;
+let mut other: Int32 = 2i32;
+let mut aggregate: Outer = Outer(inner = Inner(value = 3i32));
+
+fn tail(): ref Int32 {
+    ref value
+}
+
+fn explicit(): ref Int32 {
+    return ref value;
+}
+
+fn branch(condition: Bool): ref Int32 {
+    if condition { ref value } else { ref other }
+}
+
+fn nested_field(): ref Int32 {
+    ref aggregate.inner.value
+}

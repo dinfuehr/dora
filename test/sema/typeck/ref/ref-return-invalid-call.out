@@ -1,4 +1,4 @@
-error: `ref` return requires an object field or array element.
+error: `ref` return requires a global, object field, or array element.
 --> ref-return-invalid-call.dora:4:20
  | 
  | fn if_expression(condition: Bool, box: Box): ref Int32 {
@@ -14,7 +14,7 @@ error: unknown identifier `missing`.
                           ~~~~~~~
  | }
  | 
-error: `ref` return requires an object field or array element.
+error: `ref` return requires a global, object field, or array element.
 --> ref-return-invalid-call.dora:9:17
  | fn match_expression(condition: Bool, box: Box): ref Int32 {
  |     match condition {

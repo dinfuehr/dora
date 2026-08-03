@@ -31,6 +31,18 @@ fn f:
    0 => 16:14
    3 => 16:5
 
+fn return_ref:
+  0: GetGlobalRef r0, GlobalId(10) # value
+  3: Ret r0
+
+  Registers:
+   0 => ref Int32
+
+  Constants:
+
+  Locations:
+   0 => 20:5
+
 fn load_nested_field:
   0: GetGlobalRef r1, GlobalId(11) # aggregate
   3: GetFieldRef r2, r1, @0 # Outer.inner
@@ -49,7 +61,7 @@ fn load_nested_field:
    1 => StructField Inner.value
 
   Locations:
-   0 => 20:5
+   0 => 24:5
 
 fn value:
   0: ConstInt32 r0, @0 # 10
