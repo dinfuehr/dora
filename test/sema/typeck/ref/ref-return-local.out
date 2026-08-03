@@ -106,14 +106,6 @@ error: `ref` return requires an object field or array element.
                                       ~~~~~~~~~
  | }
  | 
-error: `ref` return requires a `ref` expression.
---> ref-return-local.dora:88:5
- | 
- | fn forwarded_object_field(value: Box): ref Int32 {
- |     object_field(value)
-       ~~~~~~~~~~~~~~~~~~~
- | }
- | 
 error: `ref` return requires an object field or array element.
 --> ref-return-local.dora:92:5
  | 
@@ -134,4 +126,4 @@ error: `ref` return requires an object field or array element.
            ~~~~~~~~~
  |     } else {
  |         ref object.value
-20 errors found.
+19 errors found.

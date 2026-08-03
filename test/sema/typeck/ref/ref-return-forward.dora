@@ -1,0 +1,23 @@
+//= ok
+
+class Holder { value: Int32 }
+
+fn field_ref(holder: Holder): ref Int32 {
+    ref holder.value
+}
+
+fn forward(holder: Holder): ref Int32 {
+    field_ref(holder)
+}
+
+fn explicit_forward(holder: Holder): ref Int32 {
+    return field_ref(holder);
+}
+
+trait Value {
+    fn value(): ref Int32;
+}
+
+fn forward_method(value: Value): ref Int32 {
+    value.value()
+}

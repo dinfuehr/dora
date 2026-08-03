@@ -392,6 +392,8 @@ impl<'a> TypeCheck<'a> {
                     );
                 }
             }
+            // Ref-returning callees have already validated the lifetime of their return value.
+            Expr::Call(_) | Expr::MethodCall(_) => {}
             Expr::Return(..) | Expr::Break | Expr::Continue => {}
             _ if expr_always_exits(self.sa, self.body, expr_id) => {}
             _ => self.report(
