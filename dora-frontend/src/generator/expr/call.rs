@@ -54,8 +54,6 @@ pub(super) fn gen_expr_call(
         | CallType::GenericStaticMethod { .. }
         | CallType::TraitObjectMethod(..)
         | CallType::Fct(..) => {}
-
-        _ => panic!("unknown call type = {:?}", call_type),
     }
 
     // Find method that is called
@@ -565,7 +563,6 @@ pub(super) fn emit_call_inst(
         CallType::NewClass(..)
         | CallType::NewStruct(..)
         | CallType::NewEnum(..)
-        | CallType::Intrinsic(..)
         | CallType::Lambda(..) => unreachable!(),
     }
 }

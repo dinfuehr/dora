@@ -291,11 +291,6 @@ impl<'a> AstBytecodeGen<'a> {
 
     fn get_intrinsic<T: ExprMapId>(&self, id: T) -> Option<IntrinsicInfo> {
         let call_type = self.analysis.get_call_type(id).expect("missing CallType");
-
-        if let Some(intrinsic) = call_type.to_intrinsic() {
-            return Some(intrinsic.into());
-        }
-
         let fid = if let Some(fct_id) = call_type.fct_id() {
             fct_id
         } else {

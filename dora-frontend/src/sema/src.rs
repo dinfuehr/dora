@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::sema::{
     ClassDefinition, ClassDefinitionId, ConstDefinitionId, EnumDefinitionId, FctDefinitionId,
-    FieldDefinition, FieldIndex, GlobalDefinitionId, Intrinsic, StructDefinitionId, UniversalId,
+    FieldDefinition, FieldIndex, GlobalDefinitionId, StructDefinitionId, UniversalId,
 };
 use crate::ty::{SourceType, SourceTypeArray, TraitType, TypeArgs};
 
@@ -277,9 +277,6 @@ pub enum CallType {
     // Struct constructor call Struct(<args>).
     NewStruct(StructDefinitionId, SourceTypeArray),
 
-    // Used for internal functions (those are not exposed to Dora as Fct). Used for enum comparisons.
-    Intrinsic(Intrinsic),
-
     // Invoke lambda function.
     Lambda(SourceTypeArray, SourceType, bool),
 }
@@ -296,13 +293,6 @@ impl CallType {
         match *self {
             CallType::GenericMethod { .. } => true,
             _ => false,
-        }
-    }
-
-    pub fn to_intrinsic(&self) -> Option<Intrinsic> {
-        match *self {
-            CallType::Intrinsic(intrinsic) => Some(intrinsic),
-            _ => None,
         }
     }
 
@@ -325,8 +315,7 @@ impl CallType {
             CallType::NewClass(..)
             | CallType::NewStruct(..)
             | CallType::NewEnum(..)
-            | CallType::Lambda(..)
-            | CallType::Intrinsic(..) => None,
+            | CallType::Lambda(..) => None,
         }
     }
 }

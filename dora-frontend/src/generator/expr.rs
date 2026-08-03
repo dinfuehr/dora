@@ -225,7 +225,6 @@ pub(super) fn specialize_type_for_call(
         CallType::Lambda(..)
         | CallType::NewClass(..)
         | CallType::NewStruct(..)
-        | CallType::NewEnum(..)
-        | CallType::Intrinsic(..) => unreachable!(),
+        | CallType::NewEnum(..) => unreachable!(),
     }
 }
