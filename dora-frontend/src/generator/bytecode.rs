@@ -647,6 +647,18 @@ impl BytecodeBuilder {
         self.writer.emit_load_array(dest, array, index);
     }
 
+    pub fn emit_get_array_ref(
+        &mut self,
+        dest: Register,
+        array: Register,
+        index: Register,
+        location: Location,
+    ) {
+        assert!(self.def(dest) && self.used(array) && self.used(index));
+        self.writer.set_location(location);
+        self.writer.emit_get_array_ref(dest, array, index);
+    }
+
     pub fn emit_get_field_ref(
         &mut self,
         dest: Register,

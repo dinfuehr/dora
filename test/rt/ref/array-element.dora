@@ -1,0 +1,93 @@
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify"
+
+class Box {
+    value: Int32,
+}
+
+struct Pair {
+    first: Int32,
+    second: Int64,
+}
+
+fn increment(value: ref Int32) {
+    value += 1i32;
+}
+
+fn replace_generic[T](value: ref T, replacement: T) {
+    value = replacement;
+}
+
+fn replace_pair(value: ref Pair, replacement: Pair): Pair {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn replace_box(value: ref Box, replacement: Box): Box {
+    let previous = value;
+    value = replacement;
+    previous
+}
+
+fn read_after_gc(value: ref Int32): Int32 {
+    std::force_collect();
+    value
+}
+
+@NeverInline
+fn element_ref(array: Array[Int32], index: Int64): ref Int32 {
+    ref array(index)
+}
+
+@NeverInline
+fn element_ref_generic[T](array: Array[T], index: Int64): ref T {
+    ref array(index)
+}
+
+@NeverInline
+fn new_array_element_ref(): ref Int32 {
+    let array = Array[Int32]::new(40i32, 41i32);
+    ref array(1i64)
+}
+
+fn main() {
+    let integers = Array[Int32]::new(10i32, 20i32, 30i32);
+    replace_generic[Int32](ref integers(0i64), 11i32);
+    assert(integers(0i64) == 11i32);
+    increment(ref integers(1i64));
+    assert(integers(1i64) == 21i32);
+    assert(read_after_gc(ref integers(2i64)) == 30i32);
+
+    let integer_ref = element_ref(integers, 2i64);
+    std::force_collect();
+    assert(integer_ref == 30i32);
+    integer_ref = 31i32;
+    assert(integers(2i64) == 31i32);
+
+    let new_array_ref = new_array_element_ref();
+    std::force_collect();
+    assert(new_array_ref == 41i32);
+    new_array_ref = 42i32;
+    assert(new_array_ref == 42i32);
+
+    let pairs = Array[Pair]::new(Pair(first = 1i32, second = 2i64));
+    let previous = replace_pair(ref pairs(0i64), Pair(first = 3i32, second = 4i64));
+    assert(previous.first == 1i32);
+    assert(previous.second == 2i64);
+    assert(pairs(0i64).first == 3i32);
+    assert(pairs(0i64).second == 4i64);
+
+    let boxes = Array[Box]::new(Box(5i32));
+    std::force_collect();
+    let previous_box = replace_box(ref boxes(0i64), Box(6i32));
+    assert(previous_box.value == 5i32);
+    std::force_minor_collect();
+    assert(boxes(0i64).value == 6i32);
+
+    let box_ref = element_ref_generic[Box](boxes, 0i64);
+    std::force_collect();
+    box_ref = Box(7i32);
+    std::force_minor_collect();
+    assert(boxes(0i64).value == 7i32);
+}

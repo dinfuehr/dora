@@ -5,7 +5,8 @@ use crate::generator::{
     AstBytecodeGen, DataDest, field_id_from_context_idx, load_outer_context_object, var_reg,
 };
 use crate::sema::{
-    ContextFieldId, ContextId, Expr, ExprId, FieldExpr, IdentType, RefExpr, ScopeId, VarLocation,
+    CallExpr, ContextFieldId, ContextId, Expr, ExprId, FieldExpr, IdentType, Intrinsic, RefExpr,
+    ScopeId, VarLocation,
 };
 use crate::ty::SourceType;
 
@@ -280,8 +281,33 @@ pub(super) fn gen_expr_ref(
     match inner_expr {
         Expr::Path(..) => gen_expr_ref_path(g, expr_id, e, dest),
         Expr::Field(field_expr) => gen_expr_ref_field(g, expr_id, e, field_expr, dest),
-        _ => unreachable!("ref expression should only be on variables or fields"),
+        Expr::Call(call_expr) => gen_expr_ref_array_element(g, e, call_expr, dest),
+        _ => unreachable!("ref expression should only be on variables, fields, or array elements"),
     }
+}
+
+fn gen_expr_ref_array_element(
+    g: &mut AstBytecodeGen,
+    e: &RefExpr,
+    call_expr: &CallExpr,
+    dest: DataDest,
+) -> Register {
+    let info = g.get_intrinsic(e.expr).expect("missing array intrinsic");
+    assert_eq!(info.intrinsic, Intrinsic::ArrayGet);
+    assert_eq!(call_expr.args.len(), 1);
+
+    let inner_ty = g.emitter.convert_ty(g.sa, g.ty(e.expr));
+    let dest_reg = ensure_register(g, dest, BytecodeType::Ref(Box::new(inner_ty)));
+    let array_reg = gen_expr(g, call_expr.callee, DataDest::Alloc);
+    let index_reg = gen_expr(g, call_expr.args[0].expr, DataDest::Alloc);
+
+    g.builder
+        .emit_get_array_ref(dest_reg, array_reg, index_reg, g.loc_for_expr(e.expr));
+
+    g.free_if_temp(array_reg);
+    g.free_if_temp(index_reg);
+
+    dest_reg
 }
 
 fn gen_expr_ref_path(

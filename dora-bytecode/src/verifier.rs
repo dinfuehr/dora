@@ -510,6 +510,12 @@ impl<'a> Verifier<'a> {
                 self.assert_type(idx, &BytecodeType::Int64);
             }
 
+            BytecodeInstruction::GetArrayRef { dest, arr, idx } => {
+                let element_type = self.array_element_type(arr).clone();
+                self.assert_type(dest, &BytecodeType::Ref(Box::new(element_type)));
+                self.assert_type(idx, &BytecodeType::Int64);
+            }
+
             BytecodeInstruction::GetFieldRef { dest, obj, field } => {
                 let (object_ty, field_ty) = self.field_types(field);
                 assert!(

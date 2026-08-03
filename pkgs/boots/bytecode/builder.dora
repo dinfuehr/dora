@@ -394,6 +394,14 @@ impl BytecodeBuilder {
         self.emit_reg3(opc::BYTECODE_OPCODE_STORE_ARRAY, src, arr, idx);
     }
 
+    pub fn emit_get_array_ref(
+        dest: BytecodeRegister,
+        arr: BytecodeRegister,
+        idx: BytecodeRegister,
+    ) {
+        self.emit_reg3(opc::BYTECODE_OPCODE_GET_ARRAY_REF, dest, arr, idx);
+    }
+
     pub fn emit_ret(opnd: BytecodeRegister) {
         self.emit_reg1(opc::BYTECODE_OPCODE_RET, opnd);
     }

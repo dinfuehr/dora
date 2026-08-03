@@ -456,6 +456,13 @@ impl<'a> BytecodeReader<'a> {
                 BytecodeInstruction::StoreArray { src, arr, idx }
             }
 
+            BytecodeOpcode::GetArrayRef => {
+                let dest = self.read_register();
+                let arr = self.read_register();
+                let idx = self.read_register();
+                BytecodeInstruction::GetArrayRef { dest, arr, idx }
+            }
+
             BytecodeOpcode::GetFieldRef => {
                 let dest = self.read_register();
                 let obj = self.read_register();
@@ -862,6 +869,10 @@ where
                 self.visitor.visit_store_array(src, arr, idx);
             }
 
+            BytecodeInstruction::GetArrayRef { dest, arr, idx } => {
+                self.visitor.visit_get_array_ref(dest, arr, idx);
+            }
+
             BytecodeInstruction::GetFieldRef { dest, obj, field } => {
                 self.visitor.visit_get_field_ref(dest, obj, field);
             }
@@ -1161,6 +1172,10 @@ pub trait BytecodeVisitor {
     }
 
     fn visit_store_array(&mut self, _src: Register, _arr: Register, _idx: Register) {
+        unimplemented!();
+    }
+
+    fn visit_get_array_ref(&mut self, _dest: Register, _arr: Register, _idx: Register) {
         unimplemented!();
     }
 

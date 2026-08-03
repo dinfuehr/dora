@@ -85,6 +85,7 @@ pub enum BytecodeOpcode {
     ArrayLength,
     LoadArray,
     StoreArray,
+    GetArrayRef,
     GetFieldRef,
     StoreRef,
     LoadRef,
@@ -159,6 +160,7 @@ impl From<BytecodeOpcode> for u8 {
             BytecodeOpcode::ArrayLength => opc::BYTECODE_OPCODE_ARRAY_LENGTH,
             BytecodeOpcode::LoadArray => opc::BYTECODE_OPCODE_LOAD_ARRAY,
             BytecodeOpcode::StoreArray => opc::BYTECODE_OPCODE_STORE_ARRAY,
+            BytecodeOpcode::GetArrayRef => opc::BYTECODE_OPCODE_GET_ARRAY_REF,
             BytecodeOpcode::GetFieldRef => opc::BYTECODE_OPCODE_GET_FIELD_REF,
             BytecodeOpcode::StoreRef => opc::BYTECODE_OPCODE_STORE_REF,
             BytecodeOpcode::LoadRef => opc::BYTECODE_OPCODE_LOAD_REF,
@@ -237,6 +239,7 @@ impl TryFrom<u8> for BytecodeOpcode {
             opc::BYTECODE_OPCODE_ARRAY_LENGTH => Ok(BytecodeOpcode::ArrayLength),
             opc::BYTECODE_OPCODE_LOAD_ARRAY => Ok(BytecodeOpcode::LoadArray),
             opc::BYTECODE_OPCODE_STORE_ARRAY => Ok(BytecodeOpcode::StoreArray),
+            opc::BYTECODE_OPCODE_GET_ARRAY_REF => Ok(BytecodeOpcode::GetArrayRef),
             opc::BYTECODE_OPCODE_GET_FIELD_REF => Ok(BytecodeOpcode::GetFieldRef),
             opc::BYTECODE_OPCODE_STORE_REF => Ok(BytecodeOpcode::StoreRef),
             opc::BYTECODE_OPCODE_LOAD_REF => Ok(BytecodeOpcode::LoadRef),
@@ -320,6 +323,7 @@ impl BytecodeOpcode {
             | BytecodeOpcode::ArrayLength
             | BytecodeOpcode::LoadArray
             | BytecodeOpcode::StoreArray
+            | BytecodeOpcode::GetArrayRef
             | BytecodeOpcode::LoadEnumElement
             | BytecodeOpcode::LoadEnumVariant
             | BytecodeOpcode::LoadGlobal
@@ -646,6 +650,12 @@ pub enum BytecodeInstruction {
     },
     StoreArray {
         src: Register,
+        arr: Register,
+        idx: Register,
+    },
+
+    GetArrayRef {
+        dest: Register,
         arr: Register,
         idx: Register,
     },

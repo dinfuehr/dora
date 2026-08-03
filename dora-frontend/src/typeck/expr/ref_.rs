@@ -3,9 +3,9 @@ use crate::SymbolKind;
 use crate::access::global_accessible_from;
 use crate::args;
 use crate::error::diagnostics::{
-    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, REF_REQUIRES_VARIABLE_OR_FIELD,
+    NO_TYPE_PARAMS_EXPECTED, NOT_ACCESSIBLE, REF_REQUIRES_ADDRESSABLE,
 };
-use crate::sema::{Expr, ExprId, IdentType, RefExpr};
+use crate::sema::{CallType, Expr, ExprId, IdentType, Intrinsic, RefExpr};
 use crate::ty::error as ty_error;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::check_expr;
@@ -56,11 +56,7 @@ pub(super) fn check_expr_ref(
                     (inner_ty, IdentType::Global(global_id))
                 }
                 _ => {
-                    ck.report(
-                        ck.expr_span(expr_id),
-                        &REF_REQUIRES_VARIABLE_OR_FIELD,
-                        args![],
-                    );
+                    ck.report(ck.expr_span(expr_id), &REF_REQUIRES_ADDRESSABLE, args![]);
                     return ty_error();
                 }
             };
@@ -79,11 +75,16 @@ pub(super) fn check_expr_ref(
             ref_ty
         }
 
-        Expr::Field(..) => {
-            // Type-check the field expression normally
+        Expr::Field(..) | Expr::Call(..) => {
+            // Type-check the addressable expression normally.
             let inner_ty = check_expr(ck, sema_expr.expr, SourceType::Any);
 
             if inner_ty.is_error() {
+                return ty_error();
+            }
+
+            if matches!(inner_expr, Expr::Call(..)) && !is_array_get(ck, sema_expr.expr) {
+                ck.report(ck.expr_span(expr_id), &REF_REQUIRES_ADDRESSABLE, args![]);
                 return ty_error();
             }
 
@@ -95,12 +96,21 @@ pub(super) fn check_expr_ref(
         }
 
         _ => {
-            ck.report(
-                ck.expr_span(expr_id),
-                &REF_REQUIRES_VARIABLE_OR_FIELD,
-                args![],
-            );
+            ck.report(ck.expr_span(expr_id), &REF_REQUIRES_ADDRESSABLE, args![]);
             ty_error()
         }
     }
+}
+
+fn is_array_get(ck: &TypeCheck, expr_id: ExprId) -> bool {
+    let call_type = ck
+        .body
+        .get_call_type(expr_id)
+        .expect("missing CallType for call expression");
+
+    let CallType::Expr(_, fct_id, _) = call_type.as_ref() else {
+        return false;
+    };
+
+    ck.sa.fct(*fct_id).intrinsic.get().copied() == Some(Intrinsic::ArrayGet)
 }

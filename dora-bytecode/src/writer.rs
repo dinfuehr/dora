@@ -381,6 +381,10 @@ impl BytecodeWriter {
         self.emit_reg3(BytecodeOpcode::LoadArray, dest, array, idx);
     }
 
+    pub fn emit_get_array_ref(&mut self, dest: Register, array: Register, idx: Register) {
+        self.emit_reg3(BytecodeOpcode::GetArrayRef, dest, array, idx);
+    }
+
     pub fn emit_get_field_ref(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         self.emit_access_field(BytecodeOpcode::GetFieldRef, dest, obj, field_idx);
     }

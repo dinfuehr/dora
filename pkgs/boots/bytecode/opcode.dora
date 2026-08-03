@@ -70,6 +70,7 @@ pub const BYTECODE_OPCODE_LOAD_REF: Int32 = 65;
 pub const BYTECODE_OPCODE_GET_REGISTER_REF: Int32 = 66;
 pub const BYTECODE_OPCODE_GET_GLOBAL_REF: Int32 = 67;
 pub const BYTECODE_OPCODE_RET: Int32 = 68;
+pub const BYTECODE_OPCODE_GET_ARRAY_REF: Int32 = 69;
 
 pub const BYTECODE_TYPE_UNIT: Int32 = 0;
 pub const BYTECODE_TYPE_BOOL: Int32 = 1;
@@ -526,6 +527,9 @@ pub fn bytecode_name(opcode: Int32): String {
     }
     if opcode == BYTECODE_OPCODE_RET {
         return "Ret";
+    }
+    if opcode == BYTECODE_OPCODE_GET_ARRAY_REF {
+        return "GetArrayRef";
     }
     unreachable[String]()
 }

@@ -1,0 +1,23 @@
+fn update(value: ref Int32) {
+    value += 1i32;
+}
+
+fn update_element(array: Array[Int32], index: Int64) {
+    update(ref array(index));
+}
+
+fn replace[T](value: ref T, replacement: T) {
+    value = replacement;
+}
+
+fn replace_element[T](array: Array[T], index: Int64, replacement: T) {
+    replace[T](ref array(index), replacement);
+}
+
+fn element_ref(array: Array[Int32], index: Int64): ref Int32 {
+    ref array(index)
+}
+
+fn element_ref_generic[T](array: Array[T], index: Int64): ref T {
+    ref array(index)
+}

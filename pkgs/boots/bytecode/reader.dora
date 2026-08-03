@@ -393,6 +393,12 @@ impl BytecodeIterator {
                 let idx = self.read_register();
                 BytecodeInstruction::StoreArray(src, arr, idx)
             }
+            opc::BYTECODE_OPCODE_GET_ARRAY_REF => {
+                let dest = self.read_register();
+                let arr = self.read_register();
+                let idx = self.read_register();
+                BytecodeInstruction::GetArrayRef(dest, arr, idx)
+            }
             opc::BYTECODE_OPCODE_GET_FIELD_REF => {
                 let dest = self.read_register();
                 let obj = self.read_register();

@@ -75,6 +75,7 @@ pub enum BytecodeInstruction {
 
     LoadArray(BytecodeRegister, BytecodeRegister, BytecodeRegister),
     StoreArray(BytecodeRegister, BytecodeRegister, BytecodeRegister),
+    GetArrayRef(BytecodeRegister, BytecodeRegister, BytecodeRegister),
 
     GetFieldRef(BytecodeRegister, BytecodeRegister, ConstPoolId),
     StoreRef(BytecodeRegister, BytecodeRegister),

@@ -888,6 +888,10 @@ impl BytecodeGraphBuilder {
                 self.emit_store_array(src, arr, idx);
                 false
             }
+            BytecodeInstruction::GetArrayRef(dest, arr, idx) => {
+                self.emit_get_array_ref(dest, arr, idx);
+                false
+            }
             BytecodeInstruction::GetFieldRef(dest, obj, idx) => {
                 self.emit_get_field_ref(dest, obj, idx);
                 false
@@ -1879,6 +1883,36 @@ impl BytecodeGraphBuilder {
             let src_inst = self.register_value(src);
             self.store_array(src_type, arr_inst, idx_inst, src_inst);
         }
+    }
+
+    fn emit_get_array_ref(
+        dest: BytecodeRegister,
+        arr: BytecodeRegister,
+        idx: BytecodeRegister,
+    ) {
+        let arr_inst = self.emit_local_get(arr);
+        let idx_inst = self.emit_local_get(idx);
+
+        let array_length_inst = self.load_array_length(arr_inst);
+        let check_inst = graph::create_check_array_bounds_inst(
+            idx_inst,
+            array_length_inst,
+        );
+        self.set_current_inlined_location(check_inst);
+        self.current().append_inst(check_inst);
+
+        let BytecodeType::Class(
+            class_id,
+            type_params,
+        ) = self.specialize_ty(self.reg(arr));
+        let element_size = iface::get_element_size(self.ci, class_id, type_params);
+        let address_inst = graph::create_get_element_ptr_inst(
+            arr_inst,
+            idx_inst,
+            element_size.to_int64(),
+        );
+        self.current().append_inst(address_inst);
+        self.store_ref(self.aggregate_register(dest), address_inst, arr_inst);
     }
 
     fn load_array_length(obj: Inst): Inst {

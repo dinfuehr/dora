@@ -304,6 +304,9 @@ pub fn dump_instruction(inst: BytecodeInstructionInfo, dumper: BytecodeDumper) {
         BytecodeInstruction::StoreArray(src, arr, index) => {
             dumper.emit_reg3(inst, "StoreArray", src, arr, index);
         }
+        BytecodeInstruction::GetArrayRef(dest, arr, index) => {
+            dumper.emit_reg3(inst, "GetArrayRef", dest, arr, index);
+        }
         BytecodeInstruction::GetFieldRef(dest, obj, idx) => {
             dumper.emit_reg2_and_idx(inst, "GetFieldRef", dest, obj, idx);
         }

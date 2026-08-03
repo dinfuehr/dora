@@ -938,6 +938,10 @@ impl<'a> BytecodeVisitor for BytecodeDumper<'a> {
         self.emit_reg3("StoreArray", src, arr, idx);
     }
 
+    fn visit_get_array_ref(&mut self, dest: Register, arr: Register, idx: Register) {
+        self.emit_reg3("GetArrayRef", dest, arr, idx);
+    }
+
     fn visit_array_length(&mut self, dest: Register, arr: Register) {
         self.emit_reg2("ArrayLength", dest, arr);
     }

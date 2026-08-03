@@ -74,6 +74,7 @@ variants = [
     "GetRegisterRef",
     "GetGlobalRef",
     "Ret",
+    "GetArrayRef",
 ]
 
 [BytecodeType]

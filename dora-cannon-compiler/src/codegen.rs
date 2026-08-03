@@ -2573,6 +2573,30 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         }
     }
 
+    fn emit_get_array_ref(&mut self, dest: Register, arr: Register, idx: Register) {
+        assert_eq!(self.bytecode().register_type(idx), BytecodeType::Int64);
+        assert!(self.bytecode().register_type(arr).is_class());
+
+        let BytecodeType::Ref(element_type) = self.specialize_register_type(dest) else {
+            unreachable!("GetArrayRef destination should be a ref")
+        };
+        let element_size = self.size(*element_type);
+        let position = self
+            .bytecode()
+            .offset_location(self.current_offset.to_u32());
+        let array_reg = REG_TMP2;
+        let index_reg = REG_TMP1;
+
+        self.emit_load_register(arr, array_reg.into());
+        self.asm.test_if_nil_bailout(position, array_reg, Trap::NIL);
+        self.emit_load_register(idx, index_reg.into());
+        self.asm
+            .check_index_out_of_bounds(position, array_reg, index_reg);
+        self.asm
+            .array_address(index_reg, array_reg, index_reg, element_size);
+        self.store_ref(dest, index_reg, array_reg);
+    }
+
     fn emit_invoke_virtual_from_bytecode(
         &mut self,
         dest: Register,
@@ -4885,6 +4909,11 @@ impl<'a, 'i> BytecodeVisitor for CannonCodeGen<'a, 'i> {
     fn visit_store_array(&mut self, src: Register, arr: Register, idx: Register) {
         comment!(self, format!("StoreArray {}, {}, {}", src, arr, idx));
         self.emit_store_array(src, arr, idx);
+    }
+
+    fn visit_get_array_ref(&mut self, dest: Register, arr: Register, idx: Register) {
+        comment!(self, format!("GetArrayRef {}, {}, {}", dest, arr, idx));
+        self.emit_get_array_ref(dest, arr, idx);
     }
 
     fn visit_ret(&mut self, opnd: Register) {
