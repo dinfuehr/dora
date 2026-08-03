@@ -1,0 +1,31 @@
+fn unitThenBranch() {
+    if true {
+        unreachable[()]();
+    } else {
+        4
+    };
+}
+
+fn unitElseBranch() {
+    if true {
+        4
+    } else {
+        unreachable[()]();
+    };
+}
+
+fn unitThenBranchAsReturnValue(): Int64 {
+    if true {
+        unreachable[()]();
+    } else {
+        4
+    }
+}
+
+fn unitElseBranchAsReturnValue(): Int64 {
+    if true {
+        4
+    } else {
+        unreachable[()]();
+    }
+}
