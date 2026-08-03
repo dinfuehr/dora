@@ -1,0 +1,33 @@
+use std::traits::IndexGet;
+
+struct Inner {
+    value: Int32,
+}
+
+impl Inner {
+    mutating fn set(value: Int32) {
+        self.value = value;
+    }
+}
+
+struct Outer {
+    inner: Inner,
+}
+
+@NeverInline
+fn nested_field(array: Array[Outer], index: Int64): Int32 {
+    array.get(index).inner.value
+}
+
+@NeverInline
+fn mutate_temporary(array: Array[Outer], index: Int64, value: Int32) {
+    array.get(index).inner.set(value);
+}
+
+fn main() {
+    let array = Array[Outer]::new(Outer(inner = Inner(value = 1i32)));
+
+    assert(nested_field(array, 0i64) == 1i32);
+    mutate_temporary(array, 0i64, 2i32);
+    assert(nested_field(array, 0i64) == 1i32);
+}

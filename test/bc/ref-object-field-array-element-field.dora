@@ -1,0 +1,30 @@
+struct Pair {
+    value: Int32,
+}
+
+struct Nested {
+    pair: Pair,
+}
+
+class Holder {
+    pairs: Array[Pair],
+    nested: Array[Nested],
+    tuples: Array[(Int32, Bool)],
+}
+
+fn element_field(holder: Holder, index: Int64): ref Int32 {
+    ref holder.pairs(index).value
+}
+
+fn nested_element_field(holder: Holder, index: Int64): ref Int32 {
+    ref holder.nested(index).pair.value
+}
+
+fn element_tuple_field(holder: Holder, index: Int64): ref Int32 {
+    ref holder.tuples(index).0
+}
+
+fn mutate_element_field(holder: Holder, index: Int64, value: Int32) {
+    let value_ref = ref holder.pairs(index).value;
+    value_ref = value;
+}

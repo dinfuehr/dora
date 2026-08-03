@@ -85,7 +85,7 @@ fn object_field_if(condition: Bool, first: Box, second: Box): ref Int32 {
 }
 
 fn forwarded_object_field(value: Box): ref Int32 {
-    object_field(value)
+    ref object_field(value)
 }
 
 fn referenced_struct_field(value: ref Pair): ref Int32 {

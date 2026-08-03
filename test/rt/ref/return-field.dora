@@ -8,8 +8,13 @@ fn make_ref(value: Int32): ref Int32 {
     ref obj.value
 }
 
+@NeverInline
+fn forward_ref(value: Int32): ref Int32 {
+    ref make_ref(value)
+}
+
 fn main() {
-    let value = make_ref(17i32);
+    let value = forward_ref(17i32);
 
     std::force_minor_collect();
     assert(value == 17i32);

@@ -1,0 +1,24 @@
+use std::traits::IndexGet;
+
+struct Inner {
+    value: Int32,
+}
+
+impl Inner {
+    mutating fn set(value: Int32) {
+        self.value = value;
+    }
+}
+
+struct Outer {
+    inner: Inner,
+}
+
+fn nestedField(array: Array[Outer], index: Int64): Int32 {
+    array.get(index).inner.value
+}
+
+fn mutateTemporary(array: Array[Outer], index: Int64, value: Int32) {
+    array.get(index).inner.set(value);
+}
+//= ok

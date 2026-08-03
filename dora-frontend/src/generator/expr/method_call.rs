@@ -98,7 +98,7 @@ pub(super) fn gen_expr_method_call(
     return_reg
 }
 
-fn gen_expr_method_call_field_object(
+pub(super) fn gen_expr_method_call_field_object(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
     e: &MethodCallExpr,

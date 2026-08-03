@@ -7,11 +7,11 @@ fn field_ref(holder: Holder): ref Int32 {
 }
 
 fn forward(holder: Holder): ref Int32 {
-    field_ref(holder)
+    ref field_ref(holder)
 }
 
 fn explicit_forward(holder: Holder): ref Int32 {
-    return field_ref(holder);
+    return ref field_ref(holder);
 }
 
 trait Value {
@@ -19,5 +19,19 @@ trait Value {
 }
 
 fn forward_method(value: Value): ref Int32 {
-    value.value()
+    ref value.value()
+}
+
+class GenericHolder[T] { value: T }
+
+fn generic_field_ref[T](holder: GenericHolder[T]): ref T {
+    ref holder.value
+}
+
+fn no_holder[T](): GenericHolder[T] {
+    std::unreachable[GenericHolder[T]]()
+}
+
+fn inferred_forward(): ref Int32 {
+    ref generic_field_ref(no_holder())
 }

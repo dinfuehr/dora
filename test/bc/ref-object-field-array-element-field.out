@@ -1,0 +1,100 @@
+class Holder:
+  pairs: Array[Pair]
+  nested: Array[Nested]
+  tuples: Array[(Int32, Bool)]
+
+struct Pair:
+  value: Int32
+
+struct Nested:
+  pair: Pair
+
+fn element_field:
+  0: LoadField r4, r0, @1 # Holder.pairs
+  4: GetArrayRef r3, r4, r1
+  8: GetFieldRef r2, r3, @0 # Pair.value
+ 12: Ret r2
+
+  Registers:
+   0 => class Holder
+   1 => Int64
+   2 => ref Int32
+   3 => ref Pair
+   4 => class Array[Pair]
+
+  Constants:
+   0 => StructField Pair.value
+   1 => Field Holder.pairs
+
+  Locations:
+   4 => 16:9
+
+fn nested_element_field:
+  0: LoadField r5, r0, @2 # Holder.nested
+  4: GetArrayRef r4, r5, r1
+  8: GetFieldRef r3, r4, @1 # Nested.pair
+ 12: GetFieldRef r2, r3, @0 # Pair.value
+ 16: Ret r2
+
+  Registers:
+   0 => class Holder
+   1 => Int64
+   2 => ref Int32
+   3 => ref Pair
+   4 => ref Nested
+   5 => class Array[Nested]
+
+  Constants:
+   0 => StructField Pair.value
+   1 => StructField Nested.pair
+   2 => Field Holder.nested
+
+  Locations:
+   4 => 20:9
+
+fn element_tuple_field:
+  0: LoadField r4, r0, @1 # Holder.tuples
+  4: GetArrayRef r3, r4, r1
+  8: GetFieldRef r2, r3, @0 # (Int32, Bool).0
+ 12: Ret r2
+
+  Registers:
+   0 => class Holder
+   1 => Int64
+   2 => ref Int32
+   3 => ref (Int32, Bool)
+   4 => class Array[(Int32, Bool)]
+
+  Constants:
+   0 => TupleElement subtypes.0
+   1 => Field Holder.tuples
+
+  Locations:
+   4 => 24:9
+
+fn mutate_element_field:
+  0: LoadField r6, r0, @1 # Holder.pairs
+  4: GetArrayRef r5, r6, r1
+  8: GetFieldRef r4, r5, @0 # Pair.value
+ 12: Mov r3, r4
+ 15: StoreRef r2, r3
+ 18: Ret r7
+
+  Registers:
+   0 => class Holder
+   1 => Int64
+   2 => Int32
+   3 => ref Int32
+   4 => ref Int32
+   5 => ref Pair
+   6 => class Array[Pair]
+   7 => ()
+
+  Constants:
+   0 => StructField Pair.value
+   1 => Field Holder.pairs
+
+  Locations:
+   4 => 28:25
+   15 => 29:5
+

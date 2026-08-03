@@ -21,18 +21,16 @@ fn update:
    3 => 5:5
 
 fn update_nested:
-  0: GetRegisterRef r4, r0
-  3: GetFieldRef r3, r4, @2 # Outer.inner
-  7: GetFieldRef r2, r3, @1 # Inner.value
- 11: InvokeStatic r1, @0, r2 # update
- 16: Ret r1
+  0: GetFieldRef r3, r0, @2 # Outer.inner
+  4: GetFieldRef r2, r3, @1 # Inner.value
+  8: InvokeStatic r1, @0, r2 # update
+ 13: Ret r1
 
   Registers:
    0 => struct Outer
    1 => ()
    2 => ref Int32
    3 => ref Inner
-   4 => ref Outer
 
   Constants:
    0 => Fct update
@@ -40,6 +38,6 @@ fn update_nested:
    2 => StructField Outer.inner
 
   Locations:
-   3 => 9:16
-   11 => 9:5
+   0 => 9:16
+   8 => 9:5
 

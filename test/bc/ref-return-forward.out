@@ -1,0 +1,79 @@
+class Holder:
+  value: Int32
+
+class ArrayHolder:
+  values: Array[Int32]
+
+fn <impl Holder>::value_ref:
+  0: GetFieldRef r1, r0, @0 # Holder.value
+  4: Ret r1
+
+  Registers:
+   0 => class Holder
+   1 => ref Int32
+
+  Constants:
+   0 => Field Holder.value
+
+  Locations:
+   0 => 5:13
+
+fn field_ref:
+  0: GetFieldRef r1, r0, @0 # Holder.value
+  4: Ret r1
+
+  Registers:
+   0 => class Holder
+   1 => ref Int32
+
+  Constants:
+   0 => Field Holder.value
+
+  Locations:
+   0 => 10:9
+
+fn forward:
+  0: InvokeStatic r1, @0, r0 # field_ref
+  5: Ret r1
+
+  Registers:
+   0 => class Holder
+   1 => ref Int32
+
+  Constants:
+   0 => Fct field_ref
+
+  Locations:
+   0 => 14:9
+
+fn forward_method:
+  0: InvokeDirect r1, @0, r0 # <impl Holder>::value_ref
+  5: Ret r1
+
+  Registers:
+   0 => class Holder
+   1 => ref Int32
+
+  Constants:
+   0 => Fct <impl Holder>::value_ref
+
+  Locations:
+   0 => 18:9
+
+fn array_field_ref:
+  0: LoadField r3, r0, @0 # ArrayHolder.values
+  4: GetArrayRef r2, r3, r1
+  8: Ret r2
+
+  Registers:
+   0 => class ArrayHolder
+   1 => Int64
+   2 => ref Int32
+   3 => class Array[Int32]
+
+  Constants:
+   0 => Field ArrayHolder.values
+
+  Locations:
+   4 => 24:9
+

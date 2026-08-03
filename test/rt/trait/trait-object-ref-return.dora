@@ -16,7 +16,7 @@ impl Value for Holder {
 
 @NeverInline
 fn get_value(object: Value): ref Int32 {
-    object.value()
+    ref object.value()
 }
 
 fn main() {

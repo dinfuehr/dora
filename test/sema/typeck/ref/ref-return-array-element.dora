@@ -4,6 +4,10 @@ struct Pair {
     value: Int32,
 }
 
+class ArrayHolder {
+    values: Array[Int32],
+}
+
 fn element(array: Array[Int32], index: Int64): ref Int32 {
     ref array(index)
 }
@@ -18,4 +22,12 @@ fn elementField(array: Array[Pair], index: Int64): ref Int32 {
 
 fn elementTupleField(array: Array[(Int32, Bool)], index: Int64): ref Int32 {
     ref array(index).0
+}
+
+fn objectFieldElement(holder: ArrayHolder, index: Int64): ref Int32 {
+    ref holder.values(index)
+}
+
+fn assignObjectFieldElement(holder: ArrayHolder, index: Int64, value: Int32) {
+    holder.values(index) = value;
 }

@@ -1,12 +1,13 @@
 use dora_bytecode::{BytecodeType, Register};
 
 use super::{ensure_register, gen_expr};
+use crate::generator::expr::method_call::gen_expr_method_call_field_object;
 use crate::generator::{
     AstBytecodeGen, DataDest, field_id_from_context_idx, load_outer_context_object, var_reg,
 };
 use crate::sema::{
-    CallExpr, ContextFieldId, ContextId, Expr, ExprId, FieldExpr, IdentType, Intrinsic, RefExpr,
-    ScopeId, VarLocation,
+    CallExpr, CallType, ContextFieldId, ContextId, Expr, ExprId, FieldExpr, IdentType, Intrinsic,
+    MethodCallExpr, RefExpr, ScopeId, VarId, VarLocation,
 };
 use crate::ty::SourceType;
 
@@ -35,9 +36,15 @@ pub(super) fn gen_expr_as_ref(
 ) -> GeneratedRef {
     match g.analysis.expr(expr_id) {
         Expr::Path(..) => gen_expr_as_ref_path(g, expr_id, ty),
-        Expr::Field(field_expr) => gen_expr_as_ref_field(g, expr_id, field_expr, ty),
+        Expr::Field(field_expr) => {
+            gen_expr_as_ref_field(g, expr_id, field_expr, ty, DataDest::Alloc)
+        }
         Expr::Call(call_expr) if is_array_get(g, expr_id) => GeneratedRef {
             reference: gen_expr_ref_array_element(g, expr_id, call_expr, DataDest::Alloc),
+            backing: None,
+        },
+        Expr::MethodCall(method_call) if is_array_get(g, expr_id) => GeneratedRef {
+            reference: gen_expr_ref_array_field_element(g, expr_id, method_call, DataDest::Alloc),
             backing: None,
         },
         Expr::Paren(inner_expr) => gen_expr_as_ref(g, *inner_expr, ty),
@@ -254,17 +261,26 @@ fn gen_expr_as_ref_field(
     expr_id: ExprId,
     field_expr: &FieldExpr,
     field_ty: SourceType,
+    dest: DataDest,
 ) -> GeneratedRef {
     let inner_ty = g.emitter.convert_ty(g.sa, field_ty);
-    let reference = g.alloc_temp(BytecodeType::Ref(Box::new(inner_ty)));
+    let reference = ensure_register(g, dest, BytecodeType::Ref(Box::new(inner_ty)));
     let field_idx = add_field_const_pool_entry(g, expr_id);
     let object_ty = g.ty(field_expr.lhs);
 
-    let (obj, backing) = if object_ty.is_ref() || object_ty.is_struct() || object_ty.is_tuple() {
+    let (obj, backing) = if object_ty.is_class() {
+        // Class bases are references already, so they can be generated directly.
+        (gen_expr(g, field_expr.lhs, DataDest::Alloc), None)
+    } else if let Some(var_id) = direct_stack_value_var(g, field_expr.lhs) {
+        // Stack-local aggregates can use their existing value or reference register directly.
+        (var_reg(g, var_id), None)
+    } else {
+        debug_assert!(object_ty.is_ref() || object_ty.is_struct() || object_ty.is_tuple());
+        // Value aggregates need to remain backed by their original storage. For example,
+        // `ref holder.pairs(index).value` must take a ref to the array element before taking its
+        // `value` field; loading the element normally would create a temporary copy.
         let object = gen_expr_as_ref(g, field_expr.lhs, object_ty);
         (object.reference, object.backing)
-    } else {
-        (gen_expr(g, field_expr.lhs, DataDest::Alloc), None)
     };
 
     g.builder
@@ -272,6 +288,27 @@ fn gen_expr_as_ref_field(
     g.free_if_temp(obj);
 
     GeneratedRef { reference, backing }
+}
+
+fn direct_stack_value_var(g: &AstBytecodeGen, expr_id: ExprId) -> Option<VarId> {
+    match g.analysis.expr(expr_id) {
+        Expr::Path(_) => {
+            let Some(IdentType::Var(var_id)) = g.analysis.get_ident(expr_id) else {
+                return None;
+            };
+
+            let vars = g.analysis.vars();
+            let var = vars.get_var(var_id);
+
+            if var.location.is_stack() {
+                Some(var_id)
+            } else {
+                None
+            }
+        }
+        Expr::Paren(inner_expr) => direct_stack_value_var(g, *inner_expr),
+        _ => None,
+    }
 }
 
 pub(super) fn gen_expr_ref(
@@ -284,10 +321,49 @@ pub(super) fn gen_expr_ref(
 
     match inner_expr {
         Expr::Path(..) => gen_expr_ref_path(g, expr_id, e, dest),
-        Expr::Field(field_expr) => gen_expr_ref_field(g, expr_id, e, field_expr, dest),
-        Expr::Call(call_expr) => gen_expr_ref_array_element(g, e.expr, call_expr, dest),
-        _ => unreachable!("ref expression should only be on variables, fields, or array elements"),
+        Expr::Field(field_expr) => gen_expr_ref_field(g, e, field_expr, dest),
+        Expr::Call(call_expr) => {
+            if g.ty(e.expr).is_ref() {
+                gen_expr(g, e.expr, dest)
+            } else {
+                gen_expr_ref_array_element(g, e.expr, call_expr, dest)
+            }
+        }
+        Expr::MethodCall(method_call) => {
+            if g.ty(e.expr).is_ref() {
+                gen_expr(g, e.expr, dest)
+            } else {
+                gen_expr_ref_array_field_element(g, e.expr, method_call, dest)
+            }
+        }
+        _ => unreachable!(
+            "ref expression should only be on variables, fields, array elements, or ref-returning calls"
+        ),
     }
+}
+
+fn gen_expr_ref_array_field_element(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    method_call: &MethodCallExpr,
+    dest: DataDest,
+) -> Register {
+    let info = g.get_intrinsic(expr_id).expect("missing array intrinsic");
+    assert_eq!(info.intrinsic, Intrinsic::ArrayGet);
+    assert_eq!(method_call.args.len(), 1);
+
+    let inner_ty = g.emitter.convert_ty(g.sa, g.ty(expr_id));
+    let dest_reg = ensure_register(g, dest, BytecodeType::Ref(Box::new(inner_ty)));
+    let array_reg = gen_expr_method_call_field_object(g, expr_id, method_call);
+    let index_reg = gen_expr(g, method_call.args[0].expr, DataDest::Alloc);
+
+    g.builder
+        .emit_get_array_ref(dest_reg, array_reg, index_reg, g.loc_for_expr(expr_id));
+
+    g.free_if_temp(array_reg);
+    g.free_if_temp(index_reg);
+
+    dest_reg
 }
 
 fn gen_expr_ref_array_element(
@@ -419,51 +495,32 @@ fn emit_get_context_field_ref(
 
 fn gen_expr_ref_field(
     g: &mut AstBytecodeGen,
-    _expr_id: ExprId,
     e: &RefExpr,
     field_expr: &FieldExpr,
     dest: DataDest,
 ) -> Register {
     let field_ty = g.ty(e.expr);
-    let inner_ty = g.emitter.convert_ty(g.sa, field_ty);
-    let ref_ty = BytecodeType::Ref(Box::new(inner_ty));
-    let dest_reg = ensure_register(g, dest, ref_ty);
-    let field_idx = add_field_const_pool_entry(g, e.expr);
-    let object_ty = g.ty(field_expr.lhs);
-    let (obj, backing) = if needs_ref_backed_field_base(g, field_expr.lhs) {
-        let object = gen_expr_as_ref(g, field_expr.lhs, object_ty);
-        (object.reference, object.backing)
-    } else {
-        (gen_expr(g, field_expr.lhs, DataDest::Alloc), None)
-    };
-    let location = g.loc_for_expr(e.expr);
-    g.builder
-        .emit_get_field_ref(dest_reg, obj, field_idx, location);
-    g.free_if_temp(obj);
+    let generated_ref = gen_expr_as_ref_field(g, e.expr, field_expr, field_ty, dest);
 
-    if let Some(backing) = backing {
+    if let Some(backing) = generated_ref.backing {
         g.free_if_temp(backing);
     }
 
-    dest_reg
-}
-
-fn needs_ref_backed_field_base(g: &AstBytecodeGen, expr_id: ExprId) -> bool {
-    match g.analysis.expr(expr_id) {
-        Expr::Field(_) => {
-            let ty = g.ty(expr_id);
-            ty.is_struct() || ty.is_tuple()
-        }
-        Expr::Call(_) => {
-            let ty = g.ty(expr_id);
-            (ty.is_struct() || ty.is_tuple()) && is_array_get(g, expr_id)
-        }
-        Expr::Paren(inner_expr) => needs_ref_backed_field_base(g, *inner_expr),
-        _ => false,
-    }
+    generated_ref.reference
 }
 
 fn is_array_get(g: &AstBytecodeGen, expr_id: ExprId) -> bool {
+    let Some(call_type) = g.analysis.get_call_type(expr_id) else {
+        return false;
+    };
+
+    // Index syntax like `array(index)` uses `CallType::Expr`, while an explicit
+    // method call like `array.get(index)` uses `CallType::Method`, which must not
+    // be handled as an array access here.
+    if !matches!(call_type.as_ref(), CallType::Expr(..)) {
+        return false;
+    }
+
     g.get_intrinsic(expr_id)
         .map(|info| info.intrinsic == Intrinsic::ArrayGet)
         .unwrap_or(false)

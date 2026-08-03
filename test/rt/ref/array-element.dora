@@ -5,6 +5,10 @@ class Box {
     value: Int32,
 }
 
+class ArrayHolder {
+    values: Array[Int32],
+}
+
 struct Pair {
     first: Int32,
     second: Int64,
@@ -66,6 +70,17 @@ fn element_field_ref(array: Array[Pair], index: Int64): ref Int32 {
     ref array(index).first
 }
 
+@NeverInline
+fn object_field_element_ref(holder: ArrayHolder, index: Int64): ref Int32 {
+    ref holder.values(index)
+}
+
+@NeverInline
+fn new_object_field_element_ref(): ref Int32 {
+    let holder = ArrayHolder(Array[Int32]::new(50i32, 51i32));
+    ref holder.values(1i64)
+}
+
 fn main() {
     let integers = Array[Int32]::new(10i32, 20i32, 30i32);
     replace_generic[Int32](ref integers(0i64), 11i32);
@@ -85,6 +100,22 @@ fn main() {
     assert(new_array_ref == 41i32);
     new_array_ref = 42i32;
     assert(new_array_ref == 42i32);
+
+    let holder = ArrayHolder(Array[Int32]::new(43i32, 44i32));
+    holder.values(0i64) = 45i32;
+    assert(holder.values(0i64) == 45i32);
+
+    let object_field_ref = object_field_element_ref(holder, 1i64);
+    std::force_collect();
+    assert(object_field_ref == 44i32);
+    object_field_ref = 46i32;
+    assert(holder.values(1i64) == 46i32);
+
+    let new_object_field_ref = new_object_field_element_ref();
+    std::force_collect();
+    assert(new_object_field_ref == 51i32);
+    new_object_field_ref = 52i32;
+    assert(new_object_field_ref == 52i32);
 
     let pairs = Array[Pair]::new(Pair(first = 1i32, second = 2i64));
     let previous = replace_pair(ref pairs(0i64), Pair(first = 3i32, second = 4i64));

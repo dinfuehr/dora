@@ -473,7 +473,7 @@ pub static FIELD_ASSIGN_ON_IMMUTABLE: DiagnosticDescriptor = DiagnosticDescripto
 };
 
 pub static REF_REQUIRES_ADDRESSABLE: DiagnosticDescriptor = DiagnosticDescriptor {
-    message: "`ref` requires a local variable, field access, or array element.",
+    message: "`ref` requires an addressable expression or reference-returning call.",
     level: ErrorLevel::Error,
 };
 
@@ -483,7 +483,7 @@ pub static REF_TYPE_NOT_ALLOWED: DiagnosticDescriptor = DiagnosticDescriptor {
 };
 
 pub static REF_RETURN_LIFETIME: DiagnosticDescriptor = DiagnosticDescriptor {
-    message: "`ref` return requires a global, object field, or array element.",
+    message: "`ref` return requires a global, object field, array element, or reference-returning call.",
     level: ErrorLevel::Error,
 };
 

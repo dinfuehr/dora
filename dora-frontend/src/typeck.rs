@@ -388,8 +388,6 @@ impl<'a> TypeCheck<'a> {
                     self.report(self.expr_span(expr_id), &diag::REF_RETURN_LIFETIME, args!());
                 }
             }
-            // Ref-returning callees have already validated the lifetime of their return value.
-            Expr::Call(_) | Expr::MethodCall(_) => {}
             Expr::Return(..) | Expr::Break | Expr::Continue => {}
             _ if expr_always_exits(self.sa, self.body, expr_id) => {}
             _ => self.report(
@@ -403,7 +401,9 @@ impl<'a> TypeCheck<'a> {
     fn ref_target_is_returnable_location(&self, expr_id: ExprId) -> bool {
         match self.expr(expr_id) {
             Expr::Path(_) => matches!(self.body.get_ident(expr_id), Some(IdentType::Global(..))),
-            Expr::Call(_) => is_array_get(self, expr_id),
+            Expr::Call(_) | Expr::MethodCall(_) => {
+                self.body.ty(expr_id).is_ref() || is_array_get(self, expr_id)
+            }
             Expr::Field(expr) => match self.body.get_ident(expr_id) {
                 Some(IdentType::ClassField(..)) => true,
                 Some(IdentType::StructField(..) | IdentType::TupleField(..)) => {

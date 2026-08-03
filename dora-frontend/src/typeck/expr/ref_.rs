@@ -15,7 +15,7 @@ pub(super) fn check_expr_ref(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     sema_expr: &RefExpr,
-    _expected_ty: SourceType,
+    expected_ty: SourceType,
 ) -> SourceType {
     let inner_expr = ck.expr(sema_expr.expr);
 
@@ -75,20 +75,38 @@ pub(super) fn check_expr_ref(
             ref_ty
         }
 
-        Expr::Field(..) | Expr::Call(..) => {
-            // Type-check the addressable expression normally.
+        Expr::Field(..) => {
             let inner_ty = check_expr(ck, sema_expr.expr, SourceType::Any);
 
             if inner_ty.is_error() {
                 return ty_error();
             }
 
-            if matches!(inner_expr, Expr::Call(..)) && !is_array_get(ck, sema_expr.expr) {
+            let ref_ty = SourceType::Ref(Box::new(inner_ty));
+            ck.body.set_ty(expr_id, ref_ty.clone());
+
+            ref_ty
+        }
+
+        Expr::Call(..) | Expr::MethodCall(..) => {
+            let inner_ty = check_expr(ck, sema_expr.expr, expected_ty);
+
+            if inner_ty.is_error() {
+                return ty_error();
+            }
+
+            // A call that returns a reference already provides the reference to forward.
+            // `ref` preserves that type instead of creating a nested reference.
+            if inner_ty.is_ref() {
+                ck.body.set_ty(expr_id, inner_ty.clone());
+                return inner_ty;
+            }
+
+            if !is_array_get(ck, sema_expr.expr) {
                 ck.report(ck.expr_span(expr_id), &REF_REQUIRES_ADDRESSABLE, args![]);
                 return ty_error();
             }
 
-            // Create the Ref type
             let ref_ty = SourceType::Ref(Box::new(inner_ty));
             ck.body.set_ty(expr_id, ref_ty.clone());
 

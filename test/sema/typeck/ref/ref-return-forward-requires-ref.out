@@ -1,0 +1,33 @@
+error: `ref` return requires a `ref` expression.
+--> ref-return-forward-requires-ref.dora:12:5
+ | 
+ | fn bare_forward(holder: Holder): ref Int32 {
+ |     field_ref(holder)
+       ~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `ref` return requires a `ref` expression.
+--> ref-return-forward-requires-ref.dora:16:12
+ | 
+ | fn bare_explicit_forward(holder: Holder): ref Int32 {
+ |     return field_ref(holder);
+              ~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `ref` return requires a `ref` expression.
+--> ref-return-forward-requires-ref.dora:24:5
+ | 
+ | fn bare_forward_method(value: Value): ref Int32 {
+ |     value.value()
+       ~~~~~~~~~~~~~
+ | }
+ | 
+error: `ref` requires an addressable expression or reference-returning call.
+--> ref-return-forward-requires-ref.dora:28:5
+ | 
+ | fn ref_value_call(): ref Int32 {
+ |     ref value()
+       ~~~~~~~~~~~
+ | }
+ | 
+4 errors found.

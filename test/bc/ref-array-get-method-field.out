@@ -1,0 +1,70 @@
+struct Inner:
+  value: Int32
+
+struct Outer:
+  inner: Inner
+
+fn <impl Inner>::set:
+  0: GetFieldRef r2, r0, @0 # Inner.value
+  4: StoreRef r1, r2
+  7: Ret r3
+
+  Registers:
+   0 => ref Inner
+   1 => Int32
+   2 => ref Int32
+   3 => ()
+
+  Constants:
+   0 => StructField Inner.value
+
+  Locations:
+   0 => 9:9
+
+fn nested_field:
+  0: LoadArray r3, r0, r1
+  4: GetRegisterRef r4, r3
+  7: GetFieldRef r5, r4, @0 # Outer.inner
+ 11: GetFieldRef r6, r5, @1 # Inner.value
+ 15: LoadRef r2, r6
+ 18: Ret r2
+
+  Registers:
+   0 => class Array[Outer]
+   1 => Int64
+   2 => Int32
+   3 => struct Outer
+   4 => ref Outer
+   5 => ref Inner
+   6 => ref Int32
+
+  Constants:
+   0 => StructField Outer.inner
+   1 => StructField Inner.value
+
+  Locations:
+   0 => 18:5
+
+fn mutate_temporary:
+  0: LoadArray r5, r0, r1
+  4: GetRegisterRef r6, r5
+  7: GetFieldRef r4, r6, @1 # Outer.inner
+ 11: InvokeDirect r3, @0, r4, r2 # <impl Inner>::set
+ 17: Ret r3
+
+  Registers:
+   0 => class Array[Outer]
+   1 => Int64
+   2 => Int32
+   3 => ()
+   4 => ref Inner
+   5 => struct Outer
+   6 => ref Outer
+
+  Constants:
+   0 => Fct <impl Inner>::set
+   1 => StructField Outer.inner
+
+  Locations:
+   0 => 22:5
+

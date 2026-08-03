@@ -1,0 +1,25 @@
+class Holder { value: Int32 }
+
+impl Holder {
+    fn value_ref(): ref Int32 {
+        ref self.value
+    }
+}
+
+fn field_ref(holder: Holder): ref Int32 {
+    ref holder.value
+}
+
+fn forward(holder: Holder): ref Int32 {
+    ref field_ref(holder)
+}
+
+fn forward_method(holder: Holder): ref Int32 {
+    ref holder.value_ref()
+}
+
+class ArrayHolder { values: Array[Int32] }
+
+fn array_field_ref(holder: ArrayHolder, index: Int64): ref Int32 {
+    ref holder.values(index)
+}
