@@ -1,5 +1,5 @@
 //= boots
-//= compile-args "--emit-graph=repeated_global_load;store_then_load_global;global_load_after_call;branch_store_global"
+//= compile-args "--emit-graph=repeated_global_load;store_then_load_global;global_load_after_call;load_after_store_through_ref;branch_store_global"
 
 let mut global_value: Int = 0;
 
@@ -8,6 +8,8 @@ fn main() {
     assert(repeated_global_load() == 20);
     assert(store_then_load_global(31) == 31);
     assert(global_load_after_call() == 62);
+    global_value = 10;
+    assert(load_after_store_through_ref(52) == 62);
     assert(branch_store_global(true, 41, 42) == 41);
     assert(branch_store_global(false, 41, 42) == 42);
 }
@@ -44,6 +46,23 @@ fn global_load_after_call(): Int {
 // CHECK: [[FIRST:%\d+]]: LoadGlobal.Int64
 // CHECK: Invoke.Unit
 // CHECK-NOT: EnsureGlobalInitialized
+// CHECK: [[SECOND:%\d+]]: LoadGlobal.Int64
+// CHECK: CheckedAdd.Int64 [[FIRST]], [[SECOND]]
+
+fn store_through_ref(target: ref Int, value: Int) {
+    target = value;
+}
+
+fn load_after_store_through_ref(value: Int): Int {
+    let first = global_value;
+    store_through_ref(ref global_value, value);
+    first + global_value
+}
+
+// CHECK: Function load_after_store_through_ref: final
+// CHECK: [[FIRST:%\d+]]: LoadGlobal.Int64
+// CHECK: GetGlobalAddress
+// CHECK: Store.Int64
 // CHECK: [[SECOND:%\d+]]: LoadGlobal.Int64
 // CHECK: CheckedAdd.Int64 [[FIRST]], [[SECOND]]
 

@@ -318,9 +318,9 @@ impl LoadEliminationPass {
 
                     data.class_field_infos.insert(field, new_value);
                 } else {
-                    // Store without ClassInfo could alias with any class field
-                    // (e.g., a store through a computed address within a class object)
-                    data.class_field_infos.clear();
+                    // Store without ClassInfo could alias with any mutable memory
+                    // (e.g., a store through a ref to a class field or global)
+                    data.kill();
                 }
             } else if op.is_call() {
                 data.kill();
