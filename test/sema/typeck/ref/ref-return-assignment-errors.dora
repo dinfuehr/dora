@@ -1,0 +1,32 @@
+class OperatorValue
+
+let mut value: Int32 = 0i32;
+let mut operator_value: OperatorValue = OperatorValue();
+
+fn non_ref(): Int32 {
+    0i32
+}
+
+fn value_ref(): ref Int32 {
+    ref value
+}
+
+fn operator_ref(): ref OperatorValue {
+    ref operator_value
+}
+
+fn assign_to_non_ref() {
+    non_ref() = 1i32;
+}
+
+fn assign_wrong_type() {
+    value_ref() = true;
+}
+
+fn compound_without_operator() {
+    operator_ref() += 1i32;
+}
+
+fn assign_to_unknown() {
+    unknown(0) = 1i32;
+}

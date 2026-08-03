@@ -1,0 +1,108 @@
+//= ok
+
+struct OperatorValue(Int64)
+
+impl std::traits::Add for OperatorValue {
+    fn add(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 + rhs.0)
+    }
+}
+
+impl std::traits::Sub for OperatorValue {
+    fn sub(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 - rhs.0)
+    }
+}
+
+impl std::traits::Mul for OperatorValue {
+    fn mul(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 * rhs.0)
+    }
+}
+
+impl std::traits::Div for OperatorValue {
+    fn div(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 / rhs.0)
+    }
+}
+
+impl std::traits::Mod for OperatorValue {
+    fn modulo(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 % rhs.0)
+    }
+}
+
+impl std::traits::BitOr for OperatorValue {
+    fn bitor(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 | rhs.0)
+    }
+}
+
+impl std::traits::BitAnd for OperatorValue {
+    fn bitand(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 & rhs.0)
+    }
+}
+
+impl std::traits::BitXor for OperatorValue {
+    fn bitxor(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 ^ rhs.0)
+    }
+}
+
+impl std::traits::Shl for OperatorValue {
+    fn shl(rhs: Int32): OperatorValue {
+        OperatorValue(self.0 << rhs)
+    }
+}
+
+impl std::traits::Sar for OperatorValue {
+    fn sar(rhs: Int32): OperatorValue {
+        OperatorValue(self.0 >> rhs)
+    }
+}
+
+impl std::traits::Shr for OperatorValue {
+    fn shr(rhs: Int32): OperatorValue {
+        OperatorValue(self.0 >>> rhs)
+    }
+}
+
+let mut intrinsic_value: Int64 = 1i64;
+let mut overloaded_value: OperatorValue = OperatorValue(1i64);
+
+fn intrinsic_ref(): ref Int64 {
+    ref intrinsic_value
+}
+
+fn overloaded_ref(): ref OperatorValue {
+    ref overloaded_value
+}
+
+fn intrinsic_assignments() {
+    intrinsic_ref() += 2i64;
+    intrinsic_ref() -= 2i64;
+    intrinsic_ref() *= 2i64;
+    intrinsic_ref() /= 2i64;
+    intrinsic_ref() %= 2i64;
+    intrinsic_ref() |= 2i64;
+    intrinsic_ref() &= 2i64;
+    intrinsic_ref() ^= 2i64;
+    intrinsic_ref() <<= 2i32;
+    intrinsic_ref() >>= 2i32;
+    intrinsic_ref() >>>= 2i32;
+}
+
+fn overloaded_assignments() {
+    overloaded_ref() += OperatorValue(2i64);
+    overloaded_ref() -= OperatorValue(2i64);
+    overloaded_ref() *= OperatorValue(2i64);
+    overloaded_ref() /= OperatorValue(2i64);
+    overloaded_ref() %= OperatorValue(2i64);
+    overloaded_ref() |= OperatorValue(2i64);
+    overloaded_ref() &= OperatorValue(2i64);
+    overloaded_ref() ^= OperatorValue(2i64);
+    overloaded_ref() <<= 2i32;
+    overloaded_ref() >>= 2i32;
+    overloaded_ref() >>>= 2i32;
+}

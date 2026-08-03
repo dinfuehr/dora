@@ -49,7 +49,11 @@ pub(super) fn gen_expr_assign(
             gen_expr_assign_dot(g, expr_id, e, field);
         }
         Expr::Call(call) => {
-            gen_expr_assign_call(g, expr_id, e, call);
+            if g.analysis.get_array_assignment(expr_id).is_some() {
+                gen_expr_assign_array(g, expr_id, e, call);
+            } else {
+                gen_expr_assign_function_call(g, expr_id, e);
+            }
         }
         Expr::MethodCall(method_call) => {
             gen_expr_assign_method_call(g, expr_id, e, e.lhs, method_call);
@@ -60,7 +64,50 @@ pub(super) fn gen_expr_assign(
     g.ensure_unit_register()
 }
 
-fn gen_expr_assign_call(
+fn gen_expr_assign_function_call(g: &mut AstBytecodeGen, expr_id: ExprId, e: &AssignExpr) {
+    let SourceType::Ref(inner_type) = g.ty(e.lhs) else {
+        unreachable!()
+    };
+    let reference = gen_expr(g, e.lhs, DataDest::Alloc);
+    let value = gen_expr(g, e.rhs, DataDest::Alloc);
+    gen_expr_assign_through_ref(g, expr_id, e, reference, value, *inner_type);
+    g.free_if_temp(reference);
+    g.free_if_temp(value);
+}
+
+fn gen_expr_assign_through_ref(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    e: &AssignExpr,
+    reference: Register,
+    value: Register,
+    value_type: SourceType,
+) {
+    let location = g.loc_for_expr(expr_id);
+    let assign_value = if e.op != ast::AssignOp::Assign {
+        let ty = g.emitter.convert_ty(g.sa, value_type);
+        let current = g.alloc_temp(ty);
+        g.builder.emit_load_ref(current, reference);
+
+        if let Some(info) = g.get_intrinsic(expr_id) {
+            gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
+        } else {
+            gen_method_bin(g, expr_id, current, current, value, location);
+        }
+
+        current
+    } else {
+        value
+    };
+
+    g.builder.emit_store_ref(assign_value, reference, location);
+
+    if e.op != ast::AssignOp::Assign {
+        g.free_temp(assign_value);
+    }
+}
+
+fn gen_expr_assign_array(
     g: &mut AstBytecodeGen,
     expr_id: ExprId,
     e: &AssignExpr,
@@ -355,32 +402,8 @@ fn gen_expr_assign_value_field(
 ) {
     let generated_ref = gen_expr_as_ref(g, e.lhs, field_ty.clone());
     let value = gen_expr(g, e.rhs, DataDest::Alloc);
-    let location = g.loc_for_expr(expr_id);
-
-    let assign_value = if e.op != ast::AssignOp::Assign {
-        let ty = g.emitter.convert_ty(g.sa, field_ty);
-        let current = g.alloc_temp(ty);
-        g.builder.emit_load_ref(current, generated_ref.reference);
-
-        if let Some(info) = g.get_intrinsic(expr_id) {
-            gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
-        } else {
-            gen_method_bin(g, expr_id, current, current, value, location);
-        }
-
-        current
-    } else {
-        value
-    };
-
-    g.builder
-        .emit_store_ref(assign_value, generated_ref.reference, location);
+    gen_expr_assign_through_ref(g, expr_id, e, generated_ref.reference, value, field_ty);
     g.free_generated_ref(generated_ref);
-
-    if e.op != ast::AssignOp::Assign {
-        g.free_temp(assign_value);
-    }
-
     g.free_if_temp(value);
 }
 
@@ -487,32 +510,11 @@ fn gen_expr_assign_var(
             unreachable!("captured ref assignment isn't supported")
         };
 
-        let location = g.loc_for_expr(expr_id);
         let reference = var_reg(g, var_id);
-        let assign_value = if e.op != ast::AssignOp::Assign {
-            let SourceType::Ref(inner) = var.ty.clone() else {
-                unreachable!()
-            };
-            let ty = g.emitter.convert_ty(g.sa, inner.as_ref().clone());
-            let current = g.alloc_temp(ty);
-            g.builder.emit_load_ref(current, reference);
-
-            if let Some(info) = g.get_intrinsic(expr_id) {
-                gen_intrinsic_bin(g, info.intrinsic, current, current, value, location);
-            } else {
-                gen_method_bin(g, expr_id, current, current, value, location);
-            }
-
-            current
-        } else {
-            value
+        let SourceType::Ref(inner) = var.ty.clone() else {
+            unreachable!()
         };
-
-        g.builder.emit_store_ref(assign_value, reference, location);
-
-        if e.op != ast::AssignOp::Assign {
-            g.free_temp(assign_value);
-        }
+        gen_expr_assign_through_ref(g, expr_id, e, reference, value, *inner);
 
         return;
     }

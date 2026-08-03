@@ -1,0 +1,175 @@
+struct OperatorValue(Int64)
+
+impl std::traits::Add for OperatorValue {
+    fn add(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 + rhs.0)
+    }
+}
+
+impl std::traits::Sub for OperatorValue {
+    fn sub(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 - rhs.0)
+    }
+}
+
+impl std::traits::Mul for OperatorValue {
+    fn mul(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 * rhs.0)
+    }
+}
+
+impl std::traits::Div for OperatorValue {
+    fn div(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 / rhs.0)
+    }
+}
+
+impl std::traits::Mod for OperatorValue {
+    fn modulo(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 % rhs.0)
+    }
+}
+
+impl std::traits::BitOr for OperatorValue {
+    fn bitor(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 | rhs.0)
+    }
+}
+
+impl std::traits::BitAnd for OperatorValue {
+    fn bitand(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 & rhs.0)
+    }
+}
+
+impl std::traits::BitXor for OperatorValue {
+    fn bitxor(rhs: OperatorValue): OperatorValue {
+        OperatorValue(self.0 ^ rhs.0)
+    }
+}
+
+impl std::traits::Shl for OperatorValue {
+    fn shl(rhs: Int32): OperatorValue {
+        OperatorValue(self.0 << rhs)
+    }
+}
+
+impl std::traits::Sar for OperatorValue {
+    fn sar(rhs: Int32): OperatorValue {
+        OperatorValue(self.0 >> rhs)
+    }
+}
+
+impl std::traits::Shr for OperatorValue {
+    fn shr(rhs: Int32): OperatorValue {
+        OperatorValue(self.0 >>> rhs)
+    }
+}
+
+let mut intrinsic_value: Int64 = 0i64;
+let mut overloaded_value: OperatorValue = OperatorValue(0i64);
+
+fn intrinsic_ref(): ref Int64 {
+    ref intrinsic_value
+}
+
+fn overloaded_ref(): ref OperatorValue {
+    ref overloaded_value
+}
+
+fn test_intrinsic_assignments() {
+    intrinsic_ref() = 7i64;
+    intrinsic_ref() += 5i64;
+    assert(intrinsic_value == 12i64);
+
+    intrinsic_ref() = 7i64;
+    intrinsic_ref() -= 5i64;
+    assert(intrinsic_value == 2i64);
+
+    intrinsic_ref() = 7i64;
+    intrinsic_ref() *= 5i64;
+    assert(intrinsic_value == 35i64);
+
+    intrinsic_ref() = 35i64;
+    intrinsic_ref() /= 5i64;
+    assert(intrinsic_value == 7i64);
+
+    intrinsic_ref() = 17i64;
+    intrinsic_ref() %= 5i64;
+    assert(intrinsic_value == 2i64);
+
+    intrinsic_ref() = 9i64;
+    intrinsic_ref() |= 3i64;
+    assert(intrinsic_value == 11i64);
+
+    intrinsic_ref() = 11i64;
+    intrinsic_ref() &= 7i64;
+    assert(intrinsic_value == 3i64);
+
+    intrinsic_ref() = 10i64;
+    intrinsic_ref() ^= 29i64;
+    assert(intrinsic_value == 23i64);
+
+    intrinsic_ref() = 3i64;
+    intrinsic_ref() <<= 2i32;
+    assert(intrinsic_value == 12i64);
+
+    intrinsic_ref() = -16i64;
+    intrinsic_ref() >>= 2i32;
+    assert(intrinsic_value == -4i64);
+
+    intrinsic_ref() = 16i64;
+    intrinsic_ref() >>>= 2i32;
+    assert(intrinsic_value == 4i64);
+}
+
+fn test_overloaded_assignments() {
+    overloaded_ref() = OperatorValue(7i64);
+    overloaded_ref() += OperatorValue(5i64);
+    assert(overloaded_value.0 == 12i64);
+
+    overloaded_ref() = OperatorValue(7i64);
+    overloaded_ref() -= OperatorValue(5i64);
+    assert(overloaded_value.0 == 2i64);
+
+    overloaded_ref() = OperatorValue(7i64);
+    overloaded_ref() *= OperatorValue(5i64);
+    assert(overloaded_value.0 == 35i64);
+
+    overloaded_ref() = OperatorValue(35i64);
+    overloaded_ref() /= OperatorValue(5i64);
+    assert(overloaded_value.0 == 7i64);
+
+    overloaded_ref() = OperatorValue(17i64);
+    overloaded_ref() %= OperatorValue(5i64);
+    assert(overloaded_value.0 == 2i64);
+
+    overloaded_ref() = OperatorValue(9i64);
+    overloaded_ref() |= OperatorValue(3i64);
+    assert(overloaded_value.0 == 11i64);
+
+    overloaded_ref() = OperatorValue(11i64);
+    overloaded_ref() &= OperatorValue(7i64);
+    assert(overloaded_value.0 == 3i64);
+
+    overloaded_ref() = OperatorValue(10i64);
+    overloaded_ref() ^= OperatorValue(29i64);
+    assert(overloaded_value.0 == 23i64);
+
+    overloaded_ref() = OperatorValue(3i64);
+    overloaded_ref() <<= 2i32;
+    assert(overloaded_value.0 == 12i64);
+
+    overloaded_ref() = OperatorValue(-16i64);
+    overloaded_ref() >>= 2i32;
+    assert(overloaded_value.0 == -4i64);
+
+    overloaded_ref() = OperatorValue(16i64);
+    overloaded_ref() >>>= 2i32;
+    assert(overloaded_value.0 == 4i64);
+}
+
+fn main() {
+    test_intrinsic_assignments();
+    test_overloaded_assignments();
+}

@@ -1,0 +1,39 @@
+let mut value: Int32 = 0i32;
+let mut static_value: Int32 = 0i32;
+
+class Factory
+
+impl Factory {
+    static fn value_ref(): ref Int32 {
+        ref static_value
+    }
+}
+
+mod foo {
+    pub mod bar {
+        pub let mut value: Int32 = 0i32;
+
+        pub fn baz(): ref Int32 {
+            ref value
+        }
+    }
+}
+
+fn value_ref(): ref Int32 {
+    ref value
+}
+
+fn main() {
+    value_ref() = 10i32;
+    assert(value == 10i32);
+
+    foo::bar::baz() = 20i32;
+    assert(foo::bar::value == 20i32);
+
+    Factory::value_ref() = 30i32;
+    assert(static_value == 30i32);
+
+    let get_ref = ||: ref Int32 { ref value };
+    get_ref() = 40i32;
+    assert(value == 40i32);
+}

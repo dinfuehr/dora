@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use dora_parser::ast;
 
-use super::call::check_expr_call_expr;
+use super::call::check_expr_call_value;
 use crate::access::{
     class_field_accessible_from, method_accessible_from, struct_field_accessible_from,
 };
@@ -264,7 +264,7 @@ fn check_method_call_is_array_field_access(
                 ck.report(syntax.field_span(), &NOT_ACCESSIBLE, args!());
             }
 
-            return check_expr_call_expr(ck, call_expr_id, field_type, call_expr_id_for_args);
+            return check_expr_call_value(ck, call_expr_id, field_type, call_expr_id_for_args);
         }
     }
 
@@ -289,7 +289,7 @@ fn check_method_call_is_array_field_access(
             }
 
             ck.body.set_ty(call_expr_id, field_type.clone());
-            return check_expr_call_expr(ck, call_expr_id, field_type, call_expr_id_for_args);
+            return check_expr_call_value(ck, call_expr_id, field_type, call_expr_id_for_args);
         }
     }
 

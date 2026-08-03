@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use super::call::{CallTarget, check_expr_call_target};
 use super::field::{check_expr_field_named, parse_field_index, starts_with_digit};
 use super::path::{PathResolution, resolve_path};
 use super::{MutabilityCheckReason, check_value_type_base_mutability};
@@ -13,11 +14,11 @@ use crate::error::diagnostics::{
 };
 use crate::replace_type;
 use crate::sema::{
-    ArrayAssignment, AssignExpr, CallType, Element, Expr, ExprId, FieldIndex, IdentType,
+    ArrayAssignment, AssignExpr, CallExpr, CallType, Element, Expr, ExprId, FieldIndex, IdentType,
     TraitDefinitionId, find_field_in_class, find_impl, implements_trait,
 };
 use crate::ty::TraitType;
-use crate::typeck::TypeCheck;
+use crate::typeck::{TypeCheck, check_call_arguments};
 use crate::{SourceType, SourceTypeArray, SymbolKind, TypeArgs, ty::error as ty_error};
 
 use dora_parser::ast;
@@ -409,10 +410,26 @@ fn check_expr_assign_trait(
 fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
     let lhs_id = sema_expr.lhs;
     let call_expr = ck.expr(lhs_id).as_call();
-    let object_type = check_expr(ck, call_expr.callee, SourceType::Any);
 
-    crate::typeck::expr::check_call_arguments(ck, call_expr);
-    let call_expr_id = lhs_id;
+    match check_expr_call_target(ck, lhs_id, call_expr, SourceType::Any) {
+        CallTarget::Call(lhs_type) => {
+            check_expr_assign_function_call(ck, expr_id, sema_expr, lhs_type)
+        }
+        CallTarget::Index(object_type) => {
+            check_expr_assign_array(ck, expr_id, sema_expr, call_expr, object_type)
+        }
+    }
+}
+
+fn check_expr_assign_array(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    sema_expr: &AssignExpr,
+    call_expr: &CallExpr,
+    object_type: SourceType,
+) {
+    check_call_arguments(ck, call_expr);
+    let call_expr_id = sema_expr.lhs;
 
     let mut array_assignment = ArrayAssignment::new();
     let index_type;
@@ -534,6 +551,26 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
     ck.body.set_ty(expr_id, SourceType::Unit);
     array_assignment.item_ty = Some(item_type);
     ck.body.insert_array_assignment(expr_id, array_assignment);
+}
+
+fn check_expr_assign_function_call(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    sema_expr: &AssignExpr,
+    lhs_type: SourceType,
+) {
+    let SourceType::Ref(inner_type) = lhs_type else {
+        check_expr(ck, sema_expr.rhs, SourceType::Any);
+
+        if !lhs_type.is_error() {
+            ck.report(ck.expr_span(sema_expr.lhs), &LVALUE_EXPECTED, args![]);
+        }
+
+        return;
+    };
+    let inner_type = *inner_type;
+    let rhs_type = check_expr(ck, sema_expr.rhs, inner_type.clone());
+    check_assign_type(ck, expr_id, sema_expr.op, inner_type, rhs_type);
 }
 
 fn compound_assign_rhs_type(op: ast::AssignOp, item_type: SourceType) -> SourceType {

@@ -1,0 +1,33 @@
+error: lvalue expected for assignment
+--> ref-return-assignment-errors.dora:19:5
+ | 
+ | fn assign_to_non_ref() {
+ |     non_ref() = 1i32;
+       ~~~~~~~~~
+ | }
+ | 
+error: cannot assign `Bool` to variable of type `Int32`.
+--> ref-return-assignment-errors.dora:23:5
+ | 
+ | fn assign_wrong_type() {
+ |     value_ref() = true;
+       ~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: binary operator `+=` can not handle expression of type `OperatorValue += Int32`
+--> ref-return-assignment-errors.dora:27:5
+ | 
+ | fn compound_without_operator() {
+ |     operator_ref() += 1i32;
+       ~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: unknown identifier `unknown`.
+--> ref-return-assignment-errors.dora:31:5
+ | 
+ | fn assign_to_unknown() {
+ |     unknown(0) = 1i32;
+       ~~~~~~~
+ | }
+ | 
+4 errors found.

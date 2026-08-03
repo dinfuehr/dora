@@ -39,12 +39,29 @@ use crate::{
     specialize_trait_type, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
 };
 
+pub(super) enum CallTarget {
+    Call(SourceType),
+    Index(SourceType),
+}
+
 pub(crate) fn check_expr_call(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     sema_expr: &CallExpr,
     expected_ty: SourceType,
 ) -> SourceType {
+    match check_expr_call_target(ck, expr_id, sema_expr, expected_ty) {
+        CallTarget::Call(ty) => ty,
+        CallTarget::Index(expr_type) => check_expr_call_index(ck, expr_id, expr_type, expr_id),
+    }
+}
+
+pub(super) fn check_expr_call_target(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    sema_expr: &CallExpr,
+    expected_ty: SourceType,
+) -> CallTarget {
     let call_expr_id = expr_id;
 
     let callee_expr = ck.expr(sema_expr.callee);
@@ -64,7 +81,7 @@ pub(crate) fn check_expr_call(
                     Err(()) => {
                         check_call_arguments_any(ck, call_expr_id);
                         ck.body.set_ty(expr_id, ty_error());
-                        return ty_error();
+                        return CallTarget::Call(ty_error());
                     }
                 };
 
@@ -95,17 +112,17 @@ pub(crate) fn check_expr_call(
             }
         }
 
-        Expr::QualifiedPath(qualified_expr) => check_expr_call_qualified_path(
+        Expr::QualifiedPath(qualified_expr) => CallTarget::Call(check_expr_call_qualified_path(
             ck,
             expr_id,
             sema_expr.callee,
             qualified_expr,
             call_expr_id,
-        ),
+        )),
 
         _ => {
             let expr_type = check_expr(ck, sema_expr.callee, SourceType::Any);
-            check_expr_call_expr(ck, expr_id, expr_type, call_expr_id)
+            check_expr_call_value_target(ck, expr_id, expr_type, call_expr_id)
         }
     }
 }
@@ -940,22 +957,45 @@ fn check_expr_call_qualified_path(
     }
 }
 
-pub(crate) fn check_expr_call_expr(
+/// Checks call syntax after the callee expression or field has already been type-checked.
+/// Lambda values are invoked directly; all other values are treated as indexed access.
+pub(crate) fn check_expr_call_value(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     expr_type: SourceType,
     call_expr_id: ExprId,
 ) -> SourceType {
+    match check_expr_call_value_target(ck, expr_id, expr_type, call_expr_id) {
+        CallTarget::Call(ty) => ty,
+        CallTarget::Index(expr_type) => check_expr_call_index(ck, expr_id, expr_type, call_expr_id),
+    }
+}
+
+fn check_expr_call_value_target(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    expr_type: SourceType,
+    call_expr_id: ExprId,
+) -> CallTarget {
     if expr_type.is_error() {
         check_call_arguments_any(ck, call_expr_id);
         ck.body.set_ty(expr_id, ty_error());
-        return ty_error();
+        return CallTarget::Call(ty_error());
     }
 
     if expr_type.is_lambda() {
-        return check_expr_call_expr_lambda(ck, expr_id, expr_type, call_expr_id);
+        return CallTarget::Call(check_expr_call_lambda(ck, expr_id, expr_type, call_expr_id));
     }
 
+    CallTarget::Index(expr_type)
+}
+
+fn check_expr_call_index(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    expr_type: SourceType,
+    call_expr_id: ExprId,
+) -> SourceType {
     let trait_id = ck.sa.known.traits.index_get();
     let trait_ty = TraitType::from_trait_id(trait_id);
 
@@ -1014,7 +1054,7 @@ pub(crate) fn check_expr_call_expr(
     }
 }
 
-fn check_expr_call_expr_lambda(
+fn check_expr_call_lambda(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     expr_type: SourceType,
@@ -1820,8 +1860,8 @@ fn check_expr_call_sym(
     sym: SymbolKind,
     type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
-) -> SourceType {
-    match sym {
+) -> CallTarget {
+    let ty = match sym {
         SymbolKind::Fct(fct_id) => check_expr_call_fct(
             ck,
             expected_ty,
@@ -1861,9 +1901,11 @@ fn check_expr_call_sym(
 
         _ => {
             let expr_type = check_expr(ck, callee_id, SourceType::Any);
-            check_expr_call_expr(ck, expr_id, expr_type, call_expr_id)
+            return check_expr_call_value_target(ck, expr_id, expr_type, call_expr_id);
         }
-    }
+    };
+
+    CallTarget::Call(ty)
 }
 
 fn path_expr_last_segment_span(ck: &TypeCheck, callee_id: ExprId) -> Span {
@@ -1881,7 +1923,7 @@ fn check_expr_call_path(
     callee_id: ExprId,
     type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
-) -> SourceType {
+) -> CallTarget {
     let path_expr = ck
         .body
         .expr(callee_id)
@@ -1894,7 +1936,7 @@ fn check_expr_call_path(
         Ok(res) => res,
         Err(()) => {
             ck.body.set_ty(expr_id, ty_error());
-            return ty_error();
+            return CallTarget::Call(ty_error());
         }
     };
 
@@ -1903,7 +1945,7 @@ fn check_expr_call_path(
     let Some(interned_method_name) = last_segment.kind.name() else {
         ck.report(ck.expr_span(callee_id), &EXPECTED_IDENTIFIER, args![]);
         ck.body.set_ty(expr_id, ty_error());
-        return ty_error();
+        return CallTarget::Call(ty_error());
     };
     let method_name = ck.sa.interner.str(interned_method_name).to_string();
 
@@ -1933,26 +1975,26 @@ fn check_expr_call_path(
     // Handle Self specially - it's not a symbol
     if let PathResolution::Self_ = resolution {
         let type_params = read_call_type_params(ck, &type_param_refs);
-        return check_expr_call_self_static_method(
+        return CallTarget::Call(check_expr_call_self_static_method(
             ck,
             expr_id,
             method_name,
             type_params,
             call_expr_id,
-        );
+        ));
     }
 
     // Handle Self::T where T is an associated type
     if let PathResolution::SelfAssocType(alias_id) = resolution {
         let type_params = read_call_type_params(ck, &type_param_refs);
-        return check_expr_call_self_assoc_type_static_method(
+        return CallTarget::Call(check_expr_call_self_assoc_type_static_method(
             ck,
             expr_id,
             alias_id,
             method_name,
             type_params,
             call_expr_id,
-        );
+        ));
     }
 
     // Handle T::Item where T is a type param and Item is an associated type
@@ -1963,7 +2005,7 @@ fn check_expr_call_path(
     } = resolution
     {
         let type_params = read_call_type_params(ck, &type_param_refs);
-        return check_expr_call_generic_assoc_static_method(
+        return CallTarget::Call(check_expr_call_generic_assoc_static_method(
             ck,
             expr_id,
             tp_id,
@@ -1972,14 +2014,14 @@ fn check_expr_call_path(
             method_name,
             type_params,
             call_expr_id,
-        );
+        ));
     }
 
     let PathResolution::Symbol(sym) = resolution else {
         unreachable!()
     };
 
-    match sym {
+    let ty = match sym {
         SymbolKind::Class(cls_id) => {
             let cls = ck.sa.class(cls_id);
             let type_args = TypeArgs::from_own(
@@ -2133,10 +2175,10 @@ fn check_expr_call_path(
                     args![module, method_name.clone()],
                 );
                 ck.body.set_ty(expr_id, ty_error());
-                return ty_error();
+                return CallTarget::Call(ty_error());
             };
 
-            check_expr_call_sym(
+            return check_expr_call_sym(
                 ck,
                 expected_ty,
                 expr_id,
@@ -2144,7 +2186,7 @@ fn check_expr_call_path(
                 sym,
                 type_param_refs,
                 call_expr_id,
-            )
+            );
         }
 
         SymbolKind::Alias(alias_id) => {
@@ -2169,7 +2211,9 @@ fn check_expr_call_path(
             ck.body.set_ty(expr_id, ty_error());
             ty_error()
         }
-    }
+    };
+
+    CallTarget::Call(ty)
 }
 
 pub(crate) struct ExpectedCallArgs {

@@ -21,7 +21,7 @@ use crate::sema::{
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
-use crate::typeck::expr::{check_expr, is_array_get};
+use crate::typeck::expr::{check_call_arguments, check_expr, is_array_get};
 use crate::typeck::pattern::check_pattern;
 use crate::typeck::stmt::check_stmt;
 use crate::typeck::type_params::{
