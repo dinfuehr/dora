@@ -482,6 +482,16 @@ pub static REF_TYPE_NOT_ALLOWED: DiagnosticDescriptor = DiagnosticDescriptor {
     level: ErrorLevel::Error,
 };
 
+pub static REF_RETURN_REQUIRES_HEAP_LOCATION: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`ref` return requires an object field or array element.",
+    level: ErrorLevel::Error,
+};
+
+pub static REF_RETURN_REQUIRES_REF_EXPR: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`ref` return requires a `ref` expression.",
+    level: ErrorLevel::Error,
+};
+
 pub static INVALID_LHS_ASSIGNMENT: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "invalid left-hand-side of assignment.",
     level: ErrorLevel::Error,

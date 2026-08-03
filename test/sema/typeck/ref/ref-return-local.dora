@@ -1,0 +1,114 @@
+class Box { value: Int32 }
+struct Pair { value: Int32 }
+
+fn local(): ref Int32 {
+    let value = 1i32;
+    ref value
+}
+
+fn parameter(value: Int32): ref Int32 {
+    ref value
+}
+
+fn explicit_return(): ref Int32 {
+    let value = 1i32;
+    return ref value;
+}
+
+fn block(): ref Int32 {
+    let value = 1i32;
+    { ref value }
+}
+
+fn if_expression(condition: Bool): ref Int32 {
+    let first = 1i32;
+    let second = 2i32;
+
+    if condition {
+        ref first
+    } else {
+        ref second
+    }
+}
+
+fn match_expression(value: Bool): ref Int32 {
+    let first = 1i32;
+    let second = 2i32;
+
+    match value {
+        true => ref first,
+        false => ref second,
+    }
+}
+
+fn struct_field(value: Pair): ref Int32 {
+    ref value.value
+}
+
+fn tuple_field(value: (Int32, Bool)): ref Int32 {
+    ref value.0
+}
+
+fn temporary_struct_field(): ref Int32 {
+    ref Pair(value = 1i32).value
+}
+
+fn local_alias(): ref Int32 {
+    let value = 1i32;
+    let value_ref = ref value;
+    value_ref
+}
+
+fn explicit_local_alias(): ref Int32 {
+    let value = 1i32;
+    let value_ref = ref value;
+    return value_ref;
+}
+
+fn local_alias_from_if(condition: Bool, object: Box): ref Int32 {
+    let value = 1i32;
+    let value_ref = if condition { ref value } else { ref object.value };
+    value_ref
+}
+
+fn context_variable() {
+    let value = 1i32;
+    let _get_ref = ||: ref Int32 { ref value };
+}
+
+fn object_field(value: Box): ref Int32 {
+    ref value.value
+}
+
+fn object_field_if(condition: Bool, first: Box, second: Box): ref Int32 {
+    if condition { ref first.value } else { ref second.value }
+}
+
+fn forwarded_object_field(value: Box): ref Int32 {
+    object_field(value)
+}
+
+fn referenced_struct_field(value: ref Pair): ref Int32 {
+    ref value.value
+}
+
+fn aliased_object_field(value: Box): ref Int32 {
+    let value_ref = ref value.value;
+    value_ref
+}
+
+fn aliased_parameter(value: ref Int32): ref Int32 {
+    let value_ref: ref Int32 = ref value;
+    value_ref
+}
+
+fn unreachable_before_local(condition: Bool, object: Box): ref Int32 {
+    let value = 1i32;
+
+    if condition {
+        std::unreachable[()]();
+        ref value
+    } else {
+        ref object.value
+    }
+}

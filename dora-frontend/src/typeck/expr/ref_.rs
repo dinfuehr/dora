@@ -102,11 +102,10 @@ pub(super) fn check_expr_ref(
     }
 }
 
-fn is_array_get(ck: &TypeCheck, expr_id: ExprId) -> bool {
-    let call_type = ck
-        .body
-        .get_call_type(expr_id)
-        .expect("missing CallType for call expression");
+pub(crate) fn is_array_get(ck: &TypeCheck, expr_id: ExprId) -> bool {
+    let Some(call_type) = ck.body.get_call_type(expr_id) else {
+        return false;
+    };
 
     let CallType::Expr(_, fct_id, _) = call_type.as_ref() else {
         return false;

@@ -58,6 +58,7 @@ use self::lit::{
 };
 use self::paren::check_expr_paren;
 use self::ref_::check_expr_ref;
+pub(super) use self::ref_::is_array_get;
 use self::template::check_expr_template;
 use self::tuple::check_expr_tuple;
 use self::un::check_expr_un;

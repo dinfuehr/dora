@@ -18,7 +18,17 @@ pub(crate) fn check_expr_return(
             .map(|expr| check_expr(ck, expr, expected_ty.clone()))
             .unwrap_or(SourceType::Unit);
 
-        ck.check_fct_return_type(expected_ty, ck.expr_span(expr_id), expr_type);
+        ck.check_fct_return_type(
+            expected_ty.clone(),
+            ck.expr_span(expr_id),
+            expr_type.clone(),
+        );
+
+        if expected_ty.is_ref() && expr_type.is_ref() {
+            if let Some(expr_id) = sema_expr.expr {
+                ck.check_ref_return_value(expr_id);
+            }
+        }
     } else {
         ck.sa
             .report(ck.file_id, ck.expr_span(expr_id), &INVALID_RETURN, args!());

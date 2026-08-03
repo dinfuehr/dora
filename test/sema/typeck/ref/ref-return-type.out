@@ -1,5 +1,5 @@
 error: `ref` type is not allowed here.
---> ref-return-type.dora:11:18
+--> ref-return-type.dora:12:18
  | }
  | 
  | fn nested_ref(): ref ref Foo {}

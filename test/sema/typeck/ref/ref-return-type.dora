@@ -1,7 +1,8 @@
 class Foo
+class Holder { value: Foo }
 
-fn identity(value: ref Foo): ref Foo {
-    ref value
+fn identity(_value: ref Foo, holder: Holder): ref Foo {
+    ref holder.value
 }
 
 trait Trait {

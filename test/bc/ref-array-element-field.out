@@ -1,0 +1,149 @@
+class Box:
+
+struct Pair:
+  value: Int32
+
+struct BoxSlot:
+  value: Box
+
+struct Root:
+  f: F
+
+struct F:
+  g: G
+
+struct G:
+  h: Int32
+
+fn <impl Pair>::set:
+  0: GetFieldRef r2, r0, @0 # Pair.value
+  4: StoreRef r1, r2
+  7: Ret r3
+
+  Registers:
+   0 => ref Pair
+   1 => Int32
+   2 => ref Int32
+   3 => ()
+
+  Constants:
+   0 => StructField Pair.value
+
+  Locations:
+   0 => 7:9
+
+fn element_field:
+  0: GetArrayRef r3, r0, r1
+  4: GetFieldRef r2, r3, @0 # Pair.value
+  8: Ret r2
+
+  Registers:
+   0 => class Array[Pair]
+   1 => Int64
+   2 => ref Int32
+   3 => ref Pair
+
+  Constants:
+   0 => StructField Pair.value
+
+  Locations:
+   0 => 30:9
+
+fn element_field_chain:
+  0: GetArrayRef r5, r0, r1
+  4: GetFieldRef r4, r5, @2 # Root.f
+  8: GetFieldRef r3, r4, @1 # F.g
+ 12: GetFieldRef r2, r3, @0 # G.h
+ 16: Ret r2
+
+  Registers:
+   0 => class Array[Root]
+   1 => Int64
+   2 => ref Int32
+   3 => ref G
+   4 => ref F
+   5 => ref Root
+
+  Constants:
+   0 => StructField G.h
+   1 => StructField F.g
+   2 => StructField Root.f
+
+  Locations:
+   0 => 34:9
+
+fn element_tuple_field:
+  0: GetArrayRef r3, r0, r1
+  4: GetFieldRef r2, r3, @0 # (Int32, Bool).0
+  8: Ret r2
+
+  Registers:
+   0 => class Array[(Int32, Bool)]
+   1 => Int64
+   2 => ref Int32
+   3 => ref (Int32, Bool)
+
+  Constants:
+   0 => TupleElement subtypes.0
+
+  Locations:
+   0 => 38:9
+
+fn assign_element_field:
+  0: GetArrayRef r4, r0, r1
+  4: GetFieldRef r3, r4, @0 # Pair.value
+  8: StoreRef r2, r3
+ 11: Ret r5
+
+  Registers:
+   0 => class Array[Pair]
+   1 => Int64
+   2 => Int32
+   3 => ref Int32
+   4 => ref Pair
+   5 => ()
+
+  Constants:
+   0 => StructField Pair.value
+
+  Locations:
+   0 => 42:5
+
+fn assign_element_ref_field:
+  0: GetArrayRef r4, r0, r1
+  4: GetFieldRef r3, r4, @0 # BoxSlot.value
+  8: StoreRef r2, r3
+ 11: Ret r5
+
+  Registers:
+   0 => class Array[BoxSlot]
+   1 => Int64
+   2 => class Box
+   3 => ref Box
+   4 => ref BoxSlot
+   5 => ()
+
+  Constants:
+   0 => StructField BoxSlot.value
+
+  Locations:
+   0 => 46:5
+
+fn mutate_element:
+  0: GetArrayRef r4, r0, r1
+  4: InvokeDirect r3, @0, r4, r2 # <impl Pair>::set
+ 10: Ret r3
+
+  Registers:
+   0 => class Array[Pair]
+   1 => Int64
+   2 => Int32
+   3 => ()
+   4 => ref Pair
+
+  Constants:
+   0 => Fct <impl Pair>::set
+
+  Locations:
+   0 => 50:5
+

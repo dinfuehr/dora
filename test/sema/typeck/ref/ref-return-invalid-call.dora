@@ -1,0 +1,12 @@
+class Box { value: Int32 }
+
+fn if_expression(condition: Bool, box: Box): ref Int32 {
+    if condition { ref missing() } else { ref box.value }
+}
+
+fn match_expression(condition: Bool, box: Box): ref Int32 {
+    match condition {
+        true => ref missing(),
+        false => ref box.value,
+    }
+}

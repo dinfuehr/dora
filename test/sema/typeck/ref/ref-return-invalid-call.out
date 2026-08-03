@@ -1,0 +1,33 @@
+error: `ref` return requires an object field or array element.
+--> ref-return-invalid-call.dora:4:20
+ | 
+ | fn if_expression(condition: Bool, box: Box): ref Int32 {
+ |     if condition { ref missing() } else { ref box.value }
+                      ~~~~~~~~~~~~~
+ | }
+ | 
+error: unknown identifier `missing`.
+--> ref-return-invalid-call.dora:4:24
+ | 
+ | fn if_expression(condition: Bool, box: Box): ref Int32 {
+ |     if condition { ref missing() } else { ref box.value }
+                          ~~~~~~~
+ | }
+ | 
+error: `ref` return requires an object field or array element.
+--> ref-return-invalid-call.dora:9:17
+ | fn match_expression(condition: Bool, box: Box): ref Int32 {
+ |     match condition {
+ |         true => ref missing(),
+                   ~~~~~~~~~~~~~
+ |         false => ref box.value,
+ |     }
+error: unknown identifier `missing`.
+--> ref-return-invalid-call.dora:9:21
+ | fn match_expression(condition: Bool, box: Box): ref Int32 {
+ |     match condition {
+ |         true => ref missing(),
+                       ~~~~~~~
+ |         false => ref box.value,
+ |     }
+4 errors found.

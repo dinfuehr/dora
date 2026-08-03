@@ -10,6 +10,16 @@ struct Pair {
     second: Int64,
 }
 
+impl Pair {
+    mutating fn set_first(value: Int32) {
+        self.first = value;
+    }
+}
+
+struct BoxSlot {
+    value: Box,
+}
+
 fn increment(value: ref Int32) {
     value += 1i32;
 }
@@ -51,6 +61,11 @@ fn new_array_element_ref(): ref Int32 {
     ref array(1i64)
 }
 
+@NeverInline
+fn element_field_ref(array: Array[Pair], index: Int64): ref Int32 {
+    ref array(index).first
+}
+
 fn main() {
     let integers = Array[Int32]::new(10i32, 20i32, 30i32);
     replace_generic[Int32](ref integers(0i64), 11i32);
@@ -77,6 +92,24 @@ fn main() {
     assert(previous.second == 2i64);
     assert(pairs(0i64).first == 3i32);
     assert(pairs(0i64).second == 4i64);
+
+    let pair_field_ref = element_field_ref(pairs, 0i64);
+    std::force_collect();
+    assert(pair_field_ref == 3i32);
+    pair_field_ref = 5i32;
+    assert(pairs(0i64).first == 5i32);
+
+    pairs(0i64).first = 6i32;
+    assert(pairs(0i64).first == 6i32);
+
+    pairs(0i64).set_first(7i32);
+    assert(pairs(0i64).first == 7i32);
+
+    let slots = Array[BoxSlot]::new(BoxSlot(value = Box(8i32)));
+    std::force_collect();
+    slots(0i64).value = Box(9i32);
+    std::force_minor_collect();
+    assert(slots(0i64).value.value == 9i32);
 
     let boxes = Array[Box]::new(Box(5i32));
     std::force_collect();

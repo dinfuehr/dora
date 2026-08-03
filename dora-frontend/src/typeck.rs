@@ -7,13 +7,7 @@ use dora_bytecode::ConstValue;
 use dora_parser::Span;
 use dora_parser::ast::{self, AstCommaList, SyntaxNode, SyntaxNodeBase};
 
-use crate::error::DescriptorArgs;
-use crate::error::diagnostics::{
-    ASSIGN_TYPE, DiagnosticDescriptor, INVALID_CHAR_LITERAL, INVALID_ESCAPE_SEQUENCE,
-    INVALID_NUMBER_FORMAT, NAME_BOUND_MULTIPLE_TIMES_IN_PARAMS, NEGATIVE_UNSIGNED,
-    NUMBER_LIMIT_OVERFLOW, NUMBER_OVERFLOW, RETURN_TYPE, TYPE_INFERENCE_NOT_SUPPORTED_IN_CONTEXT,
-    UNKNOWN_SUFFIX, UNUSED_VARIABLE,
-};
+use crate::error::{DescriptorArgs, diagnostics as diag};
 use crate::interner::Name;
 use crate::sema::{
     Body, CallArg, ClassDefinition, ConstValue as SemaConstValue, ContextData, ContextFieldId,
@@ -27,7 +21,7 @@ use crate::sema::{
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
-use crate::typeck::expr::check_expr;
+use crate::typeck::expr::{check_expr, is_array_get};
 use crate::typeck::pattern::check_pattern;
 use crate::typeck::stmt::check_stmt;
 use crate::typeck::type_params::{
@@ -35,7 +29,7 @@ use crate::typeck::type_params::{
 };
 use crate::{
     ParsedType, SourceType, SourceTypeArray, SymbolKind, TraitType, always_returns, args,
-    expr_always_returns, report_sym_shadow_span,
+    expr_always_exits, expr_always_returns, report_sym_shadow_span,
 };
 
 mod constck;
@@ -242,7 +236,7 @@ impl<'a> TypeCheck<'a> {
     pub fn report(
         &self,
         span: Span,
-        desc: &'static DiagnosticDescriptor,
+        desc: &'static diag::DiagnosticDescriptor,
         args: crate::error::DescriptorArgs,
     ) {
         self.sa.report(self.file_id, span, desc, args);
@@ -251,7 +245,7 @@ impl<'a> TypeCheck<'a> {
     pub fn report_stmt_id(
         &self,
         id: StmtId,
-        desc: &'static DiagnosticDescriptor,
+        desc: &'static diag::DiagnosticDescriptor,
         args: DescriptorArgs,
     ) {
         let ptr = self.body.stmts().syntax_node_ptr(id);
@@ -301,7 +295,7 @@ impl<'a> TypeCheck<'a> {
             {
                 let global_ty = self_.ty_name(&global.ty());
                 let expr_ty = self_.ty_name(&expr_ty);
-                self_.report(global.span, &ASSIGN_TYPE, args!(global_ty, expr_ty));
+                self_.report(global.span, &diag::ASSIGN_TYPE, args!(global_ty, expr_ty));
             }
         })
     }
@@ -357,7 +351,69 @@ impl<'a> TypeCheck<'a> {
 
         if !returns {
             let block_span = self.expr_span(block_expr_id);
-            self.check_fct_return_type(fct_return_type, block_span, return_type);
+            self.check_fct_return_type(fct_return_type.clone(), block_span, return_type.clone());
+
+            if fct_return_type.is_ref() && return_type.is_ref() {
+                if let Some(expr_id) = tail_expr {
+                    self.check_ref_return_value(expr_id);
+                }
+            }
+        }
+    }
+
+    // Checks whether the lifetime of the reference returned from a function is long enough. Currently
+    // we only allow returning heap references, which are trivially kept alive from a ref value.
+    pub(super) fn check_ref_return_value(&self, expr_id: ExprId) {
+        match self.expr(expr_id) {
+            Expr::Block(expr) => {
+                if let Some(expr_id) = expr.expr {
+                    self.check_ref_return_value(expr_id);
+                }
+            }
+            Expr::If(expr) => {
+                self.check_ref_return_value(expr.then_expr);
+
+                if let Some(expr_id) = expr.else_expr {
+                    self.check_ref_return_value(expr_id);
+                }
+            }
+            Expr::Match(expr) => {
+                for arm in &expr.arms {
+                    self.check_ref_return_value(arm.value);
+                }
+            }
+            Expr::Paren(expr_id) => self.check_ref_return_value(*expr_id),
+            Expr::Ref(expr) => {
+                if !self.ref_target_is_heap_location(expr.expr) {
+                    self.report(
+                        self.expr_span(expr_id),
+                        &diag::REF_RETURN_REQUIRES_HEAP_LOCATION,
+                        args!(),
+                    );
+                }
+            }
+            Expr::Return(..) | Expr::Break | Expr::Continue => {}
+            _ if expr_always_exits(self.sa, self.body, expr_id) => {}
+            _ => self.report(
+                self.expr_span(expr_id),
+                &diag::REF_RETURN_REQUIRES_REF_EXPR,
+                args!(),
+            ),
+        }
+    }
+
+    fn ref_target_is_heap_location(&self, expr_id: ExprId) -> bool {
+        match self.expr(expr_id) {
+            Expr::Call(_) => is_array_get(self, expr_id),
+            Expr::Field(expr) => match self.body.get_ident(expr_id) {
+                Some(IdentType::ClassField(..)) => true,
+                Some(IdentType::StructField(..) | IdentType::TupleField(..)) => {
+                    self.ref_target_is_heap_location(expr.lhs)
+                }
+                _ => false,
+            },
+            Expr::Paren(expr_id) => self.ref_target_is_heap_location(*expr_id),
+            _ => false,
         }
     }
 
@@ -433,7 +489,7 @@ impl<'a> TypeCheck<'a> {
                 self.sa.warn(
                     self.file_id,
                     span,
-                    &UNUSED_VARIABLE,
+                    &diag::UNUSED_VARIABLE,
                     args!(name.to_string()),
                 );
             }
@@ -564,7 +620,11 @@ impl<'a> TypeCheck<'a> {
             for (name, data) in local_bound_params {
                 if !bound_params.insert(name) {
                     let name = self.sa.interner.str(name).to_string();
-                    self.report(data.span, &NAME_BOUND_MULTIPLE_TIMES_IN_PARAMS, args!(name));
+                    self.report(
+                        data.span,
+                        &diag::NAME_BOUND_MULTIPLE_TIMES_IN_PARAMS,
+                        args!(name),
+                    );
                 }
             }
         }
@@ -622,7 +682,7 @@ impl<'a> TypeCheck<'a> {
                 sa.report(
                     file_id,
                     span,
-                    &TYPE_INFERENCE_NOT_SUPPORTED_IN_CONTEXT,
+                    &diag::TYPE_INFERENCE_NOT_SUPPORTED_IN_CONTEXT,
                     args!(),
                 );
                 SourceType::Error
@@ -669,7 +729,7 @@ impl<'a> TypeCheck<'a> {
             let fct_type = self.ty_name(&fct_return_type);
             let expr_type = self.ty_name(&expr_type);
 
-            self.report(span, &RETURN_TYPE, args!(fct_type, expr_type));
+            self.report(span, &diag::RETURN_TYPE, args!(fct_type, expr_type));
         }
     }
 
@@ -736,7 +796,7 @@ fn parse_escaped_char(sa: &Sema, file_id: SourceFileId, offset: u32, it: &mut Ch
                     sa.report(
                         file_id,
                         Span::new(offset, count),
-                        &INVALID_ESCAPE_SEQUENCE,
+                        &diag::INVALID_ESCAPE_SEQUENCE,
                         args!(),
                     );
                     '\0'
@@ -746,7 +806,7 @@ fn parse_escaped_char(sa: &Sema, file_id: SourceFileId, offset: u32, it: &mut Ch
             sa.report(
                 file_id,
                 Span::new(offset, 1),
-                &INVALID_ESCAPE_SEQUENCE,
+                &diag::INVALID_ESCAPE_SEQUENCE,
                 args!(),
             );
             '\0'
@@ -804,7 +864,7 @@ fn determine_suffix_type_int_literal(
         "f64" => Some(SourceType::Float64),
         "" => None,
         _ => {
-            sa.report(file, span, &UNKNOWN_SUFFIX, args!());
+            sa.report(file, span, &diag::UNKNOWN_SUFFIX, args!());
             None
         }
     }
@@ -872,14 +932,14 @@ pub fn check_lit_int_from_text(
         let value = if negate { -value } else { value };
 
         if base != 10 {
-            sa.report(file, span, &INVALID_NUMBER_FORMAT, args!());
+            sa.report(file, span, &diag::INVALID_NUMBER_FORMAT, args!());
         }
 
         return (ty, SemaConstValue::Float(value));
     }
 
     if negate && ty == SourceType::UInt8 {
-        sa.report(file, span, &NEGATIVE_UNSIGNED, args!());
+        sa.report(file, span, &diag::NEGATIVE_UNSIGNED, args!());
     }
 
     let ty_name = ty.name(sa);
@@ -888,7 +948,7 @@ pub fn check_lit_int_from_text(
     let value = match parsed_value {
         Ok(value) => value,
         Err(_) => {
-            sa.report(file, span, &NUMBER_LIMIT_OVERFLOW, args!());
+            sa.report(file, span, &diag::NUMBER_LIMIT_OVERFLOW, args!());
             return (ty, SemaConstValue::Int(0));
         }
     };
@@ -902,7 +962,7 @@ pub fn check_lit_int_from_text(
         };
 
         if (negate && value > max) || (!negate && value >= max) {
-            sa.report(file, span, &NUMBER_OVERFLOW, args!(ty_name));
+            sa.report(file, span, &diag::NUMBER_OVERFLOW, args!(ty_name));
         }
 
         let value = if negate {
@@ -923,7 +983,7 @@ pub fn check_lit_int_from_text(
         };
 
         if value > max {
-            sa.report(file, span, &NUMBER_OVERFLOW, args!(ty_name));
+            sa.report(file, span, &diag::NUMBER_OVERFLOW, args!(ty_name));
         }
 
         let value = match ty {
@@ -948,7 +1008,7 @@ pub fn check_lit_float_from_text(
     let (base, value, suffix) = parse_lit_float(text);
 
     if base != 10 {
-        sa.report(file, span, &INVALID_NUMBER_FORMAT, args!());
+        sa.report(file, span, &diag::INVALID_NUMBER_FORMAT, args!());
     }
 
     let ty = match suffix.as_str() {
@@ -960,7 +1020,7 @@ pub fn check_lit_float_from_text(
             _ => SourceType::Float64,
         },
         _ => {
-            sa.report(file, span, &UNKNOWN_SUFFIX, args!());
+            sa.report(file, span, &diag::UNKNOWN_SUFFIX, args!());
             SourceType::Float64
         }
     };
@@ -980,7 +1040,7 @@ pub fn check_lit_float_from_text(
             SourceType::Float64 => "Float64",
             _ => unreachable!(),
         };
-        sa.report(file, span, &NUMBER_OVERFLOW, args!(name.to_string()));
+        sa.report(file, span, &diag::NUMBER_OVERFLOW, args!(name.to_string()));
     }
 
     (ty, value)
@@ -996,7 +1056,7 @@ pub fn check_lit_char_from_text(sa: &Sema, file_id: SourceFileId, text: &str, sp
         return '\0';
     } else if value == "\'" {
         // empty char literal ''
-        sa.report(file_id, span, &INVALID_CHAR_LITERAL, args!());
+        sa.report(file_id, span, &diag::INVALID_CHAR_LITERAL, args!());
         return '\0';
     }
 
@@ -1005,7 +1065,7 @@ pub fn check_lit_char_from_text(sa: &Sema, file_id: SourceFileId, text: &str, sp
 
     // Check whether the char literal ends now.
     if it.as_str() != "\'" {
-        sa.report(file_id, span, &INVALID_CHAR_LITERAL, args!());
+        sa.report(file_id, span, &diag::INVALID_CHAR_LITERAL, args!());
     }
 
     result

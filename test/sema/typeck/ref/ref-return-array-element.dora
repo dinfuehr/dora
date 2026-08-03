@@ -1,0 +1,21 @@
+//= ok
+
+struct Pair {
+    value: Int32,
+}
+
+fn element(array: Array[Int32], index: Int64): ref Int32 {
+    ref array(index)
+}
+
+fn genericElement[T](array: Array[T], index: Int64): ref T {
+    ref array(index)
+}
+
+fn elementField(array: Array[Pair], index: Int64): ref Int32 {
+    ref array(index).value
+}
+
+fn elementTupleField(array: Array[(Int32, Bool)], index: Int64): ref Int32 {
+    ref array(index).0
+}

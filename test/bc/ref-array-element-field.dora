@@ -1,0 +1,51 @@
+struct Pair {
+    value: Int32,
+}
+
+impl Pair {
+    mutating fn set(value: Int32) {
+        self.value = value;
+    }
+}
+
+class Box
+
+struct BoxSlot {
+    value: Box,
+}
+
+struct Root {
+    f: F,
+}
+
+struct F {
+    g: G,
+}
+
+struct G {
+    h: Int32,
+}
+
+fn element_field(array: Array[Pair], index: Int64): ref Int32 {
+    ref array(index).value
+}
+
+fn element_field_chain(array: Array[Root], index: Int64): ref Int32 {
+    ref array(index).f.g.h
+}
+
+fn element_tuple_field(array: Array[(Int32, Bool)], index: Int64): ref Int32 {
+    ref array(index).0
+}
+
+fn assign_element_field(array: Array[Pair], index: Int64, value: Int32) {
+    array(index).value = value;
+}
+
+fn assign_element_ref_field(array: Array[BoxSlot], index: Int64, value: Box) {
+    array(index).value = value;
+}
+
+fn mutate_element(array: Array[Pair], index: Int64, value: Int32) {
+    array(index).set(value);
+}

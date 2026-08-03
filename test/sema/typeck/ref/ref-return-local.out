@@ -1,0 +1,137 @@
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:6:5
+ | fn local(): ref Int32 {
+ |     let value = 1i32;
+ |     ref value
+       ~~~~~~~~~
+ | }
+ | 
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:10:5
+ | 
+ | fn parameter(value: Int32): ref Int32 {
+ |     ref value
+       ~~~~~~~~~
+ | }
+ | 
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:15:12
+ | fn explicit_return(): ref Int32 {
+ |     let value = 1i32;
+ |     return ref value;
+              ~~~~~~~~~
+ | }
+ | 
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:20:7
+ | fn block(): ref Int32 {
+ |     let value = 1i32;
+ |     { ref value }
+         ~~~~~~~~~
+ | }
+ | 
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:28:9
+ | 
+ |     if condition {
+ |         ref first
+           ~~~~~~~~~
+ |     } else {
+ |         ref second
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:30:9
+ |         ref first
+ |     } else {
+ |         ref second
+           ~~~~~~~~~~
+ |     }
+ | }
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:39:17
+ | 
+ |     match value {
+ |         true => ref first,
+                   ~~~~~~~~~
+ |         false => ref second,
+ |     }
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:40:18
+ |     match value {
+ |         true => ref first,
+ |         false => ref second,
+                    ~~~~~~~~~~
+ |     }
+ | }
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:45:5
+ | 
+ | fn struct_field(value: Pair): ref Int32 {
+ |     ref value.value
+       ~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:49:5
+ | 
+ | fn tuple_field(value: (Int32, Bool)): ref Int32 {
+ |     ref value.0
+       ~~~~~~~~~~~
+ | }
+ | 
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:53:5
+ | 
+ | fn temporary_struct_field(): ref Int32 {
+ |     ref Pair(value = 1i32).value
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `return` expects value of type `ref Int32` but got `Int32`.
+--> ref-return-local.dora:56:29 - 60:2
+error: `return` expects value of type `ref Int32` but got `Int32`.
+--> ref-return-local.dora:65:5
+ |     let value = 1i32;
+ |     let value_ref = ref value;
+ |     return value_ref;
+       ~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `return` expects value of type `ref Int32` but got `Int32`.
+--> ref-return-local.dora:68:65 - 72:2
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:76:36
+ | fn context_variable() {
+ |     let value = 1i32;
+ |     let _get_ref = ||: ref Int32 { ref value };
+                                      ~~~~~~~~~
+ | }
+ | 
+error: `ref` return requires a `ref` expression.
+--> ref-return-local.dora:88:5
+ | 
+ | fn forwarded_object_field(value: Box): ref Int32 {
+ |     object_field(value)
+       ~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:92:5
+ | 
+ | fn referenced_struct_field(value: ref Pair): ref Int32 {
+ |     ref value.value
+       ~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `return` expects value of type `ref Int32` but got `Int32`.
+--> ref-return-local.dora:95:48 - 98:2
+error: `return` expects value of type `ref Int32` but got `Int32`.
+--> ref-return-local.dora:100:51 - 103:2
+error: `ref` return requires an object field or array element.
+--> ref-return-local.dora:110:9
+ |     if condition {
+ |         std::unreachable[()]();
+ |         ref value
+           ~~~~~~~~~
+ |     } else {
+ |         ref object.value
+20 errors found.

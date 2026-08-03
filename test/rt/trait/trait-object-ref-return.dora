@@ -14,13 +14,9 @@ impl Value for Holder {
     }
 }
 
-@NeverInline
-fn get_value(object: Value): ref Int32 {
-    object.value()
-}
-
 fn main() {
-    let value = get_value(Holder(17i32) as Value);
+    let object = Holder(17i32) as Value;
+    let value = object.value();
 
     std::force_minor_collect();
     assert(value == 17i32);

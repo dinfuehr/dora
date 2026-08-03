@@ -36,6 +36,10 @@ pub(super) fn gen_expr_as_ref(
     match g.analysis.expr(expr_id) {
         Expr::Path(..) => gen_expr_as_ref_path(g, expr_id, ty),
         Expr::Field(field_expr) => gen_expr_as_ref_field(g, expr_id, field_expr, ty),
+        Expr::Call(call_expr) if is_array_get(g, expr_id) => GeneratedRef {
+            reference: gen_expr_ref_array_element(g, expr_id, call_expr, DataDest::Alloc),
+            backing: None,
+        },
         Expr::Paren(inner_expr) => gen_expr_as_ref(g, *inner_expr, ty),
         // An explicit `ref` expression already provides a reference to use.
         Expr::Ref(_) => GeneratedRef {
@@ -281,28 +285,28 @@ pub(super) fn gen_expr_ref(
     match inner_expr {
         Expr::Path(..) => gen_expr_ref_path(g, expr_id, e, dest),
         Expr::Field(field_expr) => gen_expr_ref_field(g, expr_id, e, field_expr, dest),
-        Expr::Call(call_expr) => gen_expr_ref_array_element(g, e, call_expr, dest),
+        Expr::Call(call_expr) => gen_expr_ref_array_element(g, e.expr, call_expr, dest),
         _ => unreachable!("ref expression should only be on variables, fields, or array elements"),
     }
 }
 
 fn gen_expr_ref_array_element(
     g: &mut AstBytecodeGen,
-    e: &RefExpr,
+    expr_id: ExprId,
     call_expr: &CallExpr,
     dest: DataDest,
 ) -> Register {
-    let info = g.get_intrinsic(e.expr).expect("missing array intrinsic");
+    let info = g.get_intrinsic(expr_id).expect("missing array intrinsic");
     assert_eq!(info.intrinsic, Intrinsic::ArrayGet);
     assert_eq!(call_expr.args.len(), 1);
 
-    let inner_ty = g.emitter.convert_ty(g.sa, g.ty(e.expr));
+    let inner_ty = g.emitter.convert_ty(g.sa, g.ty(expr_id));
     let dest_reg = ensure_register(g, dest, BytecodeType::Ref(Box::new(inner_ty)));
     let array_reg = gen_expr(g, call_expr.callee, DataDest::Alloc);
     let index_reg = gen_expr(g, call_expr.args[0].expr, DataDest::Alloc);
 
     g.builder
-        .emit_get_array_ref(dest_reg, array_reg, index_reg, g.loc_for_expr(e.expr));
+        .emit_get_array_ref(dest_reg, array_reg, index_reg, g.loc_for_expr(expr_id));
 
     g.free_if_temp(array_reg);
     g.free_if_temp(index_reg);
@@ -426,7 +430,7 @@ fn gen_expr_ref_field(
     let dest_reg = ensure_register(g, dest, ref_ty);
     let field_idx = add_field_const_pool_entry(g, e.expr);
     let object_ty = g.ty(field_expr.lhs);
-    let (obj, backing) = if is_nested_value_field(g, field_expr.lhs) {
+    let (obj, backing) = if needs_ref_backed_field_base(g, field_expr.lhs) {
         let object = gen_expr_as_ref(g, field_expr.lhs, object_ty);
         (object.reference, object.backing)
     } else {
@@ -444,15 +448,25 @@ fn gen_expr_ref_field(
     dest_reg
 }
 
-fn is_nested_value_field(g: &AstBytecodeGen, expr_id: ExprId) -> bool {
+fn needs_ref_backed_field_base(g: &AstBytecodeGen, expr_id: ExprId) -> bool {
     match g.analysis.expr(expr_id) {
         Expr::Field(_) => {
             let ty = g.ty(expr_id);
             ty.is_struct() || ty.is_tuple()
         }
-        Expr::Paren(inner_expr) => is_nested_value_field(g, *inner_expr),
+        Expr::Call(_) => {
+            let ty = g.ty(expr_id);
+            (ty.is_struct() || ty.is_tuple()) && is_array_get(g, expr_id)
+        }
+        Expr::Paren(inner_expr) => needs_ref_backed_field_base(g, *inner_expr),
         _ => false,
     }
+}
+
+fn is_array_get(g: &AstBytecodeGen, expr_id: ExprId) -> bool {
+    g.get_intrinsic(expr_id)
+        .map(|info| info.intrinsic == Intrinsic::ArrayGet)
+        .unwrap_or(false)
 }
 
 fn add_field_const_pool_entry(

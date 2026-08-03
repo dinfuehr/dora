@@ -1,3 +1,11 @@
+error: `ref` return requires an object field or array element.
+--> return-ref.dora:3:35
+ | fn main() {
+ |     let value = 1i32;
+ |     let get_ref = ||: ref Int32 { ref value };
+                                     ~~~~~~~~~
+ |     let _get_nested_ref = ||: ref ref Int32 {};
+ |     get_ref();
 error: `ref` type is not allowed here.
 --> return-ref.dora:4:31
  |     let value = 1i32;
@@ -6,4 +14,4 @@ error: `ref` type is not allowed here.
                                  ~~~~~~~~~~~~~
  |     get_ref();
  | }
-1 error found.
+2 errors found.
