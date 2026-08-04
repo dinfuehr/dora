@@ -78,7 +78,7 @@ error: `ref` return requires a global, object field, array element, or reference
        ~~~~~~~~~~~
  | }
  | 
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` requires an addressable expression or reference-returning call.
 --> ref-return-local.dora:53:5
  | 
  | fn temporary_struct_field(): ref Int32 {

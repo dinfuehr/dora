@@ -1,0 +1,11 @@
+struct Pair(Int64)
+
+fn read(value: ref Int64, _replacement: Pair): Int64 {
+    value
+}
+
+fn test() {
+    let value = ref Pair(43i64).0;
+    let replacement = Pair(100i64);
+    assert(read(ref value, replacement) == 43i64);
+}

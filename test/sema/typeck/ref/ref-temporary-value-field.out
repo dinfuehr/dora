@@ -1,0 +1,9 @@
+error: `ref` requires an addressable expression or reference-returning call.
+--> ref-temporary-value-field.dora:8:17
+ | 
+ | fn test() {
+ |     let value = ref Pair(43i64).0;
+                   ~~~~~~~~~~~~~~~~~
+ |     let replacement = Pair(100i64);
+ |     assert(read(ref value, replacement) == 43i64);
+1 error found.

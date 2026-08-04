@@ -21,7 +21,7 @@ use crate::sema::{
 };
 use crate::sym::ModuleSymTable;
 use crate::typeck::constck::ConstCheck;
-use crate::typeck::expr::{check_call_arguments, check_expr, is_array_get};
+use crate::typeck::expr::{check_call_arguments, check_expr, compute_ref_target};
 use crate::typeck::pattern::check_pattern;
 use crate::typeck::stmt::check_stmt;
 use crate::typeck::type_params::{
@@ -384,7 +384,7 @@ impl<'a> TypeCheck<'a> {
             }
             Expr::Paren(expr_id) => self.check_ref_return_value(*expr_id),
             Expr::Ref(expr) => {
-                if !self.ref_target_is_returnable_location(expr.expr) {
+                if !compute_ref_target(self, expr.expr).is_returnable() {
                     self.report(self.expr_span(expr_id), &diag::REF_RETURN_LIFETIME, args!());
                 }
             }
@@ -395,24 +395,6 @@ impl<'a> TypeCheck<'a> {
                 &diag::REF_RETURN_REQUIRES_REF_EXPR,
                 args!(),
             ),
-        }
-    }
-
-    fn ref_target_is_returnable_location(&self, expr_id: ExprId) -> bool {
-        match self.expr(expr_id) {
-            Expr::Path(_) => matches!(self.body.get_ident(expr_id), Some(IdentType::Global(..))),
-            Expr::Call(_) | Expr::MethodCall(_) => {
-                self.body.ty(expr_id).is_ref() || is_array_get(self, expr_id)
-            }
-            Expr::Field(expr) => match self.body.get_ident(expr_id) {
-                Some(IdentType::ClassField(..)) => true,
-                Some(IdentType::StructField(..) | IdentType::TupleField(..)) => {
-                    self.ref_target_is_returnable_location(expr.lhs)
-                }
-                _ => false,
-            },
-            Expr::Paren(expr_id) => self.ref_target_is_returnable_location(*expr_id),
-            _ => false,
         }
     }
 
