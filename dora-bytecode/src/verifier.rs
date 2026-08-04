@@ -112,7 +112,7 @@ impl<'a> Verifier<'a> {
             .type_params
             .type_param_count();
         for ty in self.bytecode.registers() {
-            verify_type(ty, type_param_count);
+            verify_transient_type(ty, type_param_count);
             // `This` is only valid in trait-level metadata; executable bodies use `$Self`.
             assert!(!type_contains_this(ty));
         }
@@ -1034,10 +1034,15 @@ fn specialize_types_for_trait_object(
 fn verify_program_types(program: &Program) {
     for function in &program.functions {
         let type_param_count = verify_type_params(&function.type_params);
-        for ty in &function.params {
-            verify_type(ty, type_param_count);
+        for (idx, ty) in function.params.iter().enumerate() {
+            let is_variadic_param = function.is_variadic && idx + 1 == function.params.len();
+            if is_variadic_param {
+                verify_type(ty, type_param_count);
+            } else {
+                verify_transient_type(ty, type_param_count);
+            }
         }
-        verify_type(&function.return_type, type_param_count);
+        verify_transient_type(&function.return_type, type_param_count);
 
         if function.bytecode.is_some() {
             verify_executable_function_signature_has_no_this(function);
@@ -1339,14 +1344,18 @@ fn verify_type(ty: &BytecodeType, type_param_count: usize) {
         | BytecodeType::Struct(_, types)
         | BytecodeType::Class(_, types) => verify_types(types, type_param_count),
         BytecodeType::TraitObject(_, type_params, bindings) => {
-            verify_types(type_params, type_param_count);
+            // Lambdas are emitted as trait objects. Since their argument and return types can be
+            // references, the corresponding trait object type parameters need transient validation.
+            verify_transient_types(type_params, type_param_count);
             verify_types(bindings, type_param_count);
         }
         BytecodeType::Assoc { ty, trait_ty, .. } => {
             verify_type(ty, type_param_count);
             verify_trait_type(trait_ty, type_param_count);
         }
-        BytecodeType::Ref(inner) => verify_type(inner, type_param_count),
+        BytecodeType::Ref(_) => {
+            panic!("reference type is only allowed at the top level of transient values")
+        }
         BytecodeType::Unit
         | BytecodeType::Bool
         | BytecodeType::UInt8
@@ -1361,14 +1370,29 @@ fn verify_type(ty: &BytecodeType, type_param_count: usize) {
     }
 }
 
+/// Verifies a type used only while executing a function. References can be passed, returned, and
+/// held in registers, but they cannot contain another reference or be embedded in another type.
+fn verify_transient_type(ty: &BytecodeType, type_param_count: usize) {
+    match ty {
+        BytecodeType::Ref(inner) => verify_type(inner, type_param_count),
+        _ => verify_type(ty, type_param_count),
+    }
+}
+
 fn verify_types(types: &BytecodeTypeArray, type_param_count: usize) {
     for ty in types.iter() {
         verify_type(&ty, type_param_count);
     }
 }
 
+fn verify_transient_types(types: &BytecodeTypeArray, type_param_count: usize) {
+    for ty in types.iter() {
+        verify_transient_type(&ty, type_param_count);
+    }
+}
+
 fn verify_trait_type(trait_ty: &BytecodeTraitType, type_param_count: usize) {
-    verify_types(&trait_ty.type_params, type_param_count);
+    verify_transient_types(&trait_ty.type_params, type_param_count);
     for (_, ty) in &trait_ty.bindings {
         verify_type(ty, type_param_count);
     }
