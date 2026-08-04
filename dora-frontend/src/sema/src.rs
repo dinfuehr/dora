@@ -248,8 +248,8 @@ pub enum CallType {
     // Direct or virtual method calls, e.g. obj.method(<args>).
     Method(SourceType, FctDefinitionId, TypeArgs),
 
-    // Invoke on expression, e.g. <expr>(<args>). Used for array loads/stores.
-    Expr(SourceType, FctDefinitionId, TypeArgs),
+    // Index operation, e.g. <expr>(<args>).
+    Index(SourceType, FctDefinitionId, TypeArgs),
 
     // Invoke method on trait object
     TraitObjectMethod(SourceType, FctDefinitionId),
@@ -307,7 +307,7 @@ impl CallType {
         match *self {
             CallType::Fct(fct_id, _)
             | CallType::Method(_, fct_id, _)
-            | CallType::Expr(_, fct_id, _)
+            | CallType::Index(_, fct_id, _)
             | CallType::TraitObjectMethod(_, fct_id)
             | CallType::GenericMethod { fct_id, .. }
             | CallType::GenericStaticMethod { fct_id, .. } => Some(fct_id),

@@ -180,7 +180,7 @@ pub(super) fn add_const_pool_entry_for_call(
         }
 
         CallType::Method(.., type_params)
-        | CallType::Expr(.., type_params)
+        | CallType::Index(.., type_params)
         | CallType::Fct(.., type_params) => {
             assert_eq!(
                 fct.type_param_definition(g.sa).type_param_count(),
@@ -203,7 +203,7 @@ pub(super) fn specialize_type_for_call(
 ) -> SourceType {
     match call_type {
         CallType::Fct(_, type_params)
-        | CallType::Expr(_, _, type_params)
+        | CallType::Index(_, _, type_params)
         | CallType::Method(_, _, type_params) => specialize_type(g.sa, ty, type_params),
 
         CallType::TraitObjectMethod(trait_ty, _actual_object_ty) => {

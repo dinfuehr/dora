@@ -125,7 +125,7 @@ pub(crate) fn is_array_get(ck: &TypeCheck, expr_id: ExprId) -> bool {
         return false;
     };
 
-    let CallType::Expr(_, fct_id, _) = call_type.as_ref() else {
+    let CallType::Index(_, fct_id, _) = call_type.as_ref() else {
         return false;
     };
 

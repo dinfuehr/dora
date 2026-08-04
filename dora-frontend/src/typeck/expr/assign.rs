@@ -783,7 +783,7 @@ fn check_index_trait_on_ty(
             &SourceTypeArray::empty(),
             Some(expr_type.clone()),
         );
-        let call_type = Rc::new(CallType::Expr(
+        let call_type = Rc::new(CallType::Index(
             expr_type.clone(),
             method_id,
             type_params.clone(),

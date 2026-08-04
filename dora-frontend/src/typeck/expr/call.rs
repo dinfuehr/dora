@@ -1028,7 +1028,7 @@ fn check_expr_call_index(
             Some(expr_type.clone()),
         );
 
-        let call_type = CallType::Expr(expr_type.clone(), method_id, type_params.clone());
+        let call_type = CallType::Index(expr_type.clone(), method_id, type_params.clone());
         ck.body
             .insert_or_replace_call_type(expr_id, Rc::new(call_type));
 

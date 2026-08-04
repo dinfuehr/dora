@@ -48,7 +48,7 @@ pub(super) fn gen_expr_call(
             );
         }
 
-        CallType::Expr(..)
+        CallType::Index(..)
         | CallType::Method(..)
         | CallType::GenericMethod { .. }
         | CallType::GenericStaticMethod { .. }
@@ -383,7 +383,7 @@ pub(super) fn emit_call_object_argument(
             let reg = gen_expr(g, e.callee, DataDest::Alloc);
             Some(reg)
         }
-        CallType::Expr(_, _, _) => Some(gen_expr(g, e.callee, DataDest::Alloc)),
+        CallType::Index(_, _, _) => Some(gen_expr(g, e.callee, DataDest::Alloc)),
         CallType::GenericStaticMethod { .. } | CallType::Fct(..) => None,
         _ => panic!("unexpected call type {:?}", call_type),
     }
@@ -399,7 +399,7 @@ pub(super) fn emit_call_arguments(
     let mut registers = Vec::new();
 
     let arg_start_offset = match *call_type {
-        CallType::Expr(..) | CallType::Method(..) | CallType::GenericMethod { .. } => 1,
+        CallType::Index(..) | CallType::Method(..) | CallType::GenericMethod { .. } => 1,
         _ => 0,
     };
 
@@ -548,7 +548,7 @@ pub(super) fn emit_call_inst(
         CallType::Fct(..) => g
             .builder
             .emit_invoke_static(return_reg, callee_idx, arguments, location),
-        CallType::Expr(..) => g
+        CallType::Index(..) => g
             .builder
             .emit_invoke_direct(return_reg, callee_idx, arguments, location),
         CallType::TraitObjectMethod(..) => g

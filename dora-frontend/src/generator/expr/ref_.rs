@@ -514,10 +514,10 @@ fn is_array_get(g: &AstBytecodeGen, expr_id: ExprId) -> bool {
         return false;
     };
 
-    // Index syntax like `array(index)` uses `CallType::Expr`, while an explicit
+    // Index syntax like `array(index)` uses `CallType::Index`, while an explicit
     // method call like `array.get(index)` uses `CallType::Method`, which must not
     // be handled as an array access here.
-    if !matches!(call_type.as_ref(), CallType::Expr(..)) {
+    if !matches!(call_type.as_ref(), CallType::Index(..)) {
         return false;
     }
 

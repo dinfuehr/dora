@@ -37,8 +37,8 @@ pub(super) fn gen_expr_method_call(
     // Check for intrinsics
     if let Some(info) = g.get_intrinsic(expr_id) {
         if emit_as_bytecode_operation(info.intrinsic) {
-            // For field calls (CallType::Expr), load the field first then apply intrinsic
-            if matches!(*call_type, CallType::Expr(..)) {
+            // For field index operations (CallType::Index), load the field first then apply intrinsic
+            if matches!(*call_type, CallType::Index(..)) {
                 return gen_expr_method_call_field_intrinsic(g, expr_id, e, info, dest);
             } else {
                 return gen_expr_method_call_intrinsic(g, expr_id, e, info, dest);
@@ -59,14 +59,14 @@ pub(super) fn gen_expr_method_call(
     let return_reg = ensure_register(g, dest, return_ty);
 
     // Evaluate object/self argument
-    // For CallType::Expr (calling a field), we need to load the field value first
+    // For CallType::Index (indexing a field), we need to load the field value first
     let object_ty = g.ty(e.object);
     let receiver_by_reference =
         callee.is_mutating && (object_ty.is_struct() || object_ty.is_tuple());
     let (object_reg, object_backing) = if receiver_by_reference {
         let generated_ref = gen_expr_as_ref(g, e.object, object_ty);
         (generated_ref.reference, generated_ref.backing)
-    } else if matches!(*call_type, CallType::Expr(..)) {
+    } else if matches!(*call_type, CallType::Index(..)) {
         (gen_expr_method_call_field_object(g, expr_id, e), None)
     } else {
         (gen_expr(g, e.object, DataDest::Alloc), None)
