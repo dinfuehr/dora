@@ -359,7 +359,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             let offset = self.register_offset(Register(idx));
 
             if ty.is_ref() {
-                self.interior_pointers.push(offset);
+                if !self.is_zero_type(&ty) {
+                    self.interior_pointers.push(offset);
+                }
             } else {
                 self.layout.add_ref_fields(&mut self.references, offset, ty);
             }
@@ -1561,6 +1563,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             BytecodeType::Ref(Box::new(self.bytecode().register_type(src).clone()))
         );
 
+        let dest_type = self.specialize_register_type(dest);
+        if self.is_zero_type(&dest_type) {
+            return;
+        }
+
         self.asm
             .lea(REG_TMP1, Mem::Local(self.register_offset(src)));
         // A null base tells the GC that the interior pointer points into the stack
@@ -1572,6 +1579,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     fn emit_get_field_ref(&mut self, dest: Register, obj: Register, field_idx: ConstPoolIdx) {
         let dest_type = self.bytecode().register_type(dest);
         debug_assert!(dest_type.is_ref());
+
+        let dest_type = self.specialize_register_type(dest);
+        if self.is_zero_type(&dest_type) {
+            return;
+        }
 
         let obj_type = self.specialize_register_type(obj);
 
@@ -1657,14 +1669,16 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let ref_type = self.bytecode().register_type(reference);
         debug_assert!(ref_type.is_ref());
 
+        let bytecode_type = self.specialize_register_type(src);
+        if self.is_zero_type(&bytecode_type) {
+            return;
+        }
+
         // Load both the interior address and its heap base. A null base means
         // that the reference points into the stack.
         let interior_reg = REG_TMP1;
         let base_reg = REG_TMP2;
         self.load_ref(reference, interior_reg, base_reg);
-
-        // Get the type of the value to store
-        let bytecode_type = self.specialize_register_type(src);
 
         // Copy from src to the memory location pointed to by the reference and
         // use the base object as the write-barrier host when it is non-null.
@@ -1676,11 +1690,13 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let ref_type = self.bytecode().register_type(reference);
         debug_assert!(ref_type.is_ref());
 
+        let bytecode_type = self.specialize_register_type(dest);
+        if self.is_zero_type(&bytecode_type) {
+            return;
+        }
+
         // Load the reference (address) into a register
         self.emit_load_register(reference, REG_TMP1.into());
-
-        // Get the type of the value to load
-        let bytecode_type = self.specialize_register_type(dest);
 
         // Copy from the memory location to dest
         self.asm.copy_bytecode_ty(
@@ -1749,6 +1765,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             let gcpoint = self.create_gcpoint();
             self.asm
                 .ensure_global(global_id, initializer, position, gcpoint);
+        }
+
+        let dest_type = self.specialize_register_type(dest);
+        if self.is_zero_type(&dest_type) {
+            return;
         }
 
         self.asm.load_global_value_address(REG_TMP1, global_id);
@@ -2060,6 +2081,11 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             self.reg_ty(dest),
             BytecodeType::Ref(Box::new(self.specialize_ty(value_ty)))
         );
+
+        let dest_type = self.specialize_register_type(dest);
+        if self.is_zero_type(&dest_type) {
+            return;
+        }
 
         self.emit_load_register(object, REG_TMP2.into());
         self.asm
@@ -2580,7 +2606,6 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let BytecodeType::Ref(element_type) = self.specialize_register_type(dest) else {
             unreachable!("GetArrayRef destination should be a ref")
         };
-        let element_size = self.size(*element_type);
         let position = self
             .bytecode()
             .offset_location(self.current_offset.to_u32());
@@ -2592,6 +2617,12 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         self.emit_load_register(idx, index_reg.into());
         self.asm
             .check_index_out_of_bounds(position, array_reg, index_reg);
+
+        if self.is_zero_type(&element_type) {
+            return;
+        }
+
+        let element_size = self.size(*element_type);
         self.asm
             .array_address(index_reg, array_reg, index_reg, element_size);
         self.store_ref(dest, index_reg, array_reg);
@@ -4180,6 +4211,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
     fn argument_passing_mode(&self, ty: &BytecodeType) -> ArgumentPassingMode {
         argument_passing_mode(self.program, ty)
+    }
+
+    fn is_zero_type(&self, ty: &BytecodeType) -> bool {
+        matches!(self.argument_passing_mode(ty), ArgumentPassingMode::None)
     }
 
     fn has_hidden_result_address(&self, ty: &BytecodeType) -> bool {

@@ -17,7 +17,12 @@ pub fn is_address_backed_aggregate(ty: BytecodeType): Bool {
 pub fn argument_passing_mode(ci: CompilationInfo, ty: BytecodeType): ArgumentPassingMode {
     match ty {
         BytecodeType::Unit => ArgumentPassingMode::None,
-        BytecodeType::Ref(_) => ArgumentPassingMode::InteriorPointer,
+        BytecodeType::Ref(inner) => {
+            match argument_passing_mode(ci, inner) {
+                ArgumentPassingMode::None => ArgumentPassingMode::None,
+                _ => ArgumentPassingMode::InteriorPointer,
+            }
+        }
         BytecodeType::Struct(struct_id, type_params) => {
             let struct_data = iface::get_struct_data(struct_id);
             let field_types = Vec[BytecodeType]::new_with_capacity(

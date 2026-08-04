@@ -1,0 +1,62 @@
+struct Empty
+
+let mut initialization_count: Int32 = 0i32;
+let mut lazy_unit: () = initialize_unit();
+
+fn initialize_unit(): () {
+    initialization_count += 1i32;
+}
+
+fn replace_unit(value: ref ()) {
+    let previous = value;
+    value = ();
+    let _: () = previous;
+}
+
+fn replace_generic[T](value: ref T, replacement: T) {
+    value = replacement;
+}
+
+fn replace_empty(value: ref Empty) {
+    let previous = value;
+    value = Empty();
+    let _: Empty = previous;
+}
+
+@NeverInline
+fn lazy_unit_ref(): ref () {
+    ref lazy_unit
+}
+
+trait Update {
+    mutating fn update();
+}
+
+impl Update for () {
+    mutating fn update() {
+        self = ();
+    }
+}
+
+fn update(value: Update) {
+    value.update();
+}
+
+fn main() {
+    assert(initialization_count == 0i32);
+    let returned_ref = lazy_unit_ref();
+    assert(initialization_count == 1i32);
+    let _: () = returned_ref;
+
+    let unit = ();
+    replace_unit(ref unit);
+    replace_generic[()](ref unit, ());
+
+    let empty = Empty();
+    replace_empty(ref empty);
+
+    let units = Array[()]::fill(2i64, ());
+    replace_unit(ref units(1i64));
+
+    update(() as Update);
+}

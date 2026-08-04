@@ -1,0 +1,10 @@
+//= error array
+
+fn consume(value: ref ()) {
+    let _: () = value;
+}
+
+fn main() {
+    let values = Array[()]::fill(1i64, ());
+    consume(ref values(2i64));
+}

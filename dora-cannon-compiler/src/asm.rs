@@ -183,13 +183,15 @@ impl<'a> BaselineAssembler<'a> {
                 self.store_mem(mode, dest.mem(), (*reg).into());
             }
 
-            BytecodeType::Ref(..) => {
-                self.copy_bytecode_ty(BytecodeType::Address, dest, src);
-                self.copy_bytecode_ty(
-                    BytecodeType::Address,
-                    dest.offset(ptr_width()),
-                    src.offset(ptr_width()),
-                );
+            BytecodeType::Ref(inner) => {
+                if self.layout.size(*inner) != 0 {
+                    self.copy_bytecode_ty(BytecodeType::Address, dest, src);
+                    self.copy_bytecode_ty(
+                        BytecodeType::Address,
+                        dest.offset(ptr_width()),
+                        src.offset(ptr_width()),
+                    );
+                }
             }
 
             BytecodeType::Char

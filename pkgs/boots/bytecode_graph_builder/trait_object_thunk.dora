@@ -60,9 +60,17 @@ impl BytecodeGraphBuilder {
         let receiver = arguments(arg_idx);
         arg_idx += 1i64;
         if thunk.is_mutating {
-            // A reference is passed as an interior pointer and its object base.
-            args.push(self.trait_object_payload_address(receiver));
-            args.push(receiver);
+            let receiver_ty = BytecodeType::Ref(thunk.actual_object_ty);
+            match cc::argument_passing_mode(self.ci, receiver_ty) {
+                ArgumentPassingMode::None => {}
+                ArgumentPassingMode::InteriorPointer => {
+                    args.push(self.trait_object_payload_address(receiver));
+                    args.push(receiver);
+                }
+                ArgumentPassingMode::Register(_) | ArgumentPassingMode::Stack => {
+                    unreachable[()]()
+                }
+            }
         } else if self.unwrap_trait_object_receiver(thunk, receiver)
             is Some(unwrapped_receiver)
         {

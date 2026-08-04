@@ -1057,6 +1057,10 @@ impl BytecodeGraphBuilder {
         obj: BytecodeRegister,
         idx: ConstPoolId,
     ) {
+        if self.is_zero_type(self.reg(dest)) {
+            return;
+        }
+
         match self.bc().const_pool_entry(idx) {
             ConstPoolEntry::ClassField(cls_id, type_params, field_id) => {
                 let obj_inst = self.register_value(obj);
@@ -1341,6 +1345,10 @@ impl BytecodeGraphBuilder {
     }
 
     fn emit_get_register_ref(dest: BytecodeRegister, src: BytecodeRegister) {
+        if self.is_zero_type(self.reg(dest)) {
+            return;
+        }
+
         let interior = self.aggregate_register(src);
         let base = graph::create_null_const();
         self.current().append_inst(base);
@@ -1725,6 +1733,10 @@ impl BytecodeGraphBuilder {
         let BytecodeType::Ref(global_type) = self.reg(dest);
         self.ensure_global_initialized(glob, global_type);
 
+        if self.is_zero_type(self.reg(dest)) {
+            return;
+        }
+
         let interior = graph::create_get_global_address_inst(glob);
         self.current().append_inst(interior);
         let base = graph::create_null_const();
@@ -1900,6 +1912,10 @@ impl BytecodeGraphBuilder {
         );
         self.set_current_inlined_location(check_inst);
         self.current().append_inst(check_inst);
+
+        if self.is_zero_type(self.reg(dest)) {
+            return;
+        }
 
         let BytecodeType::Class(
             class_id,

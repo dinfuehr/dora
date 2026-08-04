@@ -22,7 +22,12 @@ pub fn argument_passing_mode(program: &Program, ty: &BytecodeType) -> ArgumentPa
         }
         BytecodeType::Tuple(subtypes) => subtypes.to_vec(),
         BytecodeType::Unit => return ArgumentPassingMode::None,
-        BytecodeType::Ref(..) => return ArgumentPassingMode::InteriorPointer,
+        BytecodeType::Ref(inner) => {
+            return match argument_passing_mode(program, inner) {
+                ArgumentPassingMode::None => ArgumentPassingMode::None,
+                _ => ArgumentPassingMode::InteriorPointer,
+            };
+        }
         BytecodeType::TypeAlias(..)
         | BytecodeType::Assoc { .. }
         | BytecodeType::TypeParam(..)

@@ -208,7 +208,14 @@ impl<'a> AotLayout<'a> {
             BytecodeType::Address | BytecodeType::TraitObject(..) | BytecodeType::Class(..) => {
                 ptr_width()
             }
-            BytecodeType::Ref(..) => 2 * ptr_width(),
+            BytecodeType::Ref(inner) => {
+                // References to zero-sized values have no observable identity.
+                if self.size(*inner) == 0 {
+                    0
+                } else {
+                    2 * ptr_width()
+                }
+            }
             BytecodeType::Tuple(subtypes) => self.tuple_layout(subtypes).size,
             BytecodeType::Enum(enum_id, type_params) => {
                 match self.enum_layout(enum_id, &type_params) {
@@ -269,10 +276,16 @@ impl<'a> AotLayout<'a> {
             BytecodeType::Int64 => 8,
             BytecodeType::Float32 => 4,
             BytecodeType::Float64 => 8,
-            BytecodeType::Address
-            | BytecodeType::TraitObject(..)
-            | BytecodeType::Class(..)
-            | BytecodeType::Ref(..) => ptr_width(),
+            BytecodeType::Address | BytecodeType::TraitObject(..) | BytecodeType::Class(..) => {
+                ptr_width()
+            }
+            BytecodeType::Ref(inner) => {
+                if self.size(*inner) == 0 {
+                    0
+                } else {
+                    ptr_width()
+                }
+            }
             BytecodeType::Tuple(subtypes) => self.tuple_layout(subtypes).align,
             BytecodeType::Enum(enum_id, type_params) => {
                 match self.enum_layout(enum_id, &type_params) {
