@@ -2,26 +2,24 @@ struct Foo:
   value: Int32
 
 fn f:
-  0: GetRegisterRef r2, r0
-  3: GetFieldRef r1, r2, @0 # Foo.value
-  7: ConstInt32 r3, @1 # 1
- 10: LoadRef r4, r1
- 13: CheckedAdd r4, r4, r3
- 17: StoreRef r4, r1
- 20: Ret r0
+  0: GetFieldRef r1, r0, @0 # Foo.value
+  4: ConstInt32 r2, @1 # 1
+  7: LoadRef r3, r1
+ 10: CheckedAdd r3, r3, r2
+ 14: StoreRef r3, r1
+ 17: Ret r0
 
   Registers:
    0 => struct Foo
    1 => ref Int32
-   2 => ref Foo
+   2 => Int32
    3 => Int32
-   4 => Int32
-   5 => ()
+   4 => ()
 
   Constants:
    0 => StructField Foo.value
    1 => Int32 1
 
   Locations:
-   3 => 2:25
+   0 => 2:25
 

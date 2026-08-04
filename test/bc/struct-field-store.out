@@ -3,21 +3,19 @@ struct Foo:
   f2: Bool
 
 fn f:
-  0: GetRegisterRef r3, r0
-  3: GetFieldRef r2, r3, @0 # Foo.f1
-  7: StoreRef r1, r2
- 10: Ret r0
+  0: GetFieldRef r2, r0, @0 # Foo.f1
+  4: StoreRef r1, r2
+  7: Ret r0
 
   Registers:
    0 => struct Foo
    1 => Int32
    2 => ref Int32
-   3 => ref Foo
-   4 => ()
+   3 => ()
 
   Constants:
    0 => StructField Foo.f1
 
   Locations:
-   3 => 2:35
+   0 => 2:35
 

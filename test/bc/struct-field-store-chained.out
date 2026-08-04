@@ -11,13 +11,12 @@ struct X:
   a: A
 
 fn f:
-  0: GetRegisterRef r6, r0
-  3: GetFieldRef r5, r6, @3 # X.a
-  7: GetFieldRef r4, r5, @2 # A.b
- 11: GetFieldRef r3, r4, @1 # B.c
- 15: GetFieldRef r2, r3, @0 # C.d
- 19: StoreRef r1, r2
- 22: Ret r0
+  0: GetFieldRef r5, r0, @3 # X.a
+  4: GetFieldRef r4, r5, @2 # A.b
+  8: GetFieldRef r3, r4, @1 # B.c
+ 12: GetFieldRef r2, r3, @0 # C.d
+ 16: StoreRef r1, r2
+ 19: Ret r0
 
   Registers:
    0 => struct X
@@ -26,8 +25,7 @@ fn f:
    3 => ref C
    4 => ref B
    5 => ref A
-   6 => ref X
-   7 => ()
+   6 => ()
 
   Constants:
    0 => StructField C.d
@@ -36,5 +34,5 @@ fn f:
    3 => StructField X.a
 
   Locations:
-   3 => 5:31
+   0 => 5:31
 

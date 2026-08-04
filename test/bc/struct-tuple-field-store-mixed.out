@@ -5,12 +5,11 @@ struct Outer:
   pair: (Inner, Bool)
 
 fn f:
-  0: GetRegisterRef r5, r0
-  3: GetFieldRef r4, r5, @2 # Outer.pair
-  7: GetFieldRef r3, r4, @1 # (Inner, Bool).0
- 11: GetFieldRef r2, r3, @0 # Inner.value
- 15: StoreRef r1, r2
- 18: Ret r0
+  0: GetFieldRef r4, r0, @2 # Outer.pair
+  4: GetFieldRef r3, r4, @1 # (Inner, Bool).0
+  8: GetFieldRef r2, r3, @0 # Inner.value
+ 12: StoreRef r1, r2
+ 15: Ret r0
 
   Registers:
    0 => struct Outer
@@ -18,8 +17,7 @@ fn f:
    2 => ref Int32
    3 => ref Inner
    4 => ref (Inner, Bool)
-   5 => ref Outer
-   6 => ()
+   5 => ()
 
   Constants:
    0 => StructField Inner.value
@@ -27,5 +25,5 @@ fn f:
    2 => StructField Outer.pair
 
   Locations:
-   3 => 3:39
+   0 => 3:39
 

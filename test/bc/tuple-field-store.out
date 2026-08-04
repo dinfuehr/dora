@@ -1,19 +1,17 @@
 fn f:
-  0: GetRegisterRef r3, r0
-  3: GetFieldRef r2, r3, @0 # (Int32, Bool).0
-  7: StoreRef r1, r2
- 10: Ret r0
+  0: GetFieldRef r2, r0, @0 # (Int32, Bool).0
+  4: StoreRef r1, r2
+  7: Ret r0
 
   Registers:
    0 => (Int32, Bool)
    1 => Int32
    2 => ref Int32
-   3 => ref (Int32, Bool)
-   4 => ()
+   3 => ()
 
   Constants:
    0 => TupleElement subtypes.0
 
   Locations:
-   3 => 1:55
+   0 => 1:55
 
