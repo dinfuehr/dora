@@ -1,0 +1,50 @@
+struct Value(Int32)
+
+impl Value {
+    mutating fn update() {}
+}
+
+fn needs_mut(_value: ref mut Int32) {}
+
+fn assign(_value: ref Int32) {
+    _value = 1i32;
+}
+
+fn compound_assign(value: ref Int32) {
+    value += 1i32;
+}
+
+fn field_assign(value: ref Value) {
+    value.0 = 1i32;
+}
+
+fn mutating_call(value: ref Value) {
+    value.update();
+}
+
+fn immutable_local() {
+    let value = 0i32;
+    let _reference = ref mut value;
+}
+
+fn immutable_global() {
+    let _reference = ref mut global;
+}
+
+fn immutable_reference(value: ref Int32) {
+    let _reference = ref mut value;
+}
+
+fn immutable_return() {
+    let _reference = ref mut readonly_return();
+}
+
+fn wrong_argument(value: ref Int32) {
+    needs_mut(ref value);
+}
+
+let global: Int32 = 0i32;
+
+fn readonly_return(): ref Int32 {
+    ref global
+}

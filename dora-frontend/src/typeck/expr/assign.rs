@@ -8,9 +8,9 @@ use super::{check_expr, check_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
-    ASSIGN_FIELD, ASSIGN_TYPE, BIN_OP_TYPE, INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH,
-    INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED, LET_REASSIGNED, LVALUE_EXPECTED,
-    NOT_ACCESSIBLE, UNKNOWN_FIELD, WRONG_TYPE_FOR_ARGUMENT,
+    ASSIGN_FIELD, ASSIGN_THROUGH_IMMUTABLE_REF, ASSIGN_TYPE, BIN_OP_TYPE,
+    INDEX_GET_AND_INDEX_SET_DO_NOT_MATCH, INDEX_GET_NOT_IMPLEMENTED, INDEX_SET_NOT_IMPLEMENTED,
+    LET_REASSIGNED, LVALUE_EXPECTED, NOT_ACCESSIBLE, UNKNOWN_FIELD, WRONG_TYPE_FOR_ARGUMENT,
 };
 use crate::replace_type;
 use crate::sema::{
@@ -66,6 +66,14 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
 
             if !assign_through_ref && !var.mutable {
                 ck.report(ck.expr_span(expr_id), &LET_REASSIGNED, args![]);
+            }
+
+            if assign_through_ref && !var_ty.is_mut_ref() {
+                ck.report(
+                    ck.expr_span(expr_id),
+                    &ASSIGN_THROUGH_IMMUTABLE_REF,
+                    args![],
+                );
             }
 
             if sema_expr.op != ast::AssignOp::Assign {
@@ -559,7 +567,11 @@ fn check_expr_assign_function_call(
     sema_expr: &AssignExpr,
     lhs_type: SourceType,
 ) {
-    let SourceType::Ref { ty: inner_type, .. } = lhs_type else {
+    let SourceType::Ref {
+        ty: inner_type,
+        is_mut,
+    } = lhs_type
+    else {
         check_expr(ck, sema_expr.rhs, SourceType::Any);
 
         if !lhs_type.is_error() {
@@ -568,6 +580,15 @@ fn check_expr_assign_function_call(
 
         return;
     };
+
+    if !is_mut {
+        ck.report(
+            ck.expr_span(expr_id),
+            &ASSIGN_THROUGH_IMMUTABLE_REF,
+            args![],
+        );
+    }
+
     let inner_type = *inner_type;
     let rhs_type = check_expr(ck, sema_expr.rhs, inner_type.clone());
     check_assign_type(ck, expr_id, sema_expr.op, inner_type, rhs_type);

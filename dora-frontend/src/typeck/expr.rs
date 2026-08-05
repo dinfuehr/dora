@@ -1,5 +1,7 @@
 use crate::args;
-use crate::error::diagnostics::{FIELD_ASSIGN_ON_IMMUTABLE, MUTATING_METHOD_ON_IMMUTABLE};
+use crate::error::diagnostics::{
+    ASSIGN_THROUGH_IMMUTABLE_REF, FIELD_ASSIGN_ON_IMMUTABLE, MUTATING_METHOD_ON_IMMUTABLE,
+};
 use crate::sema::{Expr, ExprId, IdentType};
 use crate::typeck::TypeCheck;
 use crate::{SourceType, ty::error as ty_error};
@@ -149,13 +151,30 @@ pub(super) fn check_value_type_base_mutability(
 
     if let Some(IdentType::Var(var_id)) = ck.body.get_ident(base_expr) {
         let nested_var_id = ck.vars.nested_var_id(var_id);
+        let var = ck.vars.get_var(nested_var_id);
 
         // Check if this is the `self` parameter in a `mutating` method.
         // self is always variable 0 when is_self_available is true.
         let is_self = nested_var_id.0 == 0 && ck.is_self_available;
-        let is_mutable = ck.vars.get_var(nested_var_id).mutable || (is_self && ck.is_mutating);
+        let is_mutable = if var.ty.is_ref() {
+            var.ty.is_mut_ref()
+        } else {
+            var.mutable || (is_self && ck.is_mutating)
+        };
 
         if !is_mutable {
+            let diagnostic = if var.ty.is_ref() {
+                &ASSIGN_THROUGH_IMMUTABLE_REF
+            } else {
+                match reason {
+                    MutabilityCheckReason::FieldAssignment => &FIELD_ASSIGN_ON_IMMUTABLE,
+                    MutabilityCheckReason::MutatingMethodCall => &MUTATING_METHOD_ON_IMMUTABLE,
+                }
+            };
+            ck.report(ck.expr_span(assign_expr_id), diagnostic, args![]);
+        }
+    } else if let Some(IdentType::Context { writable, .. }) = ck.body.get_ident(base_expr) {
+        if !writable {
             let diagnostic = match reason {
                 MutabilityCheckReason::FieldAssignment => &FIELD_ASSIGN_ON_IMMUTABLE,
                 MutabilityCheckReason::MutatingMethodCall => &MUTATING_METHOD_ON_IMMUTABLE,

@@ -477,6 +477,16 @@ pub static REF_REQUIRES_ADDRESSABLE: DiagnosticDescriptor = DiagnosticDescriptor
     level: ErrorLevel::Error,
 };
 
+pub static REF_MUT_REQUIRES_MUTABLE: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`ref mut` requires a mutable expression.",
+    level: ErrorLevel::Error,
+};
+
+pub static ASSIGN_THROUGH_IMMUTABLE_REF: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "cannot mutate through immutable reference.",
+    level: ErrorLevel::Error,
+};
+
 pub static REF_TYPE_NOT_ALLOWED: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "`ref` type is not allowed here.",
     level: ErrorLevel::Error,
