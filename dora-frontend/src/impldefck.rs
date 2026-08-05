@@ -70,7 +70,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
         | SourceType::This
         | SourceType::TypeVar(..)
         | SourceType::Assoc { .. }
-        | SourceType::Ref(..) => {
+        | SourceType::Ref { .. } => {
             unreachable!()
         }
         SourceType::Error
@@ -660,15 +660,24 @@ fn trait_and_impl_arg_ty_compatible(
             }
         }
 
-        SourceType::Ref(trait_inner_ty) => match impl_arg_ty {
-            SourceType::Ref(impl_inner_ty) => trait_and_impl_arg_ty_compatible(
-                sa,
-                *trait_inner_ty,
-                trait_type_args,
-                trait_alias_map,
-                *impl_inner_ty,
-                self_ty,
-            ),
+        SourceType::Ref {
+            ty: trait_inner_ty,
+            is_mut: trait_is_mut,
+        } => match impl_arg_ty {
+            SourceType::Ref {
+                ty: impl_inner_ty,
+                is_mut: impl_is_mut,
+            } => {
+                trait_is_mut == impl_is_mut
+                    && trait_and_impl_arg_ty_compatible(
+                        sa,
+                        *trait_inner_ty,
+                        trait_type_args,
+                        trait_alias_map,
+                        *impl_inner_ty,
+                        self_ty,
+                    )
+            }
 
             _ => false,
         },
@@ -1109,7 +1118,7 @@ fn find_super_trait_witness(
         SourceType::Alias(..)
         | SourceType::This
         | SourceType::Assoc { .. }
-        | SourceType::Ref(..)
+        | SourceType::Ref { .. }
         | SourceType::Any
         | SourceType::TypeVar(..) => unreachable!(),
     }

@@ -65,7 +65,7 @@ pub(super) fn gen_expr_assign(
 }
 
 fn gen_expr_assign_function_call(g: &mut AstBytecodeGen, expr_id: ExprId, e: &AssignExpr) {
-    let SourceType::Ref(inner_type) = g.ty(e.lhs) else {
+    let SourceType::Ref { ty: inner_type, .. } = g.ty(e.lhs) else {
         unreachable!()
     };
     let reference = gen_expr(g, e.lhs, DataDest::Alloc);
@@ -511,7 +511,7 @@ fn gen_expr_assign_var(
         };
 
         let reference = var_reg(g, var_id);
-        let SourceType::Ref(inner) = var.ty.clone() else {
+        let SourceType::Ref { ty: inner, .. } = var.ty.clone() else {
             unreachable!()
         };
         gen_expr_assign_through_ref(g, expr_id, e, reference, value, *inner);

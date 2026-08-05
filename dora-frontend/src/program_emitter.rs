@@ -1304,8 +1304,8 @@ impl Emitter {
                 .hidden_self_type_param
                 .map(BytecodeType::TypeParam)
                 .unwrap_or(BytecodeType::This),
-            SourceType::Ref(inner) => {
-                BytecodeType::Ref(Box::new(self.convert_ty(sa, inner.as_ref().clone())))
+            SourceType::Ref { ty, .. } => {
+                BytecodeType::Ref(Box::new(self.convert_ty(sa, ty.as_ref().clone())))
             }
             SourceType::Alias(id, type_params) => {
                 assert!(type_params.is_empty());

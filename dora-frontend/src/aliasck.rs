@@ -112,13 +112,16 @@ fn expand_type(
             SourceType::Tuple(expand_sta(sa, subtypes, visited, visiting, context))
         }
 
-        SourceType::Ref(inner) => SourceType::Ref(Box::new(expand_type(
-            sa,
-            inner.as_ref().clone(),
-            visited,
-            visiting,
-            context,
-        ))),
+        SourceType::Ref { ty, is_mut } => SourceType::Ref {
+            ty: Box::new(expand_type(
+                sa,
+                ty.as_ref().clone(),
+                visited,
+                visiting,
+                context,
+            )),
+            is_mut: *is_mut,
+        },
 
         SourceType::Alias(id, ..) => {
             let alias = sa.alias(*id);

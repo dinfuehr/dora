@@ -412,7 +412,7 @@ fn match_concrete_types(
             }
         }
 
-        SourceType::Error | SourceType::This | SourceType::Any | SourceType::Ref(..) => {
+        SourceType::Error | SourceType::This | SourceType::Any | SourceType::Ref { .. } => {
             unreachable!()
         }
     }

@@ -131,7 +131,10 @@ pub fn replace_type(sa: &Sema, ty: SourceType, type_args: &TypeArgs) -> SourceTy
         | SourceType::Error
         | SourceType::TypeVar(..) => ty,
 
-        SourceType::Ref(inner) => SourceType::Ref(Box::new(replace_type(sa, *inner, type_args))),
+        SourceType::Ref { ty, is_mut } => SourceType::Ref {
+            ty: Box::new(replace_type(sa, *ty, type_args)),
+            is_mut,
+        },
 
         SourceType::Any => unreachable!(),
     }
@@ -293,12 +296,10 @@ pub fn specialize_ty_for_call(
         | SourceType::Error
         | SourceType::TypeVar(..) => ty,
 
-        SourceType::Ref(inner) => SourceType::Ref(Box::new(specialize_ty_for_call(
-            sa,
-            *inner,
-            caller_element,
-            type_params,
-        ))),
+        SourceType::Ref { ty, is_mut } => SourceType::Ref {
+            ty: Box::new(specialize_ty_for_call(sa, *ty, caller_element, type_params)),
+            is_mut,
+        },
 
         SourceType::Any => SourceType::Any,
     }
@@ -418,13 +419,16 @@ pub fn specialize_ty_for_trait_object(
             assoc_types,
         )),
 
-        SourceType::Ref(inner) => SourceType::Ref(Box::new(specialize_ty_for_trait_object(
-            sa,
-            *inner,
-            trait_id,
-            type_args,
-            assoc_types,
-        ))),
+        SourceType::Ref { ty, is_mut } => SourceType::Ref {
+            ty: Box::new(specialize_ty_for_trait_object(
+                sa,
+                *ty,
+                trait_id,
+                type_args,
+                assoc_types,
+            )),
+            is_mut,
+        },
 
         SourceType::TypeParam(id) => type_args[id].clone(),
 
@@ -688,7 +692,10 @@ impl<'a> DefaultTraitMethodSpecialization<'a> {
 
             SourceType::Tuple(subtypes) => SourceType::Tuple(self.specialize_array(subtypes)),
 
-            SourceType::Ref(inner) => SourceType::Ref(Box::new(self.specialize(*inner))),
+            SourceType::Ref { ty, is_mut } => SourceType::Ref {
+                ty: Box::new(self.specialize(*ty)),
+                is_mut,
+            },
 
             SourceType::TypeParam(type_param_id) => self.type_params.get(type_param_id),
 
@@ -931,14 +938,17 @@ pub fn specialize_ty_for_generic(
             type_params,
         )),
 
-        SourceType::Ref(inner) => SourceType::Ref(Box::new(specialize_ty_for_generic(
-            sa,
-            *inner,
-            element,
-            type_param_id,
-            trait_ty,
-            type_params,
-        ))),
+        SourceType::Ref { ty, is_mut } => SourceType::Ref {
+            ty: Box::new(specialize_ty_for_generic(
+                sa,
+                *ty,
+                element,
+                type_param_id,
+                trait_ty,
+                type_params,
+            )),
+            is_mut,
+        },
 
         SourceType::Unit
         | SourceType::UInt8
@@ -1072,7 +1082,7 @@ pub fn specialize_for_element(
             }
         }
 
-        SourceType::Any | SourceType::Ref(..) | SourceType::TypeVar(..) => {
+        SourceType::Any | SourceType::Ref { .. } | SourceType::TypeVar(..) => {
             unreachable!()
         }
     }
@@ -1167,9 +1177,10 @@ pub fn specialize_type_for_implements(ty: SourceType, type_args: &TypeArgs) -> S
             let new_return_type = specialize_type_for_implements(*return_type, type_args);
             SourceType::Lambda(new_params, Box::new(new_return_type), is_variadic)
         }
-        SourceType::Ref(inner) => {
-            SourceType::Ref(Box::new(specialize_type_for_implements(*inner, type_args)))
-        }
+        SourceType::Ref { ty, is_mut } => SourceType::Ref {
+            ty: Box::new(specialize_type_for_implements(*ty, type_args)),
+            is_mut,
+        },
         // Types that don't need specialization
         SourceType::Unit
         | SourceType::Bool

@@ -149,7 +149,16 @@ impl TypeCheck<'_> {
                     && self.unify_type_arrays(lhs_bindings, rhs_bindings)
             }
             (SourceType::Tuple(lhs), SourceType::Tuple(rhs)) => self.unify_type_arrays(lhs, rhs),
-            (SourceType::Ref(lhs), SourceType::Ref(rhs)) => self.unify_types(*lhs, *rhs),
+            (
+                SourceType::Ref {
+                    ty: lhs,
+                    is_mut: lhs_is_mut,
+                },
+                SourceType::Ref {
+                    ty: rhs,
+                    is_mut: rhs_is_mut,
+                },
+            ) => (!lhs_is_mut || rhs_is_mut) && self.unify_types(*lhs, *rhs),
             (
                 SourceType::Lambda(lhs_params, lhs_return, lhs_variadic),
                 SourceType::Lambda(rhs_params, rhs_return, rhs_variadic),
@@ -279,7 +288,10 @@ where
             Box::new(replace_type_variable(*return_type, replace)),
             is_variadic,
         ),
-        SourceType::Ref(inner) => SourceType::Ref(Box::new(replace_type_variable(*inner, replace))),
+        SourceType::Ref { ty, is_mut } => SourceType::Ref {
+            ty: Box::new(replace_type_variable(*ty, replace)),
+            is_mut,
+        },
         ty => ty,
     }
 }
@@ -342,7 +354,7 @@ fn type_contains_variable(ty: &SourceType, expected: Option<TypeVarId>) -> bool 
                     .iter()
                     .any(|(_, ty)| type_contains_variable(ty, expected))
         }
-        SourceType::Ref(inner) => type_contains_variable(inner, expected),
+        SourceType::Ref { ty, .. } => type_contains_variable(ty, expected),
         SourceType::Error
         | SourceType::Any
         | SourceType::Unit

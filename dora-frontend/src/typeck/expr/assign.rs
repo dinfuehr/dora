@@ -77,10 +77,10 @@ fn check_expr_assign_path(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
             ck.body.insert_ident(lhs_id, ident);
 
             if assign_through_ref {
-                let SourceType::Ref(inner) = var_ty else {
+                let SourceType::Ref { ty, .. } = var_ty else {
                     unreachable!()
                 };
-                inner.as_ref().clone()
+                ty.as_ref().clone()
             } else {
                 var_ty
             }
@@ -559,7 +559,7 @@ fn check_expr_assign_function_call(
     sema_expr: &AssignExpr,
     lhs_type: SourceType,
 ) {
-    let SourceType::Ref(inner_type) = lhs_type else {
+    let SourceType::Ref { ty: inner_type, .. } = lhs_type else {
         check_expr(ck, sema_expr.rhs, SourceType::Any);
 
         if !lhs_type.is_error() {
@@ -953,7 +953,7 @@ fn check_expr_assign_unnamed_field(
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
         | SourceType::Assoc { .. }
-        | SourceType::Ref(..) => {
+        | SourceType::Ref { .. } => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             ck.report(ck.expr_span(rhs_id), &UNKNOWN_FIELD, args![name, expr_name]);

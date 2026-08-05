@@ -72,7 +72,7 @@ pub(super) fn check_expr_field_named(
         | SourceType::Tuple(..)
         | SourceType::Alias(..)
         | SourceType::Assoc { .. }
-        | SourceType::Ref(..) => {}
+        | SourceType::Ref { .. } => {}
         SourceType::TypeVar(..) => unreachable!(),
         SourceType::Class(cls_id, class_type_params) => {
             if let Some((field_index, _)) = find_field_in_class(ck.sa, object_type.clone(), name) {
@@ -175,7 +175,7 @@ fn check_expr_field_unnamed(
         | SourceType::Lambda(..)
         | SourceType::Alias(..)
         | SourceType::Assoc { .. }
-        | SourceType::Ref(..) => {
+        | SourceType::Ref { .. } => {
             let name = index.to_string();
             let expr_name = ck.ty_name(&object_type);
             ck.report(

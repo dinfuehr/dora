@@ -42,10 +42,22 @@ pub(super) fn check_expr_ref(
 
     let ref_ty = match compute_ref_target(ck, sema_expr.expr) {
         RefTarget::Local | RefTarget::Global | RefTarget::ClassField | RefTarget::ArrayElement => {
-            SourceType::Ref(Box::new(inner_ty))
+            SourceType::Ref {
+                ty: Box::new(inner_ty),
+                is_mut: sema_expr.is_mut,
+            }
         }
         // A call that returns a reference already provides the reference to forward.
-        RefTarget::RefReturningCall => inner_ty,
+        RefTarget::RefReturningCall => {
+            let SourceType::Ref { ty, .. } = inner_ty else {
+                unreachable!()
+            };
+
+            SourceType::Ref {
+                ty,
+                is_mut: sema_expr.is_mut,
+            }
+        }
         RefTarget::Invalid => {
             ck.report(ck.expr_span(expr_id), &REF_REQUIRES_ADDRESSABLE, args![]);
             return ty_error();

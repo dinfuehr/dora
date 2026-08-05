@@ -506,7 +506,7 @@ fn expand_function_types(sa: &Sema) {
             let param_ty = param.parsed_ty().expand(sa, fct, replace_self.clone());
             let is_variadic_param = fct.params.is_variadic && idx + 1 == params.len();
             let ref_type_not_allowed = match &param_ty {
-                SourceType::Ref(inner) if !is_variadic_param => inner.contains_ref_type(),
+                SourceType::Ref { ty, .. } if !is_variadic_param => ty.contains_ref_type(),
                 _ => param_ty.contains_ref_type(),
             };
 
@@ -526,7 +526,7 @@ fn expand_function_types(sa: &Sema) {
             .expand(sa, fct, replace_self.clone());
 
         let ref_type_not_allowed = match &return_type {
-            SourceType::Ref(inner) => inner.contains_ref_type(),
+            SourceType::Ref { ty, .. } => ty.contains_ref_type(),
             _ => return_type.contains_ref_type(),
         };
 

@@ -70,7 +70,7 @@ pub fn package_for_type(sa: &Sema, ty: SourceType) -> Option<PackageDefinitionId
         | SourceType::Tuple(..)
         | SourceType::TypeParam(..)
         | SourceType::TypeVar(..) => None,
-        SourceType::Any | SourceType::This | SourceType::Ref(..) => {
+        SourceType::Any | SourceType::This | SourceType::Ref { .. } => {
             unreachable!()
         }
         SourceType::Bool
@@ -113,7 +113,7 @@ impl<'x> ExtensionCheck<'x> {
             | SourceType::This
             | SourceType::TypeVar(..)
             | SourceType::Assoc { .. }
-            | SourceType::Ref(..) => {
+            | SourceType::Ref { .. } => {
                 unreachable!()
             }
             SourceType::Error
@@ -260,7 +260,7 @@ fn discover_type_params(
             );
             used_type_params.insert(tp_id);
         }
-        SourceType::Alias(..) | SourceType::Assoc { .. } | SourceType::Ref(..) => {
+        SourceType::Alias(..) | SourceType::Assoc { .. } | SourceType::Ref { .. } => {
             unreachable!()
         }
     }

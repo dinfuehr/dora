@@ -2317,8 +2317,11 @@ fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<Sourc
 
         SourceType::Assoc { .. } => def == arg,
 
-        SourceType::Ref(inner) => match arg {
-            SourceType::Ref(other_inner) => arg_allows(sa, *inner, *other_inner, self_ty),
+        SourceType::Ref { ty, is_mut } => match arg {
+            SourceType::Ref {
+                ty: other_ty,
+                is_mut: other_is_mut,
+            } => (!is_mut || other_is_mut) && arg_allows(sa, *ty, *other_ty, self_ty),
             _ => false,
         },
     }

@@ -47,7 +47,7 @@ pub(super) fn check_expr_lambda(
         let ty = ck.read_type(ret_ty);
 
         let ref_type_not_allowed = match &ty {
-            SourceType::Ref(inner) => inner.contains_ref_type(),
+            SourceType::Ref { ty, .. } => ty.contains_ref_type(),
             _ => ty.contains_ref_type(),
         };
 
@@ -92,7 +92,7 @@ pub(super) fn check_expr_lambda(
             let ty = ck.read_type(ty_id);
             let is_variadic_param = is_variadic && idx + 1 == sema_expr.params.len();
             let ref_type_not_allowed = match &ty {
-                SourceType::Ref(inner) if !is_variadic_param => inner.contains_ref_type(),
+                SourceType::Ref { ty, .. } if !is_variadic_param => ty.contains_ref_type(),
                 _ => ty.contains_ref_type(),
             };
 

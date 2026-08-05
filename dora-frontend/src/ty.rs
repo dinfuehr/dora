@@ -161,8 +161,11 @@ pub enum SourceType {
     // Some enum.
     Enum(EnumDefinitionId, SourceTypeArray),
 
-    // Reference to a value type (used for self in mutating methods).
-    Ref(Box<SourceType>),
+    // Reference to an addressable value.
+    Ref {
+        ty: Box<SourceType>,
+        is_mut: bool,
+    },
 }
 
 impl SourceType {
@@ -188,7 +191,7 @@ impl SourceType {
             SourceType::Class(..) => TyKind::Class,
             SourceType::Unit | SourceType::Tuple(..) => TyKind::Tuple,
             SourceType::Assoc { .. } => TyKind::Assoc,
-            SourceType::Ref(..) => TyKind::Ref,
+            SourceType::Ref { .. } => TyKind::Ref,
         }
     }
 
@@ -243,9 +246,13 @@ impl SourceType {
 
     pub fn is_ref(&self) -> bool {
         match self {
-            SourceType::Ref(..) => true,
+            SourceType::Ref { .. } => true,
             _ => false,
         }
+    }
+
+    pub fn is_mut_ref(&self) -> bool {
+        matches!(self, SourceType::Ref { is_mut: true, .. })
     }
 
     pub fn is_float(&self) -> bool {
@@ -304,7 +311,7 @@ impl SourceType {
                 params.iter().any(|ty| ty.contains_type_param())
                     || return_type.contains_type_param()
             }
-            SourceType::Ref(ty) => ty.contains_type_param(),
+            SourceType::Ref { ty, .. } => ty.contains_type_param(),
             SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
@@ -322,7 +329,7 @@ impl SourceType {
 
     pub fn contains_ref_type(&self) -> bool {
         match self {
-            SourceType::Ref(inner) => !inner.is_error(),
+            SourceType::Ref { ty, .. } => !ty.is_error(),
             SourceType::Class(_, type_params)
             | SourceType::Struct(_, type_params)
             | SourceType::Enum(_, type_params)
@@ -599,8 +606,14 @@ impl SourceType {
             | SourceType::This
             | SourceType::TypeParam(..)
             | SourceType::TypeVar(..)
-            | SourceType::Lambda(..)
-            | SourceType::Ref(..) => *self == other,
+            | SourceType::Lambda(..) => *self == other,
+            SourceType::Ref { ty, is_mut } => match other {
+                SourceType::Ref {
+                    ty: other_ty,
+                    is_mut: other_is_mut,
+                } => (!is_mut || other_is_mut) && ty.allows(sa, *other_ty),
+                _ => false,
+            },
             SourceType::Int32 | SourceType::Int64 | SourceType::Float32 | SourceType::Float64 => {
                 *self == other
             }
@@ -663,7 +676,7 @@ impl SourceType {
             SourceType::Alias(..) => {
                 unreachable!()
             }
-            SourceType::Ref(inner) => inner.is_defined_type(sa),
+            SourceType::Ref { ty, .. } => ty.is_defined_type(sa),
             SourceType::Enum(_, params)
             | SourceType::Class(_, params)
             | SourceType::Struct(_, params) => {
@@ -747,7 +760,7 @@ impl SourceType {
             | SourceType::TypeParam(_)
             | SourceType::TypeVar(_)
             | SourceType::Assoc { .. }
-            | SourceType::Ref(..) => false,
+            | SourceType::Ref { .. } => false,
         }
     }
 }
@@ -755,7 +768,7 @@ impl SourceType {
 pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
     match ty {
         SourceType::Any => unreachable!(),
-        SourceType::Ref(inner) => contains_self(sa, *inner),
+        SourceType::Ref { ty, .. } => contains_self(sa, *ty),
         SourceType::This => true,
         SourceType::Error
         | SourceType::Unit
@@ -1296,8 +1309,9 @@ impl<'a> SourceTypePrinter<'a> {
                 format!("[{} as {}]::{}", ty_name, trait_name, alias_name)
             }
 
-            SourceType::Ref(inner) => {
-                format!("ref {}", self.name(inner.as_ref().clone()))
+            SourceType::Ref { ty, is_mut } => {
+                let mutability = if is_mut { "mut " } else { "" };
+                format!("ref {}{}", mutability, self.name(ty.as_ref().clone()))
             }
         }
     }

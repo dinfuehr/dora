@@ -513,12 +513,10 @@ pub(crate) fn expand_st(
         | SourceType::TypeVar(..) => ty,
         SourceType::This => replace_self.expect("self expected"),
 
-        SourceType::Ref(inner) => SourceType::Ref(Box::new(expand_st(
-            sa,
-            element,
-            inner.as_ref().clone(),
-            replace_self,
-        ))),
+        SourceType::Ref { ty, is_mut } => SourceType::Ref {
+            ty: Box::new(expand_st(sa, element, ty.as_ref().clone(), replace_self)),
+            is_mut: *is_mut,
+        },
 
         SourceType::Any => {
             panic!("unexpected type = {:?}", ty);

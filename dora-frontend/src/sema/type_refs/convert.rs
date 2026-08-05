@@ -114,10 +114,13 @@ fn convert_type_ref_inner(
         TypeRef::Infer => convert_infer(type_ref_id),
         TypeRef::This => SourceType::This,
         TypeRef::Error => SourceType::Error,
-        TypeRef::Ref { ty, .. } => {
+        TypeRef::Ref { ty, is_mut } => {
             let inner =
                 convert_type_ref_inner(sa, type_ref_arena, ctxt_element, *ty, convert_infer);
-            SourceType::Ref(Box::new(inner))
+            SourceType::Ref {
+                ty: Box::new(inner),
+                is_mut: *is_mut,
+            }
         }
         TypeRef::Tuple { subtypes } => {
             if subtypes.is_empty() {

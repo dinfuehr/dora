@@ -633,7 +633,10 @@ impl<'a> TypeCheck<'a> {
             // Mutating trait methods always receive self by reference. Inherent
             // methods only need a reference for struct and tuple receivers.
             if self.is_mutating && (is_trait_method || ty.is_struct() || ty.is_tuple()) {
-                SourceType::Ref(Box::new(ty))
+                SourceType::Ref {
+                    ty: Box::new(ty),
+                    is_mut: true,
+                }
             } else {
                 ty
             }

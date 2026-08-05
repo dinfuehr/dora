@@ -107,7 +107,7 @@ fn implements_trait_inner(
                 .any(|bound| bound.implements_trait(sa, &trait_ty))
         }
 
-        SourceType::Alias(..) | SourceType::Ref(..) => {
+        SourceType::Alias(..) | SourceType::Ref { .. } => {
             unreachable!()
         }
 
@@ -443,7 +443,16 @@ impl TypeUnifier {
                     && self.unify_arrays(first_params, second_params)
                     && self.unify(*first_return, *second_return)
             }
-            (SourceType::Ref(first), SourceType::Ref(second)) => self.unify(*first, *second),
+            (
+                SourceType::Ref {
+                    ty: first,
+                    is_mut: first_is_mut,
+                },
+                SourceType::Ref {
+                    ty: second,
+                    is_mut: second_is_mut,
+                },
+            ) => first_is_mut == second_is_mut && self.unify(*first, *second),
             (first, second) => first == second,
         }
     }
@@ -512,7 +521,10 @@ impl TypeUnifier {
                 Box::new(self.resolve(*return_type)),
                 variadic,
             ),
-            SourceType::Ref(ty) => SourceType::Ref(Box::new(self.resolve(*ty))),
+            SourceType::Ref { ty, is_mut } => SourceType::Ref {
+                ty: Box::new(self.resolve(*ty)),
+                is_mut,
+            },
             ty @ (SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
@@ -575,7 +587,7 @@ impl TypeUnifier {
                     .any(|ty| self.contains_type_param(&ty, expected_id))
                     || self.contains_type_param(&return_type, expected_id)
             }
-            SourceType::Ref(ty) => self.contains_type_param(&ty, expected_id),
+            SourceType::Ref { ty, .. } => self.contains_type_param(&ty, expected_id),
             SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
