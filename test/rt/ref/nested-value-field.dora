@@ -1,29 +1,29 @@
 struct Inner { value: Int32 }
 struct Outer { inner: Inner }
 
-fn update(value: ref Int32) {
+fn update(value: ref mut Int32) {
     value = 7i32;
 }
 
 fn test_struct() {
-    let outer = Outer(inner = Inner(value = 1i32));
-    update(ref outer.inner.value);
+    let mut outer = Outer(inner = Inner(value = 1i32));
+    update(ref mut outer.inner.value);
     assert(outer.inner.value == 7i32);
 }
 
 fn test_tuple() {
-    let outer = ((1i32, false), 2i64);
-    update(ref (outer.0).0);
+    let mut outer = ((1i32, false), 2i64);
+    update(ref mut (outer.0).0);
     assert((outer.0).0 == 7i32);
 }
 
-fn update_outer(outer: ref Outer) {
-    update(ref outer.inner.value);
+fn update_outer(outer: ref mut Outer) {
+    update(ref mut outer.inner.value);
 }
 
 fn test_ref() {
-    let outer = Outer(inner = Inner(value = 1i32));
-    update_outer(ref outer);
+    let mut outer = Outer(inner = Inner(value = 1i32));
+    update_outer(ref mut outer);
     assert(outer.inner.value == 7i32);
 }
 

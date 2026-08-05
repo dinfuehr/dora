@@ -33,15 +33,15 @@ class SimpleHolder {
     value: SimpleValue,
 }
 
-fn replace_pointer(value: ref PointerValue, replacement: PointerValue) {
+fn replace_pointer(value: ref mut PointerValue, replacement: PointerValue) {
     value = replacement;
 }
 
-fn replace_tagged(value: ref TaggedValue, replacement: TaggedValue) {
+fn replace_tagged(value: ref mut TaggedValue, replacement: TaggedValue) {
     value = replacement;
 }
 
-fn replace_simple(value: ref SimpleValue, replacement: SimpleValue) {
+fn replace_simple(value: ref mut SimpleValue, replacement: SimpleValue) {
     value = replacement;
 }
 
@@ -70,7 +70,7 @@ fn test_pointer() {
     let holder = PointerHolder(PointerValue::None);
     std::force_collect();
 
-    replace_pointer(ref holder.value, PointerValue::Some(Foo(1i32)));
+    replace_pointer(ref mut holder.value, PointerValue::Some(Foo(1i32)));
 
     std::force_minor_collect();
     assert(pointer_value(holder.value) == 1i32);
@@ -80,7 +80,7 @@ fn test_tagged() {
     let holder = TaggedHolder(TaggedValue::Second);
     std::force_collect();
 
-    replace_tagged(ref holder.value, TaggedValue::First(Foo(2i32)));
+    replace_tagged(ref mut holder.value, TaggedValue::First(Foo(2i32)));
 
     std::force_minor_collect();
     assert(tagged_value(holder.value) == 2i32);
@@ -90,7 +90,7 @@ fn test_simple() {
     let holder = SimpleHolder(SimpleValue::First);
     std::force_collect();
 
-    replace_simple(ref holder.value, SimpleValue::Second);
+    replace_simple(ref mut holder.value, SimpleValue::Second);
 
     std::force_minor_collect();
     assert(is_second(holder.value));

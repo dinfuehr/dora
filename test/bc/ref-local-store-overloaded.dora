@@ -66,7 +66,7 @@ impl std::traits::Shr for Value {
     }
 }
 
-fn update(value: ref Value, operand: Value, count: Int32): Value {
+fn update(value: ref mut Value, operand: Value, count: Int32): Value {
     value += operand;
     value -= operand;
     value *= operand;

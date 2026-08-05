@@ -7,17 +7,17 @@ fn initialize_unit(): () {
     initialization_count += 1i32;
 }
 
-fn replace_unit(value: ref ()) {
+fn replace_unit(value: ref mut ()) {
     let previous = value;
     value = ();
     let _: () = previous;
 }
 
-fn replace_generic[T](value: ref T, replacement: T) {
+fn replace_generic[T](value: ref mut T, replacement: T) {
     value = replacement;
 }
 
-fn replace_empty(value: ref Empty) {
+fn replace_empty(value: ref mut Empty) {
     let previous = value;
     value = Empty();
     let _: Empty = previous;
@@ -48,15 +48,15 @@ fn main() {
     assert(initialization_count == 1i32);
     let _: () = returned_ref;
 
-    let unit = ();
-    replace_unit(ref unit);
-    replace_generic[()](ref unit, ());
+    let mut unit = ();
+    replace_unit(ref mut unit);
+    replace_generic[()](ref mut unit, ());
 
-    let empty = Empty();
-    replace_empty(ref empty);
+    let mut empty = Empty();
+    replace_empty(ref mut empty);
 
     let units = Array[()]::fill(2i64, ());
-    replace_unit(ref units(1i64));
+    replace_unit(ref mut units(1i64));
 
     update(() as Update);
 }

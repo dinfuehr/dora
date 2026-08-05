@@ -25,6 +25,6 @@ fn element_tuple_field(holder: Holder, index: Int64): ref Int32 {
 }
 
 fn mutate_element_field(holder: Holder, index: Int64, value: Int32) {
-    let value_ref = ref holder.pairs(index).value;
+    let value_ref = ref mut holder.pairs(index).value;
     value_ref = value;
 }

@@ -9,7 +9,7 @@ class Bar {
     foo: Foo,
 }
 
-fn replace(value: ref Foo, replacement: Foo) {
+fn replace(value: ref mut Foo, replacement: Foo) {
     value = replacement;
 }
 
@@ -20,7 +20,7 @@ fn main() {
     std::force_collect();
 
     // Store a young Foo into the old Bar through StoreRef.
-    replace(ref bar.foo, Foo(2i32));
+    replace(ref mut bar.foo, Foo(2i32));
 
     // The verifier requires Bar to be in the remembered set here.
     std::force_minor_collect();

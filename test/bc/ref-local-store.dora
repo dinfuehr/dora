@@ -1,59 +1,59 @@
-fn update(value: ref Int32, replacement: Int32): Int32 {
+fn update(value: ref mut Int32, replacement: Int32): Int32 {
     value = replacement;
     value
 }
 
-fn add(value: ref Int32, amount: Int32): Int32 {
+fn add(value: ref mut Int32, amount: Int32): Int32 {
     value += amount;
     value
 }
 
-fn subtract(value: ref Int32, amount: Int32): Int32 {
+fn subtract(value: ref mut Int32, amount: Int32): Int32 {
     value -= amount;
     value
 }
 
-fn multiply(value: ref Int32, factor: Int32): Int32 {
+fn multiply(value: ref mut Int32, factor: Int32): Int32 {
     value *= factor;
     value
 }
 
-fn divide(value: ref Int32, divisor: Int32): Int32 {
+fn divide(value: ref mut Int32, divisor: Int32): Int32 {
     value /= divisor;
     value
 }
 
-fn modulo(value: ref Int32, divisor: Int32): Int32 {
+fn modulo(value: ref mut Int32, divisor: Int32): Int32 {
     value %= divisor;
     value
 }
 
-fn bit_or(value: ref Int32, mask: Int32): Int32 {
+fn bit_or(value: ref mut Int32, mask: Int32): Int32 {
     value |= mask;
     value
 }
 
-fn bit_and(value: ref Int32, mask: Int32): Int32 {
+fn bit_and(value: ref mut Int32, mask: Int32): Int32 {
     value &= mask;
     value
 }
 
-fn bit_xor(value: ref Int32, mask: Int32): Int32 {
+fn bit_xor(value: ref mut Int32, mask: Int32): Int32 {
     value ^= mask;
     value
 }
 
-fn shift_left(value: ref Int32, count: Int32): Int32 {
+fn shift_left(value: ref mut Int32, count: Int32): Int32 {
     value <<= count;
     value
 }
 
-fn arithmetic_shift_right(value: ref Int32, count: Int32): Int32 {
+fn arithmetic_shift_right(value: ref mut Int32, count: Int32): Int32 {
     value >>= count;
     value
 }
 
-fn logical_shift_right(value: ref Int32, count: Int32): Int32 {
+fn logical_shift_right(value: ref mut Int32, count: Int32): Int32 {
     value >>>= count;
     value
 }

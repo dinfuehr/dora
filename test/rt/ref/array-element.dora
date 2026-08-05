@@ -24,21 +24,21 @@ struct BoxSlot {
     value: Box,
 }
 
-fn increment(value: ref Int32) {
+fn increment(value: ref mut Int32) {
     value += 1i32;
 }
 
-fn replace_generic[T](value: ref T, replacement: T) {
+fn replace_generic[T](value: ref mut T, replacement: T) {
     value = replacement;
 }
 
-fn replace_pair(value: ref Pair, replacement: Pair): Pair {
+fn replace_pair(value: ref mut Pair, replacement: Pair): Pair {
     let previous = value;
     value = replacement;
     previous
 }
 
-fn replace_box(value: ref Box, replacement: Box): Box {
+fn replace_box(value: ref mut Box, replacement: Box): Box {
     let previous = value;
     value = replacement;
     previous
@@ -50,42 +50,42 @@ fn read_after_gc(value: ref Int32): Int32 {
 }
 
 @NeverInline
-fn element_ref(array: Array[Int32], index: Int64): ref Int32 {
-    ref array(index)
+fn element_ref(array: Array[Int32], index: Int64): ref mut Int32 {
+    ref mut array(index)
 }
 
 @NeverInline
-fn element_ref_generic[T](array: Array[T], index: Int64): ref T {
-    ref array(index)
+fn element_ref_generic[T](array: Array[T], index: Int64): ref mut T {
+    ref mut array(index)
 }
 
 @NeverInline
-fn new_array_element_ref(): ref Int32 {
+fn new_array_element_ref(): ref mut Int32 {
     let array = Array[Int32]::new(40i32, 41i32);
-    ref array(1i64)
+    ref mut array(1i64)
 }
 
 @NeverInline
-fn element_field_ref(array: Array[Pair], index: Int64): ref Int32 {
-    ref array(index).first
+fn element_field_ref(array: Array[Pair], index: Int64): ref mut Int32 {
+    ref mut array(index).first
 }
 
 @NeverInline
-fn object_field_element_ref(holder: ArrayHolder, index: Int64): ref Int32 {
-    ref holder.values(index)
+fn object_field_element_ref(holder: ArrayHolder, index: Int64): ref mut Int32 {
+    ref mut holder.values(index)
 }
 
 @NeverInline
-fn new_object_field_element_ref(): ref Int32 {
+fn new_object_field_element_ref(): ref mut Int32 {
     let holder = ArrayHolder(Array[Int32]::new(50i32, 51i32));
-    ref holder.values(1i64)
+    ref mut holder.values(1i64)
 }
 
 fn main() {
     let integers = Array[Int32]::new(10i32, 20i32, 30i32);
-    replace_generic[Int32](ref integers(0i64), 11i32);
+    replace_generic[Int32](ref mut integers(0i64), 11i32);
     assert(integers(0i64) == 11i32);
-    increment(ref integers(1i64));
+    increment(ref mut integers(1i64));
     assert(integers(1i64) == 21i32);
     assert(read_after_gc(ref integers(2i64)) == 30i32);
 
@@ -118,7 +118,7 @@ fn main() {
     assert(new_object_field_ref == 52i32);
 
     let pairs = Array[Pair]::new(Pair(first = 1i32, second = 2i64));
-    let previous = replace_pair(ref pairs(0i64), Pair(first = 3i32, second = 4i64));
+    let previous = replace_pair(ref mut pairs(0i64), Pair(first = 3i32, second = 4i64));
     assert(previous.first == 1i32);
     assert(previous.second == 2i64);
     assert(pairs(0i64).first == 3i32);
@@ -144,7 +144,7 @@ fn main() {
 
     let boxes = Array[Box]::new(Box(5i32));
     std::force_collect();
-    let previous_box = replace_box(ref boxes(0i64), Box(6i32));
+    let previous_box = replace_box(ref mut boxes(0i64), Box(6i32));
     assert(previous_box.value == 5i32);
     std::force_minor_collect();
     assert(boxes(0i64).value == 6i32);

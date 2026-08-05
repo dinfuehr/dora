@@ -18,7 +18,7 @@ fn main() {
     assert(get_initialization_count() == 1i32);
     assert(value_ref == 42i32);
 
-    let second_ref: ref Int32 = ref value;
+    let second_ref: ref mut Int32 = ref mut value;
     assert(get_initialization_count() == 1i32);
     second_ref = 43i32;
     assert(value == 43i32);

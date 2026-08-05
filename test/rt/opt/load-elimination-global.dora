@@ -49,13 +49,13 @@ fn global_load_after_call(): Int {
 // CHECK: [[SECOND:%\d+]]: LoadGlobal.Int64
 // CHECK: CheckedAdd.Int64 [[FIRST]], [[SECOND]]
 
-fn store_through_ref(target: ref Int, value: Int) {
+fn store_through_ref(target: ref mut Int, value: Int) {
     target = value;
 }
 
 fn load_after_store_through_ref(value: Int): Int {
     let first = global_value;
-    store_through_ref(ref global_value, value);
+    store_through_ref(ref mut global_value, value);
     first + global_value
 }
 

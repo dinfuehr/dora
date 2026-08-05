@@ -38,6 +38,6 @@ fn update_nested:
    2 => StructField Outer.inner
 
   Locations:
-   0 => 9:16
+   0 => 9:20
    8 => 9:5
 

@@ -6,8 +6,8 @@ let mut static_value: Int32 = 0i32;
 class Factory
 
 impl Factory {
-    static fn value_ref(): ref Int32 {
-        ref static_value
+    static fn value_ref(): ref mut Int32 {
+        ref mut static_value
     }
 }
 
@@ -15,14 +15,14 @@ mod foo {
     pub mod bar {
         pub let mut value: Int32 = 0i32;
 
-        pub fn baz(): ref Int32 {
-            ref value
+        pub fn baz(): ref mut Int32 {
+            ref mut value
         }
     }
 }
 
-fn value_ref(): ref Int32 {
-    ref value
+fn value_ref(): ref mut Int32 {
+    ref mut value
 }
 
 fn assign() {
@@ -30,6 +30,6 @@ fn assign() {
     foo::bar::baz() = 20i32;
     Factory::value_ref() = 30i32;
 
-    let get_ref = ||: ref Int32 { ref value };
+    let get_ref = ||: ref mut Int32 { ref mut value };
     get_ref() = 40i32;
 }

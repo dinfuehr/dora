@@ -23,11 +23,11 @@ class TwoRefsHolder {
     value: TwoRefs,
 }
 
-fn replace_one(value: ref OneRef, replacement: OneRef) {
+fn replace_one(value: ref mut OneRef, replacement: OneRef) {
     value = replacement;
 }
 
-fn replace_two(value: ref TwoRefs, replacement: TwoRefs) {
+fn replace_two(value: ref mut TwoRefs, replacement: TwoRefs) {
     value = replacement;
 }
 
@@ -35,7 +35,7 @@ fn test_one_ref() {
     let holder = OneRefHolder(OneRef(marker = 1i32, value = Foo(2i32)));
     std::force_collect();
 
-    replace_one(ref holder.value, OneRef(marker = 3i32, value = Foo(4i32)));
+    replace_one(ref mut holder.value, OneRef(marker = 3i32, value = Foo(4i32)));
 
     std::force_minor_collect();
     assert(holder.value.marker == 3i32);
@@ -46,7 +46,7 @@ fn test_two_refs() {
     let holder = TwoRefsHolder(TwoRefs(first = Foo(5i32), second = Foo(6i32)));
     std::force_collect();
 
-    replace_two(ref holder.value, TwoRefs(first = Foo(7i32), second = Foo(8i32)));
+    replace_two(ref mut holder.value, TwoRefs(first = Foo(7i32), second = Foo(8i32)));
 
     std::force_minor_collect();
     assert(holder.value.first.value == 7i32);

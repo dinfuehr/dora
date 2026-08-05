@@ -5,8 +5,8 @@ class Holder {
 }
 
 fn main() {
-    let get_value = |holder: Holder|: ref Int32 {
-        ref holder.value
+    let get_value = |holder: Holder|: ref mut Int32 {
+        ref mut holder.value
     };
     let value = get_value(Holder(17i32));
 

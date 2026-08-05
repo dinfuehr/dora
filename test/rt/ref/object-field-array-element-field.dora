@@ -16,28 +16,28 @@ class Holder {
 }
 
 @NeverInline
-fn element_field_ref(holder: Holder, index: Int64): ref Int32 {
-    ref holder.pairs(index).value
+fn element_field_ref(holder: Holder, index: Int64): ref mut Int32 {
+    ref mut holder.pairs(index).value
 }
 
 @NeverInline
-fn nested_element_field_ref(holder: Holder, index: Int64): ref Int32 {
-    ref holder.nested(index).pair.value
+fn nested_element_field_ref(holder: Holder, index: Int64): ref mut Int32 {
+    ref mut holder.nested(index).pair.value
 }
 
 @NeverInline
-fn element_tuple_field_ref(holder: Holder, index: Int64): ref Int32 {
-    ref holder.tuples(index).0
+fn element_tuple_field_ref(holder: Holder, index: Int64): ref mut Int32 {
+    ref mut holder.tuples(index).0
 }
 
 @NeverInline
-fn new_holder_element_field_ref(): ref Int32 {
+fn new_holder_element_field_ref(): ref mut Int32 {
     let holder = Holder(
         pairs = Array[Pair]::new(Pair(value = 10i32)),
         nested = Array[Nested]::new(Nested(pair = Pair(value = 20i32))),
         tuples = Array[(Int32, Bool)]::new((30i32, true)),
     );
-    ref holder.pairs(0i64).value
+    ref mut holder.pairs(0i64).value
 }
 
 fn main() {
@@ -47,7 +47,7 @@ fn main() {
         tuples = Array[(Int32, Bool)]::new((4i32, true)),
     );
 
-    let _local_ref = ref holder.pairs(0i64).value;
+    let _local_ref = ref mut holder.pairs(0i64).value;
     _local_ref = 5i32;
     assert(holder.pairs(0i64).value == 5i32);
 

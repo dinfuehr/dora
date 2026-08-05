@@ -13,11 +13,11 @@ class TwoRefsHolder {
     value: (Foo, Foo),
 }
 
-fn replace_one(value: ref (Int32, Foo), replacement: (Int32, Foo)) {
+fn replace_one(value: ref mut (Int32, Foo), replacement: (Int32, Foo)) {
     value = replacement;
 }
 
-fn replace_two(value: ref (Foo, Foo), replacement: (Foo, Foo)) {
+fn replace_two(value: ref mut (Foo, Foo), replacement: (Foo, Foo)) {
     value = replacement;
 }
 
@@ -25,7 +25,7 @@ fn test_one_ref() {
     let holder = OneRefHolder((1i32, Foo(2i32)));
     std::force_collect();
 
-    replace_one(ref holder.value, (3i32, Foo(4i32)));
+    replace_one(ref mut holder.value, (3i32, Foo(4i32)));
 
     std::force_minor_collect();
     assert(holder.value.0 == 3i32);
@@ -36,7 +36,7 @@ fn test_two_refs() {
     let holder = TwoRefsHolder((Foo(5i32), Foo(6i32)));
     std::force_collect();
 
-    replace_two(ref holder.value, (Foo(7i32), Foo(8i32)));
+    replace_two(ref mut holder.value, (Foo(7i32), Foo(8i32)));
 
     std::force_minor_collect();
     assert(holder.value.0.value == 7i32);

@@ -3,14 +3,14 @@
 class Box { value: Int32 }
 
 @NeverInline
-fn make_ref(value: Int32): ref Int32 {
+fn make_ref(value: Int32): ref mut Int32 {
     let obj = Box(value);
-    ref obj.value
+    ref mut obj.value
 }
 
 @NeverInline
-fn forward_ref(value: Int32): ref Int32 {
-    ref make_ref(value)
+fn forward_ref(value: Int32): ref mut Int32 {
+    ref mut make_ref(value)
 }
 
 fn main() {

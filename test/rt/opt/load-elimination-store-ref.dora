@@ -9,7 +9,7 @@ class Bar {
     foo: Foo,
 }
 
-fn store_ref_invalidates_field(bar: Bar, field: ref Foo, replacement: Foo): Int32 {
+fn store_ref_invalidates_field(bar: Bar, field: ref mut Foo, replacement: Foo): Int32 {
     let old_value = bar.foo.value;
     field = replacement;
     old_value * 10i32 + bar.foo.value
@@ -25,7 +25,7 @@ fn store_ref_invalidates_field(bar: Bar, field: ref Foo, replacement: Foo): Int3
 
 fn main() {
     let bar = Bar(Foo(1i32));
-    let result = store_ref_invalidates_field(bar, ref bar.foo, Foo(2i32));
+    let result = store_ref_invalidates_field(bar, ref mut bar.foo, Foo(2i32));
 
     assert(result == 12i32);
     assert(bar.foo.value == 2i32);

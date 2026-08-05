@@ -69,12 +69,12 @@ impl std::traits::Shr for OperatorValue {
 let mut intrinsic_value: Int64 = 0i64;
 let mut overloaded_value: OperatorValue = OperatorValue(0i64);
 
-fn intrinsic_ref(): ref Int64 {
-    ref intrinsic_value
+fn intrinsic_ref(): ref mut Int64 {
+    ref mut intrinsic_value
 }
 
-fn overloaded_ref(): ref OperatorValue {
-    ref overloaded_value
+fn overloaded_ref(): ref mut OperatorValue {
+    ref mut overloaded_value
 }
 
 fn test_intrinsic_assignments() {

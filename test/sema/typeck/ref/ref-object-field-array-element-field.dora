@@ -25,7 +25,7 @@ fn elementTupleField(holder: Holder, index: Int64): ref Int32 {
 }
 
 fn mutateElementField(holder: Holder, index: Int64, value: Int32) {
-    let _valueRef = ref holder.pairs(index).value;
+    let _valueRef = ref mut holder.pairs(index).value;
     _valueRef = value;
 }
 //= ok

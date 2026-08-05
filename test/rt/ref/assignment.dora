@@ -1,19 +1,19 @@
 class Box { value: Int32 }
 
-fn update(value: ref Int32, replacement: Int32) {
+fn update(value: ref mut Int32, replacement: Int32) {
     value = replacement;
 }
 
 fn main() {
-    let stack_value = 10i32;
-    update(ref stack_value, 11i32);
+    let mut stack_value = 10i32;
+    update(ref mut stack_value, 11i32);
     assert(stack_value == 11i32);
 
-    let stack_value_ref: ref Int32 = ref stack_value;
-    update(ref stack_value_ref, 12i32);
+    let stack_value_ref: ref mut Int32 = ref mut stack_value;
+    update(ref mut stack_value_ref, 12i32);
     assert(stack_value == 12i32);
 
     let box = Box(20i32);
-    update(ref box.value, 21i32);
+    update(ref mut box.value, 21i32);
     assert(box.value == 21i32);
 }

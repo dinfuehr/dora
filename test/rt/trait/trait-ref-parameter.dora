@@ -1,25 +1,25 @@
 trait Update[T] {
-    fn update(value: ref T, replacement: T);
+    fn update(value: ref mut T, replacement: T);
 }
 
 class Updater
 
 impl Update[Int32] for Updater {
-    fn update(value: ref Int32, replacement: Int32) {
+    fn update(value: ref mut Int32, replacement: Int32) {
         value = replacement;
     }
 }
 
-fn update[T: Update[Int32]](updater: T, value: ref Int32, replacement: Int32) {
-    updater.update(ref value, replacement);
+fn update[T: Update[Int32]](updater: T, value: ref mut Int32, replacement: Int32) {
+    updater.update(ref mut value, replacement);
 }
 
 fn main() {
-    let value = 10i32;
-    update(Updater(), ref value, 11i32);
+    let mut value = 10i32;
+    update(Updater(), ref mut value, 11i32);
     assert(value == 11i32);
 
     let updater = Updater() as Update[Int32];
-    updater.update(ref value, 12i32);
+    updater.update(ref mut value, 12i32);
     assert(value == 12i32);
 }

@@ -19,7 +19,7 @@ class Holder {
     value: Value,
 }
 
-fn replace(value: ref Value, replacement: Value) {
+fn replace(value: ref mut Value, replacement: Value) {
     value = replacement;
 }
 
@@ -29,7 +29,7 @@ fn main() {
     // Move Holder and its current trait object into the old generation.
     std::force_collect();
 
-    replace(ref holder.value, Foo(2i32) as Value);
+    replace(ref mut holder.value, Foo(2i32) as Value);
 
     std::force_minor_collect();
     assert(holder.value.get() == 2i32);

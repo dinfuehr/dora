@@ -7,12 +7,12 @@ fn non_ref(): Int32 {
     0i32
 }
 
-fn value_ref(): ref Int32 {
-    ref value
+fn value_ref(): ref mut Int32 {
+    ref mut value
 }
 
-fn operator_ref(): ref OperatorValue {
-    ref operator_value
+fn operator_ref(): ref mut OperatorValue {
+    ref mut operator_value
 }
 
 fn assign_to_non_ref() {

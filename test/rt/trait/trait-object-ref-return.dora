@@ -1,7 +1,7 @@
 //= runtime-args "--gc-verify"
 
 trait Value {
-    fn value(): ref Int32;
+    fn value(): ref mut Int32;
 }
 
 class Holder {
@@ -9,14 +9,14 @@ class Holder {
 }
 
 impl Value for Holder {
-    fn value(): ref Int32 {
-        ref self.value
+    fn value(): ref mut Int32 {
+        ref mut self.value
     }
 }
 
 @NeverInline
-fn get_value(object: Value): ref Int32 {
-    ref object.value()
+fn get_value(object: Value): ref mut Int32 {
+    ref mut object.value()
 }
 
 fn main() {

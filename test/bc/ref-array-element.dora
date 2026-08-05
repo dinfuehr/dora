@@ -1,17 +1,17 @@
-fn update(value: ref Int32) {
+fn update(value: ref mut Int32) {
     value += 1i32;
 }
 
 fn update_element(array: Array[Int32], index: Int64) {
-    update(ref array(index));
+    update(ref mut array(index));
 }
 
-fn replace[T](value: ref T, replacement: T) {
+fn replace[T](value: ref mut T, replacement: T) {
     value = replacement;
 }
 
 fn replace_element[T](array: Array[T], index: Int64, replacement: T) {
-    replace[T](ref array(index), replacement);
+    replace[T](ref mut array(index), replacement);
 }
 
 fn element_ref(array: Array[Int32], index: Int64): ref Int32 {
