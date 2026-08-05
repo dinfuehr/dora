@@ -493,7 +493,7 @@ pub static REF_TYPE_NOT_ALLOWED: DiagnosticDescriptor = DiagnosticDescriptor {
 };
 
 pub static REF_RETURN_LIFETIME: DiagnosticDescriptor = DiagnosticDescriptor {
-    message: "`ref` return requires a global, object field, array element, or reference-returning call.",
+    message: "`ref` return references a value that does not live long enough.",
     level: ErrorLevel::Error,
 };
 

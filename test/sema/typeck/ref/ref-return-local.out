@@ -1,4 +1,4 @@
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:6:5
  | fn local(): ref Int32 {
  |     let value = 1i32;
@@ -6,7 +6,7 @@ error: `ref` return requires a global, object field, array element, or reference
        ~~~~~~~~~
  | }
  | 
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:10:5
  | 
  | fn parameter(value: Int32): ref Int32 {
@@ -14,7 +14,7 @@ error: `ref` return requires a global, object field, array element, or reference
        ~~~~~~~~~
  | }
  | 
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:15:12
  | fn explicit_return(): ref Int32 {
  |     let value = 1i32;
@@ -22,7 +22,7 @@ error: `ref` return requires a global, object field, array element, or reference
               ~~~~~~~~~
  | }
  | 
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:20:7
  | fn block(): ref Int32 {
  |     let value = 1i32;
@@ -30,7 +30,7 @@ error: `ref` return requires a global, object field, array element, or reference
          ~~~~~~~~~
  | }
  | 
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:28:9
  | 
  |     if condition {
@@ -38,7 +38,7 @@ error: `ref` return requires a global, object field, array element, or reference
            ~~~~~~~~~
  |     } else {
  |         ref second
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:30:9
  |         ref first
  |     } else {
@@ -46,7 +46,7 @@ error: `ref` return requires a global, object field, array element, or reference
            ~~~~~~~~~~
  |     }
  | }
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:39:17
  | 
  |     match value {
@@ -54,7 +54,7 @@ error: `ref` return requires a global, object field, array element, or reference
                    ~~~~~~~~~
  |         false => ref second,
  |     }
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:40:18
  |     match value {
  |         true => ref first,
@@ -62,7 +62,7 @@ error: `ref` return requires a global, object field, array element, or reference
                     ~~~~~~~~~~
  |     }
  | }
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:45:5
  | 
  | fn struct_field(value: Pair): ref Int32 {
@@ -70,7 +70,7 @@ error: `ref` return requires a global, object field, array element, or reference
        ~~~~~~~~~~~~~~~
  | }
  | 
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:49:5
  | 
  | fn tuple_field(value: (Int32, Bool)): ref Int32 {
@@ -98,7 +98,7 @@ error: `return` expects value of type `ref Int32` but got `Int32`.
  | 
 error: `return` expects value of type `ref Int32` but got `Int32`.
 --> ref-return-local.dora:68:65 - 72:2
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:76:36
  | fn context_variable() {
  |     let value = 1i32;
@@ -106,7 +106,7 @@ error: `ref` return requires a global, object field, array element, or reference
                                       ~~~~~~~~~
  | }
  | 
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:92:5
  | 
  | fn referenced_struct_field(value: ref Pair): ref Int32 {
@@ -118,7 +118,7 @@ error: `return` expects value of type `ref Int32` but got `Int32`.
 --> ref-return-local.dora:95:48 - 98:2
 error: `return` expects value of type `ref Int32` but got `Int32`.
 --> ref-return-local.dora:100:51 - 103:2
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:110:9
  |     if condition {
  |         std::unreachable[()]();

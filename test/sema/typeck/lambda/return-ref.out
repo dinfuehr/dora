@@ -1,4 +1,4 @@
-error: `ref` return requires a global, object field, array element, or reference-returning call.
+error: `ref` return references a value that does not live long enough.
 --> return-ref.dora:3:35
  | fn main() {
  |     let value = 1i32;
