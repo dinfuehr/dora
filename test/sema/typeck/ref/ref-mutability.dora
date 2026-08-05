@@ -22,6 +22,15 @@ fn mutating_call(value: ref Value) {
     value.update();
 }
 
+fn mutable_to_readonly_local() {
+    let mut value = 0i32;
+    let _reference: ref Int32 = ref mut value;
+}
+
+fn readonly_to_mutable_local(value: ref Int32) {
+    let _reference: ref mut Int32 = ref value;
+}
+
 fn immutable_local() {
     let value = 0i32;
     let _reference = ref mut value;
@@ -39,12 +48,44 @@ fn immutable_return() {
     let _reference = ref mut readonly_return();
 }
 
+fn immutable_value_field() {
+    let value = Value(0i32);
+    let _reference = ref mut value.0;
+}
+
+fn immutable_capture() {
+    let value = 0i32;
+    let _lambda = || { let _reference = ref mut value; };
+}
+
+fn mutable_capture() {
+    let mut value = 0i32;
+    let _lambda = || { let _reference: ref mut Int32 = ref mut value; };
+}
+
 fn wrong_argument(value: ref Int32) {
     needs_mut(ref value);
 }
 
 let global: Int32 = 0i32;
+let mut mutable_global: Int32 = 0i32;
 
 fn readonly_return(): ref Int32 {
     ref global
+}
+
+fn mutable_to_readonly_return(): ref Int32 {
+    ref mut mutable_global
+}
+
+fn readonly_to_mutable_return(): ref mut Int32 {
+    ref mutable_global
+}
+
+fn assign_readonly_return() {
+    readonly_return() = 1i32;
+}
+
+fn compound_assign_readonly_return() {
+    readonly_return() += 1i32;
 }
