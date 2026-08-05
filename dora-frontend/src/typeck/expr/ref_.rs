@@ -72,7 +72,7 @@ pub(super) fn check_expr_ref(
 pub(in crate::typeck) fn compute_ref_target(ck: &TypeCheck, expr_id: ExprId) -> RefTarget {
     match ck.expr(expr_id) {
         Expr::Path(..) => match ck.body.get_ident(expr_id) {
-            Some(IdentType::Var(..) | IdentType::Context(..)) => RefTarget::Local,
+            Some(IdentType::Var(..) | IdentType::Context { .. }) => RefTarget::Local,
             Some(IdentType::Global(..)) => RefTarget::Global,
             _ => RefTarget::Invalid,
         },

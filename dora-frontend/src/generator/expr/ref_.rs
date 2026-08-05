@@ -229,7 +229,11 @@ fn gen_expr_as_ref_path(g: &mut AstBytecodeGen, expr_id: ExprId, ty: SourceType)
                 backing: None,
             }
         }
-        IdentType::Context(context_id, field_id) => {
+        IdentType::Context {
+            context_id,
+            field_id,
+            ..
+        } => {
             let inner_ty = g.emitter.convert_ty(g.sa, ty);
             let reference = g.alloc_temp(BytecodeType::Ref(Box::new(inner_ty)));
             gen_expr_ref_outer_context_var(g, reference, context_id, field_id, expr_id);
@@ -441,7 +445,11 @@ fn gen_expr_ref_path(
                 }
             }
         }
-        IdentType::Context(context_id, field_id) => {
+        IdentType::Context {
+            context_id,
+            field_id,
+            ..
+        } => {
             let dest_reg = ensure_register(g, dest, ref_ty);
             gen_expr_ref_outer_context_var(g, dest_reg, context_id, field_id, expr_id);
             dest_reg

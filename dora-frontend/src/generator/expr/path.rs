@@ -16,9 +16,11 @@ pub(super) fn gen_expr_path(g: &mut AstBytecodeGen, expr_id: ExprId, dest: DataD
 
     match ident_type {
         IdentType::Var(var_id) => gen_expr_path_var(g, expr_id, var_id, dest, location),
-        IdentType::Context(level, field_id) => {
-            gen_expr_path_context(g, level, field_id, dest, location)
-        }
+        IdentType::Context {
+            context_id: level,
+            field_id,
+            ..
+        } => gen_expr_path_context(g, level, field_id, dest, location),
         IdentType::Global(gid) => gen_expr_path_global(g, gid, dest, location),
         IdentType::Const(cid) => gen_expr_path_const(g, cid, dest),
         IdentType::EnumVariant(enum_id, type_params, variant_idx) => {

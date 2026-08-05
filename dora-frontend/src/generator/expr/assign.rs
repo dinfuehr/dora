@@ -35,7 +35,11 @@ pub(super) fn gen_expr_assign(
                 IdentType::Var(var_id) => {
                     gen_expr_assign_var(g, expr_id, e, var_id, value_reg);
                 }
-                IdentType::Context(level, field_id) => {
+                IdentType::Context {
+                    context_id: level,
+                    field_id,
+                    ..
+                } => {
                     gen_expr_assign_context(g, expr_id, e, level, field_id, value_reg);
                 }
                 IdentType::Global(gid) => {

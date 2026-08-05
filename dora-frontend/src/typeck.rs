@@ -403,6 +403,12 @@ impl<'a> TypeCheck<'a> {
             return IdentType::Var(self.vars.local_var_id(var_id));
         }
 
+        let var = self.vars.get_var(var_id);
+        let writable = if var.ty.is_ref() {
+            var.ty.is_mut_ref()
+        } else {
+            var.mutable
+        };
         let field_id = self.vars.ensure_context_allocated(var_id);
         let NestedScopeId(context_idx) = self.vars.get_var(var_id).scope_id;
         let context_id = self.active_contexts[context_idx];
@@ -417,7 +423,11 @@ impl<'a> TypeCheck<'a> {
 
         assert!(self.is_lambda);
         self.needs_context_slot_in_lambda_object = true;
-        IdentType::Context(context_id, field_id)
+        IdentType::Context {
+            context_id,
+            field_id,
+            writable,
+        }
     }
 
     fn enter_function_scope(&mut self) {

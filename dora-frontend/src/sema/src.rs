@@ -151,7 +151,11 @@ pub enum IdentType {
     Var(VarId),
 
     // Context variable.
-    Context(ContextId, ContextFieldId),
+    Context {
+        context_id: ContextId,
+        field_id: ContextFieldId,
+        writable: bool,
+    },
 
     // Name of a global variable.
     Global(GlobalDefinitionId),
