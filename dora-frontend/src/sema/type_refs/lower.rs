@@ -84,8 +84,9 @@ pub(crate) fn lower_type(
             }
         }
         ast::AstType::RefType(node) => {
+            let is_mut = node.is_mut();
             let ty = lower_type(sa, type_refs, file_id, node.ty());
-            TypeRef::Ref { ty }
+            TypeRef::Ref { ty, is_mut }
         }
         ast::AstType::Error { .. } => TypeRef::Error,
     };

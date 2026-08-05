@@ -591,6 +591,7 @@ pub struct UnExpr {
 
 pub struct RefExpr {
     pub expr: ExprId,
+    pub is_mut: bool,
 }
 
 pub struct IfExpr {
@@ -697,17 +698,21 @@ pub(crate) fn lower_expr(
                 node.opnd(),
             ),
         }),
-        ast::AstExpr::RefExpr(node) => Expr::Ref(RefExpr {
-            expr: lower_expr(
-                sa,
-                expr_arena,
-                stmt_arena,
-                pattern_arena,
-                type_ref_arena,
-                file_id,
-                node.expr(),
-            ),
-        }),
+        ast::AstExpr::RefExpr(node) => {
+            let is_mut = node.is_mut();
+            Expr::Ref(RefExpr {
+                expr: lower_expr(
+                    sa,
+                    expr_arena,
+                    stmt_arena,
+                    pattern_arena,
+                    type_ref_arena,
+                    file_id,
+                    node.expr(),
+                ),
+                is_mut,
+            })
+        }
         ast::AstExpr::BreakExpr(..) => Expr::Break,
         ast::AstExpr::ContinueExpr(..) => Expr::Continue,
         ast::AstExpr::IfExpr(node) => Expr::If(IfExpr {

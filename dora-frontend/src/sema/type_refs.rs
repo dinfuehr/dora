@@ -154,6 +154,7 @@ pub enum TypeRef {
 
     Ref {
         ty: TypeRefId,
+        is_mut: bool,
     },
 
     Error,

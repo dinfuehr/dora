@@ -108,7 +108,7 @@ pub(crate) fn parse_type_ref(
                 type_context,
             );
         }
-        TypeRef::Ref { ty } => {
+        TypeRef::Ref { ty, .. } => {
             parse_type_ref(sa, type_refs, table, file_id, element, *ty, type_context);
         }
         TypeRef::This => {}

@@ -114,7 +114,7 @@ fn convert_type_ref_inner(
         TypeRef::Infer => convert_infer(type_ref_id),
         TypeRef::This => SourceType::This,
         TypeRef::Error => SourceType::Error,
-        TypeRef::Ref { ty } => {
+        TypeRef::Ref { ty, .. } => {
             let inner =
                 convert_type_ref_inner(sa, type_ref_arena, ctxt_element, *ty, convert_infer);
             SourceType::Ref(Box::new(inner))

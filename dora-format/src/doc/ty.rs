@@ -6,8 +6,8 @@ use dora_parser::ast::{
 
 use crate::doc::Formatter;
 use crate::doc::utils::{
-    Options, eat_token_opt, is_node, print_comma_list_grouped, print_comma_list_grouped_with,
-    print_node, print_token,
+    Options, eat_token_opt, is_node, is_token, print_comma_list_grouped,
+    print_comma_list_grouped_with, print_node, print_token,
 };
 use crate::with_iter;
 
@@ -69,6 +69,10 @@ pub(crate) fn format_ref_type(node: AstRefType, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, REF_KW, &opt);
         f.text(" ");
+        if is_token(&mut iter, MUT_KW) {
+            print_token(f, &mut iter, MUT_KW, &opt);
+            f.text(" ");
+        }
         print_node::<AstType>(f, &mut iter, &opt);
     });
 }
@@ -128,8 +132,8 @@ mod tests {
 
     #[test]
     fn formats_ref_type() {
-        let input = "fn  main ( x : ref  Int ) { }";
-        let expected = "fn main(x: ref Int) {}\n";
+        let input = "fn  main ( x : ref mut  Int ) { }";
+        let expected = "fn main(x: ref mut Int) {}\n";
         assert_source(input, expected);
     }
 }

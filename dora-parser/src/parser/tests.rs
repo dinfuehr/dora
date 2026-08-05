@@ -1769,10 +1769,17 @@ fn parse_qualified_type() {
 
 #[test]
 fn parse_ref_type() {
-    parse_type("ref Foo");
+    assert!(!parse_type("ref Foo").as_ref_type().is_mut());
+    assert!(parse_type("ref mut Foo").as_ref_type().is_mut());
     parse_type("ref Foo[Bar]");
     parse_type("(ref Foo, Bar)");
     parse_type("Foo[ref Bar]");
+}
+
+#[test]
+fn parse_ref_expr() {
+    assert!(!parse_expr("ref value").as_ref_expr().is_mut());
+    assert!(parse_expr("ref mut value").as_ref_expr().is_mut());
 }
 
 #[test]

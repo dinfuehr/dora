@@ -1,0 +1,9 @@
+//= ok
+fn read(_value: ref Int32) {}
+fn write(_value: ref mut Int32) {}
+
+fn test() {
+    let mut value = 42i32;
+    read(ref value);
+    write(ref mut value);
+}

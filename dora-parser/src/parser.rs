@@ -699,6 +699,7 @@ impl Parser {
 
             REF_KW => {
                 self.assert(REF_KW);
+                self.eat(MUT_KW);
                 self.parse_type();
                 self.close(m, REF_TYPE);
             }
@@ -1165,6 +1166,7 @@ impl Parser {
             REF_KW => {
                 let m = self.open();
                 self.advance();
+                self.eat(MUT_KW);
 
                 self.parse_postfix_expr(prefer_stmt);
                 self.close(m, REF_EXPR);

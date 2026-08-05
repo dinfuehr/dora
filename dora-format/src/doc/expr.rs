@@ -403,6 +403,10 @@ pub(crate) fn format_ref_expr(node: AstRefExpr, f: &mut Formatter) {
     with_iter!(node, f, |iter, opt| {
         print_token(f, &mut iter, REF_KW, &opt);
         f.text(" ");
+        if is_token(&mut iter, MUT_KW) {
+            print_token(f, &mut iter, MUT_KW, &opt);
+            f.text(" ");
+        }
         print_node::<AstExpr>(f, &mut iter, &opt);
     });
 }
@@ -693,8 +697,8 @@ mod tests {
 
     #[test]
     fn formats_ref_expr() {
-        let input = "fn  main (  ) {  take ( ref   value ) ; take ( ref  object . field ) ; }";
-        let expected = "fn main() {\n    take(ref value);\n    take(ref object.field);\n}\n";
+        let input = "fn  main (  ) {  take ( ref   value ) ; take ( ref mut  object . field ) ; }";
+        let expected = "fn main() {\n    take(ref value);\n    take(ref mut object.field);\n}\n";
         assert_source(input, expected);
     }
 

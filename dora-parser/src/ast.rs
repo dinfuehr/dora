@@ -2018,6 +2018,13 @@ impl AstQualifiedPathType {
 }
 
 impl AstRefType {
+    pub fn is_mut(&self) -> bool {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .any(|n| n.syntax_kind() == TokenKind::MUT_KW)
+    }
+
     pub fn ty(&self) -> AstType {
         self.syntax_node()
             .children()
@@ -2304,6 +2311,13 @@ impl AstUnExpr {
 }
 
 impl AstRefExpr {
+    pub fn is_mut(&self) -> bool {
+        self.syntax_node()
+            .children_with_tokens()
+            .filter_map(|e| e.to_token())
+            .any(|n| n.syntax_kind() == TokenKind::MUT_KW)
+    }
+
     pub fn expr(&self) -> AstExpr {
         self.syntax_node()
             .children()

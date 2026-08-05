@@ -336,7 +336,15 @@ pub(super) fn gen_expr_ref(
                 gen_expr_ref_array_field_element(g, e.expr, method_call, dest)
             }
         }
-        Expr::Paren(inner_expr) => gen_expr_ref(g, expr_id, &RefExpr { expr: *inner_expr }, dest),
+        Expr::Paren(inner_expr) => gen_expr_ref(
+            g,
+            expr_id,
+            &RefExpr {
+                expr: *inner_expr,
+                is_mut: e.is_mut,
+            },
+            dest,
+        ),
         _ => unreachable!(
             "ref expression should only be on variables, fields, array elements, or ref-returning calls"
         ),
