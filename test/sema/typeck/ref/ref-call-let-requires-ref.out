@@ -1,0 +1,9 @@
+error: cannot assign `Int32` to variable of type `ref Int32`.
+--> ref-call-let-requires-ref.dora:9:5
+ | fn test() {
+ |     let value = 1i32;
+ |     let _value_ref: ref Int32 = identity(ref value);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

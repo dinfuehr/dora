@@ -1,0 +1,51 @@
+let mut returned_value: Int32 = 1i32;
+
+fn identity(_value: ref Int32): ref Int32 {
+    ref returned_value
+}
+
+fn consume(value: Int32): Int32 {
+    value
+}
+
+fn return_value(): Int32 {
+    identity(ref returned_value)
+}
+
+class Identity
+
+impl Identity {
+    fn identity(_value: ref Int32): ref Int32 {
+        ref returned_value
+    }
+}
+
+fn main() {
+    assert(returned_value == 1i32);
+    let mut value = 1i32;
+    let value_copy = identity(ref value);
+    let value_ref = ref identity(ref value);
+    let method_value_copy = Identity().identity(ref value);
+    let method_value_ref = ref Identity().identity(ref value);
+    let block_value_copy = { identity(ref value) };
+    let parenthesized_ref = ref (identity(ref value));
+    let identity_lambda = |_value: ref Int32|: ref Int32 { ref returned_value };
+    let lambda_value_copy = identity_lambda(ref value);
+    let lambda_value_ref = ref identity_lambda(ref value);
+    let argument_value_copy = consume(identity(ref value));
+    let method_argument_value_copy = consume(Identity().identity(ref value));
+    let returned_value_copy = return_value();
+
+    returned_value = 2i32;
+    assert(value_copy == 1i32);
+    assert(value_ref == 2i32);
+    assert(method_value_copy == 1i32);
+    assert(method_value_ref == 2i32);
+    assert(block_value_copy == 1i32);
+    assert(parenthesized_ref == 2i32);
+    assert(lambda_value_copy == 1i32);
+    assert(lambda_value_ref == 2i32);
+    assert(argument_value_copy == 1i32);
+    assert(method_argument_value_copy == 1i32);
+    assert(returned_value_copy == 1i32);
+}

@@ -51,25 +51,25 @@ fn main() {
     _local_ref = 5i32;
     assert(holder.pairs(0i64).value == 5i32);
 
-    let field_ref = element_field_ref(holder, 1i64);
+    let field_ref = ref mut element_field_ref(holder, 1i64);
     std::force_collect();
     assert(field_ref == 2i32);
     field_ref = 6i32;
     assert(holder.pairs(1i64).value == 6i32);
 
-    let nested_ref = nested_element_field_ref(holder, 0i64);
+    let nested_ref = ref mut nested_element_field_ref(holder, 0i64);
     std::force_collect();
     assert(nested_ref == 3i32);
     nested_ref = 7i32;
     assert(holder.nested(0i64).pair.value == 7i32);
 
-    let tuple_ref = element_tuple_field_ref(holder, 0i64);
+    let tuple_ref = ref mut element_tuple_field_ref(holder, 0i64);
     std::force_collect();
     assert(tuple_ref == 4i32);
     tuple_ref = 8i32;
     assert(holder.tuples(0i64).0 == 8i32);
 
-    let new_holder_ref = new_holder_element_field_ref();
+    let new_holder_ref = ref mut new_holder_element_field_ref();
     std::force_collect();
     assert(new_holder_ref == 10i32);
     new_holder_ref = 9i32;

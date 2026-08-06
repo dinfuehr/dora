@@ -31,7 +31,7 @@ use crate::sym::SymbolKind;
 use crate::typeck::{
     TypeCheck, TypeVarId, call_arg_name_span, call_arg_span, check_expr, check_type_param_arity,
     check_type_param_bounds, check_type_params,
-    expr::{PathResolution, resolve_path},
+    expr::{ExprContext, PathResolution, resolve_path},
     find_method_call_candidates,
 };
 use crate::{
@@ -49,11 +49,14 @@ pub(crate) fn check_expr_call(
     expr_id: ExprId,
     sema_expr: &CallExpr,
     expected_ty: SourceType,
+    context: ExprContext,
 ) -> SourceType {
-    match check_expr_call_target(ck, expr_id, sema_expr, expected_ty) {
+    let ty = match check_expr_call_target(ck, expr_id, sema_expr, expected_ty, context) {
         CallTarget::Call(ty) => ty,
         CallTarget::Index(expr_type) => check_expr_call_index(ck, expr_id, expr_type, expr_id),
-    }
+    };
+
+    maybe_auto_deref_call_result(ck, expr_id, ty, context)
 }
 
 pub(super) fn check_expr_call_target(
@@ -61,6 +64,7 @@ pub(super) fn check_expr_call_target(
     expr_id: ExprId,
     sema_expr: &CallExpr,
     expected_ty: SourceType,
+    context: ExprContext,
 ) -> CallTarget {
     let call_expr_id = expr_id;
 
@@ -93,6 +97,7 @@ pub(super) fn check_expr_call_target(
                 check_expr_call_sym(
                     ck,
                     expected_ty,
+                    context,
                     expr_id,
                     sema_expr.callee,
                     sym,
@@ -104,6 +109,7 @@ pub(super) fn check_expr_call_target(
                 check_expr_call_path(
                     ck,
                     expected_ty,
+                    context,
                     expr_id,
                     sema_expr.callee,
                     type_param_refs,
@@ -124,6 +130,36 @@ pub(super) fn check_expr_call_target(
             let expr_type = check_expr(ck, sema_expr.callee, SourceType::Any);
             check_expr_call_value_target(ck, expr_id, expr_type, call_expr_id)
         }
+    }
+}
+
+pub(super) fn maybe_auto_deref_call_result(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    ty: SourceType,
+    context: ExprContext,
+) -> SourceType {
+    match context {
+        ExprContext::Value => match ty {
+            SourceType::Ref { ty, .. } => {
+                let ty = *ty;
+                ck.body.set_ty(expr_id, ty.clone());
+                ck.body.set_auto_deref(expr_id);
+                ty
+            }
+            ty => ty,
+        },
+        ExprContext::Place => ty,
+    }
+}
+
+fn call_result_type(ty: SourceType, context: ExprContext) -> SourceType {
+    match context {
+        ExprContext::Value => match ty {
+            SourceType::Ref { ty, .. } => *ty,
+            ty => ty,
+        },
+        ExprContext::Place => ty,
     }
 }
 
@@ -1090,6 +1126,7 @@ fn check_expr_call_lambda(
 fn check_expr_call_fct(
     ck: &mut TypeCheck,
     expected_ty: SourceType,
+    context: ExprContext,
     expr_id: ExprId,
     fct_id: FctDefinitionId,
     type_param_refs: Vec<TypeRefId>,
@@ -1113,7 +1150,7 @@ fn check_expr_call_fct(
     let type_args = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
 
     let return_type = specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &type_args);
-    ck.unify_types(return_type, expected_ty);
+    ck.unify_types(call_result_type(return_type, context), expected_ty);
 
     let expected = build_expected_call_args(
         fct.params.regular_params(),
@@ -1159,6 +1196,7 @@ fn check_expr_call_fct(
 fn check_expr_call_static_method(
     ck: &mut TypeCheck,
     expected_ty: SourceType,
+    context: ExprContext,
     expr_id: ExprId,
     object_type: SourceType,
     method_name: String,
@@ -1238,7 +1276,7 @@ fn check_expr_call_static_method(
 
         let return_type =
             specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &type_params);
-        ck.unify_types(return_type, expected_ty);
+        ck.unify_types(call_result_type(return_type, context), expected_ty);
 
         let expected = build_expected_call_args(
             fct.params.regular_params(),
@@ -1855,6 +1893,7 @@ fn check_expr_call_enum_variant(
 fn check_expr_call_sym(
     ck: &mut TypeCheck,
     expected_ty: SourceType,
+    context: ExprContext,
     expr_id: ExprId,
     callee_id: ExprId,
     sym: SymbolKind,
@@ -1865,6 +1904,7 @@ fn check_expr_call_sym(
         SymbolKind::Fct(fct_id) => check_expr_call_fct(
             ck,
             expected_ty,
+            context,
             expr_id,
             fct_id,
             type_param_refs,
@@ -1919,6 +1959,7 @@ fn path_expr_last_segment_span(ck: &TypeCheck, callee_id: ExprId) -> Span {
 fn check_expr_call_path(
     ck: &mut TypeCheck,
     expected_ty: SourceType,
+    context: ExprContext,
     expr_id: ExprId,
     callee_id: ExprId,
     type_param_refs: Vec<TypeRefId>,
@@ -2042,6 +2083,7 @@ fn check_expr_call_path(
                 check_expr_call_static_method(
                     ck,
                     expected_ty,
+                    context,
                     expr_id,
                     SourceType::Class(cls_id, container_type_params),
                     method_name,
@@ -2081,6 +2123,7 @@ fn check_expr_call_path(
                 check_expr_call_static_method(
                     ck,
                     expected_ty,
+                    context,
                     expr_id,
                     object_ty,
                     method_name,
@@ -2141,6 +2184,7 @@ fn check_expr_call_path(
                     check_expr_call_static_method(
                         ck,
                         expected_ty,
+                        context,
                         expr_id,
                         object_ty,
                         method_name,
@@ -2181,6 +2225,7 @@ fn check_expr_call_path(
             return check_expr_call_sym(
                 ck,
                 expected_ty,
+                context,
                 expr_id,
                 callee_id,
                 sym,
@@ -2194,6 +2239,7 @@ fn check_expr_call_path(
             check_expr_call_static_method(
                 ck,
                 expected_ty,
+                context,
                 expr_id,
                 alias_ty,
                 method_name,

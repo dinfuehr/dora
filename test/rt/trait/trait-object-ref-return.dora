@@ -20,7 +20,7 @@ fn get_value(object: Value): ref mut Int32 {
 }
 
 fn main() {
-    let value = get_value(Holder(17i32) as Value);
+    let value = ref mut get_value(Holder(17i32) as Value);
 
     std::force_minor_collect();
     assert(value == 17i32);

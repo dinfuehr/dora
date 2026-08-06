@@ -79,16 +79,16 @@ fn main() {
     assert(struct_value.first == 32i32);
     assert(struct_value.second == 33i64);
 
-    let returned_int_ref = int_ref();
+    let returned_int_ref = ref mut int_ref();
     returned_int_ref = 12i32;
     assert(int_value == 12i32);
 
-    let returned_class_ref = class_ref();
+    let returned_class_ref = ref mut class_ref();
     std::force_collect();
     returned_class_ref = Box(22i32);
     assert(class_value.value == 22i32);
 
-    let returned_struct_ref = struct_ref();
+    let returned_struct_ref = ref mut struct_ref();
     std::force_collect();
     returned_struct_ref = Pair(first = 34i32, second = 35i64);
     assert(struct_value.first == 34i32);

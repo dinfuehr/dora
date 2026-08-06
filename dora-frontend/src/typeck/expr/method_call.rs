@@ -2,7 +2,8 @@ use std::rc::Rc;
 
 use dora_parser::ast;
 
-use super::call::check_expr_call_value;
+use super::ExprContext;
+use super::call::{check_expr_call_value, maybe_auto_deref_call_result};
 use crate::access::{
     class_field_accessible_from, method_accessible_from, struct_field_accessible_from,
 };
@@ -30,6 +31,7 @@ pub(crate) fn check_expr_method_call(
     expr_id: ExprId,
     sema_expr: &MethodCallExpr,
     _expected_ty: SourceType,
+    context: ExprContext,
 ) -> SourceType {
     let object_type = check_expr(ck, sema_expr.object, SourceType::Any);
     let method_name = ck.sa.interner.str(sema_expr.name).to_string();
@@ -79,7 +81,7 @@ pub(crate) fn check_expr_method_call(
         }
     }
 
-    result
+    maybe_auto_deref_call_result(ck, expr_id, result, context)
 }
 pub(crate) fn check_method_call_arguments(ck: &mut TypeCheck, sema_expr: &MethodCallExpr) {
     for sema_arg in &sema_expr.args {

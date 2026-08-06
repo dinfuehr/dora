@@ -263,6 +263,7 @@ pub struct Body {
     map_argument: RefCell<NodeMap<usize>>,
     map_field_ids: RefCell<NodeMap<usize>>,
     map_array_assignments: RefCell<NodeMap<ArrayAssignment>>,
+    map_auto_derefs: RefCell<NodeMap<()>>,
     vars: RefCell<VarAccess>,
     function_context_id: OnceCell<ContextId>,
     needs_context_slot_in_lambda_object: OnceCell<bool>,
@@ -324,6 +325,7 @@ impl Body {
             map_argument: RefCell::new(NodeMap::new()),
             map_field_ids: RefCell::new(NodeMap::new()),
             map_array_assignments: RefCell::new(NodeMap::new()),
+            map_auto_derefs: RefCell::new(NodeMap::new()),
             vars: RefCell::new(VarAccess::new(Vec::new())),
             function_context_id: OnceCell::new(),
             needs_context_slot_in_lambda_object: OnceCell::new(),
@@ -496,6 +498,16 @@ impl Body {
         self.map_array_assignments
             .borrow_mut()
             .insert(id, assignment);
+    }
+
+    pub fn set_auto_deref<T: ExprMapId>(&self, id: T) {
+        let id = id.to_universal_id();
+        self.map_auto_derefs.borrow_mut().insert(id, ());
+    }
+
+    pub fn is_auto_deref<T: ExprMapId>(&self, id: T) -> bool {
+        let id = id.to_universal_id();
+        self.map_auto_derefs.borrow().get(id).is_some()
     }
 
     pub fn root_expr_id(&self) -> ExprId {

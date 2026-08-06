@@ -4,7 +4,7 @@ use crate::error::diagnostics::{REF_MUT_REQUIRES_MUTABLE, REF_REQUIRES_ADDRESSAB
 use crate::sema::{CallType, Expr, ExprId, IdentType, Intrinsic, RefExpr};
 use crate::ty::error as ty_error;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr;
+use crate::typeck::expr::{ExprContext, check_expr_with_context};
 
 pub(in crate::typeck) enum RefTarget {
     Local { writable: bool },
@@ -65,7 +65,7 @@ pub(super) fn check_expr_ref(
     sema_expr: &RefExpr,
     expected_ty: SourceType,
 ) -> SourceType {
-    let inner_ty = check_expr(ck, sema_expr.expr, expected_ty);
+    let inner_ty = check_expr_with_context(ck, sema_expr.expr, expected_ty, ExprContext::Place);
 
     if inner_ty.is_error() {
         return ty_error();

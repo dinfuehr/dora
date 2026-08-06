@@ -65,10 +65,28 @@ use self::template::check_expr_template;
 use self::tuple::check_expr_tuple;
 use self::un::check_expr_un;
 
+#[derive(Copy, Clone)]
+pub(super) enum ExprContext {
+    /// The expression is used for its value.
+    Value,
+    /// The expression is used as a place, for example in `ref expr` or
+    /// `refReturningCall() = value`.
+    Place,
+}
+
 pub(super) fn check_expr(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     expected_ty: SourceType,
+) -> SourceType {
+    check_expr_with_context(ck, expr_id, expected_ty, ExprContext::Value)
+}
+
+fn check_expr_with_context(
+    ck: &mut TypeCheck,
+    expr_id: ExprId,
+    expected_ty: SourceType,
+    context: ExprContext,
 ) -> SourceType {
     let sema_expr = ck.expr(expr_id);
 
@@ -83,7 +101,7 @@ pub(super) fn check_expr(
         Expr::Un(sema_expr) => check_expr_un(ck, expr_id, sema_expr, expected_ty),
         Expr::Assign(sema_expr) => self::assign::check_expr_assign(ck, expr_id, sema_expr),
         Expr::Bin(sema_expr) => check_expr_bin(ck, expr_id, sema_expr, expected_ty),
-        Expr::Call(sema_expr) => check_expr_call(ck, expr_id, sema_expr, expected_ty),
+        Expr::Call(sema_expr) => check_expr_call(ck, expr_id, sema_expr, expected_ty, context),
         Expr::Field(sema_expr) => check_expr_field(ck, expr_id, sema_expr, expected_ty),
         Expr::As(sema_expr) => check_expr_as(ck, expr_id, sema_expr, expected_ty),
         Expr::Is(sema_expr) => check_expr_is(ck, expr_id, sema_expr, expected_ty),
@@ -91,14 +109,16 @@ pub(super) fn check_expr(
         Expr::Block(sema_expr) => check_expr_block(ck, expr_id, sema_expr, expected_ty),
         Expr::If(sema_expr) => check_expr_if(ck, expr_id, sema_expr, expected_ty),
         Expr::Tuple(sema_expr) => check_expr_tuple(ck, expr_id, sema_expr, expected_ty),
-        Expr::Paren(subexpr_id) => check_expr_paren(ck, expr_id, *subexpr_id, expected_ty),
+        Expr::Paren(subexpr_id) => check_expr_paren(ck, expr_id, *subexpr_id, expected_ty, context),
         Expr::Match(sema_expr) => check_expr_match(ck, expr_id, sema_expr, expected_ty),
         Expr::For(sema_expr) => check_expr_for(ck, expr_id, sema_expr, expected_ty),
         Expr::While(sema_expr) => check_expr_while(ck, expr_id, sema_expr, expected_ty),
         Expr::Return(sema_expr) => check_expr_return(ck, expr_id, sema_expr, expected_ty),
         Expr::Break => check_expr_break(ck, expr_id, expected_ty),
         Expr::Continue => check_expr_continue(ck, expr_id, expected_ty),
-        Expr::MethodCall(sema_expr) => check_expr_method_call(ck, expr_id, sema_expr, expected_ty),
+        Expr::MethodCall(sema_expr) => {
+            check_expr_method_call(ck, expr_id, sema_expr, expected_ty, context)
+        }
         Expr::QualifiedPath(sema_expr) => {
             self::call::check_expr_qualified_path(ck, expr_id, sema_expr, expected_ty)
         }

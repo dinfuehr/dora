@@ -14,7 +14,7 @@ fn forward_ref(value: Int32): ref mut Int32 {
 }
 
 fn main() {
-    let value = forward_ref(17i32);
+    let value = ref mut forward_ref(17i32);
 
     std::force_minor_collect();
     assert(value == 17i32);

@@ -89,13 +89,13 @@ fn main() {
     assert(integers(1i64) == 21i32);
     assert(read_after_gc(ref integers(2i64)) == 30i32);
 
-    let integer_ref = element_ref(integers, 2i64);
+    let integer_ref = ref mut element_ref(integers, 2i64);
     std::force_collect();
     assert(integer_ref == 30i32);
     integer_ref = 31i32;
     assert(integers(2i64) == 31i32);
 
-    let new_array_ref = new_array_element_ref();
+    let new_array_ref = ref mut new_array_element_ref();
     std::force_collect();
     assert(new_array_ref == 41i32);
     new_array_ref = 42i32;
@@ -105,13 +105,13 @@ fn main() {
     holder.values(0i64) = 45i32;
     assert(holder.values(0i64) == 45i32);
 
-    let object_field_ref = object_field_element_ref(holder, 1i64);
+    let object_field_ref = ref mut object_field_element_ref(holder, 1i64);
     std::force_collect();
     assert(object_field_ref == 44i32);
     object_field_ref = 46i32;
     assert(holder.values(1i64) == 46i32);
 
-    let new_object_field_ref = new_object_field_element_ref();
+    let new_object_field_ref = ref mut new_object_field_element_ref();
     std::force_collect();
     assert(new_object_field_ref == 51i32);
     new_object_field_ref = 52i32;
@@ -124,7 +124,7 @@ fn main() {
     assert(pairs(0i64).first == 3i32);
     assert(pairs(0i64).second == 4i64);
 
-    let pair_field_ref = element_field_ref(pairs, 0i64);
+    let pair_field_ref = ref mut element_field_ref(pairs, 0i64);
     std::force_collect();
     assert(pair_field_ref == 3i32);
     pair_field_ref = 5i32;
@@ -149,7 +149,7 @@ fn main() {
     std::force_minor_collect();
     assert(boxes(0i64).value == 6i32);
 
-    let box_ref = element_ref_generic[Box](boxes, 0i64);
+    let box_ref = ref mut element_ref_generic[Box](boxes, 0i64);
     std::force_collect();
     box_ref = Box(7i32);
     std::force_minor_collect();

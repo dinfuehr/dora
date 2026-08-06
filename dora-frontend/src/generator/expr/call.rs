@@ -63,12 +63,17 @@ pub(super) fn gen_expr_call(
     let callee_idx = add_const_pool_entry_for_call(g, &callee, &call_type);
 
     // Determine types for arguments and return values
-    let (arg_types, _return_type) = determine_callee_types(g, &call_type, &*callee);
+    let (arg_types, call_return_type) = determine_callee_types(g, &call_type, &*callee);
     let return_type = g.analysis.ty(expr_id);
 
     // Allocate register for result
-    let return_ty = g.emitter.convert_ty(g.sa, return_type.clone());
-    let return_reg = ensure_register(g, dest, return_ty);
+    let auto_deref = g.analysis.is_auto_deref(expr_id);
+    let emitted_return_type = if auto_deref {
+        call_return_type.clone()
+    } else {
+        return_type.clone()
+    };
+    let return_reg = ensure_call_result_register(g, expr_id, &emitted_return_type, dest);
 
     // Evaluate object/self argument
     let object_argument = emit_call_object_argument(g, e, &call_type);
@@ -101,7 +106,50 @@ pub(super) fn gen_expr_call(
         g.free_if_temp(arg_reg);
     }
 
-    return_reg
+    emit_auto_deref(g, expr_id, emitted_return_type, return_reg, dest)
+}
+
+pub(super) fn ensure_call_result_register(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    emitted_return_type: &SourceType,
+    dest: DataDest,
+) -> Register {
+    if emitted_return_type.is_unit() {
+        return g.ensure_unit_register();
+    }
+
+    let return_type = g.emitter.convert_ty(g.sa, emitted_return_type.clone());
+    let emitted_dest = if g.analysis.is_auto_deref(expr_id) {
+        DataDest::Alloc
+    } else {
+        dest
+    };
+    ensure_register(g, emitted_dest, return_type)
+}
+
+pub(super) fn emit_auto_deref(
+    g: &mut AstBytecodeGen,
+    expr_id: ExprId,
+    emitted_type: SourceType,
+    emitted_reg: Register,
+    dest: DataDest,
+) -> Register {
+    if !g.analysis.is_auto_deref(expr_id) {
+        return emitted_reg;
+    }
+
+    let SourceType::Ref { ty, .. } = emitted_type else {
+        unreachable!("auto-dereferenced call should return a reference");
+    };
+    let value_type = *ty;
+    debug_assert_eq!(g.ty(expr_id), value_type);
+
+    let value_type = g.emitter.convert_ty(g.sa, value_type);
+    let value_reg = ensure_register(g, dest, value_type);
+    g.builder.emit_load_ref(value_reg, emitted_reg);
+    g.free_if_temp(emitted_reg);
+    value_reg
 }
 
 fn gen_expr_call_enum(
@@ -176,25 +224,15 @@ fn gen_expr_call_lambda(
         method_id,
     ));
 
-    let location = g.loc_for_expr(expr_id);
-    let dest_reg = if return_type.is_unit() {
-        let dest = g.ensure_unit_register();
-        g.builder
-            .emit_invoke_virtual(dest, idx, &arguments, location);
-        dest
-    } else {
-        let bytecode_ty = g.emitter.convert_ty(g.sa, return_type);
-        let dest_reg = ensure_register(g, dest, bytecode_ty);
-        g.builder
-            .emit_invoke_virtual(dest_reg, idx, &arguments, location);
-        dest_reg
-    };
+    let dest_reg = ensure_call_result_register(g, expr_id, &return_type, dest);
+    g.builder
+        .emit_invoke_virtual(dest_reg, idx, &arguments, g.loc_for_expr(expr_id));
 
     for arg_reg in arguments {
         g.free_if_temp(arg_reg);
     }
 
-    dest_reg
+    emit_auto_deref(g, expr_id, return_type, dest_reg, dest)
 }
 
 fn gen_expr_call_struct(

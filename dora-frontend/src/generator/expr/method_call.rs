@@ -2,8 +2,9 @@ use dora_bytecode::{BytecodeType, ConstPoolEntry, Register};
 
 use super::bin::gen_intrinsic_bin;
 use super::call::{
-    determine_callee_types, emit_array_with_variadic_call_arguments, emit_call_inst,
-    emit_intrinsic_array_set, emit_intrinsic_bin, emit_intrinsic_un_id,
+    determine_callee_types, emit_array_with_variadic_call_arguments, emit_auto_deref,
+    emit_call_inst, emit_intrinsic_array_set, emit_intrinsic_bin, emit_intrinsic_un_id,
+    ensure_call_result_register,
 };
 use super::{add_const_pool_entry_for_call, ensure_register, gen_expr, gen_expr_as_ref};
 use crate::generator::{AstBytecodeGen, DataDest, IntrinsicInfo};
@@ -52,11 +53,17 @@ pub(super) fn gen_expr_method_call(
 
     let callee_idx = add_const_pool_entry_for_call(g, &callee, &call_type);
 
+    let (arg_types, call_return_type) = determine_callee_types(g, &call_type, callee);
     let return_type = g.analysis.ty(expr_id);
 
     // Allocate register for result
-    let return_ty = g.emitter.convert_ty(g.sa, return_type.clone());
-    let return_reg = ensure_register(g, dest, return_ty);
+    let auto_deref = g.analysis.is_auto_deref(expr_id);
+    let emitted_return_type = if auto_deref {
+        call_return_type.clone()
+    } else {
+        return_type.clone()
+    };
+    let return_reg = ensure_call_result_register(g, expr_id, &emitted_return_type, dest);
 
     // Evaluate object/self argument
     // For CallType::Index (indexing a field), we need to load the field value first
@@ -73,7 +80,6 @@ pub(super) fn gen_expr_method_call(
     };
 
     // Evaluate function arguments
-    let (arg_types, _) = determine_callee_types(g, &call_type, callee);
     let mut arguments = emit_method_call_arguments(g, e, callee, &arg_types);
     arguments.insert(0, object_reg);
 
@@ -95,7 +101,7 @@ pub(super) fn gen_expr_method_call(
         g.free_if_temp(backing);
     }
 
-    return_reg
+    emit_auto_deref(g, expr_id, emitted_return_type, return_reg, dest)
 }
 
 pub(super) fn gen_expr_method_call_field_object(
@@ -330,25 +336,15 @@ fn gen_expr_method_call_lambda(
         method_id,
     ));
 
-    let location = g.loc_for_expr(expr_id);
-    let dest_reg = if return_type.is_unit() {
-        let dest = g.ensure_unit_register();
-        g.builder
-            .emit_invoke_virtual(dest, idx, &arguments, location);
-        dest
-    } else {
-        let bytecode_ty = g.emitter.convert_ty(g.sa, return_type);
-        let dest_reg = ensure_register(g, dest, bytecode_ty);
-        g.builder
-            .emit_invoke_virtual(dest_reg, idx, &arguments, location);
-        dest_reg
-    };
+    let dest_reg = ensure_call_result_register(g, expr_id, &return_type, dest);
+    g.builder
+        .emit_invoke_virtual(dest_reg, idx, &arguments, g.loc_for_expr(expr_id));
 
     for arg_reg in arguments {
         g.free_if_temp(arg_reg);
     }
 
-    dest_reg
+    emit_auto_deref(g, expr_id, return_type, dest_reg, dest)
 }
 
 fn gen_expr_method_call_intrinsic(

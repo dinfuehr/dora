@@ -3,7 +3,7 @@ use std::rc::Rc;
 use super::call::{CallTarget, check_expr_call_target};
 use super::field::{check_expr_field_named, parse_field_index, starts_with_digit};
 use super::path::{PathResolution, resolve_path};
-use super::{MutabilityCheckReason, check_value_type_base_mutability};
+use super::{ExprContext, MutabilityCheckReason, check_value_type_base_mutability};
 use super::{check_expr, check_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
@@ -419,7 +419,7 @@ fn check_expr_assign_call(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &Assig
     let lhs_id = sema_expr.lhs;
     let call_expr = ck.expr(lhs_id).as_call();
 
-    match check_expr_call_target(ck, lhs_id, call_expr, SourceType::Any) {
+    match check_expr_call_target(ck, lhs_id, call_expr, SourceType::Any, ExprContext::Place) {
         CallTarget::Call(lhs_type) => {
             check_expr_assign_function_call(ck, expr_id, sema_expr, lhs_type)
         }

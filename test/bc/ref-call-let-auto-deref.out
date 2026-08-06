@@ -1,0 +1,186 @@
+class Identity:
+
+struct $Lambda1Env:
+
+fn identity:
+  0: GetGlobalRef r1, GlobalId(10) # returned_value
+  3: Ret r1
+
+  Registers:
+   0 => ref Int32
+   1 => ref Int32
+
+  Constants:
+
+  Locations:
+   0 => 4:5
+
+fn consume:
+  0: Ret r1
+
+  Registers:
+   0 => Int32
+   1 => ()
+
+  Constants:
+
+  Locations:
+
+fn return_value:
+  0: GetGlobalRef r1, GlobalId(10) # returned_value
+  3: InvokeStatic r0, @0, r1 # identity
+  8: LoadRef r2, r0
+ 11: Ret r2
+
+  Registers:
+   0 => ref Int32
+   1 => ref Int32
+   2 => Int32
+
+  Constants:
+   0 => Fct identity
+
+  Locations:
+   0 => 10:14
+   3 => 10:5
+
+fn <impl Identity>::identity:
+  0: GetGlobalRef r2, GlobalId(10) # returned_value
+  3: Ret r2
+
+  Registers:
+   0 => class Identity
+   1 => ref Int32
+   2 => ref Int32
+
+  Constants:
+
+  Locations:
+   0 => 17:9
+
+fn test:
+  0: ConstInt32 r1, @0 # 1
+  3: Mov r0, r1
+  6: GetRegisterRef r3, r0
+  9: InvokeStatic r2, @1, r3 # identity
+ 14: LoadRef r4, r2
+ 17: Mov r1, r4
+ 20: GetRegisterRef r5, r0
+ 23: InvokeStatic r3, @2, r5 # identity
+ 28: Mov r2, r3
+ 31: NewObject r6, @4 # Identity
+ 35: GetRegisterRef r5, r0
+ 38: InvokeDirect r3, @3, r6, r5 # <impl Identity>::identity
+ 44: LoadRef r7, r3
+ 47: Mov r4, r7
+ 50: NewObject r6, @6 # Identity
+ 54: GetRegisterRef r8, r0
+ 57: InvokeDirect r5, @5, r6, r8 # <impl Identity>::identity
+ 63: Mov r3, r5
+ 66: GetRegisterRef r9, r0
+ 69: InvokeStatic r8, @7, r9 # identity
+ 74: Mov r5, r8
+ 77: NewStruct r12, @8 # $Lambda1Env
+ 81: NewTraitObject r11, r12, @9 # Fn1[ref Int32, ref Int32] wrapping $Lambda1Env
+ 85: Mov r10, r11
+ 88: GetRegisterRef r8, r0
+ 91: InvokeVirtual r9, @10, r10, r8 # std::callable::Fn1::call[A0, R]
+ 97: LoadRef r13, r9
+100: Mov r7, r13
+103: GetRegisterRef r8, r0
+106: InvokeVirtual r14, @11, r10, r8 # std::callable::Fn1::call[A0, R]
+112: Mov r9, r14
+115: GetRegisterRef r8, r0
+118: InvokeStatic r14, @13, r8 # identity
+123: LoadRef r13, r14
+126: InvokeStatic r15, @12, r13 # consume
+131: NewObject r6, @16 # Identity
+135: GetRegisterRef r8, r0
+138: InvokeDirect r14, @15, r6, r8 # <impl Identity>::identity
+144: LoadRef r13, r14
+147: InvokeStatic r15, @14, r13 # consume
+152: InvokeStatic r13, @18 # return_value
+156: InvokeStatic r15, @17, r13 # consume
+161: Ret r15
+
+  Registers:
+   0 => Int32
+   1 => Int32
+   2 => ref Int32
+   3 => ref Int32
+   4 => Int32
+   5 => ref Int32
+   6 => class Identity
+   7 => Int32
+   8 => ref Int32
+   9 => ref Int32
+   10 => Fn1[ref Int32, ref Int32]
+   11 => Fn1[ref Int32, ref Int32]
+   12 => struct $Lambda1Env
+   13 => Int32
+   14 => ref Int32
+   15 => ()
+
+  Constants:
+   0 => Int32 1
+   1 => Fct identity
+   2 => Fct identity
+   3 => Fct <impl Identity>::identity
+   4 => Class Identity
+   5 => Fct <impl Identity>::identity
+   6 => Class Identity
+   7 => Fct identity
+   8 => Struct $Lambda1Env
+   9 => Trait Fn1[ref Int32, ref Int32] from $Lambda1Env
+   10 => TraitObjectMethod Fn1[ref Int32, ref Int32].std::callable::Fn1::call[A0, R]
+   11 => TraitObjectMethod Fn1[ref Int32, ref Int32].std::callable::Fn1::call[A0, R]
+   12 => Fct consume
+   13 => Fct identity
+   14 => Fct consume
+   15 => Fct <impl Identity>::identity
+   16 => Class Identity
+   17 => Fct consume
+   18 => Fct return_value
+
+  Locations:
+   9 => 23:22
+   23 => 24:25
+   31 => 25:29
+   50 => 26:32
+   69 => 27:34
+   77 => 28:27
+   91 => 29:29
+   106 => 30:32
+   118 => 31:13
+   126 => 31:5
+   131 => 32:13
+   147 => 32:5
+   152 => 33:13
+   156 => 33:5
+
+fn <impl Fn1[ref Int32, ref Int32] for $Lambda1Env>::call:
+  0: GetGlobalRef r2, GlobalId(10) # returned_value
+  3: Ret r2
+
+  Registers:
+   0 => struct $Lambda1Env
+   1 => ref Int32
+   2 => ref Int32
+
+  Constants:
+
+  Locations:
+   0 => 28:60
+
+fn returned_value:
+  0: ConstInt32 r0, @0 # 1
+  3: Ret r0
+
+  Registers:
+   0 => Int32
+
+  Constants:
+   0 => Int32 1
+
+  Locations:
+

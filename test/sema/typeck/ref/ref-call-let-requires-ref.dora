@@ -1,0 +1,10 @@
+let mut returned_value: Int32 = 1i32;
+
+fn identity(_value: ref Int32): ref Int32 {
+    ref returned_value
+}
+
+fn test() {
+    let value = 1i32;
+    let _value_ref: ref Int32 = identity(ref value);
+}

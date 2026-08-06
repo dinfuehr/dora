@@ -1,0 +1,73 @@
+//= ok
+
+let mut returned_value: Int32 = 1i32;
+
+fn identity(_value: ref mut Int32): ref mut Int32 {
+    ref mut returned_value
+}
+
+fn consume(_value: Int32) {}
+
+fn return_value(): Int32 {
+    identity(ref mut returned_value)
+}
+
+@native
+fn generic_ref[T](): ref T;
+
+class RefFactory
+
+impl RefFactory {
+    @native
+    static fn generic_ref[T](): ref T;
+}
+
+class Identity
+
+impl Identity {
+    fn identity(_value: ref mut Int32): ref mut Int32 {
+        ref mut returned_value
+    }
+}
+
+fn test() {
+    let mut value = 1i32;
+    let mut value_copy = identity(ref mut value);
+    value_copy = 2i32;
+    let explicit_value: Int32 = identity(ref mut value);
+
+    let value_ref = ref mut identity(ref mut value);
+    let explicit_ref: ref mut Int32 = ref mut identity(ref mut value);
+    let method_value_copy = Identity().identity(ref mut value);
+    let method_value_ref = ref mut Identity().identity(ref mut value);
+    let block_value_copy = { identity(ref mut value) };
+    let parenthesized_ref = ref mut (identity(ref mut value));
+    let identity_lambda = |_value: ref mut Int32|: ref mut Int32 {
+        ref mut returned_value
+    };
+    let lambda_value_copy = identity_lambda(ref mut value);
+    let lambda_value_ref = ref mut identity_lambda(ref mut value);
+    let generic_value: Int32 = generic_ref();
+    let generic_ref_value: ref Int32 = ref generic_ref();
+    let static_generic_value: Int32 = RefFactory::generic_ref();
+    let static_generic_ref_value: ref Int32 = ref RefFactory::generic_ref();
+    consume(identity(ref mut value));
+    consume(Identity().identity(ref mut value));
+    consume(return_value());
+    assert(value_copy == 2i32);
+    assert(explicit_value == 1i32);
+    assert(value_ref == 1i32);
+    assert(explicit_ref == 1i32);
+    assert(method_value_copy == 1i32);
+    assert(method_value_ref == 1i32);
+    assert(block_value_copy == 1i32);
+    assert(parenthesized_ref == 1i32);
+    assert(lambda_value_copy == 1i32);
+    assert(lambda_value_ref == 1i32);
+    assert(generic_value == 1i32);
+    assert(generic_ref_value == 1i32);
+    assert(static_generic_value == 1i32);
+    assert(static_generic_ref_value == 1i32);
+    explicit_ref = 3i32;
+    method_value_ref = 4i32;
+}
