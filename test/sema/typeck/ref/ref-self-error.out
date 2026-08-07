@@ -1,0 +1,41 @@
+error: `ref mut` requires a mutable expression.
+--> ref-self-error.dora:8:22
+ | impl Value {
+ |     fn non_mutating() {
+ |         take_mut_ref(ref mut self);
+                        ~~~~~~~~~~~~
+ |     }
+ | }
+error: `ref mut` requires a mutable expression.
+--> ref-self-error.dora:14:22
+ | impl (Int32, Int64) {
+ |     fn non_mutating() {
+ |         take_mut_ref(ref mut self);
+                        ~~~~~~~~~~~~
+ |     }
+ | }
+error: `ref self` is only allowed on struct or tuple types.
+--> ref-self-error.dora:22:18
+ | impl Object {
+ |     mutating fn inherent() {
+ |         take_ref(ref self);
+                    ~~~~~~~~
+ |     }
+ | }
+error: `ref self` is only allowed on struct or tuple types.
+--> ref-self-error.dora:28:18
+ | trait DefaultMethod {
+ |     mutating fn default_method() {
+ |         take_ref(ref self);
+                    ~~~~~~~~
+ |     }
+ | }
+error: `ref self` is only allowed on struct or tuple types.
+--> ref-self-error.dora:38:18
+ | impl RequiredMethod for Object {
+ |     mutating fn required_method() {
+ |         take_ref(ref self);
+                    ~~~~~~~~
+ |     }
+ | }
+5 errors found.

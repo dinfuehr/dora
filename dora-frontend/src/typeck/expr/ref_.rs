@@ -1,7 +1,9 @@
 use crate::SourceType;
 use crate::args;
-use crate::error::diagnostics::{REF_MUT_REQUIRES_MUTABLE, REF_REQUIRES_ADDRESSABLE};
-use crate::sema::{CallType, Expr, ExprId, IdentType, Intrinsic, RefExpr};
+use crate::error::diagnostics::{
+    REF_MUT_REQUIRES_MUTABLE, REF_REQUIRES_ADDRESSABLE, REF_SELF_NOT_ALLOWED,
+};
+use crate::sema::{CallType, Expr, ExprId, IdentType, Intrinsic, PathSegmentKind, RefExpr};
 use crate::ty::error as ty_error;
 use crate::typeck::TypeCheck;
 use crate::typeck::expr::{ExprContext, check_expr_with_context};
@@ -71,6 +73,10 @@ pub(super) fn check_expr_ref(
         return ty_error();
     }
 
+    if is_self_expr(ck, sema_expr.expr) && !ref_self_allowed(ck) {
+        ck.report(ck.expr_span(expr_id), &REF_SELF_NOT_ALLOWED, args![]);
+    }
+
     let ref_target = compute_ref_target(ck, sema_expr.expr);
     if sema_expr.is_mut && !ref_target.is_writable() {
         ck.report(ck.expr_span(expr_id), &REF_MUT_REQUIRES_MUTABLE, args![]);
@@ -104,6 +110,25 @@ pub(super) fn check_expr_ref(
     ck.body.set_ty(expr_id, ref_ty.clone());
 
     ref_ty
+}
+
+fn is_self_expr(ck: &TypeCheck, expr_id: ExprId) -> bool {
+    match ck.expr(expr_id) {
+        Expr::Path(path) => {
+            path.segments.len() == 1 && matches!(path.segments[0].kind, PathSegmentKind::This)
+        }
+        Expr::Paren(inner_expr_id) => is_self_expr(ck, *inner_expr_id),
+        _ => false,
+    }
+}
+
+fn ref_self_allowed(ck: &TypeCheck) -> bool {
+    // `Self` remains unknown while checking a trait default method, so that
+    // method could later receive a class object. Concrete trait implementations
+    // have their actual receiver type here and can allow structs and tuples.
+    ck.self_ty
+        .as_ref()
+        .is_some_and(|ty| ty.is_struct() || ty.is_tuple())
 }
 
 pub(in crate::typeck) fn compute_ref_target(ck: &TypeCheck, expr_id: ExprId) -> RefTarget {

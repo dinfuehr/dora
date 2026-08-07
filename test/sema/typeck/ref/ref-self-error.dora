@@ -1,0 +1,40 @@
+fn take_ref[T](_value: ref T) {}
+fn take_mut_ref[T](_value: ref mut T) {}
+
+struct Value
+
+impl Value {
+    fn non_mutating() {
+        take_mut_ref(ref mut self);
+    }
+}
+
+impl (Int32, Int64) {
+    fn non_mutating() {
+        take_mut_ref(ref mut self);
+    }
+}
+
+class Object
+
+impl Object {
+    mutating fn inherent() {
+        take_ref(ref self);
+    }
+}
+
+trait DefaultMethod {
+    mutating fn default_method() {
+        take_ref(ref self);
+    }
+}
+
+trait RequiredMethod {
+    mutating fn required_method();
+}
+
+impl RequiredMethod for Object {
+    mutating fn required_method() {
+        take_ref(ref self);
+    }
+}

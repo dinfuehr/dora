@@ -482,6 +482,11 @@ pub static REF_MUT_REQUIRES_MUTABLE: DiagnosticDescriptor = DiagnosticDescriptor
     level: ErrorLevel::Error,
 };
 
+pub static REF_SELF_NOT_ALLOWED: DiagnosticDescriptor = DiagnosticDescriptor {
+    message: "`ref self` is only allowed on struct or tuple types.",
+    level: ErrorLevel::Error,
+};
+
 pub static ASSIGN_THROUGH_IMMUTABLE_REF: DiagnosticDescriptor = DiagnosticDescriptor {
     message: "cannot mutate through immutable reference.",
     level: ErrorLevel::Error,

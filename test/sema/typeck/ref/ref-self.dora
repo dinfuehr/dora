@@ -1,0 +1,52 @@
+//= ok
+fn take_ref[T](_value: ref T) {}
+fn take_mut_ref[T](_value: ref mut T) {}
+
+struct Value(Int32)
+
+impl Value {
+    fn take_immutable_self_ref() {
+        take_ref(ref self);
+        take_ref(ref (self));
+    }
+
+    mutating fn take_self_ref() {
+        take_ref(ref self);
+        take_mut_ref(ref mut self);
+    }
+}
+
+impl (Int32, Int64) {
+    fn take_immutable_self_ref() {
+        take_ref(ref self);
+    }
+
+    mutating fn take_self_ref() {
+        take_ref(ref self);
+    }
+}
+
+trait TakeSelfRef {
+    fn take_immutable_self_ref();
+    mutating fn take_self_ref();
+}
+
+impl TakeSelfRef for Value {
+    fn take_immutable_self_ref() {
+        take_ref(ref self);
+    }
+
+    mutating fn take_self_ref() {
+        take_ref(ref self);
+    }
+}
+
+impl TakeSelfRef for (Int32, Int64) {
+    fn take_immutable_self_ref() {
+        take_ref(ref self);
+    }
+
+    mutating fn take_self_ref() {
+        take_ref(ref self);
+    }
+}
