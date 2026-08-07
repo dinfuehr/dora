@@ -18,6 +18,9 @@ use crate::sema::{
     TraitDefinition, TypeParamId, associated_type_bounds, find_field_in_class,
 };
 use crate::specialize::replace_type;
+use crate::typeck::expr::{
+    MutabilityCheckReason, check_value_type_base_mutability, preserve_ref_returning_base,
+};
 use crate::typeck::{TypeCheck, check_expr, check_type_params, find_method_call_candidates};
 
 use super::call::{ExpectedCallArgs, check_call_arguments_with_expected};
@@ -71,11 +74,12 @@ pub(crate) fn check_expr_method_call(
                     || object_type.is_assoc()
                     || object_type.is_self())
             {
-                super::check_value_type_base_mutability(
+                preserve_ref_returning_base(ck, sema_expr.object);
+                check_value_type_base_mutability(
                     ck,
                     sema_expr.object,
                     expr_id,
-                    super::MutabilityCheckReason::MutatingMethodCall,
+                    MutabilityCheckReason::MutatingMethodCall,
                 );
             }
         }

@@ -30,8 +30,32 @@ error: cannot mutate through immutable reference.
        ~~~~~~~~~~~~~~
  | }
  | 
+error: cannot mutate through immutable reference.
+--> ref-mutability.dora:26:5
+ | 
+ | fn field_assign_readonly_return() {
+ |     readonly_value_return().0 = 1i32;
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: cannot mutate through immutable reference.
+--> ref-mutability.dora:30:5
+ | 
+ | fn mutating_call_readonly_return() {
+ |     readonly_value_return().update();
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: `ref mut` requires a mutable expression.
+--> ref-mutability.dora:34:22
+ | 
+ | fn field_ref_readonly_return() {
+ |     let _reference = ref mut readonly_value_return().0;
+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
 error: cannot assign `ref Int32` to variable of type `ref mut Int32`.
---> ref-mutability.dora:31:5
+--> ref-mutability.dora:43:5
  | 
  | fn readonly_to_mutable_local(value: ref Int32) {
  |     let _reference: ref mut Int32 = ref value;
@@ -39,7 +63,7 @@ error: cannot assign `ref Int32` to variable of type `ref mut Int32`.
  | }
  | 
 error: `ref mut` requires a mutable expression.
---> ref-mutability.dora:36:22
+--> ref-mutability.dora:48:22
  | fn immutable_local() {
  |     let value = 0i32;
  |     let _reference = ref mut value;
@@ -47,7 +71,7 @@ error: `ref mut` requires a mutable expression.
  | }
  | 
 error: `ref mut` requires a mutable expression.
---> ref-mutability.dora:40:22
+--> ref-mutability.dora:52:22
  | 
  | fn immutable_global() {
  |     let _reference = ref mut global;
@@ -55,7 +79,7 @@ error: `ref mut` requires a mutable expression.
  | }
  | 
 error: `ref mut` requires a mutable expression.
---> ref-mutability.dora:44:22
+--> ref-mutability.dora:56:22
  | 
  | fn immutable_reference(value: ref Int32) {
  |     let _reference = ref mut value;
@@ -63,7 +87,7 @@ error: `ref mut` requires a mutable expression.
  | }
  | 
 error: `ref mut` requires a mutable expression.
---> ref-mutability.dora:48:22
+--> ref-mutability.dora:60:22
  | 
  | fn immutable_return() {
  |     let _reference = ref mut readonly_return();
@@ -71,7 +95,7 @@ error: `ref mut` requires a mutable expression.
  | }
  | 
 error: `ref mut` requires a mutable expression.
---> ref-mutability.dora:53:22
+--> ref-mutability.dora:65:22
  | fn immutable_value_field() {
  |     let value = Value(0i32);
  |     let _reference = ref mut value.0;
@@ -79,7 +103,7 @@ error: `ref mut` requires a mutable expression.
  | }
  | 
 error: `ref mut` requires a mutable expression.
---> ref-mutability.dora:58:41
+--> ref-mutability.dora:70:41
  | fn immutable_capture() {
  |     let value = 0i32;
  |     let _lambda = || { let _reference = ref mut value; };
@@ -87,7 +111,7 @@ error: `ref mut` requires a mutable expression.
  | }
  | 
 error: Argument expects value of type `ref mut Int32` but got `ref Int32`.
---> ref-mutability.dora:67:15
+--> ref-mutability.dora:79:15
  | 
  | fn wrong_argument(value: ref Int32) {
  |     needs_mut(ref value);
@@ -95,9 +119,9 @@ error: Argument expects value of type `ref mut Int32` but got `ref Int32`.
  | }
  | 
 error: `return` expects value of type `ref mut Int32` but got `ref Int32`.
---> ref-mutability.dora:81:48 - 83:2
+--> ref-mutability.dora:98:48 - 100:2
 error: cannot mutate through immutable reference.
---> ref-mutability.dora:86:5
+--> ref-mutability.dora:103:5
  | 
  | fn assign_readonly_return() {
  |     readonly_return() = 1i32;
@@ -105,11 +129,11 @@ error: cannot mutate through immutable reference.
  | }
  | 
 error: cannot mutate through immutable reference.
---> ref-mutability.dora:90:5
+--> ref-mutability.dora:107:5
  | 
  | fn compound_assign_readonly_return() {
  |     readonly_return() += 1i32;
        ~~~~~~~~~~~~~~~~~~~~~~~~~
  | }
  | 
-15 errors found.
+18 errors found.

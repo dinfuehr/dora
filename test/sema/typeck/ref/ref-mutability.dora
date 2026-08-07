@@ -22,6 +22,18 @@ fn mutating_call(value: ref Value) {
     value.update();
 }
 
+fn field_assign_readonly_return() {
+    readonly_value_return().0 = 1i32;
+}
+
+fn mutating_call_readonly_return() {
+    readonly_value_return().update();
+}
+
+fn field_ref_readonly_return() {
+    let _reference = ref mut readonly_value_return().0;
+}
+
 fn mutable_to_readonly_local() {
     let mut value = 0i32;
     let _reference: ref Int32 = ref mut value;
@@ -69,9 +81,14 @@ fn wrong_argument(value: ref Int32) {
 
 let global: Int32 = 0i32;
 let mut mutable_global: Int32 = 0i32;
+let readonly_value: Value = Value(0i32);
 
 fn readonly_return(): ref Int32 {
     ref global
+}
+
+fn readonly_value_return(): ref Value {
+    ref readonly_value
 }
 
 fn mutable_to_readonly_return(): ref Int32 {

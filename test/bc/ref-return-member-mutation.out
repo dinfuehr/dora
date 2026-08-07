@@ -1,0 +1,158 @@
+class BoxedValue:
+  field: Int32
+
+struct Value:
+  field: Int32
+
+fn <impl Value>::increment:
+  0: GetFieldRef r1, r0, @0 # Value.field
+  4: ConstInt32 r2, @1 # 1
+  7: LoadRef r3, r1
+ 10: CheckedAdd r3, r3, r2
+ 14: StoreRef r3, r1
+ 17: Ret r4
+
+  Registers:
+   0 => ref Value
+   1 => ref Int32
+   2 => Int32
+   3 => Int32
+   4 => ()
+
+  Constants:
+   0 => StructField Value.field
+   1 => Int32 1
+
+  Locations:
+   0 => 7:9
+
+fn value_ref:
+  0: GetGlobalRef r0, GlobalId(10) # global_value
+  3: Ret r0
+
+  Registers:
+   0 => ref Value
+
+  Constants:
+
+  Locations:
+   0 => 19:5
+
+fn boxed_value_ref:
+  0: GetGlobalRef r0, GlobalId(11) # global_boxed_value
+  3: Ret r0
+
+  Registers:
+   0 => ref BoxedValue
+
+  Constants:
+
+  Locations:
+   0 => 23:5
+
+fn assign_field:
+  0: InvokeStatic r1, @1 # value_ref
+  4: GetFieldRef r0, r1, @0 # Value.field
+  8: ConstInt32 r2, @2 # 1
+ 11: StoreRef r2, r0
+ 14: Ret r3
+
+  Registers:
+   0 => ref Int32
+   1 => ref Value
+   2 => Int32
+   3 => ()
+
+  Constants:
+   0 => StructField Value.field
+   1 => Fct value_ref
+   2 => Int32 1
+
+  Locations:
+   0 => 27:5
+
+fn call_mutating_method:
+  0: InvokeStatic r1, @1 # value_ref
+  4: InvokeDirect r0, @0, r1 # <impl Value>::increment
+  9: Ret r0
+
+  Registers:
+   0 => ()
+   1 => ref Value
+
+  Constants:
+   0 => Fct <impl Value>::increment
+   1 => Fct value_ref
+
+  Locations:
+   0 => 31:5
+
+fn take_field_ref:
+  0: InvokeStatic r1, @1 # value_ref
+  4: GetFieldRef r0, r1, @0 # Value.field
+  8: Ret r0
+
+  Registers:
+   0 => ref Int32
+   1 => ref Value
+
+  Constants:
+   0 => StructField Value.field
+   1 => Fct value_ref
+
+  Locations:
+   0 => 35:13
+
+fn assign_class_field:
+  0: InvokeStatic r0, @1 # boxed_value_ref
+  4: LoadRef r1, r0
+  7: ConstInt32 r2, @2 # 2
+ 10: StoreField r2, r1, @0 # BoxedValue.field
+ 14: Ret r3
+
+  Registers:
+   0 => ref BoxedValue
+   1 => class BoxedValue
+   2 => Int32
+   3 => ()
+
+  Constants:
+   0 => Field BoxedValue.field
+   1 => Fct boxed_value_ref
+   2 => Int32 2
+
+  Locations:
+   0 => 39:5
+
+fn global_value:
+  0: ConstInt32 r0, @0 # 0
+  3: NewStruct r1, @1, r0 # Value
+  8: Ret r1
+
+  Registers:
+   0 => Int32
+   1 => struct Value
+
+  Constants:
+   0 => Int32 0
+   1 => Struct Value
+
+  Locations:
+   3 => 15:31
+
+fn global_boxed_value:
+  0: ConstInt32 r0, @0 # 0
+  3: NewObject r1, @1, r0 # BoxedValue
+  8: Ret r1
+
+  Registers:
+   0 => Int32
+   1 => class BoxedValue
+
+  Constants:
+   0 => Int32 0
+   1 => Class BoxedValue
+
+  Locations:
+   3 => 16:42
+

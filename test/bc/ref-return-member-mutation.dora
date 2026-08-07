@@ -1,0 +1,40 @@
+struct Value {
+    field: Int32,
+}
+
+impl Value {
+    mutating fn increment() {
+        self.field += 1i32;
+    }
+}
+
+class BoxedValue {
+    field: Int32,
+}
+
+let mut global_value: Value = Value(field = 0i32);
+let mut global_boxed_value: BoxedValue = BoxedValue(field = 0i32);
+
+fn value_ref(): ref mut Value {
+    ref mut global_value
+}
+
+fn boxed_value_ref(): ref mut BoxedValue {
+    ref mut global_boxed_value
+}
+
+fn assign_field() {
+    value_ref().field = 1i32;
+}
+
+fn call_mutating_method() {
+    value_ref().increment();
+}
+
+fn take_field_ref(): ref mut Int32 {
+    ref mut value_ref().field
+}
+
+fn assign_class_field() {
+    boxed_value_ref().field = 2i32;
+}

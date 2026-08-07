@@ -159,6 +159,13 @@ fn find_value_type_chain_base(ck: &TypeCheck, mut expr_id: ExprId) -> ExprId {
     }
 }
 
+/// Keeps a reference-returning call at the base of a value-type field chain as a reference.
+/// Type checking still uses the implicitly dereferenced value type for member lookup.
+pub(super) fn preserve_ref_returning_base(ck: &TypeCheck, expr_id: ExprId) {
+    let base_expr = find_value_type_chain_base(ck, expr_id);
+    ck.body.preserve_auto_deref(base_expr);
+}
+
 /// For value type field assignments and mutating method calls, check that the
 /// base variable is mutable. Traverses the field chain to find the base expression.
 pub(super) fn check_value_type_base_mutability(
@@ -209,5 +216,11 @@ pub(super) fn check_value_type_base_mutability(
             };
             ck.report(ck.expr_span(assign_expr_id), diagnostic, args![]);
         }
+    } else if ck.body.is_auto_deref_preserved(base_expr) && !ck.body.is_mut_auto_deref(base_expr) {
+        ck.report(
+            ck.expr_span(assign_expr_id),
+            &ASSIGN_THROUGH_IMMUTABLE_REF,
+            args![],
+        );
     }
 }

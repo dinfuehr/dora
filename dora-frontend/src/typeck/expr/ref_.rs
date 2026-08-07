@@ -14,6 +14,7 @@ pub(in crate::typeck) enum RefTarget {
     ClassField { writable: bool },
     ArrayElement { writable: bool },
     RefReturningCall { writable: bool },
+    RefBackedField { writable: bool },
     Invalid,
 }
 
@@ -23,7 +24,8 @@ impl RefTarget {
             RefTarget::Global { .. }
             | RefTarget::ClassField { .. }
             | RefTarget::ArrayElement { .. }
-            | RefTarget::RefReturningCall { .. } => true,
+            | RefTarget::RefReturningCall { .. }
+            | RefTarget::RefBackedField { .. } => true,
             RefTarget::Local { .. } | RefTarget::Invalid => false,
         }
     }
@@ -34,7 +36,8 @@ impl RefTarget {
             | RefTarget::Global { writable }
             | RefTarget::ClassField { writable }
             | RefTarget::ArrayElement { writable }
-            | RefTarget::RefReturningCall { writable } => *writable,
+            | RefTarget::RefReturningCall { writable }
+            | RefTarget::RefBackedField { writable } => *writable,
             RefTarget::Invalid => true,
         }
     }
@@ -54,6 +57,9 @@ impl RefTarget {
                 writable: target_writable,
             }
             | RefTarget::RefReturningCall {
+                writable: target_writable,
+            }
+            | RefTarget::RefBackedField {
                 writable: target_writable,
             } => *target_writable &= writable,
             RefTarget::Invalid => {}
@@ -86,7 +92,8 @@ pub(super) fn check_expr_ref(
         RefTarget::Local { .. }
         | RefTarget::Global { .. }
         | RefTarget::ClassField { .. }
-        | RefTarget::ArrayElement { .. } => SourceType::Ref {
+        | RefTarget::ArrayElement { .. }
+        | RefTarget::RefBackedField { .. } => SourceType::Ref {
             ty: Box::new(inner_ty),
             is_mut: sema_expr.is_mut,
         },
@@ -164,11 +171,11 @@ pub(in crate::typeck) fn compute_ref_target(ck: &TypeCheck, expr_id: ExprId) -> 
                     unreachable!()
                 };
                 let field_id = ck.sa.struct_(struct_id).field_id(field_index);
-                let mut ref_target = compute_ref_target(ck, field_expr.lhs);
+                let mut ref_target = compute_value_field_ref_target(ck, field_expr.lhs);
                 ref_target.restrict_writability(ck.sa.field(field_id).mutable);
                 ref_target
             }
-            Some(IdentType::TupleField(..)) => compute_ref_target(ck, field_expr.lhs),
+            Some(IdentType::TupleField(..)) => compute_value_field_ref_target(ck, field_expr.lhs),
             _ => RefTarget::Invalid,
         },
         Expr::Call(..) | Expr::MethodCall(..) => {
@@ -176,6 +183,10 @@ pub(in crate::typeck) fn compute_ref_target(ck: &TypeCheck, expr_id: ExprId) -> 
             if ty.is_ref() {
                 RefTarget::RefReturningCall {
                     writable: ty.is_mut_ref(),
+                }
+            } else if ck.body.is_auto_deref_preserved(expr_id) {
+                RefTarget::RefReturningCall {
+                    writable: ck.body.is_mut_auto_deref(expr_id),
                 }
             } else if is_array_get(ck, expr_id) {
                 RefTarget::ArrayElement { writable: true }
@@ -185,6 +196,13 @@ pub(in crate::typeck) fn compute_ref_target(ck: &TypeCheck, expr_id: ExprId) -> 
         }
         Expr::Paren(inner_expr_id) => compute_ref_target(ck, *inner_expr_id),
         _ => RefTarget::Invalid,
+    }
+}
+
+fn compute_value_field_ref_target(ck: &TypeCheck, expr_id: ExprId) -> RefTarget {
+    match compute_ref_target(ck, expr_id) {
+        RefTarget::RefReturningCall { writable } => RefTarget::RefBackedField { writable },
+        target => target,
     }
 }
 

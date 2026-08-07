@@ -139,6 +139,13 @@ pub(super) fn emit_auto_deref(
         return emitted_reg;
     }
 
+    // Ref-returning calls are marked for auto-dereference by default unless they occur directly in
+    // a `ref` expression. We can later learn that the returned reference must be preserved as
+    // backing storage for a place expression such as `f().x = 10`.
+    if g.analysis.is_auto_deref_preserved(expr_id) {
+        return emitted_reg;
+    }
+
     let SourceType::Ref { ty, .. } = emitted_type else {
         unreachable!("auto-dereferenced call should return a reference");
     };

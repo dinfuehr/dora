@@ -263,10 +263,22 @@ pub struct Body {
     map_argument: RefCell<NodeMap<usize>>,
     map_field_ids: RefCell<NodeMap<usize>>,
     map_array_assignments: RefCell<NodeMap<ArrayAssignment>>,
-    map_auto_derefs: RefCell<NodeMap<()>>,
+    map_auto_derefs: RefCell<NodeMap<AutoDerefInfo>>,
     vars: RefCell<VarAccess>,
     function_context_id: OnceCell<ContextId>,
     needs_context_slot_in_lambda_object: OnceCell<bool>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum AutoDerefMode {
+    LoadValue,
+    PreserveReference,
+}
+
+#[derive(Copy, Clone, Debug)]
+struct AutoDerefInfo {
+    is_mut: bool,
+    mode: AutoDerefMode,
 }
 
 impl std::fmt::Debug for Body {
@@ -500,14 +512,43 @@ impl Body {
             .insert(id, assignment);
     }
 
-    pub fn set_auto_deref<T: ExprMapId>(&self, id: T) {
+    pub fn set_auto_deref<T: ExprMapId>(&self, id: T, is_mut: bool) {
         let id = id.to_universal_id();
-        self.map_auto_derefs.borrow_mut().insert(id, ());
+        self.map_auto_derefs.borrow_mut().insert(
+            id,
+            AutoDerefInfo {
+                is_mut,
+                mode: AutoDerefMode::LoadValue,
+            },
+        );
     }
 
     pub fn is_auto_deref<T: ExprMapId>(&self, id: T) -> bool {
         let id = id.to_universal_id();
         self.map_auto_derefs.borrow().get(id).is_some()
+    }
+
+    pub fn preserve_auto_deref<T: ExprMapId>(&self, id: T) {
+        let id = id.to_universal_id();
+        if let Some(info) = self.map_auto_derefs.borrow_mut().get_mut(id) {
+            info.mode = AutoDerefMode::PreserveReference;
+        }
+    }
+
+    pub fn is_auto_deref_preserved<T: ExprMapId>(&self, id: T) -> bool {
+        let id = id.to_universal_id();
+        self.map_auto_derefs
+            .borrow()
+            .get(id)
+            .is_some_and(|info| info.mode == AutoDerefMode::PreserveReference)
+    }
+
+    pub fn is_mut_auto_deref<T: ExprMapId>(&self, id: T) -> bool {
+        let id = id.to_universal_id();
+        self.map_auto_derefs
+            .borrow()
+            .get(id)
+            .is_some_and(|info| info.is_mut)
     }
 
     pub fn root_expr_id(&self) -> ExprId {

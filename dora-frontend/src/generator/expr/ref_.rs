@@ -39,10 +39,24 @@ pub(super) fn gen_expr_as_ref(
         Expr::Field(field_expr) => {
             gen_expr_as_ref_field(g, expr_id, field_expr, ty, DataDest::Alloc)
         }
+        Expr::Call(..) if g.ty(expr_id).is_ref() || g.analysis.is_auto_deref_preserved(expr_id) => {
+            GeneratedRef {
+                reference: gen_expr(g, expr_id, DataDest::Alloc),
+                backing: None,
+            }
+        }
         Expr::Call(call_expr) if is_array_get(g, expr_id) => GeneratedRef {
             reference: gen_expr_ref_array_element(g, expr_id, call_expr, DataDest::Alloc),
             backing: None,
         },
+        Expr::MethodCall(..)
+            if g.ty(expr_id).is_ref() || g.analysis.is_auto_deref_preserved(expr_id) =>
+        {
+            GeneratedRef {
+                reference: gen_expr(g, expr_id, DataDest::Alloc),
+                backing: None,
+            }
+        }
         Expr::MethodCall(method_call) if is_array_get(g, expr_id) => GeneratedRef {
             reference: gen_expr_ref_array_field_element(g, expr_id, method_call, DataDest::Alloc),
             backing: None,

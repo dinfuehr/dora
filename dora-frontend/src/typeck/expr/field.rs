@@ -7,7 +7,7 @@ use crate::sema::{
 };
 use crate::ty::error as ty_error;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::{ExprContext, check_expr};
+use crate::typeck::expr::{ExprContext, check_expr, preserve_ref_returning_base};
 use crate::{SourceType, TypeArgs, specialize_ty_for_call};
 use dora_parser::Span;
 use dora_parser::ast;
@@ -44,15 +44,20 @@ pub(super) fn check_expr_field(
     })
 }
 
-/// Checks the receiver of a field expression. The context is threaded through this boundary so
-/// field receivers can become place-aware independently from the field resolution logic. For now,
-/// receivers retain their existing value-context behavior.
+/// Checks a field receiver using its value type for lookup. In a place context, a reference at the
+/// base of a value-type field chain is preserved so code generation can address the original value.
 pub(super) fn check_expr_field_receiver(
     ck: &mut TypeCheck,
     receiver_id: ExprId,
-    _context: ExprContext,
+    context: ExprContext,
 ) -> SourceType {
-    check_expr(ck, receiver_id, SourceType::Any)
+    let ty = check_expr(ck, receiver_id, SourceType::Any);
+
+    if matches!(context, ExprContext::Place) && (ty.is_struct() || ty.is_tuple()) {
+        preserve_ref_returning_base(ck, receiver_id);
+    }
+
+    ty
 }
 
 pub(super) fn check_expr_field_named(

@@ -1,0 +1,98 @@
+//= compile-args "--gc=swiper"
+//= runtime-args "--gc-verify"
+
+struct Value {
+    field: Int32,
+}
+
+impl Value {
+    mutating fn increment() {
+        self.field += 1i32;
+    }
+
+    mutating fn set_after_gc(value: Int32) {
+        std::force_collect();
+        self.field = value;
+    }
+}
+
+class Provider
+
+impl Provider {
+    fn value_ref(): ref mut Value {
+        ref mut global_value
+    }
+}
+
+class BoxedValue {
+    field: Int32,
+}
+
+struct BoxedValueHolder {
+    value: BoxedValue,
+}
+
+let mut global_value: Value = Value(field = 0i32);
+let mut global_boxed_value: BoxedValue = BoxedValue(field = 0i32);
+let mut global_boxed_value_holder: BoxedValueHolder =
+    BoxedValueHolder(value = BoxedValue(field = 0i32));
+
+@NeverInline
+fn value_ref(): ref mut Value {
+    ref mut global_value
+}
+
+@NeverInline
+fn readonly_value_ref(): ref Value {
+    ref global_value
+}
+
+@NeverInline
+fn boxed_value_ref(): ref mut BoxedValue {
+    ref mut global_boxed_value
+}
+
+@NeverInline
+fn boxed_value_holder_ref(): ref mut BoxedValueHolder {
+    ref mut global_boxed_value_holder
+}
+
+fn main() {
+    value_ref().field = 41i32;
+    assert(global_value.field == 41i32);
+
+    value_ref().increment();
+    assert(global_value.field == 42i32);
+
+    value_ref().field += 2i32;
+    assert(global_value.field == 44i32);
+
+    value_ref().set_after_gc(45i32);
+    assert(global_value.field == 45i32);
+
+    let field_ref = ref mut value_ref().field;
+    field_ref = 46i32;
+    assert(global_value.field == 46i32);
+
+    let readonly_field_ref = ref readonly_value_ref().field;
+    assert(readonly_field_ref == 46i32);
+
+    Provider().value_ref().field = 50i32;
+    assert(global_value.field == 50i32);
+
+    Provider().value_ref().increment();
+    assert(global_value.field == 51i32);
+
+    let ref_lambda = ||: ref mut Value { ref mut global_value };
+    ref_lambda().field = 60i32;
+    assert(global_value.field == 60i32);
+
+    ref_lambda().increment();
+    assert(global_value.field == 61i32);
+
+    boxed_value_ref().field = 70i32;
+    assert(global_boxed_value.field == 70i32);
+
+    boxed_value_holder_ref().value.field = 80i32;
+    assert(global_boxed_value_holder.value.field == 80i32);
+}

@@ -141,10 +141,10 @@ pub(super) fn maybe_auto_deref_call_result(
 ) -> SourceType {
     match context {
         ExprContext::Value => match ty {
-            SourceType::Ref { ty, .. } => {
+            SourceType::Ref { ty, is_mut } => {
                 let ty = *ty;
                 ck.body.set_ty(expr_id, ty.clone());
-                ck.body.set_auto_deref(expr_id);
+                ck.body.set_auto_deref(expr_id, is_mut);
                 ty
             }
             ty => ty,
