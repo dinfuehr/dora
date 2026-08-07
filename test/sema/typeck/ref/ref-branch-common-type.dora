@@ -1,0 +1,34 @@
+//= ok
+
+let immutable_global: Int32 = 1i32;
+let mut mutable_global: Int32 = 2i32;
+
+fn if_mutable_first(condition: Bool): ref Int32 {
+    if condition {
+        ref mut mutable_global
+    } else {
+        ref immutable_global
+    }
+}
+
+fn if_immutable_first(condition: Bool): ref Int32 {
+    if condition {
+        ref immutable_global
+    } else {
+        ref mut mutable_global
+    }
+}
+
+fn match_mutable_first(condition: Bool): ref Int32 {
+    match condition {
+        true => ref mut mutable_global,
+        false => ref immutable_global,
+    }
+}
+
+fn match_immutable_first(condition: Bool): ref Int32 {
+    match condition {
+        true => ref immutable_global,
+        false => ref mut mutable_global,
+    }
+}

@@ -1,0 +1,19 @@
+let immutable_global: Int32 = 1i32;
+let mut mutable_global: Int32 = 2i32;
+
+fn if_result_is_readonly(condition: Bool) {
+    let _reference = if condition {
+        ref mut mutable_global
+    } else {
+        ref immutable_global
+    };
+    _reference = 3i32;
+}
+
+fn match_result_is_readonly(condition: Bool) {
+    let _reference = match condition {
+        true => ref mut mutable_global,
+        false => ref immutable_global,
+    };
+    _reference = 3i32;
+}

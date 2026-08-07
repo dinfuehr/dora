@@ -1,0 +1,17 @@
+error: cannot mutate through immutable reference.
+--> ref-branch-common-type-readonly.dora:10:5
+ |         ref immutable_global
+ |     };
+ |     _reference = 3i32;
+       ~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: cannot mutate through immutable reference.
+--> ref-branch-common-type-readonly.dora:18:5
+ |         false => ref immutable_global,
+ |     };
+ |     _reference = 3i32;
+       ~~~~~~~~~~~~~~~~~
+ | }
+ | 
+2 errors found.

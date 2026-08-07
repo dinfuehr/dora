@@ -62,7 +62,9 @@ fn check_expr_match_arm(
         *result_type = arm_ty;
     } else if arm_ty.is_error() {
         // Ignore this arm.
-    } else if !result_type.allows(ck.sa, arm_ty.clone()) {
+    } else if let Some(common_type) = result_type.common_type(ck.sa, &arm_ty) {
+        *result_type = common_type;
+    } else {
         let result_type_name = ck.ty_name(&result_type);
         let arm_ty_name = ck.ty_name(&arm_ty);
         ck.report(

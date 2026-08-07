@@ -44,7 +44,9 @@ pub(crate) fn check_expr_if(
             else_type
         } else if else_type.is_error() {
             then_type
-        } else if !then_type.allows(ck.sa, else_type.clone()) {
+        } else if let Some(common_type) = then_type.common_type(ck.sa, &else_type) {
+            common_type
+        } else {
             let then_type_name = ck.ty_name(&then_type);
             let else_type_name = ck.ty_name(&else_type);
             ck.report(
@@ -52,8 +54,6 @@ pub(crate) fn check_expr_if(
                 &IF_BRANCH_TYPES_INCOMPATIBLE,
                 args!(then_type_name, else_type_name),
             );
-            then_type
-        } else {
             then_type
         }
     } else {
