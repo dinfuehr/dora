@@ -201,5 +201,13 @@ pub(super) fn check_value_type_base_mutability(
             };
             ck.report(ck.expr_span(assign_expr_id), diagnostic, args![]);
         }
+    } else if let Some(IdentType::Global(global_id)) = ck.body.get_ident(base_expr) {
+        if !ck.sa.global(global_id).mutable {
+            let diagnostic = match reason {
+                MutabilityCheckReason::FieldAssignment => &FIELD_ASSIGN_ON_IMMUTABLE,
+                MutabilityCheckReason::MutatingMethodCall => &MUTATING_METHOD_ON_IMMUTABLE,
+            };
+            ck.report(ck.expr_span(assign_expr_id), diagnostic, args![]);
+        }
     }
 }

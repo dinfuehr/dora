@@ -1,0 +1,13 @@
+struct Value(Int32)
+
+impl Value {
+    mutating fn update() {
+        self.0 = 10i32;
+    }
+}
+
+let GLOBAL: Value = Value(0i32);
+
+fn f() {
+    GLOBAL.update();
+}

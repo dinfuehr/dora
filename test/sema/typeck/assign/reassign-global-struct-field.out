@@ -1,0 +1,9 @@
+error: cannot mutate field of immutable value type.
+--> reassign-global-struct-field.dora:6:5
+ | 
+ | fn f() {
+ |     GLOBAL.value = 10i32;
+       ~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.

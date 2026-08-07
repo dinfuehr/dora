@@ -1,0 +1,7 @@
+struct Value { value: Int32 }
+
+let GLOBAL: Value = Value(0i32);
+
+fn f() {
+    GLOBAL.value = 10i32;
+}

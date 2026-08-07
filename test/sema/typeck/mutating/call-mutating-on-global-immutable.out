@@ -1,0 +1,9 @@
+error: cannot call mutating method on immutable value type.
+--> call-mutating-on-global-immutable.dora:12:5
+ | 
+ | fn f() {
+ |     GLOBAL.update();
+       ~~~~~~~~~~~~~~~
+ | }
+ | 
+1 error found.
