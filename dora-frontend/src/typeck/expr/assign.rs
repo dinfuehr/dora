@@ -1,10 +1,5 @@
 use std::rc::Rc;
 
-use super::call::{CallTarget, check_expr_call_target};
-use super::field::{check_expr_field_named, parse_field_index, starts_with_digit};
-use super::path::{PathResolution, resolve_path};
-use super::{ExprContext, MutabilityCheckReason, check_value_type_base_mutability};
-use super::{check_expr, check_method_call_arguments};
 use crate::access::{class_field_accessible_from, struct_field_accessible_from};
 use crate::args;
 use crate::error::diagnostics::{
@@ -18,6 +13,13 @@ use crate::sema::{
     TraitDefinitionId, find_field_in_class, find_impl, implements_trait,
 };
 use crate::ty::TraitType;
+use crate::typeck::expr::call::{CallTarget, check_expr_call_target};
+use crate::typeck::expr::field::{
+    check_expr_field_named, check_expr_field_receiver, parse_field_index, starts_with_digit,
+};
+use crate::typeck::expr::path::{PathResolution, resolve_path};
+use crate::typeck::expr::{ExprContext, MutabilityCheckReason, check_value_type_base_mutability};
+use crate::typeck::expr::{check_expr, check_method_call_arguments};
 use crate::typeck::{TypeCheck, check_call_arguments};
 use crate::{SourceType, SourceTypeArray, SymbolKind, TypeArgs, ty::error as ty_error};
 
@@ -839,7 +841,7 @@ fn check_index_trait_on_ty(
 fn check_expr_assign_field(ck: &mut TypeCheck, expr_id: ExprId, sema_expr: &AssignExpr) {
     let lhs_id = sema_expr.lhs;
     let field_sema = ck.expr(lhs_id).as_field();
-    let object_type = check_expr(ck, field_sema.lhs, SourceType::Any);
+    let object_type = check_expr_field_receiver(ck, field_sema.lhs, ExprContext::Place);
 
     let Some(ref name) = field_sema.name else {
         ck.body.set_ty(expr_id, ty_error());

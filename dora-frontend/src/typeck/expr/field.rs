@@ -7,7 +7,7 @@ use crate::sema::{
 };
 use crate::ty::error as ty_error;
 use crate::typeck::TypeCheck;
-use crate::typeck::expr::check_expr;
+use crate::typeck::expr::{ExprContext, check_expr};
 use crate::{SourceType, TypeArgs, specialize_ty_for_call};
 use dora_parser::Span;
 use dora_parser::ast;
@@ -25,8 +25,9 @@ pub(super) fn check_expr_field(
     expr_id: ExprId,
     sema_expr: &FieldExpr,
     _expected_ty: SourceType,
+    context: ExprContext,
 ) -> SourceType {
-    let object_type = check_expr(ck, sema_expr.lhs, SourceType::Any);
+    let object_type = check_expr_field_receiver(ck, sema_expr.lhs, context);
 
     let Some(ref name) = sema_expr.name else {
         ck.body.set_ty(expr_id, ty_error());
@@ -41,6 +42,17 @@ pub(super) fn check_expr_field(
     check_expr_field_named(ck, expr_id, object_type, interned_name, move |ck| {
         ck.expr_span(expr_id)
     })
+}
+
+/// Checks the receiver of a field expression. The context is threaded through this boundary so
+/// field receivers can become place-aware independently from the field resolution logic. For now,
+/// receivers retain their existing value-context behavior.
+pub(super) fn check_expr_field_receiver(
+    ck: &mut TypeCheck,
+    receiver_id: ExprId,
+    _context: ExprContext,
+) -> SourceType {
+    check_expr(ck, receiver_id, SourceType::Any)
 }
 
 pub(super) fn check_expr_field_named(

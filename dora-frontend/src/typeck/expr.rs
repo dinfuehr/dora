@@ -102,7 +102,7 @@ fn check_expr_with_context(
         Expr::Assign(sema_expr) => self::assign::check_expr_assign(ck, expr_id, sema_expr),
         Expr::Bin(sema_expr) => check_expr_bin(ck, expr_id, sema_expr, expected_ty),
         Expr::Call(sema_expr) => check_expr_call(ck, expr_id, sema_expr, expected_ty, context),
-        Expr::Field(sema_expr) => check_expr_field(ck, expr_id, sema_expr, expected_ty),
+        Expr::Field(sema_expr) => check_expr_field(ck, expr_id, sema_expr, expected_ty, context),
         Expr::As(sema_expr) => check_expr_as(ck, expr_id, sema_expr, expected_ty),
         Expr::Is(sema_expr) => check_expr_is(ck, expr_id, sema_expr, expected_ty),
         Expr::Lambda(sema_expr) => check_expr_lambda(ck, expr_id, sema_expr, expected_ty),
