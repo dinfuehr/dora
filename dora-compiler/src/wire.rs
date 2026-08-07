@@ -60,6 +60,9 @@ pub fn encode_bytecode_type(ty: &BytecodeType, buffer: &mut ByteBuffer) {
         BytecodeType::Unit => {
             buffer.emit_u8(opc::BYTECODE_TYPE_UNIT);
         }
+        BytecodeType::Never => {
+            buffer.emit_u8(opc::BYTECODE_TYPE_NEVER);
+        }
         BytecodeType::Bool => {
             buffer.emit_u8(opc::BYTECODE_TYPE_BOOL);
         }
@@ -200,6 +203,7 @@ pub fn decode_bytecode_type(reader: &mut ByteReader) -> BytecodeType {
 
     match kind {
         opc::BYTECODE_TYPE_UNIT => BytecodeType::Unit,
+        opc::BYTECODE_TYPE_NEVER => BytecodeType::Never,
         opc::BYTECODE_TYPE_BOOL => BytecodeType::Bool,
         opc::BYTECODE_TYPE_U_INT8 => BytecodeType::UInt8,
         opc::BYTECODE_TYPE_CHAR => BytecodeType::Char,

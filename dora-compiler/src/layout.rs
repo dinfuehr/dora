@@ -197,7 +197,7 @@ impl<'a> AotLayout<'a> {
 
     pub fn size(&self, ty: BytecodeType) -> i32 {
         match ty {
-            BytecodeType::Unit => 0,
+            BytecodeType::Unit | BytecodeType::Never => 0,
             BytecodeType::Bool => 1,
             BytecodeType::UInt8 => 1,
             BytecodeType::Char => 4,
@@ -260,7 +260,8 @@ impl<'a> AotLayout<'a> {
             | BytecodeType::TypeParam(_)
             | BytecodeType::This
             | BytecodeType::Struct(_, _)
-            | BytecodeType::Unit => {
+            | BytecodeType::Unit
+            | BytecodeType::Never => {
                 panic!("unexpected type {:?}", ty)
             }
         }
@@ -268,7 +269,7 @@ impl<'a> AotLayout<'a> {
 
     pub fn align(&self, ty: BytecodeType) -> i32 {
         match ty {
-            BytecodeType::Unit => 0,
+            BytecodeType::Unit | BytecodeType::Never => 0,
             BytecodeType::Bool => 1,
             BytecodeType::UInt8 => 1,
             BytecodeType::Char => 4,
@@ -340,7 +341,8 @@ impl<'a> AotLayout<'a> {
             | BytecodeType::Float32
             | BytecodeType::Float64
             | BytecodeType::Address
-            | BytecodeType::Unit => {}
+            | BytecodeType::Unit
+            | BytecodeType::Never => {}
 
             BytecodeType::Class(..) | BytecodeType::TraitObject(..) => refs.push(offset),
 
@@ -359,7 +361,7 @@ impl<'a> AotLayout<'a> {
 
     pub fn array_shape_size(&self, element_ty: &BytecodeType) -> InstanceSize {
         match element_ty {
-            BytecodeType::Unit => InstanceSize::UnitArray,
+            BytecodeType::Unit | BytecodeType::Never => InstanceSize::UnitArray,
             BytecodeType::Class(..) | BytecodeType::TraitObject(..) => InstanceSize::ObjArray,
 
             BytecodeType::Tuple(subtypes) => {

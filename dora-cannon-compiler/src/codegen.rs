@@ -1951,6 +1951,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
             | BytecodeType::Float32
             | BytecodeType::Float64
             | BytecodeType::Unit
+            | BytecodeType::Never
             | BytecodeType::Bool
             | BytecodeType::UInt8
             | BytecodeType::Char
@@ -2537,7 +2538,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         let dest_type = self.specialize_register_type(dest);
 
         match dest_type {
-            BytecodeType::Unit => {}
+            BytecodeType::Unit | BytecodeType::Never => {}
 
             BytecodeType::Tuple(ref subtypes) => {
                 let element_size = self.layout.tuple_layout(subtypes.clone()).size;

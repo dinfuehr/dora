@@ -341,7 +341,7 @@ impl SsaConstruction {
 
     fn graph_ty(ty: BytecodeType): Type {
         match ty {
-            BytecodeType::Unit => Type::Unit,
+            BytecodeType::Unit | BytecodeType::Never => Type::Unit,
             BytecodeType::Bool => Type::Bool,
             BytecodeType::UInt8 => Type::UInt8,
             BytecodeType::Float32 => Type::Float32,

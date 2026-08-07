@@ -50,6 +50,7 @@ pub fn specialize_bty(ty: BytecodeType, type_params: &BytecodeTypeArray) -> Byte
         }
 
         BytecodeType::Unit
+        | BytecodeType::Never
         | BytecodeType::UInt8
         | BytecodeType::Bool
         | BytecodeType::Char
@@ -176,6 +177,7 @@ pub fn specialize_ty_in_program(
         BytecodeType::TypeAlias(..) => unreachable!(),
 
         BytecodeType::Unit
+        | BytecodeType::Never
         | BytecodeType::UInt8
         | BytecodeType::Bool
         | BytecodeType::Char
@@ -275,6 +277,7 @@ pub fn specialize_bty_for_trait_object(
         }
 
         BytecodeType::Unit
+        | BytecodeType::Never
         | BytecodeType::UInt8
         | BytecodeType::Bool
         | BytecodeType::Char

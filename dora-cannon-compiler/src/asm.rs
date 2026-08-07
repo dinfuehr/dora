@@ -150,7 +150,7 @@ impl<'a> BaselineAssembler<'a> {
 
     pub fn copy_bytecode_ty(&mut self, ty: BytecodeType, dest: RegOrOffset, src: RegOrOffset) {
         match ty {
-            BytecodeType::Unit => {
+            BytecodeType::Unit | BytecodeType::Never => {
                 // nothing to do
             }
 
@@ -262,7 +262,7 @@ impl<'a> BaselineAssembler<'a> {
         ty: BytecodeType,
     ) {
         match &ty {
-            BytecodeType::Unit => {
+            BytecodeType::Unit | BytecodeType::Never => {
                 // nothing to do
             }
 
@@ -360,7 +360,7 @@ impl<'a> BaselineAssembler<'a> {
         ty: BytecodeType,
     ) {
         match &ty {
-            BytecodeType::Unit => {
+            BytecodeType::Unit | BytecodeType::Never => {
                 // nothing to do
             }
 
@@ -477,7 +477,7 @@ impl<'a> BaselineAssembler<'a> {
         ty: BytecodeType,
     ) {
         match ty {
-            BytecodeType::Unit => {}
+            BytecodeType::Unit | BytecodeType::Never => {}
 
             BytecodeType::Tuple(ref subtypes) => {
                 let tuple = self.layout.tuple_layout(subtypes.clone());
@@ -1444,7 +1444,7 @@ impl<'a> BaselineAssembler<'a> {
                 }
             }
 
-            BytecodeType::Unit => {
+            BytecodeType::Unit | BytecodeType::Never => {
                 // do nothing
             }
 

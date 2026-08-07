@@ -332,6 +332,9 @@ pub fn encode_bytecode_type(writer: ByteWriter, ty: BytecodeType) {
         BytecodeType::Unit => {
             writer.emit_byte(opc::BYTECODE_TYPE_UNIT.to_uint8());
         }
+        BytecodeType::Never => {
+            writer.emit_byte(opc::BYTECODE_TYPE_NEVER.to_uint8());
+        }
         BytecodeType::Bool => {
             writer.emit_byte(opc::BYTECODE_TYPE_BOOL.to_uint8());
         }

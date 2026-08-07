@@ -99,6 +99,7 @@ variants = [
     "Assoc",
     "This",
     "Ref",
+    "Never",
 ]
 
 [ConstPoolOpcode]

@@ -1243,6 +1243,7 @@ fn is_pointer_or_null(
 pub fn is_reference(ci: CompilationInfo, ty: BytecodeType): Bool {
     match ty {
         BytecodeType::Unit
+        | BytecodeType::Never
         | BytecodeType::Bool
         | BytecodeType::UInt8
         | BytecodeType::Float32

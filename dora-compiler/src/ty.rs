@@ -33,6 +33,7 @@ impl BytecodeTypeExt for BytecodeType {
             | &BytecodeType::Float64 => true,
             BytecodeType::TypeAlias(..) | BytecodeType::Assoc { .. } => unreachable!(),
             &BytecodeType::Unit
+            | &BytecodeType::Never
             | &BytecodeType::Tuple(..)
             | &BytecodeType::Enum(..)
             | &BytecodeType::Struct(..)
@@ -60,6 +61,7 @@ impl BytecodeTypeExt for BytecodeType {
             | &BytecodeType::Float32
             | &BytecodeType::Float64
             | &BytecodeType::Unit
+            | &BytecodeType::Never
             | &BytecodeType::Tuple(..)
             | &BytecodeType::TypeParam(..)
             | &BytecodeType::Address

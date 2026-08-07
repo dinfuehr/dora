@@ -30,6 +30,7 @@ pub enum BytecodeType {
     },
     // Reference to a value type (used for self in mutating methods).
     Ref(Box<BytecodeType>),
+    Never,
 }
 
 impl BytecodeType {
@@ -45,6 +46,10 @@ impl BytecodeType {
             BytecodeType::Unit => true,
             _ => false,
         }
+    }
+
+    pub fn is_never(&self) -> bool {
+        matches!(self, BytecodeType::Never)
     }
 
     pub fn is_class(&self) -> bool {
@@ -120,6 +125,7 @@ impl BytecodeType {
     pub fn is_concrete_type(&self) -> bool {
         match self {
             BytecodeType::Unit
+            | BytecodeType::Never
             | BytecodeType::Bool
             | BytecodeType::UInt8
             | BytecodeType::Char

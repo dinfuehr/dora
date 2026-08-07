@@ -16,7 +16,7 @@ pub fn is_address_backed_aggregate(ty: BytecodeType): Bool {
 
 pub fn argument_passing_mode(ci: CompilationInfo, ty: BytecodeType): ArgumentPassingMode {
     match ty {
-        BytecodeType::Unit => ArgumentPassingMode::None,
+        BytecodeType::Unit | BytecodeType::Never => ArgumentPassingMode::None,
         BytecodeType::Ref(inner) => {
             match argument_passing_mode(ci, inner) {
                 ArgumentPassingMode::None => ArgumentPassingMode::None,

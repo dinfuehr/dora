@@ -1157,7 +1157,7 @@ impl BytecodeGraphBuilder {
         ty: BytecodeType,
     ) {
         match ty {
-            BytecodeType::Unit => {}
+            BytecodeType::Unit | BytecodeType::Never => {}
             BytecodeType::Tuple(_) => {
                 self.copy_tuple_through_ref(
                     interior,
@@ -1237,7 +1237,7 @@ impl BytecodeGraphBuilder {
         ty: BytecodeType,
     ) {
         match ty {
-            BytecodeType::Unit => {}
+            BytecodeType::Unit | BytecodeType::Never => {}
             BytecodeType::Struct(..) => {
                 self.copy_struct_through_ref(
                     interior,
@@ -3223,7 +3223,7 @@ pub fn bytecode_graph_ty(
     ty: BytecodeType,
 ): Type {
     match ty {
-        BytecodeType::Unit => Type::Unit,
+        BytecodeType::Unit | BytecodeType::Never => Type::Unit,
         BytecodeType::Bool => Type::Bool,
         BytecodeType::UInt8 => Type::UInt8,
         BytecodeType::Float32 => Type::Float32,

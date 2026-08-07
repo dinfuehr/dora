@@ -202,6 +202,8 @@ pub fn decode_bytecode_type(reader: ByteReader): BytecodeType {
 
     if opcode == opc::BYTECODE_TYPE_UNIT {
         BytecodeType::Unit
+    } else if opcode == opc::BYTECODE_TYPE_NEVER {
+        BytecodeType::Never
     } else if opcode == opc::BYTECODE_TYPE_BOOL {
         BytecodeType::Bool
     } else if opcode == opc::BYTECODE_TYPE_U_INT8 {

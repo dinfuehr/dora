@@ -212,6 +212,7 @@ impl<'a> std::fmt::Display for BytecodeTypePrinter<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match &self.ty {
             BytecodeType::Unit => write!(f, "()"),
+            BytecodeType::Never => write!(f, "Never"),
             BytecodeType::UInt8 => write!(f, "UInt8"),
             BytecodeType::Char => write!(f, "Char"),
             BytecodeType::Int32 => write!(f, "Int32"),

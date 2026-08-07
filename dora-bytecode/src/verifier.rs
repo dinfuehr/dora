@@ -1357,6 +1357,7 @@ fn verify_type(ty: &BytecodeType, type_param_count: usize) {
             panic!("reference type is only allowed at the top level of transient values")
         }
         BytecodeType::Unit
+        | BytecodeType::Never
         | BytecodeType::Bool
         | BytecodeType::UInt8
         | BytecodeType::Char
@@ -1455,6 +1456,7 @@ fn type_contains_this(ty: &BytecodeType) -> bool {
         }
         BytecodeType::Ref(inner) => type_contains_this(inner),
         BytecodeType::Unit
+        | BytecodeType::Never
         | BytecodeType::Bool
         | BytecodeType::UInt8
         | BytecodeType::Char

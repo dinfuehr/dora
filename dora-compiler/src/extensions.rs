@@ -139,6 +139,7 @@ fn compare_concrete_types(
 ) -> bool {
     match check_ty.clone() {
         BytecodeType::Unit
+        | BytecodeType::Never
         | BytecodeType::Bool
         | BytecodeType::Char
         | BytecodeType::UInt8

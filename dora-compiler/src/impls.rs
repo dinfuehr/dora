@@ -138,6 +138,8 @@ pub fn ty_implements_trait_in_program(
             find_impl_in_program(program, check_ty, check_type_param_defs, trait_ty).is_some()
         }
 
+        BytecodeType::Never => false,
+
         BytecodeType::TypeParam(tp_id) => {
             tp_implements_trait(&check_type_param_defs, tp_id, trait_ty)
         }

@@ -411,6 +411,7 @@ impl<'a> SnapshotGenerator<'a> {
     fn process_value(&mut self, value_address: Address, ty: &BytecodeType) -> NodeId {
         match ty {
             BytecodeType::Unit => self.ensure_value("()".into()),
+            BytecodeType::Never => self.ensure_value("Never".into()),
             BytecodeType::Bool => {
                 let value = format!("{}", value_address.load::<bool>());
                 self.ensure_value(value)

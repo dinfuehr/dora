@@ -91,6 +91,7 @@ pub const BYTECODE_TYPE_TYPE_ALIAS: Int32 = 15;
 pub const BYTECODE_TYPE_ASSOC: Int32 = 16;
 pub const BYTECODE_TYPE_THIS: Int32 = 17;
 pub const BYTECODE_TYPE_REF: Int32 = 18;
+pub const BYTECODE_TYPE_NEVER: Int32 = 19;
 
 pub const CONST_POOL_OPCODE_STRING: Int32 = 0;
 pub const CONST_POOL_OPCODE_FLOAT32: Int32 = 1;
@@ -591,6 +592,9 @@ pub fn bytecode_type_name(opcode: Int32): String {
     }
     if opcode == BYTECODE_TYPE_REF {
         return "Ref";
+    }
+    if opcode == BYTECODE_TYPE_NEVER {
+        return "Never";
     }
     unreachable[String]()
 }

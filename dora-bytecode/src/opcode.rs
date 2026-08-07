@@ -93,6 +93,7 @@ pub const BYTECODE_TYPE_TYPE_ALIAS: u8 = 15;
 pub const BYTECODE_TYPE_ASSOC: u8 = 16;
 pub const BYTECODE_TYPE_THIS: u8 = 17;
 pub const BYTECODE_TYPE_REF: u8 = 18;
+pub const BYTECODE_TYPE_NEVER: u8 = 19;
 
 pub const CONST_POOL_OPCODE_STRING: u8 = 0;
 pub const CONST_POOL_OPCODE_FLOAT32: u8 = 1;

@@ -13,6 +13,7 @@ pub fn specialize_ty(
 
     match ty {
         BytecodeType::Unit
+        | BytecodeType::Never
         | BytecodeType::Address
         | BytecodeType::UInt8
         | BytecodeType::Bool

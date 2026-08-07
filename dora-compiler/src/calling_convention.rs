@@ -21,7 +21,7 @@ pub fn argument_passing_mode(program: &Program, ty: &BytecodeType) -> ArgumentPa
                 .collect::<Vec<_>>()
         }
         BytecodeType::Tuple(subtypes) => subtypes.to_vec(),
-        BytecodeType::Unit => return ArgumentPassingMode::None,
+        BytecodeType::Unit | BytecodeType::Never => return ArgumentPassingMode::None,
         BytecodeType::Ref(inner) => {
             return match argument_passing_mode(program, inner) {
                 ArgumentPassingMode::None => ArgumentPassingMode::None,

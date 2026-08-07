@@ -858,6 +858,7 @@ impl BytecodeGraphBuilder {
 
         match ty {
             BytecodeType::Unit
+            | BytecodeType::Never
             | BytecodeType::Bool
             | BytecodeType::UInt8
             | BytecodeType::Float32

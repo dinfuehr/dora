@@ -229,6 +229,7 @@ impl Stringable for ConstPoolId {
 
 pub enum BytecodeType {
     Unit,
+    Never,
     Address,
     UInt8,
     Bool,
@@ -264,6 +265,7 @@ impl BytecodeType {
     pub fn is_generic(): Bool {
         match self {
             BytecodeType::Unit
+            | BytecodeType::Never
             | BytecodeType::Address
             | BytecodeType::UInt8
             | BytecodeType::Bool
@@ -291,6 +293,13 @@ impl BytecodeType {
     pub fn is_unit(): Bool {
         match self {
             BytecodeType::Unit => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_never(): Bool {
+        match self {
+            BytecodeType::Never => true,
             _ => false,
         }
     }
@@ -330,6 +339,13 @@ impl Equals for BytecodeType {
             BytecodeType::Unit => {
                 match other {
                     BytecodeType::Unit => true,
+                    _ => false,
+                }
+            }
+
+            BytecodeType::Never => {
+                match other {
+                    BytecodeType::Never => true,
                     _ => false,
                 }
             }
@@ -477,6 +493,7 @@ impl Hash for BytecodeType {
     fn hash[H: Hasher](hasher: H) {
         match self {
             BytecodeType::Unit => hasher.write_int32(opc::BYTECODE_TYPE_UNIT),
+            BytecodeType::Never => hasher.write_int32(opc::BYTECODE_TYPE_NEVER),
             BytecodeType::Address => hasher.write_int32(opc::BYTECODE_TYPE_ADDRESS),
             BytecodeType::UInt8 => hasher.write_int32(opc::BYTECODE_TYPE_U_INT8),
             BytecodeType::Bool => hasher.write_int32(opc::BYTECODE_TYPE_BOOL),
@@ -532,6 +549,7 @@ impl Stringable for BytecodeType {
     fn to_string(): String {
         match self {
             BytecodeType::Unit => "Unit",
+            BytecodeType::Never => "Never",
             BytecodeType::Address => "Address",
             BytecodeType::UInt8 => "UInt8",
             BytecodeType::Bool => "Bool",

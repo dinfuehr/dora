@@ -789,7 +789,8 @@ fn mode(ty: BytecodeType) -> MachineMode {
         | BytecodeType::TypeParam(_)
         | BytecodeType::This
         | BytecodeType::Struct(_, _)
-        | BytecodeType::Unit => {
+        | BytecodeType::Unit
+        | BytecodeType::Never => {
             panic!("unexpected native trampoline argument type {:?}", ty)
         }
     }
