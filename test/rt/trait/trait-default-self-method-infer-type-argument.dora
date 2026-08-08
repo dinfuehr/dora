@@ -1,0 +1,48 @@
+trait Factory {
+    fn identity[T](value: T): T;
+    fn from_expected[A, B](): (Option[A], Option[B]);
+    fn with_expected[A, B](value: A): (A, Option[B]);
+
+    fn inferred_values(): (Int32, String) {
+        (self.identity(42i32), self.identity("inferred"))
+    }
+
+    fn inferred_placeholder(): Bool {
+        self.identity[_](true)
+    }
+
+    fn inferred_from_expected(): ((Option[String], Option[Bool]), (Int64, Option[Bool])) {
+        (self.from_expected(), self.with_expected(7))
+    }
+
+    fn inferred_from_expected_with_placeholders(): (Int64, Option[String]) {
+        self.with_expected[_, _](8)
+    }
+}
+
+class FactoryImpl
+
+impl Factory for FactoryImpl {
+    fn identity[T](value: T): T { value }
+    fn from_expected[A, B](): (Option[A], Option[B]) { (None, None) }
+    fn with_expected[A, B](value: A): (A, Option[B]) { (value, None) }
+}
+
+fn main() {
+    let values = FactoryImpl().inferred_values();
+    assert(values.0 == 42);
+    assert(values.1 == "inferred");
+    assert(FactoryImpl().inferred_placeholder());
+
+    let expected = FactoryImpl().inferred_from_expected();
+    let expectedOnly = expected.0;
+    assert(expectedOnly.0.is_none());
+    assert(expectedOnly.1.is_none());
+    let expectedAndArgument = expected.1;
+    assert(expectedAndArgument.0 == 7i64);
+    assert(expectedAndArgument.1.is_none());
+
+    let expectedPlaceholders = FactoryImpl().inferred_from_expected_with_placeholders();
+    assert(expectedPlaceholders.0 == 8i64);
+    assert(expectedPlaceholders.1.is_none());
+}

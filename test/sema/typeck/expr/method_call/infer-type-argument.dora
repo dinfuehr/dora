@@ -7,6 +7,8 @@ impl ClassFactory {
     fn same[T](first: T, _second: T): T { first }
     fn two[A, B](first: A, second: B): (A, B) { (first, second) }
     fn sameWithPhantom[A, B](first: A, _second: A): A { first }
+    fn withExpected[A, B](value: A): (A, Option[B]) { (value, None) }
+    fn repeatedExpected[T](): (Option[T], Option[T]) { (None, None) }
     fn phantom[T](value: Int32): Int32 { value }
     fn bounded[T: Trait](value: T): T { value }
     fn nongeneric(value: Int32): Int32 { value }
@@ -24,6 +26,14 @@ impl EnumFactory {
 
 fn expectedConflict(factory: ClassFactory): Bool {
     factory.identity[_](1i32)
+}
+
+fn nestedExpectedConflict(factory: ClassFactory): (Int64, Option[Bool]) {
+    factory.withExpected(true)
+}
+
+fn repeatedExpectedConflict(factory: ClassFactory): (Option[Int32], Option[Bool]) {
+    factory.repeatedExpected()
 }
 
 fn f(classFactory: ClassFactory, structFactory: StructFactory, enumFactory: EnumFactory) {

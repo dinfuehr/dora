@@ -1,0 +1,147 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-self-type-argument.dora:16:23
+ | 
+ |     fn expected_conflict(): Bool {
+ |         self.identity(1i32)
+                         ~~~~
+ |     }
+ | 
+error: Argument expects value of type `Int64` but got `Bool`.
+--> infer-self-type-argument.dora:20:28
+ | 
+ |     fn nested_expected_conflict(): (Int64, Option[Bool]) {
+ |         self.with_expected(true)
+                              ~~~~
+ |     }
+ | 
+error: `return` expects value of type `(Option[Int32], Option[Bool])` but got `(Option[Int32], Option[Int32])`.
+--> infer-self-type-argument.dora:23:68 - 25:6
+error: cannot infer type.
+--> infer-self-type-argument.dora:28:23
+ | 
+ |     fn errors() {
+ |         self.identity[_](unknown);
+                         ~
+ |         self.identity[(_, _)](unknownTuple);
+ |         self.same(1i32, true);
+error: unknown identifier `unknown`.
+--> infer-self-type-argument.dora:28:26
+ | 
+ |     fn errors() {
+ |         self.identity[_](unknown);
+                            ~~~~~~~
+ |         self.identity[(_, _)](unknownTuple);
+ |         self.same(1i32, true);
+error: cannot infer type.
+--> infer-self-type-argument.dora:29:24
+ |     fn errors() {
+ |         self.identity[_](unknown);
+ |         self.identity[(_, _)](unknownTuple);
+                          ~
+ |         self.same(1i32, true);
+ |         self.two[_](1i32, true);
+error: cannot infer type.
+--> infer-self-type-argument.dora:29:27
+ |     fn errors() {
+ |         self.identity[_](unknown);
+ |         self.identity[(_, _)](unknownTuple);
+                             ~
+ |         self.same(1i32, true);
+ |         self.two[_](1i32, true);
+error: unknown identifier `unknownTuple`.
+--> infer-self-type-argument.dora:29:31
+ |     fn errors() {
+ |         self.identity[_](unknown);
+ |         self.identity[(_, _)](unknownTuple);
+                                 ~~~~~~~~~~~~
+ |         self.same(1i32, true);
+ |         self.two[_](1i32, true);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-self-type-argument.dora:30:25
+ |         self.identity[_](unknown);
+ |         self.identity[(_, _)](unknownTuple);
+ |         self.same(1i32, true);
+                           ~~~~
+ |         self.two[_](1i32, true);
+ |         self.same_with_phantom[_](1i32, true);
+error: expected 2 type parameters but got 1.
+--> infer-self-type-argument.dora:31:9
+ |         self.identity[(_, _)](unknownTuple);
+ |         self.same(1i32, true);
+ |         self.two[_](1i32, true);
+           ~~~~~~~~~~~~~~~~~~~~~~~
+ |         self.same_with_phantom[_](1i32, true);
+ |         self.same[_, Bool](1i32, true);
+error: expected 2 type parameters but got 1.
+--> infer-self-type-argument.dora:32:9
+ |         self.same(1i32, true);
+ |         self.two[_](1i32, true);
+ |         self.same_with_phantom[_](1i32, true);
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |         self.same[_, Bool](1i32, true);
+ |         self.phantom[_](1i32);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-self-type-argument.dora:32:41
+ |         self.same(1i32, true);
+ |         self.two[_](1i32, true);
+ |         self.same_with_phantom[_](1i32, true);
+                                           ~~~~
+ |         self.same[_, Bool](1i32, true);
+ |         self.phantom[_](1i32);
+error: expected 1 type parameters but got 2.
+--> infer-self-type-argument.dora:33:9
+ |         self.two[_](1i32, true);
+ |         self.same_with_phantom[_](1i32, true);
+ |         self.same[_, Bool](1i32, true);
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |         self.phantom[_](1i32);
+ |         self.phantom(1i32);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-self-type-argument.dora:33:34
+ |         self.two[_](1i32, true);
+ |         self.same_with_phantom[_](1i32, true);
+ |         self.same[_, Bool](1i32, true);
+                                    ~~~~
+ |         self.phantom[_](1i32);
+ |         self.phantom(1i32);
+error: cannot infer type.
+--> infer-self-type-argument.dora:34:22
+ |         self.same_with_phantom[_](1i32, true);
+ |         self.same[_, Bool](1i32, true);
+ |         self.phantom[_](1i32);
+                        ~
+ |         self.phantom(1i32);
+ |         self.bounded(DoesNotImplementMarker());
+error: cannot infer type arguments: [_].
+--> infer-self-type-argument.dora:35:9
+ |         self.same[_, Bool](1i32, true);
+ |         self.phantom[_](1i32);
+ |         self.phantom(1i32);
+           ~~~~~~~~~~~~~~~~~~
+ |         self.bounded(DoesNotImplementMarker());
+ |         self.nongeneric[Int32](1i32);
+error: type `DoesNotImplementMarker` does not implement trait `Marker`.
+--> infer-self-type-argument.dora:36:9
+ |         self.phantom[_](1i32);
+ |         self.phantom(1i32);
+ |         self.bounded(DoesNotImplementMarker());
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |         self.nongeneric[Int32](1i32);
+ |         self.nongeneric[_](1i32);
+error: expected 0 type parameters but got 1.
+--> infer-self-type-argument.dora:37:9
+ |         self.phantom(1i32);
+ |         self.bounded(DoesNotImplementMarker());
+ |         self.nongeneric[Int32](1i32);
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |         self.nongeneric[_](1i32);
+ |     }
+error: expected 0 type parameters but got 1.
+--> infer-self-type-argument.dora:38:9
+ |         self.bounded(DoesNotImplementMarker());
+ |         self.nongeneric[Int32](1i32);
+ |         self.nongeneric[_](1i32);
+           ~~~~~~~~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+19 errors found.

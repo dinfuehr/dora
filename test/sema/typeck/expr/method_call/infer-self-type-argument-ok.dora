@@ -1,0 +1,53 @@
+//= ok
+trait Marker {}
+class Marked
+impl Marker for Marked {}
+
+trait Base[Tag] {
+    fn pair[T](tag: Tag, value: T): (Tag, T);
+}
+
+trait Factory: Base[String] {
+    fn identity[T](value: T): T;
+    fn from_expected[T](): T;
+    fn from_nested_expected[A, B](): (Option[A], Option[B]);
+    fn with_expected[A, B](value: A): (A, Option[B]);
+    fn repeated_expected[T](): (Option[T], Option[T]);
+    fn bounded[T: Marker](value: T): T;
+
+    fn infer_from_argument(): (Int32, Bool) {
+        (self.identity(1i32), self.identity(true))
+    }
+
+    fn infer_from_expected(): Bool {
+        self.from_expected()
+    }
+
+    fn infer_from_nested_expected(): (Option[String], Option[Bool]) {
+        self.from_nested_expected()
+    }
+
+    fn infer_from_expected_and_argument(): (Int64, Option[Bool]) {
+        self.with_expected(1)
+    }
+
+    fn infer_placeholders_from_expected_and_argument(): (Int64, Option[Bool]) {
+        self.with_expected[_, _](1)
+    }
+
+    fn infer_repeated_expected(): (Option[String], Option[String]) {
+        self.repeated_expected()
+    }
+
+    fn infer_explicit_placeholder(): Int64 {
+        self.identity[_](1i64)
+    }
+
+    fn infer_bound(): Marked {
+        self.bounded(Marked())
+    }
+
+    fn infer_super_trait_method(): (String, Int32) {
+        self.pair("tag", 1i32)
+    }
+}

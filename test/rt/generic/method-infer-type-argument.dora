@@ -2,6 +2,8 @@ class ClassFactory[Owner](Owner)
 impl[Owner] ClassFactory[Owner] {
     fn identity[T](value: T): T { value }
     fn nothing[T](): Option[T] { None }
+    fn fromExpected[A, B](): (Option[A], Option[B]) { (None, None) }
+    fn withExpected[A, B](value: A): (A, Option[B]) { (value, None) }
 }
 
 struct StructFactory[Owner](Owner)
@@ -26,6 +28,15 @@ fn main() {
     assert(classValue == 1i32);
     let classNothing: Option[Bool] = classFactory.nothing();
     assert(classNothing.is_none());
+    let classExpectedOnly: (Option[String], Option[Bool]) = classFactory.fromExpected();
+    assert(classExpectedOnly.0.is_none());
+    assert(classExpectedOnly.1.is_none());
+    let classExpectedAndArgument: (Int64, Option[Bool]) = classFactory.withExpected(5);
+    assert(classExpectedAndArgument.0 == 5i64);
+    assert(classExpectedAndArgument.1.is_none());
+    let classExpectedPlaceholders: (Int64, Option[String]) = classFactory.withExpected[_, _](6);
+    assert(classExpectedPlaceholders.0 == 6i64);
+    assert(classExpectedPlaceholders.1.is_none());
 
     let structFactory = StructFactory[String]("struct");
     let structValue: Int32 = structFactory.identity(2);

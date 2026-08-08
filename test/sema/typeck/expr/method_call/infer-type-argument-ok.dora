@@ -9,6 +9,9 @@ impl[Owner] ClassFactory[Owner] {
     fn identity[T](value: T): T { value }
     fn nothing[T](): Option[T] { None }
     fn pair[A, B](first: A, second: B): (A, B) { (first, second) }
+    fn fromExpected[A, B](): (Option[A], Option[B]) { (None, None) }
+    fn withExpected[A, B](value: A): (A, Option[B]) { (value, None) }
+    fn repeatedExpected[T](): (Option[T], Option[T]) { (None, None) }
     fn bounded[T: Trait](value: T): T { value }
 }
 
@@ -40,6 +43,11 @@ fn main() {
     takeTuple(classFactory.pair[Int32, _](1, true));
     let classNothing: Option[Bool] = classFactory.nothing();
     takeOption(classNothing);
+    let _expectedIdentity: Int64 = classFactory.identity(1);
+    let _expectedOnly: (Option[String], Option[Bool]) = classFactory.fromExpected();
+    let _expectedAndArgument: (Int64, Option[Bool]) = classFactory.withExpected(1);
+    let _expectedPlaceholders: (Int64, Option[Bool]) = classFactory.withExpected[_, _](1);
+    let _repeatedExpected: (Option[String], Option[String]) = classFactory.repeatedExpected();
     takeBounded(classFactory.bounded(ImplementsTrait()));
 
     let structFactory = StructFactory[String]("struct");

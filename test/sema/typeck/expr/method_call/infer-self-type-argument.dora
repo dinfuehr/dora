@@ -1,0 +1,40 @@
+trait Marker {}
+class DoesNotImplementMarker
+
+trait Factory {
+    fn identity[T](value: T): T;
+    fn same[T](first: T, second: T): T;
+    fn two[A, B](first: A, second: B): (A, B);
+    fn same_with_phantom[A, B](first: A, second: A): A;
+    fn with_expected[A, B](value: A): (A, Option[B]);
+    fn repeated_expected[T](): (Option[T], Option[T]);
+    fn phantom[T](value: Int32): Int32;
+    fn bounded[T: Marker](value: T): T;
+    fn nongeneric(value: Int32): Int32;
+
+    fn expected_conflict(): Bool {
+        self.identity(1i32)
+    }
+
+    fn nested_expected_conflict(): (Int64, Option[Bool]) {
+        self.with_expected(true)
+    }
+
+    fn repeated_expected_conflict(): (Option[Int32], Option[Bool]) {
+        self.repeated_expected()
+    }
+
+    fn errors() {
+        self.identity[_](unknown);
+        self.identity[(_, _)](unknownTuple);
+        self.same(1i32, true);
+        self.two[_](1i32, true);
+        self.same_with_phantom[_](1i32, true);
+        self.same[_, Bool](1i32, true);
+        self.phantom[_](1i32);
+        self.phantom(1i32);
+        self.bounded(DoesNotImplementMarker());
+        self.nongeneric[Int32](1i32);
+        self.nongeneric[_](1i32);
+    }
+}
