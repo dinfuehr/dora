@@ -1,0 +1,15 @@
+fn and_lhs(): Bool {
+    std::abort() && true
+}
+
+fn and_rhs(value: Bool): Bool {
+    value && std::abort()
+}
+
+fn or_lhs(): Bool {
+    std::abort() || false
+}
+
+fn or_rhs(value: Bool): Bool {
+    value || std::abort()
+}

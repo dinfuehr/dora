@@ -195,7 +195,7 @@ pub(super) fn check_expr_bin_and(
             check_expr_is_raw(ck, is_expr, SourceType::Bool);
         } else {
             let cond_ty = check_expr(ck, cond_id, SourceType::Bool);
-            if !cond_ty.is_bool() && !cond_ty.is_error() {
+            if !SourceType::Bool.allows(ck.sa, cond_ty.clone()) {
                 let cond_ty = cond_ty.name(ck.sa);
                 ck.report(
                     ck.expr_span(cond_id),

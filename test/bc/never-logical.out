@@ -1,0 +1,62 @@
+fn and_lhs:
+  0: InvokeStatic r0, @0 # std::abort
+  4: JumpIfFalse r0, 12 (+8)
+ 10: ConstTrue r0
+ 12: Ret r0
+
+  Registers:
+   0 => Bool
+
+  Constants:
+   0 => Fct std::abort
+
+  Locations:
+   0 => 2:5
+
+fn and_rhs:
+  0: Mov r1, r0
+  3: JumpIfFalse r1, 13 (+10)
+  9: InvokeStatic r1, @0 # std::abort
+ 13: Ret r1
+
+  Registers:
+   0 => Bool
+   1 => Bool
+
+  Constants:
+   0 => Fct std::abort
+
+  Locations:
+   9 => 6:14
+
+fn or_lhs:
+  0: InvokeStatic r0, @0 # std::abort
+  4: JumpIfTrue r0, 12 (+8)
+ 10: ConstFalse r0
+ 12: Ret r0
+
+  Registers:
+   0 => Bool
+
+  Constants:
+   0 => Fct std::abort
+
+  Locations:
+   0 => 10:5
+
+fn or_rhs:
+  0: Mov r1, r0
+  3: JumpIfTrue r1, 13 (+10)
+  9: InvokeStatic r1, @0 # std::abort
+ 13: Ret r1
+
+  Registers:
+   0 => Bool
+   1 => Bool
+
+  Constants:
+   0 => Fct std::abort
+
+  Locations:
+   9 => 14:14
+
