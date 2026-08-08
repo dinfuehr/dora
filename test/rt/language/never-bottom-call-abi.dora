@@ -1,0 +1,77 @@
+//= error code 1
+
+let mut value: Int32 = 7i32;
+
+class DirectFailure {
+    value: Int32,
+}
+
+impl DirectFailure {
+    fn fail(code: Int32): std::Never {
+        if self.value != 11i32 || code != 42i32 {
+            std::exit(2i32);
+        }
+
+        choose_virtual(false, VirtualFailure(13i32) as Failure[Result=std::Never]);
+        std::exit(2i32)
+    }
+}
+
+trait Failure {
+    type Result;
+
+    fn fail(code: Int32): Self::Result;
+}
+
+class VirtualFailure {
+    value: Int32,
+}
+
+impl Failure for VirtualFailure {
+    type Result = std::Never;
+
+    fn fail(code: Int32): std::Never {
+        if self.value != 13i32 || code != 44i32 {
+            std::exit(2i32);
+        }
+
+        std::exit(1i32)
+    }
+}
+
+fn fail_static(code: Int32): std::Never {
+    if code != 40i32 {
+        std::exit(2i32);
+    }
+
+    choose_direct(false, DirectFailure(11i32));
+    std::exit(2i32)
+}
+
+fn choose_static(take_value: Bool): ref Int32 {
+    if take_value {
+        ref value
+    } else {
+        fail_static(40i32)
+    }
+}
+
+fn choose_direct(take_value: Bool, failure: DirectFailure): ref Int32 {
+    if take_value {
+        ref value
+    } else {
+        failure.fail(42i32)
+    }
+}
+
+fn choose_virtual(take_value: Bool, failure: Failure[Result=std::Never]): ref Int32 {
+    if take_value {
+        ref value
+    } else {
+        failure.fail(44i32)
+    }
+}
+
+fn main() {
+    choose_static(false);
+}

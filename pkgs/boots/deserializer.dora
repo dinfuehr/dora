@@ -442,12 +442,14 @@ pub fn decode_inlining_function_data(reader: ByteReader): InliningFunctionData {
 }
 
 pub fn decode_function_inlining_info(reader: ByteReader): FunctionInliningInfo {
+    let return_type = decode_bytecode_type(reader);
     let has_bytecode = reader.read_bool();
     let bytecode_size = reader.read_int32();
     let has_force_inline_annotation = reader.read_bool();
     let has_never_inline_annotation = reader.read_bool();
 
     FunctionInliningInfo(
+        return_type,
         has_bytecode,
         bytecode_size,
         has_force_inline_annotation,

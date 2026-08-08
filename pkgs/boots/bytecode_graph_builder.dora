@@ -39,10 +39,19 @@ use package::graph::{
 };
 use package::graph::ty::Type;
 use package::interface as iface;
-use package::interface::{InlinedFunctionId, InlinedLocation, config};
+use package::interface::{
+    FunctionInliningInfo,
+    InlinedFunctionId,
+    InlinedLocation,
+    config,
+};
 use package::regalloc::{EnumLayout, RecordLayout, is_reference};
 use package::regalloc;
-use package::specialize::{specialize_array, specialize_ty};
+use package::specialize::{
+    specialize_array,
+    specialize_ty,
+    specialize_ty_for_trait_object,
+};
 
 mod intrinsics;
 pub mod trait_object_thunk;
@@ -840,8 +849,7 @@ impl BytecodeGraphBuilder {
                 self.emit_invoke_direct(dest, idx, arguments)
             }
             BytecodeInstruction::InvokeVirtual(dest, idx, arguments) => {
-                self.emit_invoke_virtual(dest, idx, arguments);
-                false
+                self.emit_invoke_virtual(dest, idx, arguments)
             }
             BytecodeInstruction::InvokeStatic(dest, idx, arguments) => {
                 self.emit_invoke_static(dest, idx, arguments)
@@ -2082,7 +2090,15 @@ impl BytecodeGraphBuilder {
         let args = Vec[Inst]::new();
         args.reserve(arguments.size());
         let dest_ty = self.reg(dest);
-        let passing_mode = cc::argument_passing_mode(self.ci, dest_ty);
+        let function_info = iface::get_function_info_for_inlining(fct_id);
+        let callee_type_params = self.specialize_array(type_params);
+        let declared_return_type = specialize_ty(
+            self.ci,
+            function_info.return_type,
+            callee_type_params,
+        );
+        let returns_never = declared_return_type.is_never();
+        let passing_mode = cc::argument_passing_mode(self.ci, declared_return_type);
         let return_ty = self.return_graph_ty(passing_mode);
         let return_address = if passing_mode is ArgumentPassingMode::Stack ||
             passing_mode is ArgumentPassingMode::InteriorPointer
@@ -2096,9 +2112,20 @@ impl BytecodeGraphBuilder {
             self.append_call_arguments(args, reg);
         }
 
-        let inst = self.emit_call(fct_id, type_params, args, return_address, return_ty);
-        self.store_call_result(dest, dest_ty, passing_mode, inst, return_ty);
-        false
+        let inst = self.emit_call(
+            fct_id,
+            type_params,
+            args,
+            return_address,
+            return_ty,
+            function_info,
+        );
+        if returns_never {
+            self.current().append_inst(graph::create_unreachable_inst());
+        } else {
+            self.store_call_result(dest, dest_ty, passing_mode, inst, return_ty);
+        }
+        returns_never
     }
 
     fn emit_call(
@@ -2107,6 +2134,7 @@ impl BytecodeGraphBuilder {
         args: Vec[Inst],
         return_address: Option[Inst],
         return_ty: Type,
+        function_info: FunctionInliningInfo,
     ): Inst {
         let call_args = Vec[Inst]::new();
         if return_address is Some(return_address) {
@@ -2122,7 +2150,7 @@ impl BytecodeGraphBuilder {
         let inst = graph::create_invoke_inst(extra, call_args, return_ty);
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
-        add_to_inlinable_calls(self.ci, self.graph, fct_id, inst);
+        add_to_inlinable_calls(self.ci, self.graph, inst, function_info);
         inst
     }
 
@@ -2130,11 +2158,29 @@ impl BytecodeGraphBuilder {
         dest: BytecodeRegister,
         idx: ConstPoolId,
         arguments: Array[BytecodeRegister],
-    ) {
+    ): Bool {
         let args = Vec[Inst]::new();
         args.reserve(arguments.size());
         let dest_ty = self.reg(dest);
-        let passing_mode = cc::argument_passing_mode(self.ci, dest_ty);
+        let ConstPoolEntry::TraitObjectMethod(
+            trait_object_ty,
+            trait_fct_id,
+        ) = self.bc().const_pool_entry(idx);
+        let trait_object_ty = self.specialize_ty(trait_object_ty);
+        let function_info = iface::get_function_info_for_inlining(trait_fct_id);
+        let BytecodeType::TraitObject(
+            trait_id,
+            trait_type_params,
+            bindings,
+        ) = trait_object_ty;
+        let declared_return_type = specialize_ty_for_trait_object(
+            self.ci,
+            function_info.return_type,
+            trait_type_params,
+            bindings,
+        );
+        let returns_never = declared_return_type.is_never();
+        let passing_mode = cc::argument_passing_mode(self.ci, declared_return_type);
         let return_ty = match passing_mode {
             ArgumentPassingMode::None
             | ArgumentPassingMode::InteriorPointer
@@ -2153,11 +2199,6 @@ impl BytecodeGraphBuilder {
             self.append_call_arguments(args, reg);
         }
 
-        let ConstPoolEntry::TraitObjectMethod(
-            trait_object_ty,
-            trait_fct_id,
-        ) = self.bc().const_pool_entry(idx);
-        let BytecodeType::TraitObject(trait_id, ..) = trait_object_ty;
         let vtable_index = iface::get_function_vtable_index(trait_id, trait_fct_id);
         let info = VirtualFunctionInfo(receiver_is_first, trait_object_ty, vtable_index);
         let inst = graph::create_invoke_virtual_inst(info, args, return_ty);
@@ -2165,7 +2206,12 @@ impl BytecodeGraphBuilder {
         self.set_current_inlined_location(inst);
         self.current().append_inst(inst);
 
-        self.store_call_result(dest, dest_ty, passing_mode, inst, return_ty);
+        if returns_never {
+            self.current().append_inst(graph::create_unreachable_inst());
+        } else {
+            self.store_call_result(dest, dest_ty, passing_mode, inst, return_ty);
+        }
+        returns_never
     }
 
     fn append_call_arguments(args: Vec[Inst], reg: BytecodeRegister) {
@@ -2207,6 +2253,12 @@ impl BytecodeGraphBuilder {
         result: Inst,
         result_ty: Type,
     ) {
+        // A Unit destination means that the caller discards the result, even when the declared
+        // return type has a value.
+        if dest_ty.is_unit() {
+            return;
+        }
+
         match passing_mode {
             ArgumentPassingMode::None => {}
             ArgumentPassingMode::Register(_) => {
@@ -3267,11 +3319,9 @@ fn compute_bytecode_enum_layout(
 pub fn add_to_inlinable_calls(
     ci: CompilationInfo,
     graph: Graph,
-    fct_id: FunctionId,
     inst: Inst,
+    info: FunctionInliningInfo,
 ) {
-    let info = iface::get_function_info_for_inlining(fct_id);
-
     if !info.has_bytecode || info.has_never_inline_annotation {
         return;
     }

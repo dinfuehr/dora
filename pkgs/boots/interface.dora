@@ -60,6 +60,9 @@ pub fn get_system_config_raw(): Array[UInt8];
 pub fn get_function_vtable_index_raw(trait_id: Int32, fct_id: Int32): Int32;
 
 @native
+pub fn get_alias_idx_in_trait_raw(alias_id: Int32): Int32;
+
+@native
 pub fn get_function_display_name_raw(fct_id: Int32): Array[UInt8];
 
 @native
@@ -147,6 +150,10 @@ pub fn get_function_info_for_inlining(fct_id: FunctionId): FunctionInliningInfo 
     let decoded = deserializer::decode_function_inlining_info(reader);
     assert(!reader.more_bytes());
     decoded
+}
+
+pub fn get_alias_idx_in_trait(alias_id: AliasId): Int64 {
+    get_alias_idx_in_trait_raw(alias_id.0).to_int64()
 }
 
 pub fn get_class_size_for_trait_object(
@@ -779,6 +786,7 @@ pub struct InliningFunctionData {
 }
 
 pub struct FunctionInliningInfo {
+    pub return_type: BytecodeType,
     pub has_bytecode: Bool,
     pub bytecode_size: Int32,
     pub has_force_inline_annotation: Bool,

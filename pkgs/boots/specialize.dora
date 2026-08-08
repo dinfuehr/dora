@@ -79,3 +79,112 @@ pub fn specialize_array(
 
     result
 }
+
+pub fn specialize_ty_for_trait_object(
+    ci: CompilationInfo,
+    ty: BytecodeType,
+    type_params: Array[BytecodeType],
+    assoc_types: Array[BytecodeType],
+): BytecodeType {
+    match ty {
+        BytecodeType::Unit
+        | BytecodeType::Never
+        | BytecodeType::Address
+        | BytecodeType::UInt8
+        | BytecodeType::Bool
+        | BytecodeType::Char
+        | BytecodeType::Int32
+        | BytecodeType::Int64
+        | BytecodeType::Float32
+        | BytecodeType::Float64 => ty,
+        // The receiver is the only `This` allowed in an object-safe method signature and is
+        // handled separately as the trait object. This helper specializes the method's return
+        // type, where `This` has already been rejected by the object-safety check.
+        BytecodeType::This => {
+            unreachable[BytecodeType]()
+        }
+        BytecodeType::TypeAlias(..) => {
+            unreachable[BytecodeType]()
+        }
+        BytecodeType::Struct(struct_id, struct_type_params) => {
+            BytecodeType::Struct(
+                struct_id,
+                specialize_array_for_trait_object(
+                    ci,
+                    struct_type_params,
+                    type_params,
+                    assoc_types,
+                ),
+            )
+        }
+        BytecodeType::Enum(enum_id, enum_type_params) => {
+            BytecodeType::Enum(
+                enum_id,
+                specialize_array_for_trait_object(
+                    ci,
+                    enum_type_params,
+                    type_params,
+                    assoc_types,
+                ),
+            )
+        }
+        BytecodeType::Class(class_id, class_type_params) => {
+            BytecodeType::Class(
+                class_id,
+                specialize_array_for_trait_object(
+                    ci,
+                    class_type_params,
+                    type_params,
+                    assoc_types,
+                ),
+            )
+        }
+        BytecodeType::TraitObject(trait_id, trait_type_params, trait_assoc_types) => {
+            BytecodeType::TraitObject(
+                trait_id,
+                specialize_array_for_trait_object(
+                    ci,
+                    trait_type_params,
+                    type_params,
+                    assoc_types,
+                ),
+                specialize_array_for_trait_object(
+                    ci,
+                    trait_assoc_types,
+                    type_params,
+                    assoc_types,
+                ),
+            )
+        }
+        BytecodeType::Tuple(subtypes) => {
+            BytecodeType::Tuple(
+                specialize_array_for_trait_object(ci, subtypes, type_params, assoc_types)
+            )
+        }
+        BytecodeType::Ref(inner) => {
+            BytecodeType::Ref(
+                specialize_ty_for_trait_object(ci, inner, type_params, assoc_types)
+            )
+        }
+        BytecodeType::TypeParam(idx) => type_params(idx.to_int64()),
+        BytecodeType::Assoc(ty = _ty, trait_ty = _trait_ty, assoc_id) => {
+            assoc_types(iface::get_alias_idx_in_trait(assoc_id))
+        }
+    }
+}
+
+fn specialize_array_for_trait_object(
+    ci: CompilationInfo,
+    array: Array[BytecodeType],
+    type_params: Array[BytecodeType],
+    assoc_types: Array[BytecodeType],
+): Array[BytecodeType] {
+    let result = Array[BytecodeType]::fill(array.size(), BytecodeType::Unit);
+
+    for idx in std::range(0, array.size()) {
+        result(idx) =
+        specialize_ty_for_trait_object(ci, array(idx), type_params, assoc_types);
+    }
+
+    result
+}

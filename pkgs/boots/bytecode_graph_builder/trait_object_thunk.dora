@@ -9,6 +9,7 @@ use package::graph;
 use package::graph::{Block, Graph, Inst, InstExtraData};
 use package::graph::ty::Type;
 use package::interface as iface;
+use package::specialize::specialize_ty;
 
 impl BytecodeGraphBuilder {
     pub static fn new_for_trait_object_thunk(
@@ -97,13 +98,25 @@ impl BytecodeGraphBuilder {
         let return_ty = self.return_graph_ty(return_mode);
         let intrinsic = iface::get_intrinsic_for_function(thunk.callee_fct_id);
         assert(!self.is_intrinsic(intrinsic));
+        let function_info = iface::get_function_info_for_inlining(thunk.callee_fct_id);
+        let declared_return_type = specialize_ty(
+            self.ci,
+            function_info.return_type,
+            thunk.callee_type_params,
+        );
+        let returns_never = declared_return_type.is_never();
         let invoke = self.emit_call(
             thunk.callee_fct_id,
             thunk.callee_type_params,
             args,
             return_address,
             return_ty,
+            function_info,
         );
+        if returns_never {
+            self.current().append_inst(graph::create_unreachable_inst());
+            return;
+        }
         match return_mode {
             ArgumentPassingMode::Register(_) => {
                 let return_inst = graph::create_return_inst(invoke, return_ty);

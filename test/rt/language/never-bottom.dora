@@ -1,0 +1,88 @@
+let mut value: Int32 = 7i32;
+
+class DirectFailure
+
+impl DirectFailure {
+    fn fail(_code: Int32): std::Never {
+        std::abort()
+    }
+}
+
+trait Failure {
+    fn fail(code: Int32): std::Never;
+}
+
+class VirtualFailure
+
+impl Failure for VirtualFailure {
+    fn fail(_code: Int32): std::Never {
+        std::abort()
+    }
+}
+
+fn main() {
+    assert(if_else(true) == 1i32);
+    assert(if_then(false) == 2i32);
+
+    let first = ref mut ref_else(true);
+    assert(first == 7i32);
+    first = 8i32;
+    assert(value == 8i32);
+
+    let second = ref_then(false);
+    assert(second == 8i32);
+
+    let direct = ref_from_direct(true, DirectFailure());
+    assert(direct == 8i32);
+
+    let virtual = ref_from_virtual(true, VirtualFailure() as Failure);
+    assert(virtual == 8i32);
+}
+
+fn if_else(x: Bool): Int32 {
+    if x {
+        1
+    } else {
+        std::abort()
+    }
+}
+
+fn if_then(x: Bool): Int32 {
+    if x {
+        std::abort()
+    } else {
+        2
+    }
+}
+
+fn ref_else(x: Bool): ref mut Int32 {
+    if x {
+        ref mut value
+    } else {
+        std::abort()
+    }
+}
+
+fn ref_then(x: Bool): ref Int32 {
+    if x {
+        std::abort()
+    } else {
+        ref value
+    }
+}
+
+fn ref_from_direct(x: Bool, failure: DirectFailure): ref Int32 {
+    if x {
+        ref value
+    } else {
+        failure.fail(1i32)
+    }
+}
+
+fn ref_from_virtual(x: Bool, failure: Failure): ref Int32 {
+    if x {
+        ref value
+    } else {
+        failure.fail(2i32)
+    }
+}

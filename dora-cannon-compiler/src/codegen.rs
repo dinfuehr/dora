@@ -15,8 +15,8 @@ use dora_compiler::{
     AllocationSize, AnyReg, AotEnumLayout, AotLayout, AotShapeKey, ArgumentPassingMode,
     CodeDescriptor, CompilationData, GLOBAL_INITIALIZED, GcPoint, Header, Intrinsic, MachineMode,
     Reg, RuntimeFunction, TraitObjectThunkCompilationData, Trap, align_i32, argument_passing_mode,
-    find_trait_impl_in_program, ptr_width, ptr_width_usize, specialize_ty_array_in_program,
-    specialize_ty_in_program,
+    find_trait_impl_in_program, ptr_width, ptr_width_usize, specialize_bty_for_trait_object,
+    specialize_ty_array_in_program, specialize_ty_in_program,
 };
 
 macro_rules! comment {
@@ -2661,19 +2661,35 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         arguments: Vec<Register>,
         location: Location,
     ) {
-        let bytecode_type = self.specialize_register_type(dest);
+        let trait_object_ty = self.specialize_ty(trait_object_ty);
 
         let self_register = arguments[0];
 
         let bytecode_type_self = self.bytecode().register_type(self_register);
         assert!(bytecode_type_self.is_reference_type());
 
-        let trait_id = match &trait_object_ty {
-            BytecodeType::TraitObject(trait_id, ..) => *trait_id,
+        let (trait_id, type_params, bindings) = match &trait_object_ty {
+            BytecodeType::TraitObject(trait_id, type_params, bindings) => {
+                (*trait_id, type_params, bindings)
+            }
             _ => unreachable!(),
         };
 
-        let argsize = self.emit_invoke_arguments(dest, bytecode_type.clone(), arguments);
+        let function = self.program.fct(trait_fct_id);
+        let type_params = if function.has_bytecode_self_type_param() {
+            type_params.append(trait_object_ty.clone())
+        } else {
+            type_params.clone()
+        };
+        let return_type = specialize_bty_for_trait_object(
+            self.program,
+            function.return_type.clone(),
+            trait_id,
+            &type_params,
+            bindings,
+        );
+
+        let argsize = self.emit_invoke_arguments(dest, return_type.clone(), arguments);
 
         let vtable_index = self
             .program
@@ -2687,9 +2703,9 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         let gcpoint = self.create_gcpoint();
 
-        let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type.clone());
+        let (result_reg, result_mode) = self.call_result_reg_and_mode(return_type.clone());
 
-        let self_index = if self.has_hidden_result_address(&bytecode_type) {
+        let self_index = if self.has_hidden_result_address(&return_type) {
             1
         } else {
             0
@@ -2706,7 +2722,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         self.asm.decrease_stack_frame(argsize);
 
-        self.store_call_result(dest, result_reg);
+        self.store_call_result(dest, result_reg, &return_type);
     }
 
     fn emit_invoke_direct_from_bytecode(
@@ -2754,13 +2770,17 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         arguments: Vec<Register>,
         location: Location,
     ) {
-        let dest_ty = self.specialize_register_type(dest);
+        let return_type = specialize_ty_in_program(
+            self.program,
+            self.program.fct(fct_id).return_type.clone(),
+            &type_params,
+        );
 
-        let argsize = self.emit_invoke_arguments(dest, dest_ty.clone(), arguments);
+        let argsize = self.emit_invoke_arguments(dest, return_type.clone(), arguments);
 
         let gcpoint = self.create_gcpoint();
 
-        let (result_reg, result_mode) = self.call_result_reg_and_mode(dest_ty);
+        let (result_reg, result_mode) = self.call_result_reg_and_mode(return_type.clone());
 
         self.asm.direct_call(
             fct_id,
@@ -2773,7 +2793,7 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         self.asm.decrease_stack_frame(argsize);
 
-        self.store_call_result(dest, result_reg);
+        self.store_call_result(dest, result_reg, &return_type);
     }
 
     fn emit_invoke_static_from_bytecode(
@@ -2821,13 +2841,17 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
         arguments: Vec<Register>,
         location: Location,
     ) {
-        let bytecode_type = self.specialize_register_type(dest);
+        let return_type = specialize_ty_in_program(
+            self.program,
+            self.program.fct(fct_id).return_type.clone(),
+            &type_params,
+        );
 
-        let argsize = self.emit_invoke_arguments(dest, bytecode_type.clone(), arguments);
+        let argsize = self.emit_invoke_arguments(dest, return_type.clone(), arguments);
 
         let gcpoint = self.create_gcpoint();
 
-        let (result_reg, result_mode) = self.call_result_reg_and_mode(bytecode_type);
+        let (result_reg, result_mode) = self.call_result_reg_and_mode(return_type.clone());
 
         self.asm.direct_call(
             fct_id,
@@ -2840,12 +2864,17 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
 
         self.asm.decrease_stack_frame(argsize);
 
-        self.store_call_result(dest, result_reg);
+        self.store_call_result(dest, result_reg, &return_type);
     }
 
-    fn store_call_result(&mut self, dest: Register, reg: AnyReg) {
-        let bytecode_ty = self.specialize_register_type(dest);
-        if let ArgumentPassingMode::Register(register_ty) = self.argument_passing_mode(&bytecode_ty)
+    fn store_call_result(&mut self, dest: Register, reg: AnyReg, return_type: &BytecodeType) {
+        // A Unit destination means that the caller discards the result, even when the declared
+        // return type has a value.
+        if self.specialize_register_type(dest).is_unit() {
+            return;
+        }
+
+        if let ArgumentPassingMode::Register(register_ty) = self.argument_passing_mode(return_type)
         {
             self.emit_store_register_as(reg, dest, self.mode(register_ty));
         }

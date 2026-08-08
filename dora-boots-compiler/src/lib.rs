@@ -5,7 +5,7 @@ use std::ptr;
 use dora_runtime_macros::dora_native;
 
 use dora_bytecode::{
-    BytecodeTraitType, ClassId, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId,
+    AliasId, BytecodeTraitType, ClassId, ConstId, ConstPoolEntry, ConstPoolIdx, EnumId, FunctionId,
     FunctionKind, GlobalId, Program, StructId, TraitId, display_fct, display_fct_specialized,
 };
 use dora_compiler::wire::{
@@ -158,6 +158,16 @@ fn active_aot_context() -> &'static AotCodegenContext<'static> {
 
     // The pointer is installed by AOT compilation while the boxed context is alive.
     unsafe { &*(context as *const AotCodegenContext<'static>) }
+}
+
+#[dora_native("interface::get_alias_idx_in_trait_raw")]
+extern "C" fn get_alias_idx_in_trait_raw(alias_id: AliasId) -> u32 {
+    active_aot_context()
+        .program()
+        .alias(alias_id)
+        .idx_in_trait()
+        .try_into()
+        .expect("overflow")
 }
 
 #[dora_native("interface::get_function_vtable_index_raw")]

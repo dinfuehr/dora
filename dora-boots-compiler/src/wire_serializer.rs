@@ -76,6 +76,7 @@ pub fn encode_enum_data(enum_: &EnumData, buffer: &mut ByteBuffer) {
 }
 
 pub fn encode_function_inlining_info(fct: &FunctionData, buffer: &mut ByteBuffer) {
+    encode_bytecode_type(&fct.return_type, buffer);
     buffer.emit_bool(fct.bytecode.is_some());
     buffer.emit_u32(
         fct.bytecode
