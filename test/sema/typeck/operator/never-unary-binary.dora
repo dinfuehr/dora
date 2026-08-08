@@ -1,0 +1,76 @@
+//= error
+
+fn unary() {
+    -std::abort();
+    !std::abort();
+}
+
+fn arithmetic_rhs(value: Int32) {
+    value + std::abort();
+    value - std::abort();
+    value * std::abort();
+    value / std::abort();
+    value % std::abort();
+}
+
+fn arithmetic_lhs(value: Int32) {
+    std::abort() + value;
+    std::abort() - value;
+    std::abort() * value;
+    std::abort() / value;
+    std::abort() % value;
+}
+
+fn bitwise_rhs(value: Int32) {
+    value | std::abort();
+    value & std::abort();
+    value ^ std::abort();
+}
+
+fn bitwise_lhs(value: Int32) {
+    std::abort() | value;
+    std::abort() & value;
+    std::abort() ^ value;
+}
+
+fn shifts_rhs(value: Int32) {
+    value << std::abort();
+    value >> std::abort();
+    value >>> std::abort();
+}
+
+fn shifts_lhs(value: Int32) {
+    std::abort() << value;
+    std::abort() >> value;
+    std::abort() >>> value;
+}
+
+fn comparisons_rhs(value: Int32) {
+    value == std::abort();
+    value != std::abort();
+    value < std::abort();
+    value <= std::abort();
+    value > std::abort();
+    value >= std::abort();
+}
+
+fn comparisons_lhs(value: Int32) {
+    std::abort() == value;
+    std::abort() != value;
+    std::abort() < value;
+    std::abort() <= value;
+    std::abort() > value;
+    std::abort() >= value;
+}
+
+class Foo
+
+fn identity_rhs(value: Foo) {
+    value === std::abort();
+    value !== std::abort();
+}
+
+fn identity_lhs(value: Foo) {
+    std::abort() === value;
+    std::abort() !== value;
+}

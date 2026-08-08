@@ -1,0 +1,321 @@
+error: unary operator `-` can not handle value of type `- Never`.
+--> never-unary-binary.dora:4:5
+ | 
+ | fn unary() {
+ |     -std::abort();
+       ~~~~~~~~~~~~~
+ |     !std::abort();
+ | }
+error: unary operator `!` can not handle value of type `! Never`.
+--> never-unary-binary.dora:5:5
+ | fn unary() {
+ |     -std::abort();
+ |     !std::abort();
+       ~~~~~~~~~~~~~
+ | }
+ | 
+error: binary operator `+` can not handle expression of type `Int32 + Never`
+--> never-unary-binary.dora:9:5
+ | 
+ | fn arithmetic_rhs(value: Int32) {
+ |     value + std::abort();
+       ~~~~~~~~~~~~~~~~~~~~
+ |     value - std::abort();
+ |     value * std::abort();
+error: binary operator `-` can not handle expression of type `Int32 - Never`
+--> never-unary-binary.dora:10:5
+ | fn arithmetic_rhs(value: Int32) {
+ |     value + std::abort();
+ |     value - std::abort();
+       ~~~~~~~~~~~~~~~~~~~~
+ |     value * std::abort();
+ |     value / std::abort();
+error: binary operator `*` can not handle expression of type `Int32 * Never`
+--> never-unary-binary.dora:11:5
+ |     value + std::abort();
+ |     value - std::abort();
+ |     value * std::abort();
+       ~~~~~~~~~~~~~~~~~~~~
+ |     value / std::abort();
+ |     value % std::abort();
+error: binary operator `/` can not handle expression of type `Int32 / Never`
+--> never-unary-binary.dora:12:5
+ |     value - std::abort();
+ |     value * std::abort();
+ |     value / std::abort();
+       ~~~~~~~~~~~~~~~~~~~~
+ |     value % std::abort();
+ | }
+error: binary operator `%` can not handle expression of type `Int32 % Never`
+--> never-unary-binary.dora:13:5
+ |     value * std::abort();
+ |     value / std::abort();
+ |     value % std::abort();
+       ~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: binary operator `+` can not handle expression of type `Never + Int32`
+--> never-unary-binary.dora:17:5
+ | 
+ | fn arithmetic_lhs(value: Int32) {
+ |     std::abort() + value;
+       ~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() - value;
+ |     std::abort() * value;
+error: binary operator `-` can not handle expression of type `Never - Int32`
+--> never-unary-binary.dora:18:5
+ | fn arithmetic_lhs(value: Int32) {
+ |     std::abort() + value;
+ |     std::abort() - value;
+       ~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() * value;
+ |     std::abort() / value;
+error: binary operator `*` can not handle expression of type `Never * Int32`
+--> never-unary-binary.dora:19:5
+ |     std::abort() + value;
+ |     std::abort() - value;
+ |     std::abort() * value;
+       ~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() / value;
+ |     std::abort() % value;
+error: binary operator `/` can not handle expression of type `Never / Int32`
+--> never-unary-binary.dora:20:5
+ |     std::abort() - value;
+ |     std::abort() * value;
+ |     std::abort() / value;
+       ~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() % value;
+ | }
+error: binary operator `%` can not handle expression of type `Never % Int32`
+--> never-unary-binary.dora:21:5
+ |     std::abort() * value;
+ |     std::abort() / value;
+ |     std::abort() % value;
+       ~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: binary operator `|` can not handle expression of type `Int32 | Never`
+--> never-unary-binary.dora:25:5
+ | 
+ | fn bitwise_rhs(value: Int32) {
+ |     value | std::abort();
+       ~~~~~~~~~~~~~~~~~~~~
+ |     value & std::abort();
+ |     value ^ std::abort();
+error: binary operator `&` can not handle expression of type `Int32 & Never`
+--> never-unary-binary.dora:26:5
+ | fn bitwise_rhs(value: Int32) {
+ |     value | std::abort();
+ |     value & std::abort();
+       ~~~~~~~~~~~~~~~~~~~~
+ |     value ^ std::abort();
+ | }
+error: binary operator `^` can not handle expression of type `Int32 ^ Never`
+--> never-unary-binary.dora:27:5
+ |     value | std::abort();
+ |     value & std::abort();
+ |     value ^ std::abort();
+       ~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: binary operator `|` can not handle expression of type `Never | Int32`
+--> never-unary-binary.dora:31:5
+ | 
+ | fn bitwise_lhs(value: Int32) {
+ |     std::abort() | value;
+       ~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() & value;
+ |     std::abort() ^ value;
+error: binary operator `&` can not handle expression of type `Never & Int32`
+--> never-unary-binary.dora:32:5
+ | fn bitwise_lhs(value: Int32) {
+ |     std::abort() | value;
+ |     std::abort() & value;
+       ~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() ^ value;
+ | }
+error: binary operator `^` can not handle expression of type `Never ^ Int32`
+--> never-unary-binary.dora:33:5
+ |     std::abort() | value;
+ |     std::abort() & value;
+ |     std::abort() ^ value;
+       ~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: binary operator `<<` can not handle expression of type `Int32 << Never`
+--> never-unary-binary.dora:37:5
+ | 
+ | fn shifts_rhs(value: Int32) {
+ |     value << std::abort();
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     value >> std::abort();
+ |     value >>> std::abort();
+error: binary operator `>>` can not handle expression of type `Int32 >> Never`
+--> never-unary-binary.dora:38:5
+ | fn shifts_rhs(value: Int32) {
+ |     value << std::abort();
+ |     value >> std::abort();
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     value >>> std::abort();
+ | }
+error: binary operator `>>>` can not handle expression of type `Int32 >>> Never`
+--> never-unary-binary.dora:39:5
+ |     value << std::abort();
+ |     value >> std::abort();
+ |     value >>> std::abort();
+       ~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: binary operator `<<` can not handle expression of type `Never << Int32`
+--> never-unary-binary.dora:43:5
+ | 
+ | fn shifts_lhs(value: Int32) {
+ |     std::abort() << value;
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() >> value;
+ |     std::abort() >>> value;
+error: binary operator `>>` can not handle expression of type `Never >> Int32`
+--> never-unary-binary.dora:44:5
+ | fn shifts_lhs(value: Int32) {
+ |     std::abort() << value;
+ |     std::abort() >> value;
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() >>> value;
+ | }
+error: binary operator `>>>` can not handle expression of type `Never >>> Int32`
+--> never-unary-binary.dora:45:5
+ |     std::abort() << value;
+ |     std::abort() >> value;
+ |     std::abort() >>> value;
+       ~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: binary operator `==` can not handle expression of type `Int32 == Never`
+--> never-unary-binary.dora:49:5
+ | 
+ | fn comparisons_rhs(value: Int32) {
+ |     value == std::abort();
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     value != std::abort();
+ |     value < std::abort();
+error: binary operator `!=` can not handle expression of type `Int32 != Never`
+--> never-unary-binary.dora:50:5
+ | fn comparisons_rhs(value: Int32) {
+ |     value == std::abort();
+ |     value != std::abort();
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     value < std::abort();
+ |     value <= std::abort();
+error: binary operator `<` can not handle expression of type `Int32 < Never`
+--> never-unary-binary.dora:51:5
+ |     value == std::abort();
+ |     value != std::abort();
+ |     value < std::abort();
+       ~~~~~~~~~~~~~~~~~~~~
+ |     value <= std::abort();
+ |     value > std::abort();
+error: binary operator `<=` can not handle expression of type `Int32 <= Never`
+--> never-unary-binary.dora:52:5
+ |     value != std::abort();
+ |     value < std::abort();
+ |     value <= std::abort();
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     value > std::abort();
+ |     value >= std::abort();
+error: binary operator `>` can not handle expression of type `Int32 > Never`
+--> never-unary-binary.dora:53:5
+ |     value < std::abort();
+ |     value <= std::abort();
+ |     value > std::abort();
+       ~~~~~~~~~~~~~~~~~~~~
+ |     value >= std::abort();
+ | }
+error: binary operator `>=` can not handle expression of type `Int32 >= Never`
+--> never-unary-binary.dora:54:5
+ |     value <= std::abort();
+ |     value > std::abort();
+ |     value >= std::abort();
+       ~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: binary operator `==` can not handle expression of type `Never == Int32`
+--> never-unary-binary.dora:58:5
+ | 
+ | fn comparisons_lhs(value: Int32) {
+ |     std::abort() == value;
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() != value;
+ |     std::abort() < value;
+error: binary operator `!=` can not handle expression of type `Never != Int32`
+--> never-unary-binary.dora:59:5
+ | fn comparisons_lhs(value: Int32) {
+ |     std::abort() == value;
+ |     std::abort() != value;
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() < value;
+ |     std::abort() <= value;
+error: binary operator `<` can not handle expression of type `Never < Int32`
+--> never-unary-binary.dora:60:5
+ |     std::abort() == value;
+ |     std::abort() != value;
+ |     std::abort() < value;
+       ~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() <= value;
+ |     std::abort() > value;
+error: binary operator `<=` can not handle expression of type `Never <= Int32`
+--> never-unary-binary.dora:61:5
+ |     std::abort() != value;
+ |     std::abort() < value;
+ |     std::abort() <= value;
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() > value;
+ |     std::abort() >= value;
+error: binary operator `>` can not handle expression of type `Never > Int32`
+--> never-unary-binary.dora:62:5
+ |     std::abort() < value;
+ |     std::abort() <= value;
+ |     std::abort() > value;
+       ~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() >= value;
+ | }
+error: binary operator `>=` can not handle expression of type `Never >= Int32`
+--> never-unary-binary.dora:63:5
+ |     std::abort() <= value;
+ |     std::abort() > value;
+ |     std::abort() >= value;
+       ~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: types `Foo` and `Never` incompatible.
+--> never-unary-binary.dora:69:5
+ | 
+ | fn identity_rhs(value: Foo) {
+ |     value === std::abort();
+       ~~~~~~~~~~~~~~~~~~~~~~
+ |     value !== std::abort();
+ | }
+error: types `Foo` and `Never` incompatible.
+--> never-unary-binary.dora:70:5
+ | fn identity_rhs(value: Foo) {
+ |     value === std::abort();
+ |     value !== std::abort();
+       ~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+error: types `Never` and `Foo` incompatible.
+--> never-unary-binary.dora:74:5
+ | 
+ | fn identity_lhs(value: Foo) {
+ |     std::abort() === value;
+       ~~~~~~~~~~~~~~~~~~~~~~
+ |     std::abort() !== value;
+ | }
+error: types `Never` and `Foo` incompatible.
+--> never-unary-binary.dora:75:5
+ | fn identity_lhs(value: Foo) {
+ |     std::abort() === value;
+ |     std::abort() !== value;
+       ~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+40 errors found.

@@ -251,6 +251,7 @@ fn check_expr_bin_trait(
     rhs_type: SourceType,
 ) -> SourceType {
     let trait_ty = TraitType::from_trait_id(trait_id);
+    let rhs_is_never = rhs_type.is_never();
 
     let impl_match = find_impl(
         ck.sa,
@@ -294,7 +295,7 @@ fn check_expr_bin_trait(
             let param = params[0].ty();
             let param = replace_type(ck.sa, param, &type_params);
 
-            if !param.allows(ck.sa, rhs_type.clone())
+            if (rhs_is_never || !param.allows(ck.sa, rhs_type.clone()))
                 && !lhs_type.is_error()
                 && !rhs_type.is_error()
             {
@@ -347,7 +348,7 @@ fn check_expr_bin_trait(
         let param = params[0].ty();
         let param = replace_type(ck.sa, param, &type_params);
 
-        if !param.allows(ck.sa, rhs_type.clone()) {
+        if rhs_is_never || !param.allows(ck.sa, rhs_type.clone()) {
             let lhs_type = ck.ty_name(&lhs_type);
             let rhs_type = ck.ty_name(&rhs_type);
             ck.report(
