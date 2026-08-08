@@ -2268,7 +2268,7 @@ pub(crate) struct ExpectedCallArgs {
 }
 
 fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<SourceType>) -> bool {
-    if arg.is_error() {
+    if arg.is_error() || arg.is_never(sa) {
         return true;
     }
 

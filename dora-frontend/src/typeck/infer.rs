@@ -117,6 +117,10 @@ impl TypeCheck<'_> {
         let lhs = self.resolve_type(lhs);
         let rhs = self.resolve_type(rhs);
 
+        if lhs.is_never(self.sa) || rhs.is_never(self.sa) {
+            return true;
+        }
+
         match (lhs, rhs) {
             (SourceType::Error, _) | (_, SourceType::Error) => true,
             (SourceType::Any, _) | (_, SourceType::Any) => true,

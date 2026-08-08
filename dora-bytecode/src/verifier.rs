@@ -723,6 +723,8 @@ impl<'a> Verifier<'a> {
         for (idx, (&argument, expected)) in arguments.iter().zip(expected_types).enumerate() {
             if variadic && idx + 1 == expected_types.len() {
                 assert!(types_match(self.array_element_type(argument), expected));
+            } else if self.ty(argument).is_never() {
+                self.assert_assignable_type(expected, self.ty(argument));
             } else {
                 self.assert_type(argument, expected);
             }

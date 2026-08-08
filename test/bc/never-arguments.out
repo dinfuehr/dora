@@ -1,0 +1,149 @@
+class Receiver:
+
+struct $Lambda1Env:
+
+fn consume:
+  0: Ret r1
+
+  Registers:
+   0 => Int32
+   1 => ()
+
+  Constants:
+
+  Locations:
+
+fn function_call:
+  0: InvokeStatic r1, @1 # std::abort
+  4: InvokeStatic r0, @0, r1 # consume
+  9: Ret r0
+
+  Registers:
+   0 => ()
+   1 => Never
+
+  Constants:
+   0 => Fct consume
+   1 => Fct std::abort
+
+  Locations:
+   0 => 4:13
+   4 => 4:5
+
+fn <impl Receiver>::method:
+  0: Ret r2
+
+  Registers:
+   0 => class Receiver
+   1 => Int32
+   2 => ()
+
+  Constants:
+
+  Locations:
+
+fn <impl Receiver>::static_method:
+  0: Ret r1
+
+  Registers:
+   0 => Int32
+   1 => ()
+
+  Constants:
+
+  Locations:
+
+fn method_call:
+  0: InvokeStatic r2, @1 # std::abort
+  4: InvokeDirect r1, @0, r0, r2 # <impl Receiver>::method
+ 10: Ret r1
+
+  Registers:
+   0 => class Receiver
+   1 => ()
+   2 => Never
+
+  Constants:
+   0 => Fct <impl Receiver>::method
+   1 => Fct std::abort
+
+  Locations:
+   0 => 15:21
+   4 => 15:5
+
+fn static_method_call:
+  0: InvokeStatic r1, @1 # std::abort
+  4: InvokeStatic r0, @0, r1 # <impl Receiver>::static_method
+  9: Ret r0
+
+  Registers:
+   0 => ()
+   1 => Never
+
+  Constants:
+   0 => Fct <impl Receiver>::static_method
+   1 => Fct std::abort
+
+  Locations:
+   0 => 19:29
+   4 => 19:5
+
+fn Consumer::consume:
+  <no bytecode>
+
+fn trait_object_method_call:
+  0: InvokeStatic r2, @1 # std::abort
+  4: InvokeVirtual r1, @0, r0, r2 # Consumer::consume
+ 10: Ret r1
+
+  Registers:
+   0 => Consumer
+   1 => ()
+   2 => Never
+
+  Constants:
+   0 => TraitObjectMethod Consumer.Consumer::consume
+   1 => Fct std::abort
+
+  Locations:
+   0 => 27:22
+   4 => 27:5
+
+fn lambda_call:
+  0: NewStruct r2, @0 # $Lambda1Env
+  4: NewTraitObject r1, r2, @1 # Fn1[Int32, ()] wrapping $Lambda1Env
+  8: Mov r0, r1
+ 11: InvokeStatic r3, @2 # std::abort
+ 15: InvokeVirtual r4, @3, r0, r3 # std::callable::Fn1::call[A0, R]
+ 21: Ret r4
+
+  Registers:
+   0 => Fn1[Int32, ()]
+   1 => Fn1[Int32, ()]
+   2 => struct $Lambda1Env
+   3 => Never
+   4 => ()
+
+  Constants:
+   0 => Struct $Lambda1Env
+   1 => Trait Fn1[Int32, ()] from $Lambda1Env
+   2 => Fct std::abort
+   3 => TraitObjectMethod Fn1[Int32, ()].std::callable::Fn1::call[A0, R]
+
+  Locations:
+   0 => 31:19
+   11 => 32:13
+   15 => 32:5
+
+fn <impl Fn1[Int32, ()] for $Lambda1Env>::call:
+  0: Ret r2
+
+  Registers:
+   0 => struct $Lambda1Env
+   1 => Int32
+   2 => ()
+
+  Constants:
+
+  Locations:
+

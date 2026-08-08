@@ -1,0 +1,33 @@
+fn consume(_value: Int32) {}
+
+fn function_call() {
+    consume(std::abort());
+}
+
+class Receiver
+
+impl Receiver {
+    fn method(_value: Int32) {}
+    static fn static_method(_value: Int32) {}
+}
+
+fn method_call(receiver: Receiver) {
+    receiver.method(std::abort());
+}
+
+fn static_method_call() {
+    Receiver::static_method(std::abort());
+}
+
+trait Consumer {
+    fn consume(value: Int32);
+}
+
+fn trait_object_method_call(consumer: Consumer) {
+    consumer.consume(std::abort());
+}
+
+fn lambda_call() {
+    let consume = |_value: Int32| {};
+    consume(std::abort());
+}
