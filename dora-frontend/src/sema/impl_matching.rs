@@ -76,7 +76,8 @@ fn implements_trait_inner(
     }
 
     match check_ty {
-        SourceType::Bool
+        SourceType::Never
+        | SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
         | SourceType::Int32
@@ -525,7 +526,8 @@ impl TypeUnifier {
                 ty: Box::new(self.resolve(*ty)),
                 is_mut,
             },
-            ty @ (SourceType::Unit
+            ty @ (SourceType::Never
+            | SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
@@ -588,7 +590,8 @@ impl TypeUnifier {
                     || self.contains_type_param(&return_type, expected_id)
             }
             SourceType::Ref { ty, .. } => self.contains_type_param(&ty, expected_id),
-            SourceType::Unit
+            SourceType::Never
+            | SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char

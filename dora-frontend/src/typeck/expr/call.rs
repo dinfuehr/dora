@@ -2268,14 +2268,15 @@ pub(crate) struct ExpectedCallArgs {
 }
 
 fn arg_allows(sa: &Sema, def: SourceType, arg: SourceType, self_ty: Option<SourceType>) -> bool {
-    if arg.is_error() || arg.is_never(sa) {
+    if arg.is_error() || arg.is_never() {
         return true;
     }
 
     match def {
         SourceType::Error => true,
         SourceType::Any => unreachable!(),
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char

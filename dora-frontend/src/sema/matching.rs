@@ -278,7 +278,8 @@ fn match_concrete_types(
     }
 
     match check_ty {
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::Bool
         | SourceType::Char
         | SourceType::UInt8

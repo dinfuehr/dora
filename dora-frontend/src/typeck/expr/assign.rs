@@ -961,6 +961,7 @@ fn check_expr_assign_unnamed_field(
     match object_type.clone() {
         SourceType::Error
         | SourceType::Any
+        | SourceType::Never
         | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Char

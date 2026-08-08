@@ -117,13 +117,10 @@ impl TypeCheck<'_> {
         let lhs = self.resolve_type(lhs);
         let rhs = self.resolve_type(rhs);
 
-        if lhs.is_never(self.sa) || rhs.is_never(self.sa) {
-            return true;
-        }
-
         match (lhs, rhs) {
             (SourceType::Error, _) | (_, SourceType::Error) => true,
             (SourceType::Any, _) | (_, SourceType::Any) => true,
+            (SourceType::Never, _) | (_, SourceType::Never) => true,
             (SourceType::TypeVar(id), ty) | (ty, SourceType::TypeVar(id)) => {
                 self.bind_type_variable(id, ty)
             }
@@ -361,6 +358,7 @@ fn type_contains_variable(ty: &SourceType, expected: Option<TypeVarId>) -> bool 
         SourceType::Ref { ty, .. } => type_contains_variable(ty, expected),
         SourceType::Error
         | SourceType::Any
+        | SourceType::Never
         | SourceType::Unit
         | SourceType::Bool
         | SourceType::Char

@@ -58,7 +58,7 @@ fn expr_match_returns_value(body: &Body, e: &MatchExpr) -> bool {
 pub fn expr_always_exits(sa: &Sema, body: &Body, expr_id: ExprId) -> bool {
     if body
         .ty_opt(expr_id)
-        .map(|ty| ty.is_never(sa))
+        .map(|ty| ty.is_never())
         .unwrap_or(false)
     {
         return true;

@@ -120,7 +120,8 @@ pub fn replace_type(sa: &Sema, ty: SourceType, type_args: &TypeArgs) -> SourceTy
             assoc_id,
         },
 
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
         | SourceType::Char
@@ -285,7 +286,8 @@ pub fn specialize_ty_for_call(
 
         SourceType::This => type_params.self_ty().cloned().unwrap_or(ty),
 
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
         | SourceType::Char
@@ -432,7 +434,8 @@ pub fn specialize_ty_for_trait_object(
 
         SourceType::TypeParam(id) => type_args[id].clone(),
 
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
         | SourceType::Char
@@ -699,7 +702,8 @@ impl<'a> DefaultTraitMethodSpecialization<'a> {
 
             SourceType::TypeParam(type_param_id) => self.type_params.get(type_param_id),
 
-            SourceType::Unit
+            SourceType::Never
+            | SourceType::Unit
             | SourceType::UInt8
             | SourceType::Bool
             | SourceType::Char
@@ -950,7 +954,8 @@ pub fn specialize_ty_for_generic(
             is_mut,
         },
 
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
         | SourceType::Char
@@ -1038,7 +1043,8 @@ pub fn specialize_for_element(
 
         SourceType::TypeParam(id) => type_args[id].clone(),
 
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
         | SourceType::Char
@@ -1182,7 +1188,8 @@ pub fn specialize_type_for_implements(ty: SourceType, type_args: &TypeArgs) -> S
             is_mut,
         },
         // Types that don't need specialization
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char

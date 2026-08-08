@@ -1249,6 +1249,7 @@ impl Emitter {
             SourceType::Int64 => BytecodeType::Int64,
             SourceType::Float32 => BytecodeType::Float32,
             SourceType::Float64 => BytecodeType::Float64,
+            SourceType::Never => BytecodeType::Never,
             SourceType::Class(class_id, type_params) => {
                 let needs_self_type_param = sa.class(class_id).needs_self_type_param;
                 let class_id = self.convert_class_id(sa, class_id);
@@ -1265,9 +1266,6 @@ impl Emitter {
                 self.convert_enum_id(sa, enum_id),
                 self.convert_tya(sa, &type_params),
             ),
-            SourceType::Struct(struct_id, _) if struct_id == sa.known.structs.never() => {
-                BytecodeType::Never
-            }
             SourceType::Struct(struct_id, type_params) => {
                 let needs_self_type_param = sa.struct_(struct_id).needs_self_type_param;
                 let struct_id = self.convert_struct_id(sa, struct_id);

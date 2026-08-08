@@ -73,6 +73,7 @@ pub(super) fn check_expr_field_named(
     match object_type.clone() {
         SourceType::Error
         | SourceType::Any
+        | SourceType::Never
         | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Char
@@ -177,6 +178,7 @@ fn check_expr_field_unnamed(
     match object_type.clone() {
         SourceType::Error
         | SourceType::Any
+        | SourceType::Never
         | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Char

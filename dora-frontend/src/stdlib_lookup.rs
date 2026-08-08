@@ -50,7 +50,7 @@ pub fn lookup_known_fundamental_types(sa: &mut Sema) {
         Some(SourceType::Float64),
     ));
 
-    sa.known.structs.never = Some(internal_struct(sa, "std::Never", None));
+    sa.known.structs.never = Some(internal_struct(sa, "std::Never", Some(SourceType::Never)));
 
     sa.known.classes.string = Some(internal_class(sa, "std::string::String"));
 

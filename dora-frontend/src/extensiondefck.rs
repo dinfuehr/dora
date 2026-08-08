@@ -73,7 +73,8 @@ pub fn package_for_type(sa: &Sema, ty: SourceType) -> Option<PackageDefinitionId
         SourceType::Any | SourceType::This | SourceType::Ref { .. } => {
             unreachable!()
         }
-        SourceType::Bool
+        SourceType::Never
+        | SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
         | SourceType::Float32
@@ -117,6 +118,7 @@ impl<'x> ExtensionCheck<'x> {
                 unreachable!()
             }
             SourceType::Error
+            | SourceType::Never
             | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
@@ -212,6 +214,7 @@ fn discover_type_params(
 ) {
     match ty {
         SourceType::Error
+        | SourceType::Never
         | SourceType::Unit
         | SourceType::This
         | SourceType::Any

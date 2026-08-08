@@ -500,7 +500,8 @@ pub(crate) fn expand_st(
             }
         }
 
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
         | SourceType::Char

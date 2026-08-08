@@ -141,7 +141,8 @@ fn expand_type(
             if found_cycle { SourceType::Error } else { ty }
         }
 
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
         | SourceType::Char

@@ -74,6 +74,7 @@ fn check_impl_definition(sa: &Sema, impl_: &ImplDefinition) {
             unreachable!()
         }
         SourceType::Error
+        | SourceType::Never
         | SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
@@ -686,7 +687,8 @@ fn trait_and_impl_arg_ty_compatible(
 
         SourceType::This => self_ty.allows(sa, impl_arg_ty),
 
-        SourceType::Unit
+        SourceType::Never
+        | SourceType::Unit
         | SourceType::UInt8
         | SourceType::Bool
         | SourceType::Char
@@ -1076,7 +1078,8 @@ fn find_super_trait_witness(
     }
 
     match check_ty {
-        SourceType::Bool
+        SourceType::Never
+        | SourceType::Bool
         | SourceType::UInt8
         | SourceType::Char
         | SourceType::Int32

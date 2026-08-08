@@ -18,6 +18,10 @@ pub fn any() -> SourceType {
     SourceType::Any
 }
 
+pub fn never() -> SourceType {
+    SourceType::Never
+}
+
 pub fn unit() -> SourceType {
     SourceType::Unit
 }
@@ -112,6 +116,9 @@ pub enum SourceType {
     // Allow any type here, used for type inference
     Any,
 
+    // Bottom type without any values.
+    Never,
+
     // Type with only one value: ().
     Unit,
 
@@ -174,7 +181,8 @@ impl SourceType {
             SourceType::Error => TyKind::Error,
             SourceType::This => TyKind::This,
             SourceType::Any => TyKind::Any,
-            SourceType::Bool
+            SourceType::Never
+            | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
             | SourceType::Int32
@@ -313,6 +321,7 @@ impl SourceType {
             }
             SourceType::Ref { ty, .. } => ty.contains_type_param(),
             SourceType::Unit
+            | SourceType::Never
             | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
@@ -346,6 +355,7 @@ impl SourceType {
                 params.iter().any(|ty| ty.contains_ref_type()) || return_type.contains_ref_type()
             }
             SourceType::Unit
+            | SourceType::Never
             | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
@@ -375,8 +385,8 @@ impl SourceType {
         }
     }
 
-    pub fn is_never(&self, sa: &Sema) -> bool {
-        self.struct_id() == Some(sa.known.structs.never())
+    pub fn is_never(&self) -> bool {
+        matches!(self, SourceType::Never)
     }
 
     pub fn is_primitive(&self) -> bool {
@@ -417,6 +427,7 @@ impl SourceType {
     pub fn primitive_struct_id(&self, sa: &Sema) -> Option<StructDefinitionId> {
         match self {
             SourceType::Bool => Some(sa.known.structs.bool()),
+            SourceType::Never => Some(sa.known.structs.never()),
             SourceType::UInt8 => Some(sa.known.structs.uint8()),
             SourceType::Char => Some(sa.known.structs.char()),
             SourceType::Int32 => Some(sa.known.structs.int32()),
@@ -581,7 +592,7 @@ impl SourceType {
     }
 
     pub fn allows(&self, sa: &Sema, other: SourceType) -> bool {
-        if other.is_error() || other.is_never(sa) {
+        if other.is_error() || other.is_never() {
             return true;
         }
 
@@ -593,7 +604,8 @@ impl SourceType {
             // Any allows all other types
             SourceType::Any => true,
 
-            SourceType::Unit
+            SourceType::Never
+            | SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
@@ -647,9 +659,9 @@ impl SourceType {
             Some(other.clone())
         } else if other.is_error() {
             Some(self.clone())
-        } else if self.is_never(sa) {
+        } else if self.is_never() {
             Some(other.clone())
-        } else if other.is_never(sa) {
+        } else if other.is_never() {
             Some(self.clone())
         } else if self.allows(sa, other.clone()) {
             Some(self.clone())
@@ -664,6 +676,7 @@ impl SourceType {
         match self {
             SourceType::Any | SourceType::TypeVar(..) => false,
             SourceType::Error
+            | SourceType::Never
             | SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
@@ -721,7 +734,8 @@ impl SourceType {
     pub fn is_concrete_type(&self) -> bool {
         match self {
             SourceType::Error | SourceType::This | SourceType::Any => false,
-            SourceType::Unit
+            SourceType::Never
+            | SourceType::Unit
             | SourceType::Bool
             | SourceType::UInt8
             | SourceType::Char
@@ -789,6 +803,7 @@ pub fn contains_self(sa: &Sema, ty: SourceType) -> bool {
         SourceType::Ref { ty, .. } => contains_self(sa, *ty),
         SourceType::This => true,
         SourceType::Error
+        | SourceType::Never
         | SourceType::Unit
         | SourceType::Bool
         | SourceType::UInt8
@@ -1164,6 +1179,7 @@ impl<'a> SourceTypePrinter<'a> {
         match ty {
             SourceType::Error => "<error>".into(),
             SourceType::Any => "Any".into(),
+            SourceType::Never => "Never".into(),
             SourceType::Unit => "()".into(),
             SourceType::UInt8 => "UInt8".into(),
             SourceType::Char => "Char".into(),
