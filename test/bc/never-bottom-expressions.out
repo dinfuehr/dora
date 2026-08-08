@@ -1,0 +1,148 @@
+class Holder:
+  0: Never
+
+fn diverge:
+  0: InvokeStatic r0, @0 # std::abort
+  4: Ret r0
+
+  Registers:
+   0 => Never
+
+  Constants:
+   0 => Fct std::abort
+
+  Locations:
+   0 => 4:5
+
+fn direct_return:
+  0: InvokeStatic r0, @0 # std::abort
+  4: Ret r0
+
+  Registers:
+   0 => Never
+
+  Constants:
+   0 => Fct std::abort
+
+  Locations:
+   0 => 8:5
+
+fn user_function_return:
+  0: InvokeStatic r0, @0 # diverge
+  4: Ret r0
+
+  Registers:
+   0 => Never
+
+  Constants:
+   0 => Fct diverge
+
+  Locations:
+   0 => 12:5
+
+fn tuple_return:
+  0: InvokeStatic r0, @0 # std::abort
+  4: Ret r0
+
+  Registers:
+   0 => Never
+
+  Constants:
+   0 => Fct std::abort
+
+  Locations:
+   0 => 16:5
+
+fn generic_return[T]:
+  0: InvokeStatic r0, @0 # std::abort
+  4: Ret r0
+
+  Registers:
+   0 => Never
+
+  Constants:
+   0 => Fct std::abort
+
+  Locations:
+   0 => 20:5
+
+fn binding:
+  0: InvokeStatic r1, @0 # std::abort
+  4: Mov r0, r1
+  7: Ret r2
+
+  Registers:
+   0 => Int64
+   1 => Never
+   2 => ()
+
+  Constants:
+   0 => Fct std::abort
+
+  Locations:
+   0 => 24:23
+
+fn from_never:
+  0: Ret r0
+
+  Registers:
+   0 => Never
+
+  Constants:
+
+  Locations:
+
+fn from_global:
+  0: LoadGlobal r0, GlobalId(10) # doomed
+  3: Ret r0
+
+  Registers:
+   0 => Never
+
+  Constants:
+
+  Locations:
+   0 => 32:5
+
+fn from_field:
+  0: LoadField r1, r0, @0 # Holder.0
+  4: Ret r1
+
+  Registers:
+   0 => class Holder
+   1 => Never
+
+  Constants:
+   0 => Field Holder.0
+
+  Locations:
+
+fn from_array:
+  0: ConstInt64 r2, @0 # 0
+  3: LoadArray r1, r0, r2
+  7: Ret r1
+
+  Registers:
+   0 => class Array[Never]
+   1 => Never
+   2 => Int64
+
+  Constants:
+   0 => Int64 0
+
+  Locations:
+   3 => 42:5
+
+fn doomed:
+  0: InvokeStatic r0, @0 # std::abort
+  4: Ret r0
+
+  Registers:
+   0 => Never
+
+  Constants:
+   0 => Fct std::abort
+
+  Locations:
+   0 => 1:26
+

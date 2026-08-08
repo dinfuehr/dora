@@ -1,0 +1,36 @@
+fn diverge(): std::Never {
+    std::abort()
+}
+
+fn direct_return(): Int32 {
+    std::abort()
+}
+
+fn user_function_return(): Int32 {
+    diverge()
+}
+
+fn explicit_return(): Int32 {
+    return std::abort();
+}
+
+fn binding() {
+    let _value: Int = std::abort();
+}
+
+fn assignment() {
+    let mut _value = 1i32;
+    _value = std::abort();
+}
+
+fn tuple_return(): (Int32, Bool) {
+    std::abort()
+}
+
+fn generic_return[T](): T {
+    std::abort()
+}
+
+fn from_never(value: std::Never): Int32 {
+    value
+}

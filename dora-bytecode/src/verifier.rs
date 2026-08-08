@@ -219,7 +219,7 @@ impl<'a> Verifier<'a> {
             }
 
             BytecodeInstruction::Mov { dest, src } => {
-                self.assert_assignable_type(dest, self.ty(src));
+                self.assert_assignable_type(self.ty(dest), self.ty(src));
             }
 
             BytecodeInstruction::LoadEnumElement { dest, src, idx } => {
@@ -231,7 +231,10 @@ impl<'a> Verifier<'a> {
                 let variant = &self.program.enum_(*enum_id).variants[*variant_idx as usize];
                 let field = &variant.fields[*element_idx as usize];
                 self.assert_type(src, &BytecodeType::Enum(*enum_id, type_params.clone()));
-                self.assert_assignable_type(dest, &specialize_type(&field.ty, type_params));
+                self.assert_assignable_type(
+                    self.ty(dest),
+                    &specialize_type(&field.ty, type_params),
+                );
             }
 
             BytecodeInstruction::LoadEnumVariant { dest, src, idx } => {
@@ -246,7 +249,7 @@ impl<'a> Verifier<'a> {
             BytecodeInstruction::LoadField { dest, obj, field } => {
                 let (object_ty, field_ty) = self.field_types(field);
                 self.assert_type(obj, &object_ty);
-                self.assert_assignable_type(dest, &field_ty);
+                self.assert_assignable_type(self.ty(dest), &field_ty);
             }
 
             BytecodeInstruction::StoreField { src, obj, field } => {
@@ -256,7 +259,7 @@ impl<'a> Verifier<'a> {
             }
 
             BytecodeInstruction::LoadGlobal { dest, global_id } => {
-                self.assert_assignable_type(dest, &self.program.global(global_id).ty);
+                self.assert_assignable_type(self.ty(dest), &self.program.global(global_id).ty);
             }
 
             BytecodeInstruction::StoreGlobal { src, global_id } => {
@@ -269,7 +272,7 @@ impl<'a> Verifier<'a> {
             }
 
             BytecodeInstruction::LoadConst { dest, const_id } => {
-                self.assert_assignable_type(dest, &self.program.const_(const_id).ty);
+                self.assert_assignable_type(self.ty(dest), &self.program.const_(const_id).ty);
             }
 
             BytecodeInstruction::ConstTrue { dest } | BytecodeInstruction::ConstFalse { dest } => {
@@ -503,7 +506,7 @@ impl<'a> Verifier<'a> {
 
             BytecodeInstruction::LoadArray { dest, arr, idx } => {
                 let element_type = self.indexed_element_type(arr);
-                self.assert_assignable_type(dest, &element_type);
+                self.assert_assignable_type(self.ty(dest), &element_type);
                 self.assert_type(idx, &BytecodeType::Int64);
             }
 
@@ -534,7 +537,7 @@ impl<'a> Verifier<'a> {
 
             BytecodeInstruction::LoadRef { dest, reference } => {
                 let referenced_ty = self.referenced_type(reference);
-                self.assert_assignable_type(dest, &referenced_ty);
+                self.assert_assignable_type(self.ty(dest), &referenced_ty);
             }
 
             BytecodeInstruction::GetRegisterRef { dest, src } => {
@@ -542,7 +545,8 @@ impl<'a> Verifier<'a> {
             }
 
             BytecodeInstruction::Ret { opnd } => {
-                self.assert_type(opnd, &self.program.fct(self.function_id).return_type);
+                let return_type = &self.program.fct(self.function_id).return_type;
+                self.assert_assignable_type(return_type, self.ty(opnd));
             }
         }
     }
@@ -752,13 +756,13 @@ impl<'a> Verifier<'a> {
         );
     }
 
-    fn assert_assignable_type(&self, dest: Register, source: &BytecodeType) {
-        // Never is the bottom type and can be assigned to any destination register.
+    fn assert_assignable_type(&self, dest: &BytecodeType, source: &BytecodeType) {
+        // Never is the bottom type and can be assigned to any destination type.
         assert!(
-            source.is_never() || types_match(self.ty(dest), source),
-            "source type {:?} is not assignable to register type {:?} in function {} at {:?}",
+            source.is_never() || types_match(dest, source),
+            "source type {:?} is not assignable to destination type {:?} in function {} at {:?}",
             source,
-            self.ty(dest),
+            dest,
             self.program.fct(self.function_id).name,
             self.offset,
         );
@@ -767,7 +771,7 @@ impl<'a> Verifier<'a> {
     fn assert_invoke_return_type(&self, dest: Register, expected: &BytecodeType) {
         // Unit is used as the destination when the call result is discarded.
         if !self.ty(dest).is_unit() {
-            self.assert_assignable_type(dest, expected);
+            self.assert_assignable_type(self.ty(dest), expected);
         }
     }
 

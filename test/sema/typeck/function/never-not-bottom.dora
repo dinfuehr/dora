@@ -1,3 +1,0 @@
-fn f(): Int32 {
-    std::abort()
-}

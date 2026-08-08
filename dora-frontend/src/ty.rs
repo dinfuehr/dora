@@ -581,7 +581,7 @@ impl SourceType {
     }
 
     pub fn allows(&self, sa: &Sema, other: SourceType) -> bool {
-        if other.is_error() {
+        if other.is_error() || other.is_never(sa) {
             return true;
         }
 

@@ -1,0 +1,31 @@
+fn direct_return(): Int32 {
+    std::abort()
+}
+
+fn tuple_return(): (Int32, Bool) {
+    std::abort()
+}
+
+fn generic_return[T](): T {
+    std::abort()
+}
+
+fn binding() {
+    let _value: Int = std::abort();
+}
+
+fn from_never(value: std::Never): Int32 {
+    value
+}
+
+class Holder(std::Never)
+
+fn from_field(holder: Holder): Int32 {
+    holder.0
+}
+
+fn from_array(array: Array[std::Never]): Int32 {
+    array(0)
+}
+
+fn main() {}

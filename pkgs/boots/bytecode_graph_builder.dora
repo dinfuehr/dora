@@ -1953,6 +1953,12 @@ impl BytecodeGraphBuilder {
 
     fn emit_ret(opnd: BytecodeRegister) {
         let ty = self.reg(opnd);
+
+        if ty.is_never() {
+            self.current().append_inst(graph::create_unreachable_inst());
+            return;
+        }
+
         let passing_mode = cc::argument_passing_mode(self.ci, ty);
 
         if self.is_inlining() {
