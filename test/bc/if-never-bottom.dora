@@ -1,0 +1,7 @@
+fn if_else(x: Bool): Int32 {
+    if x { 1 } else { std::abort() }
+}
+
+fn if_then(x: Bool): Int32 {
+    if x { std::abort() } else { 2 }
+}

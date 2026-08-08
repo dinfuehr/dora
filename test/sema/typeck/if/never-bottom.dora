@@ -1,0 +1,36 @@
+let mut value: Int32 = 0i32;
+
+fn if_else(x: Bool): Int32 {
+    if x { 1 } else { std::abort() }
+}
+
+fn if_then(x: Bool): Int32 {
+    if x { std::abort() } else { 2 }
+}
+
+fn ref_else(x: Bool): ref Int32 {
+    if x { ref value } else { std::abort() }
+}
+
+fn ref_then(x: Bool): ref Int32 {
+    if x { std::abort() } else { ref value }
+}
+
+enum Choice {
+    First,
+    Second,
+}
+
+fn match_never_last(value: Choice): Int32 {
+    match value {
+        Choice::First => 3i32,
+        Choice::Second => std::abort(),
+    }
+}
+
+fn match_never_first(value: Choice): Int32 {
+    match value {
+        Choice::First => std::abort(),
+        Choice::Second => 4i32,
+    }
+}

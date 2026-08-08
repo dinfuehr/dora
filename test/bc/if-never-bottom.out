@@ -1,0 +1,36 @@
+fn if_else:
+  0: JumpIfFalse r0, 14 (+14)
+  6: ConstInt32 r1, @0 # 1
+  9: Jump 18 (+9)
+ 14: InvokeStatic r1, @1 # std::abort
+ 18: Ret r1
+
+  Registers:
+   0 => Bool
+   1 => Int32
+
+  Constants:
+   0 => Int32 1
+   1 => Fct std::abort
+
+  Locations:
+   14 => 2:23
+
+fn if_then:
+  0: JumpIfFalse r0, 15 (+15)
+  6: InvokeStatic r1, @0 # std::abort
+ 10: Jump 18 (+8)
+ 15: ConstInt32 r1, @1 # 2
+ 18: Ret r1
+
+  Registers:
+   0 => Bool
+   1 => Int32
+
+  Constants:
+   0 => Fct std::abort
+   1 => Int32 2
+
+  Locations:
+   6 => 6:12
+

@@ -1,0 +1,84 @@
+enum Choice:
+  First
+  Second
+
+fn match_never_last:
+  0: LoadEnumVariant r2, r0, @0 # Choice
+  4: ConstInt32 r4, @1 # 1
+  7: TestEq r3, r2, r4
+ 11: JumpIfTrue r3, 58 (+47)
+ 17: TestLt r3, r2, r4
+ 21: JumpIfFalse r3, 45 (+24)
+ 27: ConstInt32 r4, @2 # 0
+ 30: TestEq r3, r2, r4
+ 34: JumpIfTrue r3, 50 (+16)
+ 40: Jump 67 (+27)
+ 45: Jump 67 (+22)
+ 50: ConstInt32 r1, @3 # 3
+ 53: Jump 73 (+20)
+ 58: InvokeStatic r1, @4 # std::abort
+ 62: Jump 73 (+11)
+ 67: InvokeDirect r2, @5 # std::unreachable[T]
+ 71: Ret r2
+ 73: Ret r1
+
+  Registers:
+   0 => enum Choice
+   1 => Int32
+   2 => Int32
+   3 => Bool
+   4 => Int32
+
+  Constants:
+   0 => Enum Choice
+   1 => Int32 1
+   2 => Int32 0
+   3 => Int32 3
+   4 => Fct std::abort
+   5 => Fct std::unreachable[Int32]
+
+  Locations:
+   0 => 7:11
+   58 => 9:27
+   67 => 7:5
+
+fn match_never_first:
+  0: LoadEnumVariant r2, r0, @0 # Choice
+  4: ConstInt32 r4, @1 # 1
+  7: TestEq r3, r2, r4
+ 11: JumpIfTrue r3, 59 (+48)
+ 17: TestLt r3, r2, r4
+ 21: JumpIfFalse r3, 45 (+24)
+ 27: ConstInt32 r4, @2 # 0
+ 30: TestEq r3, r2, r4
+ 34: JumpIfTrue r3, 50 (+16)
+ 40: Jump 67 (+27)
+ 45: Jump 67 (+22)
+ 50: InvokeStatic r1, @3 # std::abort
+ 54: Jump 73 (+19)
+ 59: ConstInt32 r1, @4 # 4
+ 62: Jump 73 (+11)
+ 67: InvokeDirect r2, @5 # std::unreachable[T]
+ 71: Ret r2
+ 73: Ret r1
+
+  Registers:
+   0 => enum Choice
+   1 => Int32
+   2 => Int32
+   3 => Bool
+   4 => Int32
+
+  Constants:
+   0 => Enum Choice
+   1 => Int32 1
+   2 => Int32 0
+   3 => Fct std::abort
+   4 => Int32 4
+   5 => Fct std::unreachable[Int32]
+
+  Locations:
+   0 => 14:11
+   50 => 15:26
+   67 => 14:5
+

@@ -1278,6 +1278,10 @@ impl<'a, 'i> CannonCodeGen<'a, 'i> {
     }
 
     fn emit_mov_generic(&mut self, dest: Register, src: Register) {
+        if self.bytecode().register_type(src).is_never() {
+            return;
+        }
+
         assert_eq!(
             self.bytecode().register_type(src),
             self.bytecode().register_type(dest)

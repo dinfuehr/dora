@@ -1,0 +1,11 @@
+fn select(x: Bool, never: std::Never): Int32 {
+    if x { 1i32 } else { never }
+}
+
+fn select_other(x: Bool, never: std::Never): Int32 {
+    if x { never } else { 2i32 }
+}
+
+fn select_array(x: Bool, array: Array[std::Never]): Int32 {
+    if x { 3i32 } else { array(0) }
+}

@@ -1,0 +1,18 @@
+enum Choice {
+    First,
+    Second,
+}
+
+fn match_never_last(value: Choice): Int32 {
+    match value {
+        Choice::First => 3i32,
+        Choice::Second => std::abort(),
+    }
+}
+
+fn match_never_first(value: Choice): Int32 {
+    match value {
+        Choice::First => std::abort(),
+        Choice::Second => 4i32,
+    }
+}

@@ -2,8 +2,8 @@ use dora_bytecode::{BytecodeType, Label, Register};
 use rustc_hash::FxHashSet;
 use std::collections::HashMap;
 
-use super::super::gen_expr;
-use super::gen_unreachable;
+use crate::generator::expr::gen_expr;
+use crate::generator::gen_unreachable;
 use crate::generator::int_dispatch::{IntDispatchCase, gen_int_dispatch};
 use crate::generator::{AstBytecodeGen, DataDest};
 use crate::sema::{ExprId, MatchExpr};

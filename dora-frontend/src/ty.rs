@@ -645,7 +645,13 @@ impl SourceType {
     pub fn common_type(&self, sa: &Sema, other: &SourceType) -> Option<SourceType> {
         if self.is_error() {
             Some(other.clone())
-        } else if other.is_error() || self.allows(sa, other.clone()) {
+        } else if other.is_error() {
+            Some(self.clone())
+        } else if self.is_never(sa) {
+            Some(other.clone())
+        } else if other.is_never(sa) {
+            Some(self.clone())
+        } else if self.allows(sa, other.clone()) {
             Some(self.clone())
         } else if other.allows(sa, self.clone()) {
             Some(other.clone())
