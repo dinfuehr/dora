@@ -205,6 +205,15 @@ impl TypeCheck<'_> {
         let mut implicit_expr_id = None;
 
         for &id in type_variables {
+            // Arity recovery can discard type arguments, so ignore inference variables that are
+            // no longer part of the recovered type parameter list.
+            if !type_params
+                .iter()
+                .any(|ty| type_contains_variable(&ty, Some(id)))
+            {
+                continue;
+            }
+
             let resolved = self.resolve_type(SourceType::TypeVar(id));
             if type_contains_variable(&resolved, None) {
                 let origin = self

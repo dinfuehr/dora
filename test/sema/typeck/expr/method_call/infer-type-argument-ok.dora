@@ -1,0 +1,59 @@
+//= ok
+
+trait Trait {}
+class ImplementsTrait
+impl Trait for ImplementsTrait {}
+
+class ClassFactory[Owner](Owner)
+impl[Owner] ClassFactory[Owner] {
+    fn identity[T](value: T): T { value }
+    fn nothing[T](): Option[T] { None }
+    fn pair[A, B](first: A, second: B): (A, B) { (first, second) }
+    fn bounded[T: Trait](value: T): T { value }
+}
+
+struct StructFactory[Owner](Owner)
+impl[Owner] StructFactory[Owner] {
+    fn identity[T](value: T): T { value }
+    fn nothing[T](): Option[T] { None }
+}
+
+enum EnumFactory[Owner] { Value(Owner) }
+impl[Owner] EnumFactory[Owner] {
+    fn identity[T](value: T): T { value }
+    fn nothing[T](): Option[T] { None }
+}
+
+impl (Int64, Bool) {
+    fn inferFromTuple[T](value: T): T { value }
+}
+
+fn takeInt32(_value: Int32) {}
+fn takeTuple(_value: (Int32, Bool)) {}
+fn takeOption(_value: Option[Bool]) {}
+fn takeBounded(_value: ImplementsTrait) {}
+
+fn main() {
+    let classFactory = ClassFactory[String]("class");
+    takeInt32(classFactory.identity(1));
+    takeInt32(classFactory.identity[_](1));
+    takeTuple(classFactory.pair[Int32, _](1, true));
+    let classNothing: Option[Bool] = classFactory.nothing();
+    takeOption(classNothing);
+    takeBounded(classFactory.bounded(ImplementsTrait()));
+
+    let structFactory = StructFactory[String]("struct");
+    takeInt32(structFactory.identity(1));
+    takeInt32(structFactory.identity[_](1));
+    let structNothing: Option[Bool] = structFactory.nothing();
+    takeOption(structNothing);
+
+    let enumFactory = EnumFactory[String]::Value("enum");
+    takeInt32(enumFactory.identity(1));
+    takeInt32(enumFactory.identity[_](1));
+    let enumNothing: Option[Bool] = enumFactory.nothing();
+    takeOption(enumNothing);
+
+    let tupleReceiver = (1i64, true);
+    takeInt32(tupleReceiver.inferFromTuple(1));
+}

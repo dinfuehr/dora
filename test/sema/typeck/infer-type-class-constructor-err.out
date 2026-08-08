@@ -29,21 +29,29 @@ error: type `DoesNotImplementTrait` does not implement trait `Trait`.
  |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  |     let _wrongArity = Box[Int32, Bool](unknown);
- | }
+ |     let _wrongArityWithDiscardedInfer = Box[Int32, _](1i32);
 error: expected 1 type parameters but got 2.
 --> infer-type-class-constructor-err.dora:17:23
  |     let _conflict = Same[_](1i32, true);
  |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
  |     let _wrongArity = Box[Int32, Bool](unknown);
                          ~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     let _wrongArityWithDiscardedInfer = Box[Int32, _](1i32);
  | }
- | 
 error: unknown identifier `unknown`.
 --> infer-type-class-constructor-err.dora:17:40
  |     let _conflict = Same[_](1i32, true);
  |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
  |     let _wrongArity = Box[Int32, Bool](unknown);
                                           ~~~~~~~
+ |     let _wrongArityWithDiscardedInfer = Box[Int32, _](1i32);
+ | }
+error: expected 1 type parameters but got 2.
+--> infer-type-class-constructor-err.dora:18:41
+ |     let _invalidBound = Bounded[_](DoesNotImplementTrait());
+ |     let _wrongArity = Box[Int32, Bool](unknown);
+ |     let _wrongArityWithDiscardedInfer = Box[Int32, _](1i32);
+                                           ~~~~~~~~~~~~~~~~~~~
  | }
  | 
-6 errors found.
+7 errors found.

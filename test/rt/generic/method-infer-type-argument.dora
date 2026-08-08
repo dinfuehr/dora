@@ -1,0 +1,45 @@
+class ClassFactory[Owner](Owner)
+impl[Owner] ClassFactory[Owner] {
+    fn identity[T](value: T): T { value }
+    fn nothing[T](): Option[T] { None }
+}
+
+struct StructFactory[Owner](Owner)
+impl[Owner] StructFactory[Owner] {
+    fn identity[T](value: T): T { value }
+    fn nothing[T](): Option[T] { None }
+}
+
+enum EnumFactory[Owner] { Value(Owner) }
+impl[Owner] EnumFactory[Owner] {
+    fn identity[T](value: T): T { value }
+    fn nothing[T](): Option[T] { None }
+}
+
+impl (Int64, Bool) {
+    fn inferFromTuple[T](value: T): T { value }
+}
+
+fn main() {
+    let classFactory = ClassFactory[String]("class");
+    let classValue: Int32 = classFactory.identity(1);
+    assert(classValue == 1i32);
+    let classNothing: Option[Bool] = classFactory.nothing();
+    assert(classNothing.is_none());
+
+    let structFactory = StructFactory[String]("struct");
+    let structValue: Int32 = structFactory.identity(2);
+    assert(structValue == 2i32);
+    let structNothing: Option[Bool] = structFactory.nothing();
+    assert(structNothing.is_none());
+
+    let enumFactory = EnumFactory[String]::Value("enum");
+    let enumValue: Int32 = enumFactory.identity(3);
+    assert(enumValue == 3i32);
+    let enumNothing: Option[Bool] = enumFactory.nothing();
+    assert(enumNothing.is_none());
+
+    let tupleReceiver = (1i64, true);
+    let tupleValue: Int32 = tupleReceiver.inferFromTuple(4);
+    assert(tupleValue == 4i32);
+}

@@ -153,7 +153,7 @@ pub(super) fn maybe_auto_deref_call_result(
     }
 }
 
-fn call_result_type(ty: SourceType, context: ExprContext) -> SourceType {
+pub(super) fn call_result_type(ty: SourceType, context: ExprContext) -> SourceType {
     match context {
         ExprContext::Value => match ty {
             SourceType::Ref { ty, .. } => *ty,
@@ -163,7 +163,7 @@ fn call_result_type(ty: SourceType, context: ExprContext) -> SourceType {
     }
 }
 
-fn read_call_type_params_with_inference(
+pub(super) fn read_call_type_params_with_inference(
     ck: &mut TypeCheck,
     type_param_refs: &[TypeRefId],
 ) -> (SourceTypeArray, Vec<TypeVarId>) {
@@ -232,7 +232,7 @@ pub(super) fn check_call_arguments_with_expected(
     check_call_arguments_with_expected_inner(ck, call_expr_id, expected, None);
 }
 
-fn check_call_arguments_with_inference<S>(
+pub(super) fn check_call_arguments_with_inference<S>(
     ck: &mut TypeCheck,
     call_expr_id: ExprId,
     expected: &ExpectedCallArgs,
@@ -1439,7 +1439,15 @@ fn prepare_call_type_params(
     expected_type_params: Option<&SourceTypeArray>,
     type_params: SourceTypeArray,
 ) -> SourceTypeArray {
-    let type_params = fix_type_param_arity(ck, expr_id, element, expected_type_params, type_params);
+    let type_param_definition = element.type_param_definition(ck.sa);
+    let supplied_type_args = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
+    let type_params = fix_type_param_arity(
+        ck,
+        expr_id,
+        element,
+        expected_type_params,
+        supplied_type_args,
+    );
 
     if let Some(expected_type_params) = expected_type_params {
         ck.unify_type_arrays(type_params.clone(), expected_type_params.clone());
@@ -1448,18 +1456,19 @@ fn prepare_call_type_params(
     type_params
 }
 
-fn fix_type_param_arity(
+pub(super) fn fix_type_param_arity(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     element: &dyn Element,
     expected_type_params: Option<&SourceTypeArray>,
-    type_params: SourceTypeArray,
+    supplied_type_args: TypeArgs,
 ) -> SourceTypeArray {
     let type_param_definition = element.type_param_definition(ck.sa);
-    let type_args = TypeArgs::from_own(ck.sa, type_param_definition, &type_params);
-    let type_params_ok = check_type_param_arity(ck.sa, element, &type_args, ck.file_id, || {
-        ck.expr_span(expr_id)
-    });
+    let type_params = supplied_type_args.own().clone();
+    let type_params_ok =
+        check_type_param_arity(ck.sa, element, &supplied_type_args, ck.file_id, || {
+            ck.expr_span(expr_id)
+        });
 
     if type_params_ok {
         type_params

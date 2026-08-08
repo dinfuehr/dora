@@ -1,0 +1,46 @@
+trait Trait {}
+class DoesNotImplementTrait
+
+class ClassFactory
+impl ClassFactory {
+    fn identity[T](value: T): T { value }
+    fn same[T](first: T, _second: T): T { first }
+    fn two[A, B](first: A, second: B): (A, B) { (first, second) }
+    fn sameWithPhantom[A, B](first: A, _second: A): A { first }
+    fn phantom[T](value: Int32): Int32 { value }
+    fn bounded[T: Trait](value: T): T { value }
+    fn nongeneric(value: Int32): Int32 { value }
+}
+
+struct StructFactory
+impl StructFactory {
+    fn phantom[T](value: Int32): Int32 { value }
+}
+
+enum EnumFactory { Value }
+impl EnumFactory {
+    fn phantom[T](value: Int32): Int32 { value }
+}
+
+fn expectedConflict(factory: ClassFactory): Bool {
+    factory.identity[_](1i32)
+}
+
+fn f(classFactory: ClassFactory, structFactory: StructFactory, enumFactory: EnumFactory) {
+    classFactory.identity[_](unknown);
+    classFactory.identity[(_, _)](unknownTuple);
+    classFactory.same[_](1i32, true);
+    classFactory.two[_](1i32, true);
+    classFactory.sameWithPhantom[_](1i32, true);
+    classFactory.same[_, Bool](1i32, true);
+    classFactory.phantom[_](1i32);
+    classFactory.phantom(1i32);
+    classFactory.bounded(DoesNotImplementTrait());
+    classFactory.bounded[DoesNotImplementTrait, Bool](DoesNotImplementTrait());
+    classFactory.nongeneric[Int32](1i32);
+    classFactory.nongeneric[_](1i32);
+    structFactory.phantom[_](1i32);
+    structFactory.phantom(1i32);
+    enumFactory.phantom[_](1i32);
+    enumFactory.phantom(1i32);
+}

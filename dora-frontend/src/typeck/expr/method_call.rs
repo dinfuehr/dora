@@ -3,7 +3,11 @@ use std::rc::Rc;
 use dora_parser::ast;
 
 use super::ExprContext;
-use super::call::{check_expr_call_value, maybe_auto_deref_call_result};
+use super::call::{
+    call_result_type, check_call_arguments_with_expected, check_call_arguments_with_inference,
+    check_expr_call_value, fix_type_param_arity, maybe_auto_deref_call_result,
+    read_call_type_params_with_inference,
+};
 use crate::access::{
     class_field_accessible_from, method_accessible_from, struct_field_accessible_from,
 };
@@ -15,15 +19,17 @@ use crate::error::diagnostics::{
 use crate::interner::Name;
 use crate::sema::{
     CallType, Element, ExprId, FctDefinitionId, IdentType, MethodCallExpr, Param, Sema,
-    TraitDefinition, TypeParamId, associated_type_bounds, find_field_in_class,
+    TraitDefinition, TypeParamId, TypeRefId, associated_type_bounds, find_field_in_class,
 };
 use crate::specialize::replace_type;
 use crate::typeck::expr::{
     MutabilityCheckReason, check_value_type_base_mutability, preserve_ref_returning_base,
 };
-use crate::typeck::{TypeCheck, check_expr, check_type_params, find_method_call_candidates};
+use crate::typeck::{
+    TypeCheck, check_expr, check_type_param_bounds, check_type_params, find_method_call_candidates,
+};
 
-use super::call::{ExpectedCallArgs, check_call_arguments_with_expected};
+use super::call::ExpectedCallArgs;
 use crate::{
     SourceType, SourceTypeArray, TraitType, TypeArgs, specialize_trait_type,
     specialize_ty_for_call, specialize_ty_for_generic, specialize_type, ty::error as ty_error,
@@ -33,19 +39,12 @@ pub(crate) fn check_expr_method_call(
     ck: &mut TypeCheck,
     expr_id: ExprId,
     sema_expr: &MethodCallExpr,
-    _expected_ty: SourceType,
+    expected_ty: SourceType,
     context: ExprContext,
 ) -> SourceType {
     let object_type = check_expr(ck, sema_expr.object, SourceType::Any);
     let method_name = ck.sa.interner.str(sema_expr.name).to_string();
-
-    let mtd_type_params: SourceTypeArray = SourceTypeArray::with(
-        sema_expr
-            .type_params
-            .iter()
-            .map(|&type_ref_id| ck.read_type(type_ref_id))
-            .collect(),
-    );
+    let mtd_type_param_refs = sema_expr.type_params.clone();
 
     let result = check_expr_call_method(
         ck,
@@ -53,7 +52,9 @@ pub(crate) fn check_expr_method_call(
         expr_id,
         object_type.clone(),
         method_name,
-        mtd_type_params,
+        mtd_type_param_refs,
+        expected_ty,
+        context,
     );
 
     // Check if calling a mutating method on a value type requires the receiver to be mutable.
@@ -119,9 +120,12 @@ fn check_expr_call_method(
     call_expr_id: ExprId,
     object_type: SourceType,
     method_name: String,
-    mtd_type_params: SourceTypeArray,
+    mtd_type_param_refs: Vec<TypeRefId>,
+    expected_ty: SourceType,
+    context: ExprContext,
 ) -> SourceType {
     if let SourceType::TypeParam(id) = object_type {
+        let mtd_type_params = read_method_type_params(ck, &mtd_type_param_refs);
         return check_method_call_on_type_param(
             ck,
             call_expr_id,
@@ -132,6 +136,7 @@ fn check_expr_call_method(
             call_expr_id,
         );
     } else if object_type.is_assoc() {
+        let mtd_type_params = read_method_type_params(ck, &mtd_type_param_refs);
         return check_method_call_on_assoc(
             ck,
             call_expr_id,
@@ -141,6 +146,7 @@ fn check_expr_call_method(
             call_expr_id,
         );
     } else if object_type.is_self() {
+        let mtd_type_params = read_method_type_params(ck, &mtd_type_param_refs);
         return check_method_call_on_self(
             ck,
             call_expr_id,
@@ -151,6 +157,7 @@ fn check_expr_call_method(
     }
 
     if object_type.is_error() {
+        read_method_type_params(ck, &mtd_type_param_refs);
         ck.body.set_ty(call_expr_id, ty_error());
 
         return ty_error();
@@ -169,6 +176,7 @@ fn check_expr_call_method(
     );
 
     if candidates.is_empty() {
+        let mtd_type_params = read_method_type_params(ck, &mtd_type_param_refs);
         // No method with this name found, so this might actually be a field
         check_method_call_is_array_field_access(
             ck,
@@ -179,6 +187,7 @@ fn check_expr_call_method(
             call_expr_id,
         )
     } else if candidates.len() > 1 {
+        read_method_type_params(ck, &mtd_type_param_refs);
         let type_name = ck.ty_name(&object_type);
         ck.report(
             ck.expr_span(call_expr_id),
@@ -192,40 +201,85 @@ fn check_expr_call_method(
         let candidate = &candidates[0];
         let fct_id = candidate.fct_id;
         let fct = ck.sa.fct(fct_id);
+        let type_param_definition = fct.type_param_definition(ck.sa);
+        let expected_type_param_count = type_param_definition.own_type_params_len();
+        let (mtd_type_params, type_variables) =
+            read_call_type_params_with_inference(ck, &mtd_type_param_refs);
+        let (mtd_type_params, type_variables) =
+            if mtd_type_params.is_empty() && expected_type_param_count > 0 {
+                assert!(type_variables.is_empty());
+                ck.create_implicit_type_variables(expected_type_param_count, call_expr_id)
+            } else {
+                (mtd_type_params, type_variables)
+            };
 
+        let supplied_type_args = TypeArgs::from_parts(
+            ck.sa,
+            type_param_definition,
+            &candidate.container_type_params,
+            &mtd_type_params,
+            Some(candidate.object_type.clone()),
+        );
+        let mtd_type_params = fix_type_param_arity(ck, call_expr_id, fct, None, supplied_type_args);
         let type_params = TypeArgs::from_parts(
             ck.sa,
-            fct.type_param_definition(ck.sa),
+            type_param_definition,
             &candidate.container_type_params,
             &mtd_type_params,
             Some(candidate.object_type.clone()),
         );
 
-        let type_params_ok = check_type_params(
+        let return_type =
+            specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &type_params);
+        ck.unify_types(call_result_type(return_type, context), expected_ty);
+
+        let expected = build_expected_method_call_args(
+            fct.params.regular_params(),
+            fct.params.variadic_param(),
+            |ty| ty,
+        );
+        check_call_arguments_with_inference(ck, call_expr_id, &expected, |ck, ty| {
+            let resolved_type_params = ck.resolve_type_array(mtd_type_params.clone());
+            let sa = ck.sa;
+            let type_param_definition = sa.fct(fct_id).type_param_definition(sa);
+            let type_args = TypeArgs::from_parts(
+                sa,
+                type_param_definition,
+                &candidate.container_type_params,
+                &resolved_type_params,
+                Some(candidate.object_type.clone()),
+            );
+            specialize_ty_for_call(sa, ty, ck.element, &type_args)
+        });
+
+        if !ck.report_unresolved_type_variables(&type_variables, &mtd_type_params) {
+            ck.body.set_ty(call_expr_id, ty_error());
+            return ty_error();
+        }
+
+        let mtd_type_params = ck.resolve_type_array(mtd_type_params);
+        let type_params = TypeArgs::from_parts(
+            ck.sa,
+            type_param_definition,
+            &candidate.container_type_params,
+            &mtd_type_params,
+            Some(candidate.object_type.clone()),
+        );
+        if !check_type_param_bounds(
             ck.sa,
             ck.element,
-            &ck.type_param_definition,
+            ck.type_param_definition,
             fct,
             &type_params,
             ck.file_id,
             || ck.expr_span(call_expr_id),
             |ty| specialize_type(ck.sa, ty, &type_params),
-        );
+        ) {
+            ck.body.set_ty(call_expr_id, ty_error());
+            return ty_error();
+        }
 
-        let expected = type_params_ok.then(|| {
-            build_expected_method_call_args(
-                fct.params.regular_params(),
-                fct.params.variadic_param(),
-                |ty| specialize_ty_for_call(ck.sa, ty, ck.element, &type_params),
-            )
-        });
-        check_call_arguments_with_expected(ck, call_expr_id, expected.as_ref());
-
-        let ty = if type_params_ok {
-            specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &type_params)
-        } else {
-            ty_error()
-        };
+        let ty = specialize_ty_for_call(ck.sa, fct.return_type(), ck.element, &type_params);
 
         let call_type = if object_type.is_self() {
             CallType::TraitObjectMethod(object_type, fct_id)
@@ -244,6 +298,15 @@ fn check_expr_call_method(
         ck.body.set_ty(call_expr_id, ty.clone());
         ty
     }
+}
+
+fn read_method_type_params(ck: &mut TypeCheck, type_param_refs: &[TypeRefId]) -> SourceTypeArray {
+    SourceTypeArray::with(
+        type_param_refs
+            .iter()
+            .map(|&type_ref_id| ck.read_type(type_ref_id))
+            .collect(),
+    )
 }
 
 fn check_method_call_is_array_field_access(

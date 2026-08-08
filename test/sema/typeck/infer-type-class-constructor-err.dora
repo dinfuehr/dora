@@ -15,4 +15,5 @@ fn main() {
     let _conflict = Same[_](1i32, true);
     let _invalidBound = Bounded[_](DoesNotImplementTrait());
     let _wrongArity = Box[Int32, Bool](unknown);
+    let _wrongArityWithDiscardedInfer = Box[Int32, _](1i32);
 }
