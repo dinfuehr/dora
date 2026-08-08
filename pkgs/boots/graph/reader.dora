@@ -2,7 +2,7 @@ use package::graph::Graph;
 use std::StringBuffer;
 
 fn read_graph(_data: String): Graph {
-    unreachable[Graph]()
+    unreachable()
 }
 
 class GraphReader {
@@ -38,7 +38,7 @@ impl Lexer {
 
     fn read_char() {
         if self.idx == self.content.size() {
-            std::fatal_error[()]("already at end of file");
+            std::fatal_error("already at end of file");
         } else {
             self.idx = self.idx + 1i64;
         }
@@ -63,11 +63,11 @@ impl Lexer {
             } else if is_digit(char) {
                 return self.read_number();
             } else {
-                std::fatal_error[()]("unknown character ${char.get_or_panic()}");
+                std::fatal_error("unknown character ${char.get_or_panic()}");
             }
         }
 
-        unreachable[Token]()
+        unreachable()
     }
 
     fn skip_whitespace() {
@@ -109,7 +109,7 @@ impl Lexer {
         } else if ch == '@' {
             Token::At
         } else {
-            unreachable[Token]()
+            unreachable()
         }
     }
 
@@ -244,7 +244,7 @@ mod tests {
             }
 
             _ => {
-                std::fatal_error[()]("identifier expected");
+                std::fatal_error("identifier expected");
             }
         }
     }
@@ -258,7 +258,7 @@ mod tests {
             }
 
             _ => {
-                std::fatal_error[()]("number expected");
+                std::fatal_error("number expected");
             }
         }
     }
@@ -269,7 +269,7 @@ mod tests {
         match token {
             Token::Newline => {}
             _ => {
-                std::fatal_error[()]("newline expected");
+                std::fatal_error("newline expected");
             }
         }
     }
@@ -280,7 +280,7 @@ mod tests {
         match token {
             Token::Eq => {}
             _ => {
-                std::fatal_error[()]("eq expected");
+                std::fatal_error("eq expected");
             }
         }
     }
@@ -291,7 +291,7 @@ mod tests {
         match token {
             Token::Colon => {}
             _ => {
-                std::fatal_error[()]("eq expected");
+                std::fatal_error("eq expected");
             }
         }
     }
@@ -302,7 +302,7 @@ mod tests {
         match token {
             Token::At => {}
             _ => {
-                std::fatal_error[()]("at expected");
+                std::fatal_error("at expected");
             }
         }
     }
@@ -313,7 +313,7 @@ mod tests {
         match token {
             Token::Percent => {}
             _ => {
-                std::fatal_error[()]("percent expected");
+                std::fatal_error("percent expected");
             }
         }
     }
@@ -324,7 +324,7 @@ mod tests {
         match token {
             Token::End => {}
             _ => {
-                std::fatal_error[()]("end expected");
+                std::fatal_error("end expected");
             }
         }
     }

@@ -4,15 +4,15 @@ fn main() {
     arr(47) = Foo::B;
     match f(arr, 46) {
         Foo::A => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
     match f(arr, 47) {
         Foo::B => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
     match f(arr, 48) {
         Foo::A => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 

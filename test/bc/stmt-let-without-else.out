@@ -10,7 +10,7 @@ fn f:
  17: LoadEnumElement r5, r0, @2, 0 # Foo::A.0
  21: Mov r1, r5
  24: Jump 35 (+11)
- 29: InvokeDirect r4, @3 # std::unreachable[T]
+ 29: InvokeDirect r4, @3 # std::unreachable
  33: Ret r4
  35: Ret r1
 
@@ -26,7 +26,7 @@ fn f:
    0 => Enum Foo
    1 => Int32 0
    2 => EnumVariantElement Foo::A::0
-   3 => Fct std::unreachable[Int32]
+   3 => Fct std::unreachable
 
   Locations:
    0 => 4:9

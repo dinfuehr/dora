@@ -45,7 +45,7 @@ fn test_enum() {
             assert(h == 8);
             assert(i == 9);
         },
-        Wide::B => unreachable[()](),
+        Wide::B => unreachable(),
     }
 }
 

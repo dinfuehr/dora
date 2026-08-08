@@ -5,6 +5,6 @@ trait MyTrait {
 
 trait Foo: MyTrait {
     fn make(): Self::Unknown {
-        unreachable[Self::Unknown]()
+        unreachable()
     }
 }

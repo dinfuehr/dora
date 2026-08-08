@@ -127,7 +127,7 @@ pub fn decode_const_value(reader: ByteReader): ConstValue {
         let value = reader.read_string_content(length);
         ConstValue::String(value)
     } else {
-        std::unreachable[ConstValue]()
+        std::unreachable()
     }
 }
 
@@ -257,7 +257,7 @@ pub fn decode_bytecode_type(reader: ByteReader): BytecodeType {
         BytecodeType::This
     } else {
         println("unknown bytecode type opcode = ${opcode}");
-        unreachable[BytecodeType]()
+        unreachable()
     }
 }
 
@@ -380,7 +380,7 @@ fn decode_const_pool_entry(reader: ByteReader): ConstPoolEntry {
         ConstPoolEntry::JumpTable(targets = targets.to_array(), default)
     } else {
         println("unknown ConstPoolEntry opcode = ${opcode}");
-        unreachable[ConstPoolEntry]()
+        unreachable()
     }
 }
 
@@ -416,7 +416,7 @@ fn decode_architecture(reader: ByteReader): Architecture {
         Architecture::Arm64
     } else {
         println("unknown architecture = ${value}");
-        unreachable[Architecture]()
+        unreachable()
     }
 }
 

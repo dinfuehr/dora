@@ -18,7 +18,7 @@ fn match_never_last:
  53: Jump 73 (+20)
  58: InvokeStatic r1, @4 # std::abort
  62: Jump 73 (+11)
- 67: InvokeDirect r2, @5 # std::unreachable[T]
+ 67: InvokeDirect r2, @5 # std::unreachable
  71: Ret r2
  73: Ret r1
 
@@ -35,7 +35,7 @@ fn match_never_last:
    2 => Int32 0
    3 => Int32 3
    4 => Fct std::abort
-   5 => Fct std::unreachable[Int32]
+   5 => Fct std::unreachable
 
   Locations:
    0 => 7:11
@@ -58,7 +58,7 @@ fn match_never_first:
  54: Jump 73 (+19)
  59: ConstInt32 r1, @4 # 4
  62: Jump 73 (+11)
- 67: InvokeDirect r2, @5 # std::unreachable[T]
+ 67: InvokeDirect r2, @5 # std::unreachable
  71: Ret r2
  73: Ret r1
 
@@ -75,7 +75,7 @@ fn match_never_first:
    2 => Int32 0
    3 => Fct std::abort
    4 => Int32 4
-   5 => Fct std::unreachable[Int32]
+   5 => Fct std::unreachable
 
   Locations:
    0 => 14:11

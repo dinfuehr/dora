@@ -77,7 +77,7 @@ impl Type {
             Type::Bool | Type::UInt8 => 1,
             Type::Int32 | Type::Float32 => 4,
             Type::Address | Type::Ptr | Type::Int64 | Type::Float64 => 8,
-            Type::Unit => unreachable[Int32](),
+            Type::Unit => unreachable(),
         }
     }
 }

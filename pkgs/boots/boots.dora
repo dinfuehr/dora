@@ -255,7 +255,7 @@ fn split_critical_edge(graph: Graph, edge: Edge) {
                 terminator.set_default_block(intermediate);
             }
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 
     let predecessor_to_intermediate_edge = Edge::new(

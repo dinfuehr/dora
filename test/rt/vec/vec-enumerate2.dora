@@ -24,7 +24,7 @@ fn iterate_with_for_in() {
         else if idx == 1i64 { assert(value == "b"); }
         else if idx == 2i64 { assert(value == "c"); }
         else {
-            unreachable[()]();
+            unreachable();
         }
 
     }
@@ -36,7 +36,7 @@ fn iterate_with_for_in_pattern() {
         else if idx == 1i64 { assert(value == "b"); }
         else if idx == 2i64 { assert(value == "c"); }
         else {
-            unreachable[()]();
+            unreachable();
         }
 
     }

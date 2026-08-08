@@ -312,7 +312,7 @@ pub fn find_impl(
     writer.emit_int32(fct_id.0);
     encode_bytecode_type(writer, ty);
     encode_bytecode_trait_type(writer, trait_ty);
-    unimplemented[Option[(ImplId, Array[BytecodeType])]]()
+    unimplemented()
 }
 
 pub fn get_intrinsic_for_function(fct_id: FunctionId): Int32 {

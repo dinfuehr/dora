@@ -2704,7 +2704,7 @@ impl ScaleFactor {
         } else if self == ScaleFactor::Eight {
             3i32
         } else {
-            unreachable[Int32]()
+            unreachable()
         }
     }
 }
@@ -2787,7 +2787,7 @@ impl Address {
         } else if mode == 0b10 {
             address.set_disp32(offset);
         } else {
-            unreachable[()]();
+            unreachable();
         }
 
         address
@@ -2833,7 +2833,7 @@ impl Address {
         } else if mode == 0b10 {
             address.set_disp32(disp);
         } else {
-            unreachable[()]();
+            unreachable();
         }
 
         address

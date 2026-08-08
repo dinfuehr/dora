@@ -11,7 +11,7 @@ fn f:
   4: Jump 9 (+5)
   9: ConstInt32 r1, @1 # 99
  12: Jump 23 (+11)
- 17: InvokeDirect r2, @2 # std::unreachable[T]
+ 17: InvokeDirect r2, @2 # std::unreachable
  21: Ret r2
  23: Ret r1
 
@@ -23,7 +23,7 @@ fn f:
   Constants:
    0 => Enum Kind
    1 => Int32 99
-   2 => Fct std::unreachable[Int32]
+   2 => Fct std::unreachable
 
   Locations:
    0 => 4:11

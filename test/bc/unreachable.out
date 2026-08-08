@@ -1,12 +1,12 @@
 fn f:
-  0: InvokeStatic r0, @0 # std::unreachable[T]
+  0: InvokeStatic r0, @0 # std::unreachable
   4: Ret r0
 
   Registers:
-   0 => Int32
+   0 => Never
 
   Constants:
-   0 => Fct std::unreachable[Int32]
+   0 => Fct std::unreachable
 
   Locations:
    0 => 1:17

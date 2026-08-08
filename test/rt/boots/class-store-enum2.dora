@@ -8,13 +8,13 @@ fn main() {
     f(foo1, Bar::C(12));
     match foo1.bar {
         Bar::C(x) => assert(x == 12),
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 
     f(foo2, Bar::A);
     match foo2.bar {
         Bar::A => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 
     std::force_collect();

@@ -6,15 +6,15 @@ fn main() {
     f(arr, 47, Foo::B);
     match arr(46) {
         Foo::A => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
     match arr(47) {
         Foo::B => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
     match arr(48) {
         Foo::A => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 
     std::force_collect();

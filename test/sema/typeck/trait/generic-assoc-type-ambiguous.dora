@@ -9,6 +9,6 @@ trait TraitB {
 
 trait Foo[T: TraitA + TraitB] {
     fn make(): T::Item {
-        unreachable[T::Item]()
+        unreachable()
     }
 }

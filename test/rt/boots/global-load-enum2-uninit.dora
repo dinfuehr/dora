@@ -4,7 +4,7 @@ let g: Foo = Foo::A;
 fn main() {
     match getg() {
         Foo::A => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 

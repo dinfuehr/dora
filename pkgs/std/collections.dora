@@ -276,7 +276,7 @@ impl[T: Equals] Array[T] {
         let a_size = a.size() - a_pos;
         let b_size = b.size() - b_pos;
         if a_size < len || b_size < len {
-            fatal_error[()]("len ${len} exceeds size of array");
+            fatal_error("len ${len} exceeds size of array");
         }
         if a_size < 0i64 || b_size < 0i64 {
             return false;
@@ -335,7 +335,7 @@ impl BitSet {
 
     pub fn contains(idx: Int64): Bool {
         if idx < 0i64 || idx >= self.capacity {
-            fatal_error[()]("index out of bounds");
+            fatal_error("index out of bounds");
         }
 
         let entry_idx = idx / 32i64;
@@ -347,7 +347,7 @@ impl BitSet {
 
     pub fn insert(idx: Int64) {
         if idx < 0i64 || idx >= self.capacity {
-            fatal_error[()]("index out of bounds");
+            fatal_error("index out of bounds");
         }
 
         let entry_idx = idx / 32i64;
@@ -361,7 +361,7 @@ impl BitSet {
 
     pub fn remove(idx: Int64) {
         if idx < 0i64 || idx >= self.capacity {
-            fatal_error[()]("index out of bounds");
+            fatal_error("index out of bounds");
         }
 
         let entry_idx = idx / 32i64;
@@ -439,7 +439,7 @@ impl BitVec {
 
     pub fn contains(idx: Int64): Bool {
         if idx < 0i64 {
-            fatal_error[()]("index out of bounds");
+            fatal_error("index out of bounds");
         }
 
         if idx >= self.data.size() * 32i64 {
@@ -455,7 +455,7 @@ impl BitVec {
 
     pub fn insert(idx: Int64): Bool {
         if idx < 0i64 {
-            fatal_error[()]("index out of bounds");
+            fatal_error("index out of bounds");
         }
 
         self.ensure_capacity(idx + 1i64);
@@ -477,7 +477,7 @@ impl BitVec {
 
     pub fn remove(idx: Int64): Bool {
         if idx < 0i64 {
-            fatal_error[()]("index out of bounds");
+            fatal_error("index out of bounds");
         }
 
         if idx >= self.data.size() * 32i64 {
@@ -1389,7 +1389,7 @@ impl[T] IndexGet for Vec[T] {
 
     fn get(index: Self::Index): Self::Item {
         if index < 0i64 || index >= self.len {
-            fatal_error[()]("index out of bounds for vector");
+            fatal_error("index out of bounds for vector");
         }
 
         self.array(index)
@@ -1402,7 +1402,7 @@ impl[T] IndexSet for Vec[T] {
 
     fn set(index: Self::Index, item: Self::Item) {
         if index < 0i64 || index >= self.len {
-            fatal_error[()]("index out of bounds for vector");
+            fatal_error("index out of bounds for vector");
         }
 
         self.array.set(index, item);

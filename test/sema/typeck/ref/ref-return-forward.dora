@@ -29,7 +29,7 @@ fn generic_field_ref[T](holder: GenericHolder[T]): ref T {
 }
 
 fn no_holder[T](): GenericHolder[T] {
-    std::unreachable[GenericHolder[T]]()
+    std::unreachable()
 }
 
 fn inferred_forward(): ref Int32 {

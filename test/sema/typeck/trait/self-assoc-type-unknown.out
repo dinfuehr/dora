@@ -4,14 +4,6 @@ error: Unknown associated type.
  | trait Foo: MyTrait {
  |     fn make(): Self::Unknown {
                   ~~~~~~~~~~~~~
- |         unreachable[Self::Unknown]()
+ |         unreachable()
  |     }
-error: Unknown associated type.
---> self-assoc-type-unknown.dora:8:21
- | trait Foo: MyTrait {
- |     fn make(): Self::Unknown {
- |         unreachable[Self::Unknown]()
-                       ~~~~~~~~~~~~~
- |     }
- | }
-2 errors found.
+1 error found.

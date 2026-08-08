@@ -349,7 +349,7 @@ fn is_memory_barrier(op: Op): Bool {
         | Op::AtomicCompareExchange
         | Op::AtomicFetchAdd => true,
 
-        Op::LocalGet | Op::LocalSet | Op::InlineReturn => unreachable[Bool](),
+        Op::LocalGet | Op::LocalSet | Op::InlineReturn => unreachable(),
     }
 }
 

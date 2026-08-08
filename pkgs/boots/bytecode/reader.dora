@@ -425,9 +425,7 @@ impl BytecodeIterator {
                 BytecodeInstruction::Ret(opnd)
             }
             _ => {
-                std::fatal_error[BytecodeInstruction](
-                    "unkown opcode ${opcode} ${opc::bytecode_name(opcode)}"
-                )
+                std::fatal_error("unkown opcode ${opcode} ${opc::bytecode_name(opcode)}")
             }
         };
 

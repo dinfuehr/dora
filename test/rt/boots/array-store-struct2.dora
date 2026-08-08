@@ -7,19 +7,19 @@ fn main() {
     assert(arr(46).a == 0);
     match arr(46).b {
         Bar::A => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 
     assert(arr(47).a == 3);
     match arr(47).b {
         Bar::C(x) => assert(x == 10),
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 
     assert(arr(48).a == 0);
     match arr(48).b {
         Bar::A => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 
     std::force_collect();

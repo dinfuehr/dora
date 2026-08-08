@@ -6,12 +6,12 @@ fn main() {
     let tuple = create_tuple();
     match tuple.0 {
         Foo::A(_, _, _) => {},
-        Foo::B => unreachable[()](),
+        Foo::B => unreachable(),
     }
     std::force_collect();
     match tuple.0 {
         Foo::A(_, _, _) => {},
-        Foo::B => unreachable[()](),
+        Foo::B => unreachable(),
     }
 }
 

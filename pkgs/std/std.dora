@@ -37,7 +37,7 @@ mod callable;
 pub struct Never
 
 @internal
-pub fn fatal_error[T](msg: String): T;
+pub fn fatal_error(msg: String): Never;
 
 @native
 pub fn abort(): Never;
@@ -46,11 +46,11 @@ pub fn abort(): Never;
 pub fn exit(status: Int32): Never;
 
 @internal
-pub fn unreachable[T](): T;
+pub fn unreachable(): Never;
 
 @NeverInline
-pub fn unimplemented[T](): T {
-    fatal_error[T]("not yet implemented")
+pub fn unimplemented(): Never {
+    fatal_error("not yet implemented")
 }
 
 @internal

@@ -58,7 +58,7 @@ impl BytecodeBody {
         let size = self.locations.size();
 
         if size == 0 || at < self.locations(0).0 {
-            return unreachable[Location]();
+            return unreachable();
         }
 
         let mut i = 1;
@@ -167,7 +167,7 @@ impl Stringable for ConstPoolEntry {
             ) => "Field ${id}${type_params}.${field_id}",
             ConstPoolEntry::Fct(id, type_params) => "Fct ${id}${type_params}",
             ConstPoolEntry::TraitObjectMethod(ty, id) => "TraitObjectMethod ${ty} ${id}",
-            ConstPoolEntry::Generic(..) => unimplemented[String](),
+            ConstPoolEntry::Generic(..) => unimplemented(),
             ConstPoolEntry::Enum(id, type_params) => "Enum ${id}${type_params}",
             ConstPoolEntry::EnumVariant(
                 id,
@@ -286,7 +286,7 @@ impl BytecodeType {
             BytecodeType::Tuple(subtypes) => subtypes.is_generic(),
             BytecodeType::Ref(inner) => inner.is_generic(),
             BytecodeType::TypeParam(_idx) => true,
-            BytecodeType::TypeAlias(..) => unreachable[Bool](),
+            BytecodeType::TypeAlias(..) => unreachable(),
         }
     }
 
@@ -484,7 +484,7 @@ impl Equals for BytecodeType {
                 }
             }
 
-            BytecodeType::Assoc(..) => unreachable[Bool](),
+            BytecodeType::Assoc(..) => unreachable(),
         }
     }
 }
@@ -540,7 +540,7 @@ impl Hash for BytecodeType {
                 hasher.write_int32(opc::BYTECODE_TYPE_TYPE_ALIAS);
                 id.hash[H](hasher);
             }
-            BytecodeType::Assoc(..) => unreachable[()](),
+            BytecodeType::Assoc(..) => unreachable(),
         }
     }
 }
@@ -571,7 +571,7 @@ impl Stringable for BytecodeType {
             BytecodeType::Ref(inner) => "Ref(${inner})",
             BytecodeType::TypeParam(idx) => "TypeParam(${idx})",
             BytecodeType::TypeAlias(id) => "TypeAlias(${id})",
-            BytecodeType::Assoc(..) => unreachable[String](),
+            BytecodeType::Assoc(..) => unreachable(),
         }
     }
 }

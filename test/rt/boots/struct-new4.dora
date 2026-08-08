@@ -8,7 +8,7 @@ fn main() {
     std::force_collect();
     match foo.b {
         Bar::C(x) => assert(x == 10),
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 

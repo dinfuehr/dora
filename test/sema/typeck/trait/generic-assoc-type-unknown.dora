@@ -5,6 +5,6 @@ trait MyIterator {
 
 trait Foo[T: MyIterator] {
     fn make(): T::Unknown {
-        unreachable[T::Unknown]()
+        unreachable()
     }
 }

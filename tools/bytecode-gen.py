@@ -58,7 +58,7 @@ def generate_dora(config: dict) -> str:
             lines.append(f"    if opcode == {prefix}_{to_screaming_snake(name)} {{")
             lines.append(f'        return "{name}";')
             lines.append("    }")
-        lines.append("    unreachable[String]()")
+        lines.append("    unreachable()")
         lines.append("}")
         lines.append("")
 

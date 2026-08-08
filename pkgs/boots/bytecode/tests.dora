@@ -18,7 +18,7 @@ fn test_bytecode_ret() {
         BytecodeInstruction::Ret(reg) => {
             assert(r0 == reg);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -35,7 +35,7 @@ fn test_bytecode_ret_int() {
         BytecodeInstruction::Ret(opnd) => {
             assert(opnd.0 == 17);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -52,7 +52,7 @@ fn test_bytecode_ret_wide() {
         BytecodeInstruction::Ret(opnd) => {
             assert(opnd.0 == 256);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -69,7 +69,7 @@ fn test_bytecode_mov() {
         BytecodeInstruction::Mov(dest, src) => {
             assert(dest.0 == 0 && src.0 == 1);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -86,7 +86,7 @@ fn test_bytecode_mov_wide() {
         BytecodeInstruction::Mov(dest, src) => {
             assert(dest.0 == 256 && src.0 == 255);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -103,7 +103,7 @@ fn test_bytecode_const_byte() {
         BytecodeInstruction::ConstUInt8(dest, value) => {
             assert(dest.0 == 127 && value == 255u8);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -120,7 +120,7 @@ fn test_bytecode_const_byte_wide() {
         BytecodeInstruction::ConstUInt8(dest, value) => {
             assert(dest.0 == 128 && value == 255u8);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -137,7 +137,7 @@ fn test_bytecode_const_string() {
         BytecodeInstruction::ConstString(dest, idx) => {
             assert(dest.0 == 7 && idx.0 == 0);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -158,7 +158,7 @@ fn test_bytecode_sub_float32() {
         BytecodeInstruction::Sub(dest, lhs, rhs) => {
             assert(dest.0 == 2 && lhs.0 == 9 && rhs.0 == 127);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -176,7 +176,7 @@ fn test_bytecode_jump_back() {
         BytecodeInstruction::JumpLoop(distance) => {
             assert(distance == 0);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -200,7 +200,7 @@ fn test_bytecode_jump_back_wide() {
         BytecodeInstruction::JumpLoop(distance) => {
             assert(distance == 256);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -219,7 +219,7 @@ fn test_bytecode_jump() {
         BytecodeInstruction::Jump(distance) => {
             assert(distance == 5);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -244,7 +244,7 @@ fn test_bytecode_jump_far() {
         BytecodeInstruction::Jump(distance) => {
             assert(distance == 517);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -263,7 +263,7 @@ fn test_bytecode_cond_jump() {
         BytecodeInstruction::JumpIfTrue(opnd, distance) => {
             assert(opnd == BytecodeRegister(9i32) && distance == 6);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -288,7 +288,7 @@ fn test_bytecode_cond_jump_far() {
         BytecodeInstruction::JumpIfFalse(opnd, distance) => {
             assert(opnd == BytecodeRegister(9i32) && distance == 518);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 
@@ -307,6 +307,6 @@ fn test_bytecode_cond_jump_wide() {
         BytecodeInstruction::JumpIfTrue(opnd, distance) => {
             assert(opnd == BytecodeRegister(128i32) && distance == 7);
         }
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }

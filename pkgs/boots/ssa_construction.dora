@@ -362,8 +362,8 @@ impl SsaConstruction {
             BytecodeType::Struct(..)
             | BytecodeType::Tuple(_)
             | BytecodeType::Ref(_) => Type::Address,
-            BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
-            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
+            BytecodeType::This | BytecodeType::TypeParam(_) => unreachable(),
+            BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable(),
         }
     }
 }

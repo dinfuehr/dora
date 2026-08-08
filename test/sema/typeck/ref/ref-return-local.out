@@ -121,7 +121,7 @@ error: `return` expects value of type `ref Int32` but got `Int32`.
 error: `ref` return references a value that does not live long enough.
 --> ref-return-local.dora:110:9
  |     if condition {
- |         std::unreachable[()]();
+ |         std::unreachable();
  |         ref value
            ~~~~~~~~~
  |     } else {

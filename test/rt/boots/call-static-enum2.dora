@@ -3,7 +3,7 @@ fn main() {
     let foo = f();
     match foo {
         Foo::C(x) => assert(x == 10),
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 

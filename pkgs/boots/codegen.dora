@@ -531,7 +531,7 @@ fn emit_inst(codegen: CodeGen, inst: Inst) {
 
         _ => {
             println("unsupported op ${inst.op().name()}");
-            unreachable[()]();
+            unreachable();
         }
     }
 }

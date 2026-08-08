@@ -187,7 +187,7 @@ impl SimplificationPass {
                 }
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
 
         None
@@ -253,7 +253,7 @@ impl SimplificationPass {
                 }
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
 
         None
@@ -283,7 +283,7 @@ impl SimplificationPass {
                     return Some(self.graph.ensure_const_false_inst());
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         }
 
@@ -377,7 +377,7 @@ impl SimplificationPass {
         match ty {
             Type::Int32 => self.graph.ensure_const_int32_inst(0i32),
             Type::Int64 => self.graph.ensure_const_int64_inst(0),
-            _ => unreachable[Inst](),
+            _ => unreachable(),
         }
     }
 
@@ -401,7 +401,7 @@ impl SimplificationPass {
                 }
             }
 
-            _ => unreachable[Option[Inst]](),
+            _ => unreachable(),
         }
     }
 
@@ -413,7 +413,7 @@ impl SimplificationPass {
             Type::Int64 => self.graph.ensure_const_int64_inst(
                 fold_wrapping_int64(op, lhs, rhs)
             ),
-            _ => unreachable[Inst](),
+            _ => unreachable(),
         }
     }
 
@@ -449,7 +449,7 @@ fn fold_wrapping_int32(op: Op, lhs: Int32, rhs: Int32): Int32 {
         Op::And => lhs & rhs,
         Op::Or => lhs | rhs,
         Op::Xor => lhs ^ rhs,
-        _ => unreachable[Int32](),
+        _ => unreachable(),
     }
 }
 
@@ -461,7 +461,7 @@ fn fold_wrapping_int64(op: Op, lhs: Int64, rhs: Int64): Int64 {
         Op::And => lhs & rhs,
         Op::Or => lhs | rhs,
         Op::Xor => lhs ^ rhs,
-        _ => unreachable[Int64](),
+        _ => unreachable(),
     }
 }
 
@@ -525,6 +525,6 @@ fn shift_limit(ty: Type): Int64 {
     match ty {
         Type::Int32 => 32,
         Type::Int64 => 64,
-        _ => unreachable[Int64](),
+        _ => unreachable(),
     }
 }

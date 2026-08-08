@@ -8,7 +8,7 @@ fn f:
   8: Mov r2, r0
  11: InvokeStatic r1, @1, r2 # consume
  16: Jump 27 (+11)
- 21: InvokeDirect r3, @2 # std::unreachable[T]
+ 21: InvokeDirect r3, @2 # std::unreachable
  25: Ret r3
  27: Ret r1
 
@@ -21,7 +21,7 @@ fn f:
   Constants:
    0 => Int32 1
    1 => Fct consume
-   2 => Fct std::unreachable[Int32]
+   2 => Fct std::unreachable
 
   Locations:
    11 => 6:18
@@ -43,7 +43,7 @@ fn consume:
  53: Jump 72 (+19)
  58: ConstInt32 r1, @4 # 20
  61: Jump 72 (+11)
- 66: InvokeDirect r2, @5 # std::unreachable[T]
+ 66: InvokeDirect r2, @5 # std::unreachable
  70: Ret r2
  72: Ret r1
 
@@ -60,7 +60,7 @@ fn consume:
    2 => Int32 0
    3 => Int32 10
    4 => Int32 20
-   5 => Fct std::unreachable[Int32]
+   5 => Fct std::unreachable
 
   Locations:
    0 => 11:11

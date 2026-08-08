@@ -11,6 +11,6 @@ fn main() {
             assert(b == "abc");
             assert(c == 17.5f32);
         },
-        Foo::B => unreachable[()](),
+        Foo::B => unreachable(),
     }
 }

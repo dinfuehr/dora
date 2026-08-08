@@ -8,7 +8,7 @@ fn main() {
         } else if idx == 3i32 {
             assert(name == "ghi");
         } else {
-            unreachable[()]();
+            unreachable();
         }
     }
 }

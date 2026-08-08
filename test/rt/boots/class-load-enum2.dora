@@ -2,12 +2,12 @@
 fn main() {
     match f(Foo(Bar::A)) {
         Bar::A => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 
     match f(Foo(Bar::B)) {
         Bar::B => {}
-        _ => unreachable[()](),
+        _ => unreachable(),
     }
 }
 

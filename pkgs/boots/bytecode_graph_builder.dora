@@ -377,8 +377,8 @@ impl BytecodeGraphBuilder {
 
     fn argument_graph_ty_for_passing_mode(passing_mode: ArgumentPassingMode): Type {
         match passing_mode {
-            ArgumentPassingMode::None => unreachable[Type](),
-            ArgumentPassingMode::InteriorPointer => unreachable[Type](),
+            ArgumentPassingMode::None => unreachable(),
+            ArgumentPassingMode::InteriorPointer => unreachable(),
             ArgumentPassingMode::Stack => Type::Address,
             ArgumentPassingMode::Register(register_ty) => self.graph_ty(register_ty),
         }
@@ -479,8 +479,8 @@ impl BytecodeGraphBuilder {
                     );
                 }
             }
-            ArgumentPassingMode::InteriorPointer => unreachable[()](),
-            ArgumentPassingMode::None => unreachable[()](),
+            ArgumentPassingMode::InteriorPointer => unreachable(),
+            ArgumentPassingMode::None => unreachable(),
         }
     }
 
@@ -990,7 +990,7 @@ impl BytecodeGraphBuilder {
                     self.load_field_into(dest, src_inst, InstExtraData::None, offset);
                 }
             }
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -1056,7 +1056,7 @@ impl BytecodeGraphBuilder {
                     );
                 }
             }
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -1140,7 +1140,7 @@ impl BytecodeGraphBuilder {
                 self.current().append_inst(address_inst);
                 self.store_ref(self.aggregate_register(dest), address_inst, base_inst);
             }
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -1215,7 +1215,7 @@ impl BytecodeGraphBuilder {
             | BytecodeType::Ref(_)
             | BytecodeType::TypeParam(_)
             | BytecodeType::TypeAlias(_)
-            | BytecodeType::Assoc(..) => unreachable[()](),
+            | BytecodeType::Assoc(..) => unreachable(),
             BytecodeType::UInt8
             | BytecodeType::Bool
             | BytecodeType::Char
@@ -1271,7 +1271,7 @@ impl BytecodeGraphBuilder {
             | BytecodeType::Ref(_)
             | BytecodeType::TypeParam(_)
             | BytecodeType::TypeAlias(_)
-            | BytecodeType::Assoc(..) => unreachable[()](),
+            | BytecodeType::Assoc(..) => unreachable(),
             BytecodeType::UInt8
             | BytecodeType::Bool
             | BytecodeType::Char
@@ -1523,7 +1523,7 @@ impl BytecodeGraphBuilder {
 
         match layout {
             EnumLayout::Int32 => {
-                unreachable[()]();
+                unreachable();
             }
 
             EnumLayout::PtrOrNull(layout) => {
@@ -1643,7 +1643,7 @@ impl BytecodeGraphBuilder {
             BytecodeType::Int64 => Type::Int64,
             BytecodeType::Float32 => Type::Float32,
             BytecodeType::Float64 => Type::Float64,
-            _ => unreachable[Type](),
+            _ => unreachable(),
         };
 
         let src_inst = self.emit_local_get(src);
@@ -1685,7 +1685,7 @@ impl BytecodeGraphBuilder {
         let ty = match register_type {
             BytecodeType::Int32 => Type::Int32,
             BytecodeType::Int64 => Type::Int64,
-            _ => unreachable[Type](),
+            _ => unreachable(),
         };
 
         let lhs_inst = self.emit_local_get(lhs);
@@ -1773,7 +1773,7 @@ impl BytecodeGraphBuilder {
         let value = iface::get_const_value(const_id);
 
         let inst = match value {
-            ConstValue::None => unreachable[Inst](),
+            ConstValue::None => unreachable(),
 
             ConstValue::Int(value) => {
                 match dest_type {
@@ -1784,7 +1784,7 @@ impl BytecodeGraphBuilder {
                         value.to_int32()
                     ),
                     BytecodeType::Int64 => self.graph.ensure_const_int64_inst(value),
-                    _ => unreachable[Inst](),
+                    _ => unreachable(),
                 }
             }
 
@@ -1812,12 +1812,12 @@ impl BytecodeGraphBuilder {
                         self.current().append_inst(inst);
                         inst
                     }
-                    _ => unreachable[Inst](),
+                    _ => unreachable(),
                 }
             }
 
             ConstValue::String(_) => {
-                unreachable[Inst]()
+                unreachable()
             }
         };
 
@@ -2324,23 +2324,11 @@ impl BytecodeGraphBuilder {
                         (assoc_ty, fct_id, trait_ty.type_params, fct_type_params)
                     }
 
-                    _ => std::unreachable[(
-                        BytecodeType,
-                        FunctionId,
-                        Array[BytecodeType],
-                        Array[BytecodeType],
-                    )](
-                        ),
+                    _ => std::unreachable(),
                 }
             }
 
-            _ => unreachable[(
-                BytecodeType,
-                FunctionId,
-                Array[BytecodeType],
-                Array[BytecodeType],
-            )](
-                ),
+            _ => unreachable(),
         };
 
         assert(!object_ty.is_generic());
@@ -3089,7 +3077,7 @@ impl BytecodeGraphBuilder {
                 self.compute_struct_layout(struct_id, type_params)
             }
             BytecodeType::Tuple(subtypes) => self.compute_tuple_layout(subtypes),
-            _ => unreachable[RecordLayout](),
+            _ => unreachable(),
         }
     }
 
@@ -3307,8 +3295,8 @@ pub fn bytecode_graph_ty(
         BytecodeType::Struct(..)
         | BytecodeType::Tuple(_)
         | BytecodeType::Ref(_) => Type::Address,
-        BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Type](),
-        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable[Type](),
+        BytecodeType::This | BytecodeType::TypeParam(_) => unreachable(),
+        BytecodeType::TypeAlias(..) | BytecodeType::Assoc(..) => unreachable(),
     }
 }
 

@@ -6,7 +6,7 @@ let mut foo_value: Foo = Foo::B;
 
 fn main() {
     match foo_value {
-        Foo::A(_, _, _) => unreachable[()](),
+        Foo::A(_, _, _) => unreachable(),
         Foo::B => (),
     }
 
@@ -20,6 +20,6 @@ fn main() {
             assert(c == 17.5f32);
         },
 
-        Foo::B => unreachable[()](),
+        Foo::B => unreachable(),
     }
 }

@@ -532,7 +532,7 @@ pub fn bytecode_name(opcode: Int32): String {
     if opcode == BYTECODE_OPCODE_GET_ARRAY_REF {
         return "GetArrayRef";
     }
-    unreachable[String]()
+    unreachable()
 }
 
 pub fn bytecode_type_name(opcode: Int32): String {
@@ -596,7 +596,7 @@ pub fn bytecode_type_name(opcode: Int32): String {
     if opcode == BYTECODE_TYPE_NEVER {
         return "Never";
     }
-    unreachable[String]()
+    unreachable()
 }
 
 pub fn intrinsic_name(opcode: Int32): String {
@@ -1065,5 +1065,5 @@ pub fn intrinsic_name(opcode: Int32): String {
     if opcode == INTRINSIC_THREAD_CURRENT {
         return "ThreadCurrent";
     }
-    unreachable[String]()
+    unreachable()
 }

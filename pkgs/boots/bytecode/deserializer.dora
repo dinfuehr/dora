@@ -31,78 +31,78 @@ impl Deserializer {
     }
 
     pub fn deserialize_program(): Program {
-        unimplemented[Program]()
+        unimplemented()
     }
 
     pub fn deserialize_package_data(): PackageData {
-        unimplemented[PackageData]()
+        unimplemented()
     }
 
     pub fn deserialize_module_data(): ModuleData {
-        unimplemented[ModuleData]()
+        unimplemented()
     }
 
     pub fn deserialize_function_data(): FunctionData {
-        unimplemented[FunctionData]()
+        unimplemented()
     }
 
     pub fn deserialize_function_kind(): FunctionKind {
-        unimplemented[FunctionKind]()
+        unimplemented()
     }
 
     pub fn deserialize_type_param_data(): TypeParamData {
-        unimplemented[TypeParamData]()
+        unimplemented()
     }
 
     pub fn deserialize_type_param_bound(): TypeParamBound {
-        unimplemented[TypeParamBound]()
+        unimplemented()
     }
 
     pub fn deserialize_global_data(): GlobalData {
-        unimplemented[GlobalData]()
+        unimplemented()
     }
 
     pub fn deserialize_class_data(): ClassData {
-        unimplemented[ClassData]()
+        unimplemented()
     }
 
     pub fn deserialize_class_field(): ClassField {
-        unimplemented[ClassField]()
+        unimplemented()
     }
 
     pub fn deserialize_struct_data(): StructData {
-        unimplemented[StructData]()
+        unimplemented()
     }
 
     pub fn deserialize_struct_field(): StructField {
-        unimplemented[StructField]()
+        unimplemented()
     }
 
     pub fn deserialize_enum_data(): EnumData {
-        unimplemented[EnumData]()
+        unimplemented()
     }
 
     pub fn deserialize_enum_variant(): EnumVariant {
-        unimplemented[EnumVariant]()
+        unimplemented()
     }
 
     pub fn deserialize_trait_data(): TraitData {
-        unimplemented[TraitData]()
+        unimplemented()
     }
 
     pub fn deserialize_source_file_data(): SourceFileData {
-        unimplemented[SourceFileData]()
+        unimplemented()
     }
 
     pub fn deserialize_extension_data(): ExtensionData {
-        unimplemented[ExtensionData]()
+        unimplemented()
     }
 
     pub fn deserialize_impl_data(): ImplData {
-        unimplemented[ImplData]()
+        unimplemented()
     }
 
     pub fn deserialize_alias_data(): AliasData {
-        unimplemented[AliasData]()
+        unimplemented()
     }
 }

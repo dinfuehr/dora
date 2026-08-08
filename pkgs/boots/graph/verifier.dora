@@ -145,7 +145,7 @@ impl GraphVerifier {
             }
 
             Op::LocalGet => {
-                unreachable[()]();
+                unreachable();
             }
 
             Op::EnsureGlobalInitialized
@@ -210,11 +210,11 @@ impl GraphVerifier {
             }
 
             Op::LocalSet => {
-                unreachable[()]();
+                unreachable();
             }
 
             Op::InlineReturn => {
-                unreachable[()]();
+                unreachable();
             }
 
             Op::Add => self.assert_add_inputs(inst),

@@ -183,7 +183,7 @@ fn encode_relocation_kind(writer: ByteWriter, kind: RelocationKind) {
             encode_bytecode_type_array(writer, type_params);
         }
 
-        RelocationKind::CodeTarget | RelocationKind::Object => unreachable[()](),
+        RelocationKind::CodeTarget | RelocationKind::Object => unreachable(),
     }
 }
 
@@ -402,7 +402,7 @@ pub fn encode_bytecode_type(writer: ByteWriter, ty: BytecodeType) {
             writer.emit_int32(assoc_id.0);
         }
         BytecodeType::TypeAlias(..) => {
-            unimplemented[()]();
+            unimplemented();
         }
     }
 }

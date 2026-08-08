@@ -7,12 +7,12 @@ fn main() {
         Foo::A(str) => {
             assert(str == "abc");
         },
-        Foo::B => unreachable[()](),
+        Foo::B => unreachable(),
     }
 
     let value = Foo[String]::B;
     match value {
-        Foo::A(_) => unreachable[()](),
+        Foo::A(_) => unreachable(),
         Foo::B => (),
     }
 }

@@ -1074,7 +1074,7 @@ impl[T] Option[T] {
         match self {
             Some(value) => value,
             None => {
-                fatal_error[T]("cannot unwrap None.")
+                fatal_error("cannot unwrap None.")
             }
         }
     }
@@ -1082,7 +1082,7 @@ impl[T] Option[T] {
     pub fn unwrap_none() {
         match self {
             Some(_) => {
-                fatal_error[()]("cannot unwrap Some.");
+                fatal_error("cannot unwrap Some.");
             }
             None => (),
         }
@@ -1190,7 +1190,7 @@ impl[V, E] Result[V, E] {
         match self {
             Ok(value) => value,
             Err(_) => {
-                fatal_error[V]("cannot unwrap Err.")
+                fatal_error("cannot unwrap Err.")
             }
         }
     }
@@ -1198,7 +1198,7 @@ impl[V, E] Result[V, E] {
     pub fn get_err_or_panic(): E {
         match self {
             Ok(_) => {
-                fatal_error[E]("cannot unwrap Ok.")
+                fatal_error("cannot unwrap Ok.")
             }
             Err(value) => value,
         }

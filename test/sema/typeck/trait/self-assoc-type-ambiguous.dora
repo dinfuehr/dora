@@ -9,6 +9,6 @@ trait TraitB {
 
 trait Foo: TraitA + TraitB {
     fn make(): Self::Item {
-        unreachable[Self::Item]()
+        unreachable()
     }
 }

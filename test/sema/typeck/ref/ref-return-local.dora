@@ -106,7 +106,7 @@ fn unreachable_before_local(condition: Bool, object: Box): ref Int32 {
     let value = 1i32;
 
     if condition {
-        std::unreachable[()]();
+        std::unreachable();
         ref value
     } else {
         ref object.value

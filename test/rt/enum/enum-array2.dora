@@ -5,12 +5,12 @@ enum Foo { A(Int32, String, Float32), B }
 fn main() {
     let object = create_array();
     match object(0i64) {
-        Foo::A(a, b, c) => unreachable[()](),
+        Foo::A(a, b, c) => unreachable(),
         Foo::B => (),
     }
     std::force_collect();
     match object(0i64) {
-        Foo::A(a, b, c) => unreachable[()](),
+        Foo::A(a, b, c) => unreachable(),
         Foo::B => (),
     }
     update_array(object);
@@ -21,7 +21,7 @@ fn main() {
             assert(b == "abc");
             assert(c == 17.5f32);
         },
-        Foo::B => unreachable[()](),
+        Foo::B => unreachable(),
     }
 }
 

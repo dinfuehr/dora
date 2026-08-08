@@ -450,7 +450,7 @@ pub fn assert_graph(graph: Graph, output: String) {
 
         println("");
 
-        std::fatal_error[()]("output does not match");
+        std::fatal_error("output does not match");
     }
 }
 

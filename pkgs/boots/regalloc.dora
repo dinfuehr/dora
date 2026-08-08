@@ -643,10 +643,10 @@ impl SimpleRegisterAllocator {
 
     fn free_register_in_location(location: Location) {
         match location {
-            Location::None => unreachable[()](),
+            Location::None => unreachable(),
             Location::Reg(reg) => self.registers().free_register_raw(reg),
             Location::FloatReg(reg) => self.float_registers().free_register_raw(reg),
-            Location::Stack(..) => unreachable[()](),
+            Location::Stack(..) => unreachable(),
         }
     }
 
@@ -1163,7 +1163,7 @@ fn compute_record_layout(
                 add_field(2i32 * iface::PTR_SIZE, iface::PTR_SIZE, field_ty);
             }
             _ => {
-                unimplemented[()]();
+                unimplemented();
             }
         }
     }
@@ -1256,7 +1256,7 @@ pub fn is_reference(ci: CompilationInfo, ty: BytecodeType): Bool {
         | BytecodeType::Struct(..)
         | BytecodeType::Tuple(_) => false,
         BytecodeType::Class(..) | BytecodeType::TraitObject(..) => true,
-        BytecodeType::This | BytecodeType::TypeParam(_) => unreachable[Bool](),
+        BytecodeType::This | BytecodeType::TypeParam(_) => unreachable(),
         BytecodeType::Enum(enum_id, type_params) => {
             let layout = compute_enum_layout(ci, enum_id, type_params);
             match layout {
@@ -1264,6 +1264,6 @@ pub fn is_reference(ci: CompilationInfo, ty: BytecodeType): Bool {
                 EnumLayout::PtrOrNull(_) | EnumLayout::Tagged => true,
             }
         }
-        BytecodeType::TypeAlias(_) | BytecodeType::Assoc(..) => unreachable[Bool](),
+        BytecodeType::TypeAlias(_) | BytecodeType::Assoc(..) => unreachable(),
     }
 }

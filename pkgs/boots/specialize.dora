@@ -22,7 +22,7 @@ pub fn specialize_ty(
         | BytecodeType::Int64
         | BytecodeType::Float32
         | BytecodeType::Float64 => ty,
-        BytecodeType::This => unreachable[BytecodeType](),
+        BytecodeType::This => unreachable(),
         BytecodeType::Struct(struct_id, struct_type_params) => {
             BytecodeType::Struct(
                 struct_id,
@@ -58,7 +58,7 @@ pub fn specialize_ty(
         BytecodeType::Assoc(..) => {
             iface::specialize_assoc_ty(ci, ty, type_params)
         }
-        BytecodeType::TypeAlias(..) => unreachable[BytecodeType](),
+        BytecodeType::TypeAlias(..) => unreachable(),
     }
 }
 
@@ -101,10 +101,10 @@ pub fn specialize_ty_for_trait_object(
         // handled separately as the trait object. This helper specializes the method's return
         // type, where `This` has already been rejected by the object-safety check.
         BytecodeType::This => {
-            unreachable[BytecodeType]()
+            unreachable()
         }
         BytecodeType::TypeAlias(..) => {
-            unreachable[BytecodeType]()
+            unreachable()
         }
         BytecodeType::Struct(struct_id, struct_type_params) => {
             BytecodeType::Struct(

@@ -5,6 +5,6 @@ fn main() {
 
 fn get(x: Bool) {
     while x {
-        std::unreachable[()]();
+        std::unreachable();
     }
 }

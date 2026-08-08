@@ -373,7 +373,7 @@ impl CodeGenX64 {
             }
 
             _ => {
-                unimplemented[()]();
+                unimplemented();
             }
         }
     }
@@ -1244,7 +1244,7 @@ impl CodeGen for CodeGenX64 {
             } else if ty == Type::Int64 || ty == Type::Address || ty == Type::Ptr {
                 self.asm.movq_ar(AsmAddress::offset(RBP, slot), reg);
             } else {
-                unreachable[()]();
+                unreachable();
             }
         }
     }
@@ -1562,7 +1562,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.negq_r(dest);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -1592,7 +1592,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.notq_r(dest);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -2080,20 +2080,20 @@ impl CodeGen for CodeGenX64 {
                         match ty {
                             Type::Float32 => self.asm.vucomiss_rr(lhs, rhs),
                             Type::Float64 => self.asm.vucomisd_rr(lhs, rhs),
-                            _ => unreachable[()](),
+                            _ => unreachable(),
                         }
                     } else {
                         match ty {
                             Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
                             Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
-                            _ => unreachable[()](),
+                            _ => unreachable(),
                         }
                     }
 
                     let cond = match cond.op() {
                         Op::Equal => Condition::Equal,
                         Op::NotEqual => Condition::NotEqual,
-                        _ => unreachable[Condition](),
+                        _ => unreachable(),
                     };
 
                     self.asm.jcc(Condition::Parity, false_block.get_label());
@@ -2120,20 +2120,20 @@ impl CodeGen for CodeGenX64 {
                     let cond = match inst.op() {
                         Op::Greater | Op::Less => Condition::Above,
                         Op::GreaterOrEqual | Op::LessOrEqual => Condition::AboveOrEqual,
-                        _ => unreachable[Condition](),
+                        _ => unreachable(),
                     };
 
                     if self.has_avx2 {
                         match ty {
                             Type::Float32 => self.asm.vucomiss_rr(lhs, rhs),
                             Type::Float64 => self.asm.vucomisd_rr(lhs, rhs),
-                            _ => unreachable[()](),
+                            _ => unreachable(),
                         }
                     } else {
                         match ty {
                             Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
                             Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
-                            _ => unreachable[()](),
+                            _ => unreachable(),
                         }
                     }
 
@@ -2162,14 +2162,14 @@ impl CodeGen for CodeGenX64 {
                     Op::LessOrEqual | Op::UnsignedLessOrEqual => Condition::LessOrEqual,
                     Op::Equal => Condition::Equal,
                     Op::NotEqual => Condition::NotEqual,
-                    _ => unreachable[Condition](),
+                    _ => unreachable(),
                 };
 
                 match cond.get_operation_type() {
                     Type::Bool | Type::UInt8 => self.asm.cmpb_rr(lhs, rhs),
                     Type::Int32 => self.asm.cmpl_rr(lhs, rhs),
                     Type::Int64 | Type::Ptr => self.asm.cmpq_rr(lhs, rhs),
-                    _ => std::unimplemented[()](),
+                    _ => std::unimplemented(),
                 }
 
                 if current_block.linear_order_idx + 1i32 == true_block.linear_order_idx {
@@ -2432,7 +2432,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.movq_ra(REG_TEMP, AsmAddress::offset(RBP, src_offset));
                     self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
                 } else {
-                    unimplemented[()]();
+                    unimplemented();
                 }
             }
         }
@@ -2601,7 +2601,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.lea(dest, AsmAddress::offset(RBP, stack_offset));
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         } else {
             assert(dest.is_stack());
@@ -2647,7 +2647,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.movq_ar(AsmAddress::offset(stack_reg, offset), REG_TEMP);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         }
     }
@@ -2677,13 +2677,13 @@ impl CodeGen for CodeGenX64 {
                     match ty {
                         Type::Float32 => self.asm.vucomiss_rr(lhs, rhs),
                         Type::Float64 => self.asm.vucomisd_rr(lhs, rhs),
-                        _ => unreachable[()](),
+                        _ => unreachable(),
                     }
                 } else {
                     match ty {
                         Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
                         Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
-                        _ => unreachable[()](),
+                        _ => unreachable(),
                     }
                 }
                 let cond = if inst.op() == Op::Equal {
@@ -2704,20 +2704,20 @@ impl CodeGen for CodeGenX64 {
                 let cond = match inst.op() {
                     Op::Greater | Op::Less => Condition::Above,
                     Op::GreaterOrEqual | Op::LessOrEqual => Condition::AboveOrEqual,
-                    _ => unreachable[Condition](),
+                    _ => unreachable(),
                 };
 
                 if self.has_avx2 {
                     match ty {
                         Type::Float32 => self.asm.vucomiss_rr(lhs, rhs),
                         Type::Float64 => self.asm.vucomisd_rr(lhs, rhs),
-                        _ => unreachable[()](),
+                        _ => unreachable(),
                     }
                 } else {
                     match ty {
                         Type::Float32 => self.asm.ucomiss_rr(lhs, rhs),
                         Type::Float64 => self.asm.ucomisd_rr(lhs, rhs),
-                        _ => unreachable[()](),
+                        _ => unreachable(),
                     }
                 }
                 self.asm.setcc_r(cond, dest);
@@ -2738,14 +2738,14 @@ impl CodeGen for CodeGenX64 {
                 Op::UnsignedLessOrEqual => Condition::BelowOrEqual,
                 Op::Equal => Condition::Equal,
                 Op::NotEqual => Condition::NotEqual,
-                _ => unreachable[Condition](),
+                _ => unreachable(),
             };
 
             match ty {
                 Type::Bool | Type::UInt8 => self.asm.cmpb_rr(lhs, rhs),
                 Type::Int32 => self.asm.cmpl_rr(lhs, rhs),
                 Type::Int64 | Type::Ptr => self.asm.cmpq_rr(lhs, rhs),
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
             self.asm.setcc_r(cond, dest);
         }
@@ -2771,7 +2771,7 @@ impl CodeGen for CodeGenX64 {
                 gc_point,
             );
         } else {
-            unreachable[()]();
+            unreachable();
         }
     }
 
@@ -2896,7 +2896,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             _ => {
-                unimplemented[()]();
+                unimplemented();
             }
         }
     }
@@ -2989,7 +2989,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             _ => {
-                unimplemented[()]();
+                unimplemented();
             }
         }
     }
@@ -3029,7 +3029,7 @@ impl CodeGen for CodeGenX64 {
             size = data.size;
             shape_key = data.shape_key;
         } else {
-            unreachable[()]();
+            unreachable();
         };
 
         assert(size % PTR_SIZE == 0);
@@ -3122,7 +3122,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             _ => {
-                unimplemented[()]();
+                unimplemented();
             }
         }
     }
@@ -3246,7 +3246,7 @@ impl CodeGen for CodeGenX64 {
                         }
 
                         _ => {
-                            unimplemented[()]();
+                            unimplemented();
                         }
                     }
                 }
@@ -3319,7 +3319,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             _ => {
-                unimplemented[()]();
+                unimplemented();
             }
         }
     }
@@ -3402,7 +3402,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             _ => {
-                unimplemented[()]();
+                unimplemented();
             }
         }
     }
@@ -3449,7 +3449,7 @@ impl CodeGen for CodeGenX64 {
             }
 
             _ => {
-                unimplemented[()]();
+                unimplemented();
             }
         }
     }
@@ -3587,7 +3587,7 @@ impl CodeGen for CodeGenX64 {
                         self.asm.movzxb_rr(dest, src);
                     }
 
-                    _ => unimplemented[()](),
+                    _ => unimplemented(),
                 }
             }
 
@@ -3623,7 +3623,7 @@ impl CodeGen for CodeGenX64 {
                         self.asm.movzxb_rr(dest, src);
                     }
 
-                    _ => unimplemented[()](),
+                    _ => unimplemented(),
                 }
             }
 
@@ -3658,7 +3658,7 @@ impl CodeGen for CodeGenX64 {
                         }
                     }
 
-                    _ => unimplemented[()](),
+                    _ => unimplemented(),
                 }
             }
 
@@ -3693,7 +3693,7 @@ impl CodeGen for CodeGenX64 {
                         }
                     }
 
-                    _ => unimplemented[()](),
+                    _ => unimplemented(),
                 }
             }
 
@@ -3706,11 +3706,11 @@ impl CodeGen for CodeGenX64 {
                         self.asm.movzxb_rr(dest, src);
                     }
 
-                    _ => unimplemented[()](),
+                    _ => unimplemented(),
                 }
             }
 
-            _ => unimplemented[()](),
+            _ => unimplemented(),
         }
     }
 
@@ -3813,7 +3813,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.bind_label(lbl_done);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -3892,7 +3892,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movq_rr(dest, src);
             }
 
-            _ => unimplemented[()](),
+            _ => unimplemented(),
         }
     }
 
@@ -3917,7 +3917,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.vroundsd_ri(dest, src, src, rounding_mode);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         } else {
             match inst.get_value_type() {
@@ -3929,7 +3929,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.roundsd_ri(dest, src, rounding_mode);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         }
     }
@@ -3955,7 +3955,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.vroundsd_ri(dest, src, src, rounding_mode);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         } else {
             match inst.get_value_type() {
@@ -3967,7 +3967,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.roundsd_ri(dest, src, rounding_mode);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         }
     }
@@ -3993,7 +3993,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.vroundsd_ri(dest, src, src, rounding_mode);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         } else {
             match inst.get_value_type() {
@@ -4005,7 +4005,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.roundsd_ri(dest, src, rounding_mode);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         }
     }
@@ -4031,7 +4031,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.vroundsd_ri(dest, src, src, rounding_mode);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         } else {
             match inst.get_value_type() {
@@ -4043,7 +4043,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.roundsd_ri(dest, src, rounding_mode);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         }
     }
@@ -4069,7 +4069,7 @@ impl CodeGen for CodeGenX64 {
                 self.andps_ri128(dest, src, lower, 0);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -4093,7 +4093,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.vsqrtsd_rr(dest, src, src);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         } else {
             match inst.get_value_type() {
@@ -4105,7 +4105,7 @@ impl CodeGen for CodeGenX64 {
                     self.asm.sqrtsd_rr(dest, src);
                 }
 
-                _ => unreachable[()](),
+                _ => unreachable(),
             }
         }
     }
@@ -4139,7 +4139,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.rolq_r(src);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -4167,7 +4167,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.rorq_r(src);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -4194,7 +4194,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movq_ra(dest, AsmAddress::offset(src, 0i32));
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -4220,7 +4220,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.xchgq_ar(AsmAddress::offset(obj, 0i32), REG_TEMP);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -4249,7 +4249,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movq_rr(dest, REG_TEMP);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -4283,7 +4283,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movq_rr(dest, RAX);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -4312,7 +4312,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.movq_rr(dest, REG_TEMP);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -4335,7 +4335,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.popcntq_rr(dest, value);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -4358,7 +4358,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.lzcntq_rr(dest, value);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -4381,7 +4381,7 @@ impl CodeGen for CodeGenX64 {
                 self.asm.tzcntq_rr(dest, value);
             }
 
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 

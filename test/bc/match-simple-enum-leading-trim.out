@@ -19,7 +19,7 @@ fn f:
  33: Jump 52 (+19)
  38: ConstInt32 r1, @6 # 99
  41: Jump 52 (+11)
- 46: InvokeDirect r2, @7 # std::unreachable[T]
+ 46: InvokeDirect r2, @7 # std::unreachable
  50: Ret r2
  52: Ret r1
 
@@ -38,7 +38,7 @@ fn f:
    4 => Int32 50
    5 => Int32 60
    6 => Int32 99
-   7 => Fct std::unreachable[Int32]
+   7 => Fct std::unreachable
 
   Locations:
    0 => 4:11

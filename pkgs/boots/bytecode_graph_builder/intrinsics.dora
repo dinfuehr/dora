@@ -814,7 +814,7 @@ impl BytecodeGraphBuilder {
             }
             _ => {
                 let name = opc::intrinsic_name(intrinsic);
-                let result = std::fatal_error[Inst]("unknown intrinsic ${name}");
+                let result = std::fatal_error("unknown intrinsic ${name}");
                 self.emit_local_set(dest, result);
             }
         }
@@ -897,7 +897,7 @@ impl BytecodeGraphBuilder {
             | BytecodeType::Ref(_)
             | BytecodeType::TypeParam(_)
             | BytecodeType::TypeAlias(_)
-            | BytecodeType::Assoc(..) => unreachable[()](),
+            | BytecodeType::Assoc(..) => unreachable(),
         }
     }
 
@@ -1264,7 +1264,7 @@ impl BytecodeGraphBuilder {
         };
 
         match layout {
-            EnumLayout::Int32 => unreachable[Inst](),
+            EnumLayout::Int32 => unreachable(),
             EnumLayout::PtrOrNull(_) => {
                 let null = graph::create_null_const();
                 self.current().append_inst(null);

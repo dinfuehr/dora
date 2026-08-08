@@ -44,7 +44,7 @@ pub fn register_name(register: Register): String {
     } else if register == REG_SP {
         "sp"
     } else {
-        unreachable[String]()
+        unreachable()
     }
 }
 
@@ -2680,7 +2680,7 @@ impl AssemblerArm64 {
             if encoding::fits_i14(diff) {
                 self.emit(encoding::test_and_branch(is_non_zero, bit, diff, rt));
             } else {
-                unimplemented[()]();
+                unimplemented();
             }
         } else {
             let pos = self.buffer.position();
@@ -2946,7 +2946,7 @@ impl Extend {
             Extend::LSL => 0b011,
             Extend::SXTW => 0b110,
             Extend::SXTX => 0b111,
-            _ => unreachable[Int32](),
+            _ => unreachable(),
         }
     }
 }
@@ -6214,7 +6214,7 @@ mod tests {
                 idx = idx + 4;
             }
             println("");
-            std::fatal_error[()]("broken assertion");
+            std::fatal_error("broken assertion");
         }
     }
 

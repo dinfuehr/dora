@@ -1,1 +1,1 @@
-fn f(): Int32 { unreachable[Int32]() }
+fn f(): Int32 { unreachable() }

@@ -11,5 +11,5 @@ fn testme(): Int {
 }
 
 fn my_fatal_error[T](): T {
-  std::fatal_error[T]("not yet implemented")
+  std::fatal_error("not yet implemented")
 }

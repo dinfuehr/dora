@@ -1609,7 +1609,7 @@ impl Inst {
     pub fn get_runtime_function(): RuntimeFunction {
         match self.extra {
             InstExtraData::RuntimeFunction(runtime_function) => runtime_function,
-            _ => unreachable[RuntimeFunction](),
+            _ => unreachable(),
         }
     }
 
@@ -1620,7 +1620,7 @@ impl Inst {
     pub fn get_trait_object_info(): TraitObjectInfo {
         match self.extra {
             InstExtraData::TraitObjectInfo(info) => info,
-            _ => unreachable[TraitObjectInfo](),
+            _ => unreachable(),
         }
     }
 
@@ -1631,14 +1631,14 @@ impl Inst {
     pub fn get_allocation_data(): AllocationData {
         match self.extra {
             InstExtraData::AllocationData(data) => data,
-            _ => unreachable[AllocationData](),
+            _ => unreachable(),
         }
     }
 
     pub fn get_virtual_function_info(): VirtualFunctionInfo {
         match self.extra {
             InstExtraData::VirtualFunctionInfo(info) => info,
-            _ => unreachable[VirtualFunctionInfo](),
+            _ => unreachable(),
         }
     }
 
@@ -1649,14 +1649,14 @@ impl Inst {
     pub fn get_record_layout(): RecordLayout {
         match self.extra {
             InstExtraData::RecordLayout(layout) => layout,
-            _ => unreachable[RecordLayout](),
+            _ => unreachable(),
         }
     }
 
     pub fn get_extra_inst(): Inst {
         match self.extra {
             InstExtraData::Inst(inst) => inst,
-            _ => unreachable[Inst](),
+            _ => unreachable(),
         }
     }
 
@@ -1667,7 +1667,7 @@ impl Inst {
     pub fn get_class_info(): ClassInfo {
         match self.extra {
             InstExtraData::ClassInfo(info) => info,
-            _ => unreachable[ClassInfo](),
+            _ => unreachable(),
         }
     }
 
@@ -1899,7 +1899,7 @@ impl Inst {
     pub fn get_string_data(): (FunctionId, ConstPoolId) {
         match self.extra {
             InstExtraData::String(fct_id, const_pool_id) => (fct_id, const_pool_id),
-            _ => unreachable[(FunctionId, ConstPoolId)](),
+            _ => unreachable(),
         }
     }
 
@@ -1945,7 +1945,7 @@ impl Inst {
         assert(self.op() == Op::Goto);
         match self.extra {
             InstExtraData::Goto(block) => block,
-            _ => unreachable[Block](),
+            _ => unreachable(),
         }
     }
 
@@ -1953,7 +1953,7 @@ impl Inst {
         assert(self.op() == Op::If);
         match self.extra {
             InstExtraData::If(then_block, _else_block) => then_block,
-            _ => unreachable[Block](),
+            _ => unreachable(),
         }
     }
 
@@ -1963,7 +1963,7 @@ impl Inst {
             InstExtraData::If(_then_block, else_block) => {
                 self.extra = InstExtraData::If(block, else_block);
             }
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -1971,7 +1971,7 @@ impl Inst {
         assert(self.op() == Op::If);
         match self.extra {
             InstExtraData::If(_then_block, else_block) => else_block,
-            _ => unreachable[Block](),
+            _ => unreachable(),
         }
     }
 
@@ -1985,7 +1985,7 @@ impl Inst {
                     else_block
                 }
             }
-            _ => unreachable[Block](),
+            _ => unreachable(),
         }
     }
 
@@ -1993,7 +1993,7 @@ impl Inst {
         assert(self.op() == Op::Switch);
         match self.extra {
             InstExtraData::Switch(targets, _) => targets,
-            _ => unreachable[Array[Block]](),
+            _ => unreachable(),
         }
     }
 
@@ -2001,7 +2001,7 @@ impl Inst {
         assert(self.op() == Op::Switch);
         match self.extra {
             InstExtraData::Switch(_, default_block) => default_block,
-            _ => unreachable[Block](),
+            _ => unreachable(),
         }
     }
 
@@ -2011,7 +2011,7 @@ impl Inst {
             InstExtraData::Switch(targets, _) => {
                 targets(idx) = block;
             }
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -2021,7 +2021,7 @@ impl Inst {
             InstExtraData::Switch(targets, _) => {
                 self.extra = InstExtraData::Switch(targets, block);
             }
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -2031,7 +2031,7 @@ impl Inst {
             InstExtraData::If(then_block, _else_block) => {
                 self.extra = InstExtraData::If(then_block, block);
             }
-            _ => unreachable[()](),
+            _ => unreachable(),
         }
     }
 
@@ -2527,7 +2527,7 @@ impl Location {
     pub fn get_register(): Register {
         match self {
             Location::Reg(reg) => reg,
-            _ => unreachable[Register](),
+            _ => unreachable(),
         }
     }
 
@@ -2541,7 +2541,7 @@ impl Location {
     pub fn get_float_register(): FloatRegister {
         match self {
             Location::FloatReg(reg) => reg,
-            _ => unreachable[FloatRegister](),
+            _ => unreachable(),
         }
     }
 
@@ -2555,7 +2555,7 @@ impl Location {
     pub fn get_stack(): StackSlot {
         match self {
             Location::Stack(slot) => slot,
-            _ => unreachable[StackSlot](),
+            _ => unreachable(),
         }
     }
 }
