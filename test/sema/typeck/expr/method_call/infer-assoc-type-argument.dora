@@ -1,0 +1,42 @@
+trait Marker {}
+class DoesNotImplementMarker
+
+trait GenericMethod {
+    fn identity[T](value: T): T;
+    fn same[T](first: T, second: T): T;
+    fn two[A, B](first: A, second: B): (A, B);
+    fn phantom[T](value: Int32): Int32;
+    fn bounded[T: Marker](value: T): T;
+    fn nongeneric(value: Int32): Int32;
+}
+
+trait Container {
+    type Item: GenericMethod;
+
+    fn expected_conflict(value: Self::Item): Bool {
+        value.identity(1i32)
+    }
+
+    fn errors(value: Self::Item) {
+        value.identity[_](unknown);
+        value.identity[(_, _)](unknownTuple);
+        value.same(1i32, true);
+        value.two[_](1i32, true);
+        value.same[_, Bool](1i32, true);
+        value.phantom[_](1i32);
+        value.phantom(1i32);
+        value.bounded(DoesNotImplementMarker());
+        value.nongeneric[Int32](1i32);
+        value.nongeneric[_](1i32);
+    }
+}
+
+trait GenericContainerUser[C: Container] {
+    fn expected_conflict_on_implicit_assoc(value: C::Item): Bool {
+        value.identity(1i32)
+    }
+
+    fn expected_conflict_on_explicit_assoc(value: [C as Container]::Item): Bool {
+        value.identity[_](1i32)
+    }
+}

@@ -1,0 +1,137 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-assoc-type-argument.dora:17:24
+ | 
+ |     fn expected_conflict(value: Self::Item): Bool {
+ |         value.identity(1i32)
+                          ~~~~
+ |     }
+ | 
+error: cannot infer type.
+--> infer-assoc-type-argument.dora:21:24
+ | 
+ |     fn errors(value: Self::Item) {
+ |         value.identity[_](unknown);
+                          ~
+ |         value.identity[(_, _)](unknownTuple);
+ |         value.same(1i32, true);
+error: unknown identifier `unknown`.
+--> infer-assoc-type-argument.dora:21:27
+ | 
+ |     fn errors(value: Self::Item) {
+ |         value.identity[_](unknown);
+                             ~~~~~~~
+ |         value.identity[(_, _)](unknownTuple);
+ |         value.same(1i32, true);
+error: cannot infer type.
+--> infer-assoc-type-argument.dora:22:25
+ |     fn errors(value: Self::Item) {
+ |         value.identity[_](unknown);
+ |         value.identity[(_, _)](unknownTuple);
+                           ~
+ |         value.same(1i32, true);
+ |         value.two[_](1i32, true);
+error: cannot infer type.
+--> infer-assoc-type-argument.dora:22:28
+ |     fn errors(value: Self::Item) {
+ |         value.identity[_](unknown);
+ |         value.identity[(_, _)](unknownTuple);
+                              ~
+ |         value.same(1i32, true);
+ |         value.two[_](1i32, true);
+error: unknown identifier `unknownTuple`.
+--> infer-assoc-type-argument.dora:22:32
+ |     fn errors(value: Self::Item) {
+ |         value.identity[_](unknown);
+ |         value.identity[(_, _)](unknownTuple);
+                                  ~~~~~~~~~~~~
+ |         value.same(1i32, true);
+ |         value.two[_](1i32, true);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-assoc-type-argument.dora:23:26
+ |         value.identity[_](unknown);
+ |         value.identity[(_, _)](unknownTuple);
+ |         value.same(1i32, true);
+                            ~~~~
+ |         value.two[_](1i32, true);
+ |         value.same[_, Bool](1i32, true);
+error: expected 2 type parameters but got 1.
+--> infer-assoc-type-argument.dora:24:9
+ |         value.identity[(_, _)](unknownTuple);
+ |         value.same(1i32, true);
+ |         value.two[_](1i32, true);
+           ~~~~~~~~~~~~~~~~~~~~~~~~
+ |         value.same[_, Bool](1i32, true);
+ |         value.phantom[_](1i32);
+error: expected 1 type parameters but got 2.
+--> infer-assoc-type-argument.dora:25:9
+ |         value.same(1i32, true);
+ |         value.two[_](1i32, true);
+ |         value.same[_, Bool](1i32, true);
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |         value.phantom[_](1i32);
+ |         value.phantom(1i32);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-assoc-type-argument.dora:25:35
+ |         value.same(1i32, true);
+ |         value.two[_](1i32, true);
+ |         value.same[_, Bool](1i32, true);
+                                     ~~~~
+ |         value.phantom[_](1i32);
+ |         value.phantom(1i32);
+error: cannot infer type.
+--> infer-assoc-type-argument.dora:26:23
+ |         value.two[_](1i32, true);
+ |         value.same[_, Bool](1i32, true);
+ |         value.phantom[_](1i32);
+                         ~
+ |         value.phantom(1i32);
+ |         value.bounded(DoesNotImplementMarker());
+error: cannot infer type arguments: [_].
+--> infer-assoc-type-argument.dora:27:9
+ |         value.same[_, Bool](1i32, true);
+ |         value.phantom[_](1i32);
+ |         value.phantom(1i32);
+           ~~~~~~~~~~~~~~~~~~~
+ |         value.bounded(DoesNotImplementMarker());
+ |         value.nongeneric[Int32](1i32);
+error: type `DoesNotImplementMarker` does not implement trait `Marker`.
+--> infer-assoc-type-argument.dora:28:9
+ |         value.phantom[_](1i32);
+ |         value.phantom(1i32);
+ |         value.bounded(DoesNotImplementMarker());
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |         value.nongeneric[Int32](1i32);
+ |         value.nongeneric[_](1i32);
+error: expected 0 type parameters but got 1.
+--> infer-assoc-type-argument.dora:29:9
+ |         value.phantom(1i32);
+ |         value.bounded(DoesNotImplementMarker());
+ |         value.nongeneric[Int32](1i32);
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |         value.nongeneric[_](1i32);
+ |     }
+error: expected 0 type parameters but got 1.
+--> infer-assoc-type-argument.dora:30:9
+ |         value.bounded(DoesNotImplementMarker());
+ |         value.nongeneric[Int32](1i32);
+ |         value.nongeneric[_](1i32);
+           ~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     }
+ | }
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-assoc-type-argument.dora:36:24
+ | trait GenericContainerUser[C: Container] {
+ |     fn expected_conflict_on_implicit_assoc(value: C::Item): Bool {
+ |         value.identity(1i32)
+                          ~~~~
+ |     }
+ | 
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-assoc-type-argument.dora:40:27
+ | 
+ |     fn expected_conflict_on_explicit_assoc(value: [C as Container]::Item): Bool {
+ |         value.identity[_](1i32)
+                             ~~~~
+ |     }
+ | }
+17 errors found.

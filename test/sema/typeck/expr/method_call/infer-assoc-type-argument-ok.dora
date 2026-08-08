@@ -1,0 +1,35 @@
+//= ok
+trait Marker {}
+class Marked
+impl Marker for Marked {}
+
+trait GenericMethod {
+    fn identity[T](value: T): T;
+    fn from_expected[T](): T;
+    fn from_nested_expected[A, B](): (Option[A], Option[B]);
+    fn with_expected[A, B](value: A): (A, Option[B]);
+    fn bounded[T: Marker](value: T): T;
+}
+
+trait Container {
+    type Item: GenericMethod;
+
+    fn infer_on_self_assoc(value: Self::Item): Int64 {
+        let _expected_only: Bool = value.from_expected();
+        let _nested_expected: (Option[String], Option[Bool]) = value.from_nested_expected();
+        let _expected_and_argument: (Int64, Option[Bool]) = value.with_expected(1);
+        let _expected_placeholders: (Int64, Option[String]) = value.with_expected[_, _](2);
+        let _bounded: Marked = value.bounded(Marked());
+        value.identity(3)
+    }
+}
+
+trait GenericContainerUser[C: Container] {
+    fn infer_on_generic_assoc(value: C::Item): Bool {
+        value.from_expected()
+    }
+
+    fn infer_on_explicit_generic_assoc(value: [C as Container]::Item): String {
+        value.identity[_]("expected")
+    }
+}

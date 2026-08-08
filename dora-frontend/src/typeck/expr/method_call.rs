@@ -136,14 +136,15 @@ fn check_expr_call_method(
             call_expr_id,
         );
     } else if object_type.is_assoc() {
-        let mtd_type_params = read_method_type_params(ck, &mtd_type_param_refs);
         return check_method_call_on_assoc(
             ck,
             call_expr_id,
             method_name,
             object_type,
-            mtd_type_params,
+            mtd_type_param_refs,
             call_expr_id,
+            expected_ty,
+            context,
         );
     } else if object_type.is_self() {
         return check_method_call_on_self(
@@ -566,8 +567,10 @@ fn check_method_call_on_assoc(
     expr_id: ExprId,
     name: String,
     object_type: SourceType,
-    mtd_type_params: SourceTypeArray,
+    mtd_type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
+    expected_ty: SourceType,
+    context: ExprContext,
 ) -> SourceType {
     let mut matched_methods = Vec::new();
     let interned_name = ck.sa.interner.intern(&name);
@@ -584,15 +587,69 @@ fn check_method_call_on_assoc(
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
         let trait_method = ck.sa.fct(trait_method_id);
+        let type_param_definition = trait_method.type_param_definition(ck.sa);
+        let expected_type_param_count = type_param_definition.own_type_params_len();
+        let (mtd_type_params, type_variables) =
+            read_call_type_params_with_inference(ck, &mtd_type_param_refs);
+        let (mtd_type_params, type_variables) =
+            if mtd_type_params.is_empty() && expected_type_param_count > 0 {
+                assert!(type_variables.is_empty());
+                ck.create_implicit_type_variables(expected_type_param_count, call_expr_id)
+            } else {
+                (mtd_type_params, type_variables)
+            };
+
+        let supplied_type_args = TypeArgs::from_parts(
+            ck.sa,
+            type_param_definition,
+            &trait_ty.type_params,
+            &mtd_type_params,
+            Some(object_type.clone()),
+        );
+        let mtd_type_params =
+            fix_type_param_arity(ck, call_expr_id, trait_method, None, supplied_type_args);
         let type_params = TypeArgs::from_parts(
             ck.sa,
-            trait_method.type_param_definition(ck.sa),
+            type_param_definition,
             &trait_ty.type_params,
             &mtd_type_params,
             Some(object_type.clone()),
         );
 
-        if !check_type_params(
+        let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
+        ck.unify_types(call_result_type(return_type, context), expected_ty);
+
+        let expected = build_expected_method_call_args(
+            trait_method.params.regular_params(),
+            trait_method.params.variadic_param(),
+            |ty| ty,
+        );
+        check_call_arguments_with_inference(ck, call_expr_id, &expected, |ck, ty| {
+            let resolved_type_params = ck.resolve_type_array(mtd_type_params.clone());
+            let type_args = TypeArgs::from_parts(
+                ck.sa,
+                type_param_definition,
+                &trait_ty.type_params,
+                &resolved_type_params,
+                Some(object_type.clone()),
+            );
+            replace_type(ck.sa, ty, &type_args)
+        });
+
+        if !ck.report_unresolved_type_variables(&type_variables, &mtd_type_params) {
+            ck.body.set_ty(expr_id, ty_error());
+            return ty_error();
+        }
+
+        let mtd_type_params = ck.resolve_type_array(mtd_type_params);
+        let type_params = TypeArgs::from_parts(
+            ck.sa,
+            type_param_definition,
+            &trait_ty.type_params,
+            &mtd_type_params,
+            Some(object_type.clone()),
+        );
+        if !check_type_param_bounds(
             ck.sa,
             ck.element,
             &ck.type_param_definition,
@@ -602,7 +659,6 @@ fn check_method_call_on_assoc(
             || ck.expr_span(expr_id),
             |ty| replace_type(ck.sa, ty, &type_params),
         ) {
-            check_call_arguments_with_expected(ck, call_expr_id, None);
             ck.body.set_ty(expr_id, ty_error());
             return ty_error();
         }
@@ -620,15 +676,9 @@ fn check_method_call_on_assoc(
             }),
         );
 
-        let expected = build_expected_method_call_args(
-            trait_method.params.regular_params(),
-            trait_method.params.variadic_param(),
-            |ty| replace_type(ck.sa, ty, &type_params),
-        );
-        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
-
         return_type
     } else {
+        read_method_type_params(ck, &mtd_type_param_refs);
         let object_type = ck.ty_name(&object_type);
         if matched_methods.is_empty() {
             ck.report(

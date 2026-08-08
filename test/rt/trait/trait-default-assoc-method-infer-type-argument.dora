@@ -1,0 +1,68 @@
+trait GenericMethod {
+    fn identity[T](value: T): T;
+    fn from_expected[A, B](): (Option[A], Option[B]);
+    fn with_expected[A, B](value: A): (A, Option[B]);
+}
+
+class Item
+
+impl GenericMethod for Item {
+    fn identity[T](value: T): T { value }
+    fn from_expected[A, B](): (Option[A], Option[B]) { (None, None) }
+    fn with_expected[A, B](value: A): (A, Option[B]) { (value, None) }
+}
+
+trait Container {
+    type Item: GenericMethod;
+
+    fn infer_on_self_assoc(item: Self::Item): (Int64, String) {
+        (item.identity(7), item.identity[_]("self associated"))
+    }
+
+    fn infer_expected_on_self_assoc(
+        item: Self::Item,
+    ): ((Option[String], Option[Bool]), (Int64, Option[Bool])) {
+        (item.from_expected(), item.with_expected(8))
+    }
+}
+
+class Source
+
+impl Container for Source {
+    type Item = Item;
+}
+
+trait GenericContainerUser[C: Container] {
+    fn infer_on_generic_assoc(item: C::Item): Bool {
+        item.identity(true)
+    }
+
+    fn infer_expected_on_explicit_generic_assoc(
+        item: [C as Container]::Item,
+    ): (Int64, Option[String]) {
+        item.with_expected[_, _](9)
+    }
+}
+
+class GenericSource
+
+impl GenericContainerUser[Source] for GenericSource {}
+
+fn main() {
+    let inferred = Source().infer_on_self_assoc(Item());
+    assert(inferred.0 == 7i64);
+    assert(inferred.1 == "self associated");
+
+    let expected = Source().infer_expected_on_self_assoc(Item());
+    let expectedOnly = expected.0;
+    assert(expectedOnly.0.is_none());
+    assert(expectedOnly.1.is_none());
+    let expectedAndArgument = expected.1;
+    assert(expectedAndArgument.0 == 8i64);
+    assert(expectedAndArgument.1.is_none());
+
+    assert(GenericSource().infer_on_generic_assoc(Item()));
+    let explicit = GenericSource().infer_expected_on_explicit_generic_assoc(Item());
+    assert(explicit.0 == 9i64);
+    assert(explicit.1.is_none());
+}

@@ -6,7 +6,7 @@ error: cannot infer type arguments: [_].
            ~~~~~~~~~~~~~~
  |     }
  | }
-error: expected 1 type parameters but got 0.
+error: cannot infer type arguments: [_].
 --> method-call-missing-type-params-self.dora:13:9
  | 
  |     fn call_on_assoc(value: Self::Item) {
@@ -14,7 +14,7 @@ error: expected 1 type parameters but got 0.
            ~~~~~~~~~~~~~~~
  |     }
  | }
-error: expected 1 type parameters but got 0.
+error: cannot infer type arguments: [_].
 --> method-call-missing-type-params-self.dora:18:5
  | 
  | fn call_on_generic_assoc[T: Container](value: T::Item) {
