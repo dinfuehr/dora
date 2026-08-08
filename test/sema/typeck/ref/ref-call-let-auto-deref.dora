@@ -12,14 +12,16 @@ fn return_value(): Int32 {
     identity(ref mut returned_value)
 }
 
-@native
-fn generic_ref[T](): ref T;
+fn generic_ref[T](): ref T {
+    std::unreachable()
+}
 
 class RefFactory
 
 impl RefFactory {
-    @native
-    static fn generic_ref[T](): ref T;
+    static fn generic_ref[T](): ref T {
+        std::unreachable()
+    }
 }
 
 class Identity
