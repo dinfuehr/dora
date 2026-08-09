@@ -1,0 +1,121 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> generic-assoc-static-method-infer-type-argument.dora:18:23
+ | 
+ | fn expected_conflict[T: Container](): Bool {
+ |     T::Item::identity(1i32)
+                         ~~~~
+ | }
+ | 
+error: cannot infer type.
+--> generic-assoc-static-method-infer-type-argument.dora:22:23
+ | 
+ | fn errors[T: Container]() {
+ |     T::Item::identity[_](unknown);
+                         ~
+ |     T::Item::identity[(_, _)](unknownTuple);
+ |     T::Item::same(1i32, true);
+error: unknown identifier `unknown`.
+--> generic-assoc-static-method-infer-type-argument.dora:22:26
+ | 
+ | fn errors[T: Container]() {
+ |     T::Item::identity[_](unknown);
+                            ~~~~~~~
+ |     T::Item::identity[(_, _)](unknownTuple);
+ |     T::Item::same(1i32, true);
+error: cannot infer type.
+--> generic-assoc-static-method-infer-type-argument.dora:23:24
+ | fn errors[T: Container]() {
+ |     T::Item::identity[_](unknown);
+ |     T::Item::identity[(_, _)](unknownTuple);
+                          ~
+ |     T::Item::same(1i32, true);
+ |     T::Item::two[_](1i32, true);
+error: cannot infer type.
+--> generic-assoc-static-method-infer-type-argument.dora:23:27
+ | fn errors[T: Container]() {
+ |     T::Item::identity[_](unknown);
+ |     T::Item::identity[(_, _)](unknownTuple);
+                             ~
+ |     T::Item::same(1i32, true);
+ |     T::Item::two[_](1i32, true);
+error: unknown identifier `unknownTuple`.
+--> generic-assoc-static-method-infer-type-argument.dora:23:31
+ | fn errors[T: Container]() {
+ |     T::Item::identity[_](unknown);
+ |     T::Item::identity[(_, _)](unknownTuple);
+                                 ~~~~~~~~~~~~
+ |     T::Item::same(1i32, true);
+ |     T::Item::two[_](1i32, true);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> generic-assoc-static-method-infer-type-argument.dora:24:25
+ |     T::Item::identity[_](unknown);
+ |     T::Item::identity[(_, _)](unknownTuple);
+ |     T::Item::same(1i32, true);
+                           ~~~~
+ |     T::Item::two[_](1i32, true);
+ |     T::Item::same[_, Bool](1i32, true);
+error: expected 2 type parameters but got 1.
+--> generic-assoc-static-method-infer-type-argument.dora:25:5
+ |     T::Item::identity[(_, _)](unknownTuple);
+ |     T::Item::same(1i32, true);
+ |     T::Item::two[_](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     T::Item::same[_, Bool](1i32, true);
+ |     T::Item::phantom[_](1i32);
+error: expected 1 type parameters but got 2.
+--> generic-assoc-static-method-infer-type-argument.dora:26:5
+ |     T::Item::same(1i32, true);
+ |     T::Item::two[_](1i32, true);
+ |     T::Item::same[_, Bool](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     T::Item::phantom[_](1i32);
+ |     T::Item::phantom(1i32);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> generic-assoc-static-method-infer-type-argument.dora:26:34
+ |     T::Item::same(1i32, true);
+ |     T::Item::two[_](1i32, true);
+ |     T::Item::same[_, Bool](1i32, true);
+                                    ~~~~
+ |     T::Item::phantom[_](1i32);
+ |     T::Item::phantom(1i32);
+error: cannot infer type.
+--> generic-assoc-static-method-infer-type-argument.dora:27:22
+ |     T::Item::two[_](1i32, true);
+ |     T::Item::same[_, Bool](1i32, true);
+ |     T::Item::phantom[_](1i32);
+                        ~
+ |     T::Item::phantom(1i32);
+ |     T::Item::bounded(DoesNotImplementMarker());
+error: cannot infer type arguments: [_].
+--> generic-assoc-static-method-infer-type-argument.dora:28:5
+ |     T::Item::same[_, Bool](1i32, true);
+ |     T::Item::phantom[_](1i32);
+ |     T::Item::phantom(1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~
+ |     T::Item::bounded(DoesNotImplementMarker());
+ |     T::Item::nongeneric[Int32](1i32);
+error: type `DoesNotImplementMarker` does not implement trait `Marker`.
+--> generic-assoc-static-method-infer-type-argument.dora:29:5
+ |     T::Item::phantom[_](1i32);
+ |     T::Item::phantom(1i32);
+ |     T::Item::bounded(DoesNotImplementMarker());
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     T::Item::nongeneric[Int32](1i32);
+ |     T::Item::nongeneric[_](1i32);
+error: expected 0 type parameters but got 1.
+--> generic-assoc-static-method-infer-type-argument.dora:30:5
+ |     T::Item::phantom(1i32);
+ |     T::Item::bounded(DoesNotImplementMarker());
+ |     T::Item::nongeneric[Int32](1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     T::Item::nongeneric[_](1i32);
+ | }
+error: expected 0 type parameters but got 1.
+--> generic-assoc-static-method-infer-type-argument.dora:31:5
+ |     T::Item::bounded(DoesNotImplementMarker());
+ |     T::Item::nongeneric[Int32](1i32);
+ |     T::Item::nongeneric[_](1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+15 errors found.
