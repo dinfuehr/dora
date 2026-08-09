@@ -1,0 +1,31 @@
+//= ok
+trait Marker {}
+class Marked
+impl Marker for Marked {}
+
+trait Base {
+    fn from_super[T](value: T): T;
+}
+
+trait GenericMethod[Owner]: Base {
+    fn identity[T](value: T): T;
+    fn from_expected[T](): T;
+    fn from_nested_expected[A, B](): (Option[A], Option[B]);
+    fn with_owner[T](owner: Owner, value: T): (Owner, T);
+    fn with_self[T](value: T): (Self, T);
+    fn bounded[T: Marker](value: T): T;
+}
+
+fn infer[T: GenericMethod[String]](value: T): (T, Bool) {
+    let _expected_only: Int64 = value.from_expected();
+    let _nested_expected: (Option[String], Option[Bool]) = value.from_nested_expected();
+    let _owner_and_argument: (String, Int32) = value.with_owner("owner", 1);
+    let _expected_placeholders: (String, Int64) = value.with_owner[_]("owner", 2);
+    let _super_method: String = value.from_super("super");
+    let _bounded: Marked = value.bounded(Marked());
+    value.with_self(true)
+}
+
+fn infer_from_expected[T: GenericMethod[String]](value: T): Int64 {
+    value.identity(3)
+}

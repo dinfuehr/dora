@@ -1,0 +1,137 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-type-param-receiver-type-argument.dora:19:20
+ | 
+ | fn expected_conflict[T: GenericMethod](value: T): Bool {
+ |     value.identity(1i32)
+                      ~~~~
+ | }
+ | 
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-type-param-receiver-type-argument.dora:23:21
+ | 
+ | fn self_expected_conflict[T: GenericMethod](value: T): (T, Bool) {
+ |     value.with_self(1i32)
+                       ~~~~
+ | }
+ | 
+error: Argument expects value of type `Bool` but got `Int32`.
+--> infer-type-param-receiver-type-argument.dora:27:22
+ | 
+ | fn super_expected_conflict[T: GenericMethod](value: T): Bool {
+ |     value.from_super(1i32)
+                        ~~~~
+ | }
+ | 
+error: cannot infer type.
+--> infer-type-param-receiver-type-argument.dora:31:20
+ | 
+ | fn errors[T: GenericMethod](value: T) {
+ |     value.identity[_](unknown);
+                      ~
+ |     value.identity[(_, _)](unknownTuple);
+ |     value.same(1i32, true);
+error: unknown identifier `unknown`.
+--> infer-type-param-receiver-type-argument.dora:31:23
+ | 
+ | fn errors[T: GenericMethod](value: T) {
+ |     value.identity[_](unknown);
+                         ~~~~~~~
+ |     value.identity[(_, _)](unknownTuple);
+ |     value.same(1i32, true);
+error: cannot infer type.
+--> infer-type-param-receiver-type-argument.dora:32:21
+ | fn errors[T: GenericMethod](value: T) {
+ |     value.identity[_](unknown);
+ |     value.identity[(_, _)](unknownTuple);
+                       ~
+ |     value.same(1i32, true);
+ |     value.two[_](1i32, true);
+error: cannot infer type.
+--> infer-type-param-receiver-type-argument.dora:32:24
+ | fn errors[T: GenericMethod](value: T) {
+ |     value.identity[_](unknown);
+ |     value.identity[(_, _)](unknownTuple);
+                          ~
+ |     value.same(1i32, true);
+ |     value.two[_](1i32, true);
+error: unknown identifier `unknownTuple`.
+--> infer-type-param-receiver-type-argument.dora:32:28
+ | fn errors[T: GenericMethod](value: T) {
+ |     value.identity[_](unknown);
+ |     value.identity[(_, _)](unknownTuple);
+                              ~~~~~~~~~~~~
+ |     value.same(1i32, true);
+ |     value.two[_](1i32, true);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-type-param-receiver-type-argument.dora:33:22
+ |     value.identity[_](unknown);
+ |     value.identity[(_, _)](unknownTuple);
+ |     value.same(1i32, true);
+                        ~~~~
+ |     value.two[_](1i32, true);
+ |     value.same[_, Bool](1i32, true);
+error: expected 2 type parameters but got 1.
+--> infer-type-param-receiver-type-argument.dora:34:5
+ |     value.identity[(_, _)](unknownTuple);
+ |     value.same(1i32, true);
+ |     value.two[_](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~
+ |     value.same[_, Bool](1i32, true);
+ |     value.phantom[_](1i32);
+error: expected 1 type parameters but got 2.
+--> infer-type-param-receiver-type-argument.dora:35:5
+ |     value.same(1i32, true);
+ |     value.two[_](1i32, true);
+ |     value.same[_, Bool](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     value.phantom[_](1i32);
+ |     value.phantom(1i32);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> infer-type-param-receiver-type-argument.dora:35:31
+ |     value.same(1i32, true);
+ |     value.two[_](1i32, true);
+ |     value.same[_, Bool](1i32, true);
+                                 ~~~~
+ |     value.phantom[_](1i32);
+ |     value.phantom(1i32);
+error: cannot infer type.
+--> infer-type-param-receiver-type-argument.dora:36:19
+ |     value.two[_](1i32, true);
+ |     value.same[_, Bool](1i32, true);
+ |     value.phantom[_](1i32);
+                     ~
+ |     value.phantom(1i32);
+ |     value.bounded(DoesNotImplementMarker());
+error: cannot infer type arguments: [_].
+--> infer-type-param-receiver-type-argument.dora:37:5
+ |     value.same[_, Bool](1i32, true);
+ |     value.phantom[_](1i32);
+ |     value.phantom(1i32);
+       ~~~~~~~~~~~~~~~~~~~
+ |     value.bounded(DoesNotImplementMarker());
+ |     value.nongeneric[Int32](1i32);
+error: type `DoesNotImplementMarker` does not implement trait `Marker`.
+--> infer-type-param-receiver-type-argument.dora:38:5
+ |     value.phantom[_](1i32);
+ |     value.phantom(1i32);
+ |     value.bounded(DoesNotImplementMarker());
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     value.nongeneric[Int32](1i32);
+ |     value.nongeneric[_](1i32);
+error: expected 0 type parameters but got 1.
+--> infer-type-param-receiver-type-argument.dora:39:5
+ |     value.phantom(1i32);
+ |     value.bounded(DoesNotImplementMarker());
+ |     value.nongeneric[Int32](1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     value.nongeneric[_](1i32);
+ | }
+error: expected 0 type parameters but got 1.
+--> infer-type-param-receiver-type-argument.dora:40:5
+ |     value.bounded(DoesNotImplementMarker());
+ |     value.nongeneric[Int32](1i32);
+ |     value.nongeneric[_](1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+17 errors found.

@@ -1,0 +1,63 @@
+trait Base {
+    fn from_super[T](value: T): T;
+}
+
+trait GenericMethod[Owner]: Base {
+    fn identity[T](value: T): T;
+    fn from_expected[A, B](): (Option[A], Option[B]);
+    fn with_owner[T](owner: Owner, value: T): (Owner, T);
+    fn with_self[T](value: T): (Self, T);
+}
+
+class Item(Int64)
+
+impl Base for Item {
+    fn from_super[T](value: T): T { value }
+}
+
+impl GenericMethod[String] for Item {
+    fn identity[T](value: T): T { value }
+    fn from_expected[A, B](): (Option[A], Option[B]) { (None, None) }
+    fn with_owner[T](owner: String, value: T): (String, T) { (owner, value) }
+    fn with_self[T](value: T): (Item, T) { (self, value) }
+}
+
+fn infer_values[T: GenericMethod[String]](item: T): (Int64, String) {
+    (item.identity(7), item.identity[_]("type parameter"))
+}
+
+fn infer_expected[T: GenericMethod[String]](
+    item: T,
+): ((Option[String], Option[Bool]), (String, Int64)) {
+    (item.from_expected(), item.with_owner("owner", 8))
+}
+
+fn infer_self[T: GenericMethod[String]](item: T): (T, Bool) {
+    item.with_self(true)
+}
+
+fn infer_super[T: GenericMethod[String]](item: T): String {
+    item.from_super("super trait")
+}
+
+fn main() {
+    let item = Item(42);
+    let inferred = infer_values(item);
+    assert(inferred.0 == 7i64);
+    assert(inferred.1 == "type parameter");
+
+    let expected = infer_expected(item);
+    let expectedOnly = expected.0;
+    assert(expectedOnly.0.is_none());
+    assert(expectedOnly.1.is_none());
+    let ownerAndArgument = expected.1;
+    assert(ownerAndArgument.0 == "owner");
+    assert(ownerAndArgument.1 == 8i64);
+
+    let withSelf = infer_self(item);
+    let returnedItem = withSelf.0;
+    assert(returnedItem.0 == 42i64);
+    assert(withSelf.1);
+
+    assert(infer_super(item) == "super trait");
+}

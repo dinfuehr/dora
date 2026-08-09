@@ -1,0 +1,41 @@
+trait Marker {}
+class DoesNotImplementMarker
+
+trait Base {
+    fn from_super[T](value: T): T;
+}
+
+trait GenericMethod: Base {
+    fn identity[T](value: T): T;
+    fn same[T](first: T, second: T): T;
+    fn two[A, B](first: A, second: B): (A, B);
+    fn with_self[T](value: T): (Self, T);
+    fn phantom[T](value: Int32): Int32;
+    fn bounded[T: Marker](value: T): T;
+    fn nongeneric(value: Int32): Int32;
+}
+
+fn expected_conflict[T: GenericMethod](value: T): Bool {
+    value.identity(1i32)
+}
+
+fn self_expected_conflict[T: GenericMethod](value: T): (T, Bool) {
+    value.with_self(1i32)
+}
+
+fn super_expected_conflict[T: GenericMethod](value: T): Bool {
+    value.from_super(1i32)
+}
+
+fn errors[T: GenericMethod](value: T) {
+    value.identity[_](unknown);
+    value.identity[(_, _)](unknownTuple);
+    value.same(1i32, true);
+    value.two[_](1i32, true);
+    value.same[_, Bool](1i32, true);
+    value.phantom[_](1i32);
+    value.phantom(1i32);
+    value.bounded(DoesNotImplementMarker());
+    value.nongeneric[Int32](1i32);
+    value.nongeneric[_](1i32);
+}

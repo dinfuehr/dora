@@ -269,11 +269,17 @@ fn check_call_arguments_with_expected_inner(
 
     for (idx, arg_id) in arg_ids.iter().enumerate() {
         let param_ty = if idx < expected.regular_types.len() {
-            expected.regular_types[idx].clone()
+            Some(expected.regular_types[idx].clone())
         } else if let Some(ref variadic_type) = expected.variadic_type {
-            variadic_type.clone()
+            Some(variadic_type.clone())
         } else {
-            SourceType::Any
+            None
+        };
+        let Some(param_ty) = param_ty else {
+            // Superfluous arguments have no parameter type to specialize.
+            let ty = check_expr(ck, *arg_id, SourceType::Any);
+            ck.body.set_ty(*arg_id, ty);
+            continue;
         };
         let param_ty = if let Some(specialize) = specialize_for_inference.as_deref_mut() {
             specialize(ck, param_ty)

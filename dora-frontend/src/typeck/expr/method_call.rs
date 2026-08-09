@@ -25,9 +25,7 @@ use crate::specialize::replace_type;
 use crate::typeck::expr::{
     MutabilityCheckReason, check_value_type_base_mutability, preserve_ref_returning_base,
 };
-use crate::typeck::{
-    TypeCheck, check_expr, check_type_param_bounds, check_type_params, find_method_call_candidates,
-};
+use crate::typeck::{TypeCheck, check_expr, check_type_param_bounds, find_method_call_candidates};
 
 use super::call::ExpectedCallArgs;
 use crate::{
@@ -125,15 +123,16 @@ fn check_expr_call_method(
     context: ExprContext,
 ) -> SourceType {
     if let SourceType::TypeParam(id) = object_type {
-        let mtd_type_params = read_method_type_params(ck, &mtd_type_param_refs);
         return check_method_call_on_type_param(
             ck,
             call_expr_id,
             SourceType::TypeParam(id),
             id,
             method_name,
-            mtd_type_params,
+            mtd_type_param_refs,
             call_expr_id,
+            expected_ty,
+            context,
         );
     } else if object_type.is_assoc() {
         return check_method_call_on_assoc(
@@ -722,8 +721,10 @@ fn check_method_call_on_type_param(
     object_type: SourceType,
     type_param_id: TypeParamId,
     name: String,
-    mtd_type_params: SourceTypeArray,
+    mtd_type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
+    expected_ty: SourceType,
+    context: ExprContext,
 ) -> SourceType {
     assert!(object_type.is_type_param());
     let mut matched_methods = Vec::new();
@@ -744,17 +745,77 @@ fn check_method_call_on_type_param(
 
     if matched_methods.len() == 1 {
         let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing element");
-
         let trait_method = ck.sa.fct(trait_method_id);
+        let type_param_definition = trait_method.type_param_definition(ck.sa);
+        let expected_type_param_count = type_param_definition.own_type_params_len();
+        let (mtd_type_params, type_variables) =
+            read_call_type_params_with_inference(ck, &mtd_type_param_refs);
+        let (mtd_type_params, type_variables) =
+            if mtd_type_params.is_empty() && expected_type_param_count > 0 {
+                assert!(type_variables.is_empty());
+                ck.create_implicit_type_variables(expected_type_param_count, call_expr_id)
+            } else {
+                (mtd_type_params, type_variables)
+            };
+
+        let supplied_type_args = TypeArgs::from_parts(
+            ck.sa,
+            type_param_definition,
+            &trait_ty.type_params,
+            &mtd_type_params,
+            Some(object_type.clone()),
+        );
+        let mtd_type_params =
+            fix_type_param_arity(ck, call_expr_id, trait_method, None, supplied_type_args);
         let type_params = TypeArgs::from_parts(
             ck.sa,
-            trait_method.type_param_definition(ck.sa),
+            type_param_definition,
             &trait_ty.type_params,
             &mtd_type_params,
             Some(object_type.clone()),
         );
 
-        let type_params_ok = check_type_params(
+        let return_type = specialize_ty_for_generic(
+            ck.sa,
+            trait_method.return_type(),
+            ck.element,
+            type_param_id,
+            &trait_ty,
+            &type_params,
+        );
+        ck.unify_types(call_result_type(return_type, context), expected_ty);
+
+        let expected = build_expected_method_call_args(
+            trait_method.params.regular_params(),
+            trait_method.params.variadic_param(),
+            |ty| ty,
+        );
+        check_call_arguments_with_inference(ck, call_expr_id, &expected, |ck, ty| {
+            let resolved_type_params = ck.resolve_type_array(mtd_type_params.clone());
+            let type_args = TypeArgs::from_parts(
+                ck.sa,
+                type_param_definition,
+                &trait_ty.type_params,
+                &resolved_type_params,
+                Some(object_type.clone()),
+            );
+            specialize_ty_for_generic(ck.sa, ty, ck.element, type_param_id, &trait_ty, &type_args)
+        });
+
+        if !ck.report_unresolved_type_variables(&type_variables, &mtd_type_params) {
+            ck.body.set_ty(expr_id, ty_error());
+            return ty_error();
+        }
+
+        let mtd_type_params = ck.resolve_type_array(mtd_type_params);
+        let type_params = TypeArgs::from_parts(
+            ck.sa,
+            type_param_definition,
+            &trait_ty.type_params,
+            &mtd_type_params,
+            Some(object_type.clone()),
+        );
+        if !check_type_param_bounds(
             ck.sa,
             ck.element,
             &ck.type_param_definition,
@@ -772,49 +833,32 @@ fn check_method_call_on_type_param(
                     &type_params,
                 )
             },
+        ) {
+            ck.body.set_ty(expr_id, ty_error());
+            return ty_error();
+        }
+
+        let return_type = specialize_ty_for_generic(
+            ck.sa,
+            trait_method.return_type(),
+            ck.element,
+            type_param_id,
+            &trait_ty,
+            &type_params,
         );
 
-        if type_params_ok {
-            let return_type = specialize_ty_for_generic(
-                ck.sa,
-                trait_method.return_type(),
-                ck.element,
-                type_param_id,
-                &trait_ty,
-                &type_params,
-            );
+        ck.body.set_ty(expr_id, return_type.clone());
 
-            ck.body.set_ty(expr_id, return_type.clone());
+        let call_type = CallType::GenericMethod {
+            trait_ty: trait_ty.clone(),
+            fct_id: trait_method_id,
+            type_params: type_params.clone(),
+        };
+        ck.body.insert_call_type(expr_id, Rc::new(call_type));
 
-            let call_type = CallType::GenericMethod {
-                trait_ty: trait_ty.clone(),
-                fct_id: trait_method_id,
-                type_params: type_params.clone(),
-            };
-            ck.body.insert_call_type(expr_id, Rc::new(call_type));
-
-            let expected = build_expected_method_call_args(
-                trait_method.params.regular_params(),
-                trait_method.params.variadic_param(),
-                |ty| {
-                    specialize_ty_for_generic(
-                        ck.sa,
-                        ty,
-                        ck.element,
-                        type_param_id,
-                        &trait_ty,
-                        &type_params,
-                    )
-                },
-            );
-            check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
-
-            return_type
-        } else {
-            check_call_arguments_with_expected(ck, call_expr_id, None);
-            SourceType::Error
-        }
+        return_type
     } else {
+        read_method_type_params(ck, &mtd_type_param_refs);
         if matched_methods.is_empty() {
             ck.report(
                 ck.expr_span(expr_id),
