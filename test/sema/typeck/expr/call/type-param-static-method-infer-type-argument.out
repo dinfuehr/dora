@@ -1,0 +1,121 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> type-param-static-method-infer-type-argument.dora:14:17
+ | 
+ | fn expected_conflict[T: StaticFactory](): Bool {
+ |     T::identity(1i32)
+                   ~~~~
+ | }
+ | 
+error: cannot infer type.
+--> type-param-static-method-infer-type-argument.dora:18:17
+ | 
+ | fn errors[T: StaticFactory]() {
+ |     T::identity[_](unknown);
+                   ~
+ |     T::identity[(_, _)](unknownTuple);
+ |     T::same(1i32, true);
+error: unknown identifier `unknown`.
+--> type-param-static-method-infer-type-argument.dora:18:20
+ | 
+ | fn errors[T: StaticFactory]() {
+ |     T::identity[_](unknown);
+                      ~~~~~~~
+ |     T::identity[(_, _)](unknownTuple);
+ |     T::same(1i32, true);
+error: cannot infer type.
+--> type-param-static-method-infer-type-argument.dora:19:18
+ | fn errors[T: StaticFactory]() {
+ |     T::identity[_](unknown);
+ |     T::identity[(_, _)](unknownTuple);
+                    ~
+ |     T::same(1i32, true);
+ |     T::two[_](1i32, true);
+error: cannot infer type.
+--> type-param-static-method-infer-type-argument.dora:19:21
+ | fn errors[T: StaticFactory]() {
+ |     T::identity[_](unknown);
+ |     T::identity[(_, _)](unknownTuple);
+                       ~
+ |     T::same(1i32, true);
+ |     T::two[_](1i32, true);
+error: unknown identifier `unknownTuple`.
+--> type-param-static-method-infer-type-argument.dora:19:25
+ | fn errors[T: StaticFactory]() {
+ |     T::identity[_](unknown);
+ |     T::identity[(_, _)](unknownTuple);
+                           ~~~~~~~~~~~~
+ |     T::same(1i32, true);
+ |     T::two[_](1i32, true);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> type-param-static-method-infer-type-argument.dora:20:19
+ |     T::identity[_](unknown);
+ |     T::identity[(_, _)](unknownTuple);
+ |     T::same(1i32, true);
+                     ~~~~
+ |     T::two[_](1i32, true);
+ |     T::same[_, Bool](1i32, true);
+error: expected 2 type parameters but got 1.
+--> type-param-static-method-infer-type-argument.dora:21:5
+ |     T::identity[(_, _)](unknownTuple);
+ |     T::same(1i32, true);
+ |     T::two[_](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~
+ |     T::same[_, Bool](1i32, true);
+ |     T::phantom[_](1i32);
+error: expected 1 type parameters but got 2.
+--> type-param-static-method-infer-type-argument.dora:22:5
+ |     T::same(1i32, true);
+ |     T::two[_](1i32, true);
+ |     T::same[_, Bool](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     T::phantom[_](1i32);
+ |     T::phantom(1i32);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> type-param-static-method-infer-type-argument.dora:22:28
+ |     T::same(1i32, true);
+ |     T::two[_](1i32, true);
+ |     T::same[_, Bool](1i32, true);
+                              ~~~~
+ |     T::phantom[_](1i32);
+ |     T::phantom(1i32);
+error: cannot infer type.
+--> type-param-static-method-infer-type-argument.dora:23:16
+ |     T::two[_](1i32, true);
+ |     T::same[_, Bool](1i32, true);
+ |     T::phantom[_](1i32);
+                  ~
+ |     T::phantom(1i32);
+ |     T::bounded(DoesNotImplementMarker());
+error: cannot infer type arguments: [_].
+--> type-param-static-method-infer-type-argument.dora:24:5
+ |     T::same[_, Bool](1i32, true);
+ |     T::phantom[_](1i32);
+ |     T::phantom(1i32);
+       ~~~~~~~~~~~~~~~~
+ |     T::bounded(DoesNotImplementMarker());
+ |     T::nongeneric[Int32](1i32);
+error: type `DoesNotImplementMarker` does not implement trait `Marker`.
+--> type-param-static-method-infer-type-argument.dora:25:5
+ |     T::phantom[_](1i32);
+ |     T::phantom(1i32);
+ |     T::bounded(DoesNotImplementMarker());
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     T::nongeneric[Int32](1i32);
+ |     T::nongeneric[_](1i32);
+error: expected 0 type parameters but got 1.
+--> type-param-static-method-infer-type-argument.dora:26:5
+ |     T::phantom(1i32);
+ |     T::bounded(DoesNotImplementMarker());
+ |     T::nongeneric[Int32](1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     T::nongeneric[_](1i32);
+ | }
+error: expected 0 type parameters but got 1.
+--> type-param-static-method-infer-type-argument.dora:27:5
+ |     T::bounded(DoesNotImplementMarker());
+ |     T::nongeneric[Int32](1i32);
+ |     T::nongeneric[_](1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+15 errors found.
