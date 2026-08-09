@@ -124,6 +124,8 @@ pub(super) fn check_expr_call_target(
             sema_expr.callee,
             qualified_expr,
             call_expr_id,
+            expected_ty,
+            context,
         )),
 
         _ => {
@@ -979,6 +981,8 @@ fn check_expr_call_qualified_path(
     callee_expr_id: ExprId,
     sema_expr: &QualifiedPathExpr,
     call_expr_id: ExprId,
+    expected_ty: SourceType,
+    context: ExprContext,
 ) -> SourceType {
     // Read the qualified type [T as Trait]
     let ty = ck.read_type(sema_expr.ty);
@@ -1043,16 +1047,11 @@ fn check_expr_call_qualified_path(
         return ty_error();
     };
 
-    // Get type params from method segment
-    let type_params: Vec<SourceType> = method_segment
-        .type_params
-        .iter()
-        .map(|&ty| ck.read_type(ty))
-        .collect();
-    let pure_fct_type_params = SourceTypeArray::with(type_params);
+    let fct_type_param_refs = method_segment.type_params.clone();
 
     // Only one segment (method name) is allowed
     if sema_expr.segments.len() > 1 {
+        read_call_type_params(ck, &fct_type_param_refs);
         ck.report(
             ck.expr_span(callee_expr_id),
             &crate::error::diagnostics::UNEXPECTED_PATH_SEGMENT,
@@ -1078,6 +1077,7 @@ fn check_expr_call_qualified_path(
     }
 
     if matched_methods.len() != 1 {
+        read_call_type_params(ck, &fct_type_param_refs);
         let desc = if matched_methods.len() > 1 {
             &MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM
         } else {
@@ -1092,16 +1092,68 @@ fn check_expr_call_qualified_path(
 
     let (trait_method_id, method_trait_ty) = matched_methods.pop().expect("missing method");
     let trait_method = ck.sa.fct(trait_method_id);
+    let type_param_definition = trait_method.type_param_definition(ck.sa);
+    let expected_type_param_count = type_param_definition.own_type_params_len();
+    let (fct_type_params, type_variables) =
+        read_call_type_params_with_inference(ck, &fct_type_param_refs);
+    let (fct_type_params, type_variables) =
+        if fct_type_params.is_empty() && expected_type_param_count > 0 {
+            assert!(type_variables.is_empty());
+            ck.create_implicit_type_variables(expected_type_param_count, expr_id)
+        } else {
+            (fct_type_params, type_variables)
+        };
 
+    let supplied_type_args = TypeArgs::from_parts(
+        ck.sa,
+        type_param_definition,
+        &method_trait_ty.type_params,
+        &fct_type_params,
+        Some(assoc_type.clone()),
+    );
+    let fct_type_params = fix_type_param_arity(ck, expr_id, trait_method, None, supplied_type_args);
     let type_params = TypeArgs::from_parts(
         ck.sa,
-        trait_method.type_param_definition(ck.sa),
+        type_param_definition,
         &method_trait_ty.type_params,
-        &pure_fct_type_params,
+        &fct_type_params,
         Some(assoc_type.clone()),
     );
 
-    if check_type_params(
+    let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
+    ck.unify_types(call_result_type(return_type, context), expected_ty);
+
+    let expected = build_expected_call_args(
+        trait_method.params.regular_params(),
+        trait_method.params.variadic_param(),
+        |ty| ty,
+    );
+    check_call_arguments_with_inference(ck, call_expr_id, &expected, |ck, ty| {
+        let resolved_type_params = ck.resolve_type_array(fct_type_params.clone());
+        let type_args = TypeArgs::from_parts(
+            ck.sa,
+            type_param_definition,
+            &method_trait_ty.type_params,
+            &resolved_type_params,
+            Some(assoc_type.clone()),
+        );
+        replace_type(ck.sa, ty, &type_args)
+    });
+
+    if !ck.report_unresolved_type_variables(&type_variables, &fct_type_params) {
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let fct_type_params = ck.resolve_type_array(fct_type_params);
+    let type_params = TypeArgs::from_parts(
+        ck.sa,
+        type_param_definition,
+        &method_trait_ty.type_params,
+        &fct_type_params,
+        Some(assoc_type.clone()),
+    );
+    if !check_type_param_bounds(
         ck.sa,
         ck.element,
         &ck.type_param_definition,
@@ -1111,32 +1163,22 @@ fn check_expr_call_qualified_path(
         || ck.expr_span(callee_expr_id),
         |ty| replace_type(ck.sa, ty, &type_params),
     ) {
-        // Check call arguments
-        let expected = build_expected_call_args(
-            trait_method.params.regular_params(),
-            trait_method.params.variadic_param(),
-            |ty| replace_type(ck.sa, ty, &type_params),
-        );
-        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
-
-        // Use GenericStaticMethod with the associated type as the object type
-        let call_type = CallType::GenericStaticMethod {
-            trait_ty: method_trait_ty.clone(),
-            fct_id: trait_method_id,
-            type_params: type_params.clone(),
-        };
-        ck.body.insert_call_type(expr_id, Rc::new(call_type));
-
-        let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
-
-        ck.body.set_ty(expr_id, return_type.clone());
-
-        return_type
-    } else {
-        check_call_arguments_any(ck, call_expr_id);
         ck.body.set_ty(expr_id, ty_error());
-        ty_error()
+        return ty_error();
     }
+
+    let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
+
+    // Use GenericStaticMethod with the associated type as the object type
+    let call_type = CallType::GenericStaticMethod {
+        trait_ty: method_trait_ty.clone(),
+        fct_id: trait_method_id,
+        type_params: type_params.clone(),
+    };
+    ck.body.insert_call_type(expr_id, Rc::new(call_type));
+
+    ck.body.set_ty(expr_id, return_type.clone());
+    return_type
 }
 
 /// Checks call syntax after the callee expression or field has already been type-checked.

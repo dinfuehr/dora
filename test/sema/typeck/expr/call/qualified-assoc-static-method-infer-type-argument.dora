@@ -1,0 +1,32 @@
+trait Marker {}
+class DoesNotImplementMarker
+
+trait StaticFactory {
+    static fn identity[T](value: T): T;
+    static fn same[T](first: T, second: T): T;
+    static fn two[A, B](first: A, second: B): (A, B);
+    static fn phantom[T](value: Int32): Int32;
+    static fn bounded[T: Marker](value: T): T;
+    static fn nongeneric(value: Int32): Int32;
+}
+
+trait Container {
+    type Item: StaticFactory;
+}
+
+fn expected_conflict[T: Container](): Bool {
+    [T as Container]::Item::identity(1i32)
+}
+
+fn errors[T: Container]() {
+    [T as Container]::Item::identity[_](unknown);
+    [T as Container]::Item::identity[(_, _)](unknownTuple);
+    [T as Container]::Item::same(1i32, true);
+    [T as Container]::Item::two[_](1i32, true);
+    [T as Container]::Item::same[_, Bool](1i32, true);
+    [T as Container]::Item::phantom[_](1i32);
+    [T as Container]::Item::phantom(1i32);
+    [T as Container]::Item::bounded(DoesNotImplementMarker());
+    [T as Container]::Item::nongeneric[Int32](1i32);
+    [T as Container]::Item::nongeneric[_](1i32);
+}

@@ -1,0 +1,121 @@
+error: Argument expects value of type `Bool` but got `Int32`.
+--> qualified-assoc-static-method-infer-type-argument.dora:18:38
+ | 
+ | fn expected_conflict[T: Container](): Bool {
+ |     [T as Container]::Item::identity(1i32)
+                                        ~~~~
+ | }
+ | 
+error: cannot infer type.
+--> qualified-assoc-static-method-infer-type-argument.dora:22:38
+ | 
+ | fn errors[T: Container]() {
+ |     [T as Container]::Item::identity[_](unknown);
+                                        ~
+ |     [T as Container]::Item::identity[(_, _)](unknownTuple);
+ |     [T as Container]::Item::same(1i32, true);
+error: unknown identifier `unknown`.
+--> qualified-assoc-static-method-infer-type-argument.dora:22:41
+ | 
+ | fn errors[T: Container]() {
+ |     [T as Container]::Item::identity[_](unknown);
+                                           ~~~~~~~
+ |     [T as Container]::Item::identity[(_, _)](unknownTuple);
+ |     [T as Container]::Item::same(1i32, true);
+error: cannot infer type.
+--> qualified-assoc-static-method-infer-type-argument.dora:23:39
+ | fn errors[T: Container]() {
+ |     [T as Container]::Item::identity[_](unknown);
+ |     [T as Container]::Item::identity[(_, _)](unknownTuple);
+                                         ~
+ |     [T as Container]::Item::same(1i32, true);
+ |     [T as Container]::Item::two[_](1i32, true);
+error: cannot infer type.
+--> qualified-assoc-static-method-infer-type-argument.dora:23:42
+ | fn errors[T: Container]() {
+ |     [T as Container]::Item::identity[_](unknown);
+ |     [T as Container]::Item::identity[(_, _)](unknownTuple);
+                                            ~
+ |     [T as Container]::Item::same(1i32, true);
+ |     [T as Container]::Item::two[_](1i32, true);
+error: unknown identifier `unknownTuple`.
+--> qualified-assoc-static-method-infer-type-argument.dora:23:46
+ | fn errors[T: Container]() {
+ |     [T as Container]::Item::identity[_](unknown);
+ |     [T as Container]::Item::identity[(_, _)](unknownTuple);
+                                                ~~~~~~~~~~~~
+ |     [T as Container]::Item::same(1i32, true);
+ |     [T as Container]::Item::two[_](1i32, true);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> qualified-assoc-static-method-infer-type-argument.dora:24:40
+ |     [T as Container]::Item::identity[_](unknown);
+ |     [T as Container]::Item::identity[(_, _)](unknownTuple);
+ |     [T as Container]::Item::same(1i32, true);
+                                          ~~~~
+ |     [T as Container]::Item::two[_](1i32, true);
+ |     [T as Container]::Item::same[_, Bool](1i32, true);
+error: expected 2 type parameters but got 1.
+--> qualified-assoc-static-method-infer-type-argument.dora:25:5
+ |     [T as Container]::Item::identity[(_, _)](unknownTuple);
+ |     [T as Container]::Item::same(1i32, true);
+ |     [T as Container]::Item::two[_](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     [T as Container]::Item::same[_, Bool](1i32, true);
+ |     [T as Container]::Item::phantom[_](1i32);
+error: expected 1 type parameters but got 2.
+--> qualified-assoc-static-method-infer-type-argument.dora:26:5
+ |     [T as Container]::Item::same(1i32, true);
+ |     [T as Container]::Item::two[_](1i32, true);
+ |     [T as Container]::Item::same[_, Bool](1i32, true);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     [T as Container]::Item::phantom[_](1i32);
+ |     [T as Container]::Item::phantom(1i32);
+error: Argument expects value of type `Int32` but got `Bool`.
+--> qualified-assoc-static-method-infer-type-argument.dora:26:49
+ |     [T as Container]::Item::same(1i32, true);
+ |     [T as Container]::Item::two[_](1i32, true);
+ |     [T as Container]::Item::same[_, Bool](1i32, true);
+                                                   ~~~~
+ |     [T as Container]::Item::phantom[_](1i32);
+ |     [T as Container]::Item::phantom(1i32);
+error: cannot infer type.
+--> qualified-assoc-static-method-infer-type-argument.dora:27:37
+ |     [T as Container]::Item::two[_](1i32, true);
+ |     [T as Container]::Item::same[_, Bool](1i32, true);
+ |     [T as Container]::Item::phantom[_](1i32);
+                                       ~
+ |     [T as Container]::Item::phantom(1i32);
+ |     [T as Container]::Item::bounded(DoesNotImplementMarker());
+error: cannot infer type arguments: [_].
+--> qualified-assoc-static-method-infer-type-argument.dora:28:5
+ |     [T as Container]::Item::same[_, Bool](1i32, true);
+ |     [T as Container]::Item::phantom[_](1i32);
+ |     [T as Container]::Item::phantom(1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     [T as Container]::Item::bounded(DoesNotImplementMarker());
+ |     [T as Container]::Item::nongeneric[Int32](1i32);
+error: type `DoesNotImplementMarker` does not implement trait `Marker`.
+--> qualified-assoc-static-method-infer-type-argument.dora:29:5
+ |     [T as Container]::Item::phantom[_](1i32);
+ |     [T as Container]::Item::phantom(1i32);
+ |     [T as Container]::Item::bounded(DoesNotImplementMarker());
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     [T as Container]::Item::nongeneric[Int32](1i32);
+ |     [T as Container]::Item::nongeneric[_](1i32);
+error: expected 0 type parameters but got 1.
+--> qualified-assoc-static-method-infer-type-argument.dora:30:5
+ |     [T as Container]::Item::phantom(1i32);
+ |     [T as Container]::Item::bounded(DoesNotImplementMarker());
+ |     [T as Container]::Item::nongeneric[Int32](1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ |     [T as Container]::Item::nongeneric[_](1i32);
+ | }
+error: expected 0 type parameters but got 1.
+--> qualified-assoc-static-method-infer-type-argument.dora:31:5
+ |     [T as Container]::Item::bounded(DoesNotImplementMarker());
+ |     [T as Container]::Item::nongeneric[Int32](1i32);
+ |     [T as Container]::Item::nongeneric[_](1i32);
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ | }
+ | 
+15 errors found.
