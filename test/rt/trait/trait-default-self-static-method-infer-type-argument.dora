@@ -1,0 +1,62 @@
+trait Base[Owner] {
+    static fn with_owner[T](owner: Owner, value: T): (Owner, T);
+}
+
+trait Factory: Base[String] {
+    static fn identity[T](value: T): T;
+    static fn from_expected[A, B](): (Option[A], Option[B]);
+    static fn with_expected[A, B](value: A): (A, Option[B]);
+    static fn with_self[T](value: T): (Self, T);
+
+    static fn inferred_values(): (Int64, String) {
+        (Self::identity(7), Self::identity[_]("self static"))
+    }
+
+    static fn inferred_expected(): ((Option[String], Option[Bool]), (Int64, Option[Bool])) {
+        (Self::from_expected(), Self::with_expected(8))
+    }
+
+    static fn inferred_self(): (Self, Bool) {
+        Self::with_self(true)
+    }
+
+    static fn inferred_super_trait(): (String, Int64) {
+        Self::with_owner("owner", 9)
+    }
+}
+
+class FactoryImpl(Int64)
+
+impl Base[String] for FactoryImpl {
+    static fn with_owner[T](owner: String, value: T): (String, T) { (owner, value) }
+}
+
+impl Factory for FactoryImpl {
+    static fn identity[T](value: T): T { value }
+    static fn from_expected[A, B](): (Option[A], Option[B]) { (None, None) }
+    static fn with_expected[A, B](value: A): (A, Option[B]) { (value, None) }
+    static fn with_self[T](value: T): (FactoryImpl, T) { (FactoryImpl(42), value) }
+}
+
+fn main() {
+    let values = FactoryImpl::inferred_values();
+    assert(values.0 == 7i64);
+    assert(values.1 == "self static");
+
+    let expected = FactoryImpl::inferred_expected();
+    let expectedOnly = expected.0;
+    assert(expectedOnly.0.is_none());
+    assert(expectedOnly.1.is_none());
+    let expectedAndArgument = expected.1;
+    assert(expectedAndArgument.0 == 8i64);
+    assert(expectedAndArgument.1.is_none());
+
+    let withSelf = FactoryImpl::inferred_self();
+    let returnedFactory = withSelf.0;
+    assert(returnedFactory.0 == 42i64);
+    assert(withSelf.1);
+
+    let superTrait = FactoryImpl::inferred_super_trait();
+    assert(superTrait.0 == "owner");
+    assert(superTrait.1 == 9i64);
+}

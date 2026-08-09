@@ -1,0 +1,31 @@
+//= ok
+trait Marker {}
+class Marked
+impl Marker for Marked {}
+
+trait Base[Tag] {
+    static fn pair[T](tag: Tag, value: T): (Tag, T);
+}
+
+trait Factory: Base[String] {
+    static fn identity[T](value: T): T;
+    static fn from_expected[T](): T;
+    static fn from_nested_expected[A, B](): (Option[A], Option[B]);
+    static fn with_expected[A, B](value: A): (A, Option[B]);
+    static fn with_self[T](value: T): (Self, T);
+    static fn bounded[T: Marker](value: T): T;
+
+    static fn infer(): (Self, Bool) {
+        let _expected_only: Int64 = Self::from_expected();
+        let _nested_expected: (Option[String], Option[Bool]) = Self::from_nested_expected();
+        let _expected_and_argument: (Int64, Option[Bool]) = Self::with_expected(1);
+        let _expected_placeholders: (Int64, Option[String]) = Self::with_expected[_, _](2);
+        let _super_trait: (String, Int32) = Self::pair("owner", 3);
+        let _bounded: Marked = Self::bounded(Marked());
+        Self::with_self(true)
+    }
+
+    static fn infer_from_expected(): Int64 {
+        Self::identity(4)
+    }
+}
