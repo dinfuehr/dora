@@ -683,8 +683,10 @@ fn check_expr_call_self_assoc_type_static_method(
     expr_id: ExprId,
     alias_id: AliasDefinitionId,
     method_name: String,
-    pure_fct_type_params: SourceTypeArray,
+    fct_type_param_refs: Vec<TypeRefId>,
     call_expr_id: ExprId,
+    expected_ty: SourceType,
+    context: ExprContext,
 ) -> SourceType {
     let mut matched_methods = Vec::new();
     let interned_method_name = ck.sa.interner.intern(&method_name);
@@ -715,6 +717,7 @@ fn check_expr_call_self_assoc_type_static_method(
     }
 
     if matched_methods.len() != 1 {
+        read_call_type_params(ck, &fct_type_param_refs);
         let desc = if matched_methods.len() > 1 {
             &MULTIPLE_CANDIDATES_FOR_STATIC_METHOD_WITH_TYPE_PARAM
         } else {
@@ -730,16 +733,68 @@ fn check_expr_call_self_assoc_type_static_method(
 
     let (trait_method_id, trait_ty) = matched_methods.pop().expect("missing method");
     let trait_method = ck.sa.fct(trait_method_id);
+    let type_param_definition = trait_method.type_param_definition(ck.sa);
+    let expected_type_param_count = type_param_definition.own_type_params_len();
+    let (fct_type_params, type_variables) =
+        read_call_type_params_with_inference(ck, &fct_type_param_refs);
+    let (fct_type_params, type_variables) =
+        if fct_type_params.is_empty() && expected_type_param_count > 0 {
+            assert!(type_variables.is_empty());
+            ck.create_implicit_type_variables(expected_type_param_count, expr_id)
+        } else {
+            (fct_type_params, type_variables)
+        };
 
+    let supplied_type_args = TypeArgs::from_parts(
+        ck.sa,
+        type_param_definition,
+        &trait_ty.type_params,
+        &fct_type_params,
+        Some(assoc_type.clone()),
+    );
+    let fct_type_params = fix_type_param_arity(ck, expr_id, trait_method, None, supplied_type_args);
     let type_params = TypeArgs::from_parts(
         ck.sa,
-        trait_method.type_param_definition(ck.sa),
+        type_param_definition,
         &trait_ty.type_params,
-        &pure_fct_type_params,
+        &fct_type_params,
         Some(assoc_type.clone()),
     );
 
-    if check_type_params(
+    let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
+    ck.unify_types(call_result_type(return_type, context), expected_ty);
+
+    let expected = build_expected_call_args(
+        trait_method.params.regular_params(),
+        trait_method.params.variadic_param(),
+        |ty| ty,
+    );
+    check_call_arguments_with_inference(ck, call_expr_id, &expected, |ck, ty| {
+        let resolved_type_params = ck.resolve_type_array(fct_type_params.clone());
+        let type_args = TypeArgs::from_parts(
+            ck.sa,
+            type_param_definition,
+            &trait_ty.type_params,
+            &resolved_type_params,
+            Some(assoc_type.clone()),
+        );
+        replace_type(ck.sa, ty, &type_args)
+    });
+
+    if !ck.report_unresolved_type_variables(&type_variables, &fct_type_params) {
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
+    }
+
+    let fct_type_params = ck.resolve_type_array(fct_type_params);
+    let type_params = TypeArgs::from_parts(
+        ck.sa,
+        type_param_definition,
+        &trait_ty.type_params,
+        &fct_type_params,
+        Some(assoc_type.clone()),
+    );
+    if !check_type_param_bounds(
         ck.sa,
         ck.element,
         &ck.type_param_definition,
@@ -749,30 +804,21 @@ fn check_expr_call_self_assoc_type_static_method(
         || ck.expr_span(expr_id),
         |ty| replace_type(ck.sa, ty, &type_params),
     ) {
-        let expected = build_expected_call_args(
-            trait_method.params.regular_params(),
-            trait_method.params.variadic_param(),
-            |ty| replace_type(ck.sa, ty, &type_params),
-        );
-        check_call_arguments_with_expected(ck, call_expr_id, Some(&expected));
-
-        // Use GenericStaticMethod with the associated type as the object type
-        let call_type = CallType::GenericStaticMethod {
-            trait_ty: trait_ty.clone(),
-            fct_id: trait_method_id,
-            type_params: type_params.clone(),
-        };
-        ck.body.insert_call_type(expr_id, Rc::new(call_type));
-
-        let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
-
-        ck.body.set_ty(expr_id, return_type.clone());
-
-        return_type
-    } else {
-        check_call_arguments_with_expected(ck, call_expr_id, None);
-        SourceType::Error
+        ck.body.set_ty(expr_id, ty_error());
+        return ty_error();
     }
+
+    let return_type = replace_type(ck.sa, trait_method.return_type(), &type_params);
+
+    let call_type = CallType::GenericStaticMethod {
+        trait_ty: trait_ty.clone(),
+        fct_id: trait_method_id,
+        type_params: type_params.clone(),
+    };
+    ck.body.insert_call_type(expr_id, Rc::new(call_type));
+
+    ck.body.set_ty(expr_id, return_type.clone());
+    return_type
 }
 
 fn check_expr_call_generic_assoc_static_method(
@@ -2090,14 +2136,15 @@ fn check_expr_call_path(
 
     // Handle Self::T where T is an associated type
     if let PathResolution::SelfAssocType(alias_id) = resolution {
-        let type_params = read_call_type_params(ck, &type_param_refs);
         return CallTarget::Call(check_expr_call_self_assoc_type_static_method(
             ck,
             expr_id,
             alias_id,
             method_name,
-            type_params,
+            type_param_refs,
             call_expr_id,
+            expected_ty,
+            context,
         ));
     }
 

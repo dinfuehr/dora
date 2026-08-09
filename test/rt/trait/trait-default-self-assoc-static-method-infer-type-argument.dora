@@ -1,0 +1,57 @@
+trait StaticFactory[Owner] {
+    static fn identity[T](value: T): T;
+    static fn from_expected[A, B](): (Option[A], Option[B]);
+    static fn with_owner[T](owner: Owner, value: T): (Owner, T);
+    static fn with_self[T](value: T): (Self, T);
+}
+
+class Item(Int64)
+
+impl StaticFactory[String] for Item {
+    static fn identity[T](value: T): T { value }
+    static fn from_expected[A, B](): (Option[A], Option[B]) { (None, None) }
+    static fn with_owner[T](owner: String, value: T): (String, T) { (owner, value) }
+    static fn with_self[T](value: T): (Item, T) { (Item(42), value) }
+}
+
+trait Container {
+    type Item: StaticFactory[String];
+
+    fn inferred_values(): (Int64, String) {
+        (Self::Item::identity(7), Self::Item::identity[_]("self associated static"))
+    }
+
+    fn inferred_expected(): ((Option[String], Option[Bool]), (String, Int64)) {
+        (Self::Item::from_expected(), Self::Item::with_owner("owner", 8))
+    }
+
+    fn inferred_self(): (Self::Item, Bool) {
+        Self::Item::with_self(true)
+    }
+}
+
+class Source
+
+impl Container for Source {
+    type Item = Item;
+}
+
+fn main() {
+    let source = Source();
+    let values = source.inferred_values();
+    assert(values.0 == 7i64);
+    assert(values.1 == "self associated static");
+
+    let expected = source.inferred_expected();
+    let expectedOnly = expected.0;
+    assert(expectedOnly.0.is_none());
+    assert(expectedOnly.1.is_none());
+    let ownerAndArgument = expected.1;
+    assert(ownerAndArgument.0 == "owner");
+    assert(ownerAndArgument.1 == 8i64);
+
+    let withSelf = source.inferred_self();
+    let returnedItem = withSelf.0;
+    assert(returnedItem.0 == 42i64);
+    assert(withSelf.1);
+}
