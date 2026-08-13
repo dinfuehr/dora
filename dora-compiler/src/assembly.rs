@@ -571,7 +571,7 @@ pub fn write_assembly(
             syntax.write_label("dora_aot_entry");
         }
         if syntax.uses_rust_aot_main()
-            && kind == AotAssemblyKind::CompilerImage
+            && matches!(kind, AotAssemblyKind::CompilerImage)
             && label == mangle_name("interface::compile_trait_object_thunk")
         {
             syntax.write_global_func("dora_aot_thunk_entry");
