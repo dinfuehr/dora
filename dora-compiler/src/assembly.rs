@@ -986,13 +986,11 @@ fn write_compiler_image_main(syntax: &mut AssemblySyntax, target_arch: TargetArc
     syntax.write_label("main");
     if target_arch.is_arm64() {
         if syntax.is_armasm() {
-    // symbols are passed as the third and fourth C arguments.
-    let compiler_entry_symbol_name = mangle_name("interface::compile");
-    let compiler_entry_symbol = syntax.symbol(&compiler_entry_symbol_name);
-    let trait_object_thunk_entry_symbol =
-        syntax.symbol(&mangle_name("interface::compile_trait_object_thunk"));
-    let startup_symbol_name = "dora_boots_compiler_main";
-    let startup_symbol = syntax.symbol(startup_symbol_name);
+            write_armasm64_startup_call(
+                syntax,
+                Some(&compiler_entry_symbol_name),
+                startup_symbol_name,
+            );
         } else if syntax.is_macho() {
             syntax.write_indented_line(format_args!("adrp x2, {compiler_entry_symbol}@PAGE"));
             syntax.write_indented_line(format_args!("add x2, x2, {compiler_entry_symbol}@PAGEOFF"));

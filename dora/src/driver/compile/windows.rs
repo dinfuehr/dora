@@ -49,7 +49,6 @@ pub(super) fn create_object_file(
         .into());
     }
 
-
     Ok(obj_path)
 }
 
