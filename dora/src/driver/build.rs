@@ -19,16 +19,22 @@ pub fn command_build(args: BuildArgs) -> Result<()> {
         main,
         dependencies,
     } = read_package_manifest(&package_dir.join(DORA_PACKAGE_FILE))?;
-    let source_file = binary_source_file(&package_dir, main.as_deref())?;
+    let package_target = package_target(&package_dir, main.as_deref())?;
     let dependencies = collect_dependency_packages(&package_dir, dependencies)?;
     let target_dir = package_dir.join("target");
     fs::create_dir_all(&target_dir)?;
 
-    let output_file = target_dir.join(append_exe_suffix(PathBuf::from(&name)));
+    let (output_file, compile_to_package_only) = match package_target.kind {
+        PackageKind::Binary => (
+            target_dir.join(append_exe_suffix(PathBuf::from(&name))),
+            false,
+        ),
+        PackageKind::Library => (target_dir.join("lib.dora-package"), true),
+    };
     let compile_args = CompileArgs {
-        file: path_to_string(&source_file)?,
+        file: path_to_string(&package_target.source_file)?,
         output: Some(path_to_string(&output_file)?),
-        compile_to_package_only: false,
+        compile_to_package_only,
         asm_only: false,
         target: None,
         gc: None,
@@ -47,22 +53,50 @@ pub fn command_build(args: BuildArgs) -> Result<()> {
     command_compile(compile_args)
 }
 
-fn binary_source_file(package_dir: &Path, manifest_main: Option<&str>) -> Result<PathBuf> {
+enum PackageKind {
+    Binary,
+    Library,
+}
+
+struct PackageTarget {
+    kind: PackageKind,
+    source_file: PathBuf,
+}
+
+fn package_target(package_dir: &Path, manifest_main: Option<&str>) -> Result<PackageTarget> {
     if let Some(main) = manifest_main {
         let path = package_dir.join(main);
-        if path.exists() {
-            return Ok(path);
+        if path.is_file() {
+            return Ok(PackageTarget {
+                kind: PackageKind::Binary,
+                source_file: path,
+            });
         }
 
         return Err(format!("binary source file not found at '{}'", path.display()).into());
     }
 
     let dora_main = package_dir.join("src/main.dora");
-    if dora_main.exists() {
-        return Ok(dora_main);
+    if dora_main.is_file() {
+        return Ok(PackageTarget {
+            kind: PackageKind::Binary,
+            source_file: dora_main,
+        });
     }
 
-    Err(format!("no binary source file found in '{}'", package_dir.display()).into())
+    let dora_lib = package_dir.join("src/lib.dora");
+    if dora_lib.is_file() {
+        return Ok(PackageTarget {
+            kind: PackageKind::Library,
+            source_file: dora_lib,
+        });
+    }
+
+    Err(format!(
+        "no package source file found in '{}'",
+        package_dir.display()
+    )
+    .into())
 }
 
 fn collect_dependency_packages(
