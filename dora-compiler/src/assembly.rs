@@ -570,6 +570,13 @@ pub fn write_assembly(
             syntax.write_global_func("dora_aot_entry");
             syntax.write_label("dora_aot_entry");
         }
+        if syntax.uses_rust_aot_main()
+            && kind == AotAssemblyKind::CompilerImage
+            && label == mangle_name("interface::compile_trait_object_thunk")
+        {
+            syntax.write_global_func("dora_aot_thunk_entry");
+            syntax.write_label("dora_aot_thunk_entry");
+        }
         syntax.write_global_func(label);
         syntax.write_label(label);
 
@@ -1037,6 +1044,15 @@ fn write_rust_aot_main_metadata(syntax: &mut AssemblySyntax, kind: AotAssemblyKi
         syntax.write_align16();
         syntax.write_global_func("dora_aot_entry");
         syntax.write_label("dora_aot_entry");
+        syntax.write_indented_line(format_args!("ret"));
+    }
+
+    if syntax.uses_rust_aot_main() && !matches!(kind, AotAssemblyKind::CompilerImage) {
+        syntax.write_newline();
+        syntax.write_text();
+        syntax.write_align16();
+        syntax.write_global_func("dora_aot_thunk_entry");
+        syntax.write_label("dora_aot_thunk_entry");
         syntax.write_indented_line(format_args!("ret"));
     }
 

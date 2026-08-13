@@ -305,6 +305,9 @@ unsafe extern "C" {
 
     #[link_name = "dora_aot_entry"]
     fn dora_aot_entry();
+
+    #[link_name = "dora_aot_thunk_entry"]
+    fn dora_aot_thunk_entry();
 }
 
 #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
@@ -314,16 +317,15 @@ pub extern "C" fn windows_arm64_aot_main(argc: c_int, argv: *const *const c_char
     const AOT_STARTUP_TEST: u8 = 1;
     const AOT_STARTUP_COMPILER_IMAGE: u8 = 2;
 
-    if std::env::var("DORA_AOT_TRACE_COMPILE").as_deref() == Ok("1") {
-        eprintln!("Windows Arm64 AOT startup trace: Rust main entry");
-    }
-
     match unsafe { DORA_AOT_STARTUP_KIND } {
         AOT_STARTUP_REGULAR => dora_aot_main(argc, argv, dora_aot_entry as *const () as *const u8),
         AOT_STARTUP_TEST => dora_aot_test_main(argc, argv),
-        AOT_STARTUP_COMPILER_IMAGE => {
-            dora_boots_compiler_main(argc, argv, dora_aot_entry as *const () as *const u8)
-        }
+        AOT_STARTUP_COMPILER_IMAGE => dora_boots_compiler_main(
+            argc,
+            argv,
+            dora_aot_entry as *const () as *const u8,
+            dora_aot_thunk_entry as *const () as *const u8,
+        ),
         startup_kind => {
             eprintln!("invalid AOT startup kind {startup_kind}");
             1
