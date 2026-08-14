@@ -1,0 +1,76 @@
+use std::io::{IOError, Write};
+
+class ChunkedWriter {
+    data: Array[UInt8],
+    position: Int64,
+    chunk_size: Int64,
+}
+
+impl ChunkedWriter {
+    static fn new(size: Int64, chunk_size: Int64): ChunkedWriter {
+        ChunkedWriter(
+            data = Array[UInt8]::zero(size),
+            position = 0,
+            chunk_size = chunk_size,
+        )
+    }
+
+    fn content(): String {
+        String::from_bytes_part(self.data, 0, self.position).get_or_panic()
+    }
+}
+
+impl Write for ChunkedWriter {
+    fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
+        let count = Int64::min(self.chunk_size, len);
+        Array[UInt8]::copy(array, offset, self.data, self.position, count);
+        self.position = self.position + count;
+        Ok[Int64, IOError](count)
+    }
+
+    fn flush(): Result[(), IOError] {
+        Ok(())
+    }
+}
+
+class StalledWriter
+
+impl Write for StalledWriter {
+    fn write(
+        _array: Array[UInt8],
+        _offset: Int64,
+        _len: Int64,
+    ): Result[Int64, IOError] {
+        Ok[Int64, IOError](0)
+    }
+
+    fn flush(): Result[(), IOError] {
+        Ok(())
+    }
+}
+
+class FailingWriter
+
+impl Write for FailingWriter {
+    fn write(
+        _array: Array[UInt8],
+        _offset: Int64,
+        _len: Int64,
+    ): Result[Int64, IOError] {
+        Err[Int64, IOError](IOError())
+    }
+
+    fn flush(): Result[(), IOError] {
+        Ok(())
+    }
+}
+
+fn main() {
+    let writer = ChunkedWriter::new(4, 2);
+    writer.write_all("_abcd_".as_bytes(), 1, 4).get_or_panic();
+    assert(writer.content() == "abcd");
+
+    assert(StalledWriter().write_all(Array[UInt8]::zero(1), 0, 1).is_err());
+    assert(FailingWriter().write_all(Array[UInt8]::zero(1), 0, 1).is_err());
+    FailingWriter().write_all(Array[UInt8]::zero(0), 0, 0).get_or_panic();
+}

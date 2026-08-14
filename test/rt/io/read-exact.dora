@@ -1,0 +1,55 @@
+use std::io::{IOError, Read};
+
+class ChunkedReader {
+    data: Array[UInt8],
+    position: Int64,
+    chunk_size: Int64,
+}
+
+impl ChunkedReader {
+    static fn new(data: Array[UInt8], chunk_size: Int64): ChunkedReader {
+        ChunkedReader(data = data, position = 0, chunk_size = chunk_size)
+    }
+}
+
+impl Read for ChunkedReader {
+    fn read(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
+        let available = self.data.size() - self.position;
+        let count = Int64::min(Int64::min(available, self.chunk_size), len);
+
+        if count > 0 {
+            Array[UInt8]::copy(self.data, self.position, array, offset, count);
+            self.position = self.position + count;
+        }
+
+        Ok[Int64, IOError](count)
+    }
+}
+
+class FailingReader
+
+impl Read for FailingReader {
+    fn read(
+        _array: Array[UInt8],
+        _offset: Int64,
+        _len: Int64,
+    ): Result[Int64, IOError] {
+        Err[Int64, IOError](IOError())
+    }
+}
+
+fn main() {
+    let reader = ChunkedReader::new("abcdef".as_bytes(), 2);
+    let buffer = Array[UInt8]::fill(6, 95u8);
+    reader.read_exact(buffer, 1, 4).get_or_panic();
+
+    assert(buffer(0) == 95u8);
+    assert(String::from_bytes_part(buffer, 1, 4).get_or_panic() == "abcd");
+    assert(buffer(5) == 95u8);
+
+    let short_reader = ChunkedReader::new("ab".as_bytes(), 1);
+    assert(short_reader.read_exact(Array[UInt8]::zero(3), 0, 3).is_err());
+
+    assert(FailingReader().read_exact(Array[UInt8]::zero(1), 0, 1).is_err());
+    FailingReader().read_exact(Array[UInt8]::zero(0), 0, 0).get_or_panic();
+}

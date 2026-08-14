@@ -166,6 +166,29 @@ impl Write for OpenFile {
 }
 
 pub trait Read {
+    fn read_exact(array: Array[UInt8], offset: Int64, len: Int64): Result[(), IOError] {
+        let mut curr = offset;
+        let end = offset + len;
+
+        while curr < end {
+            let result = self.read(array, curr, end - curr);
+
+            match result {
+                Ok(bytes_read) => {
+                    if bytes_read <= 0 {
+                        return Err(IOError());
+                    }
+
+                    curr = curr + bytes_read;
+                }
+
+                Err(e) => return Err(e),
+            }
+        }
+
+        Ok(())
+    }
+
     fn read(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError];
 }
 
