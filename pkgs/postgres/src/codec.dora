@@ -1,0 +1,148 @@
+pub class CodecError
+
+pub class ByteWriter {
+    buffer: Vec[UInt8],
+}
+
+impl ByteWriter {
+    pub static fn new(): ByteWriter {
+        ByteWriter(buffer = Vec[UInt8]::new())
+    }
+
+    pub fn position(): Int64 {
+        self.buffer.size()
+    }
+
+    pub fn write_uint8(value: UInt8) {
+        self.buffer.push(value);
+    }
+
+    pub fn write_int16_be(value: Int32) {
+        assert(value >= -32768i32 && value <= 32767i32);
+        self.buffer.push((value >> 8).to_uint8());
+        self.buffer.push(value.to_uint8());
+    }
+
+    pub fn write_int32_be(value: Int32) {
+        self.buffer.push((value >> 24).to_uint8());
+        self.buffer.push((value >> 16).to_uint8());
+        self.buffer.push((value >> 8).to_uint8());
+        self.buffer.push(value.to_uint8());
+    }
+
+    pub fn write_bytes(value: Array[UInt8]) {
+        self.buffer.append(value);
+    }
+
+    pub fn write_cstring(value: String): Result[(), CodecError] {
+        let bytes = value.as_bytes();
+
+        for byte in bytes {
+            if byte == 0u8 {
+                return Err(CodecError());
+            }
+        }
+
+        self.buffer.append(bytes);
+        self.buffer.push(0u8);
+        Ok[(), CodecError](())
+    }
+
+    pub fn to_array(): Array[UInt8] {
+        self.buffer.to_array()
+    }
+}
+
+pub class ByteReader {
+    buffer: Array[UInt8],
+    position: Int64,
+}
+
+impl ByteReader {
+    pub static fn new(buffer: Array[UInt8]): ByteReader {
+        ByteReader(buffer = buffer, position = 0)
+    }
+
+    pub fn position(): Int64 {
+        self.position
+    }
+
+    pub fn remaining(): Int64 {
+        self.buffer.size() - self.position
+    }
+
+    pub fn read_uint8(): Result[UInt8, CodecError] {
+        if self.remaining() < 1 {
+            return Err(CodecError());
+        }
+
+        let value = self.buffer(self.position);
+        self.position = self.position + 1;
+        Ok[UInt8, CodecError](value)
+    }
+
+    pub fn read_int16_be(): Result[Int32, CodecError] {
+        if self.remaining() < 2 {
+            return Err(CodecError());
+        }
+
+        let byte1 = self.buffer(self.position).to_int32();
+        let byte2 = self.buffer(self.position + 1).to_int32();
+        self.position = self.position + 2;
+
+        let value = (byte1 << 8) | byte2;
+        let value = if value >= 32768i32 {
+            value - 65536i32
+        } else {
+            value
+        };
+        Ok[Int32, CodecError](value)
+    }
+
+    pub fn read_int32_be(): Result[Int32, CodecError] {
+        if self.remaining() < 4 {
+            return Err(CodecError());
+        }
+
+        let byte1 = self.buffer(self.position).to_int32();
+        let byte2 = self.buffer(self.position + 1).to_int32();
+        let byte3 = self.buffer(self.position + 2).to_int32();
+        let byte4 = self.buffer(self.position + 3).to_int32();
+        self.position = self.position + 4;
+
+        Ok[Int32, CodecError]((byte1 << 24) | (byte2 << 16) | (byte3 << 8) | byte4)
+    }
+
+    pub fn read_bytes(len: Int64): Result[Array[UInt8], CodecError] {
+        if len < 0 || self.remaining() < len {
+            return Err(CodecError());
+        }
+
+        let value = Array[UInt8]::zero(len);
+        Array[UInt8]::copy(self.buffer, self.position, value, 0, len);
+        self.position = self.position + len;
+        Ok[Array[UInt8], CodecError](value)
+    }
+
+    pub fn read_cstring(): Result[String, CodecError] {
+        let mut end = self.position;
+
+        while end < self.buffer.size() && self.buffer(end) != 0u8 {
+            end = end + 1;
+        }
+
+        if end == self.buffer.size() {
+            return Err(CodecError());
+        }
+
+        match String::from_bytes_part(self.buffer, self.position, end - self.position) {
+            Some(value) => {
+                self.position = end + 1;
+                Ok[String, CodecError](value)
+            }
+            None => Err[String, CodecError](CodecError()),
+        }
+    }
+}
+
+mod tests;

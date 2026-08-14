@@ -1,0 +1,62 @@
+use super::{ByteReader, ByteWriter};
+
+@Test
+fn round_trip() {
+    let writer = ByteWriter::new();
+    writer.write_uint8(0x12u8);
+    writer.write_int16_be(0x3456i32);
+    writer.write_int16_be(-2i32);
+    writer.write_int32_be(0x789ABCDEi32);
+    writer.write_int32_be(-2i32);
+    writer.write_bytes("xy".as_bytes());
+    writer.write_cstring("hi").get_or_panic();
+
+    assert(writer.position() == 18);
+    let bytes = writer.to_array();
+    assert(bytes(0) == 0x12u8);
+    assert(bytes(1) == 0x34u8);
+    assert(bytes(2) == 0x56u8);
+    assert(bytes(3) == 0xFFu8);
+    assert(bytes(4) == 0xFEu8);
+    assert(bytes(5) == 0x78u8);
+    assert(bytes(6) == 0x9Au8);
+    assert(bytes(7) == 0xBCu8);
+    assert(bytes(8) == 0xDEu8);
+
+    let reader = ByteReader::new(bytes);
+    assert(reader.position() == 0);
+    assert(reader.remaining() == 18);
+    assert(reader.read_uint8().get_or_panic() == 0x12u8);
+    assert(reader.read_int16_be().get_or_panic() == 0x3456i32);
+    assert(reader.read_int16_be().get_or_panic() == -2i32);
+    assert(reader.read_int32_be().get_or_panic() == 0x789ABCDEi32);
+    assert(reader.read_int32_be().get_or_panic() == -2i32);
+    assert(
+        String::from_bytes(reader.read_bytes(2).get_or_panic()).get_or_panic() == "xy"
+    );
+    assert(reader.read_cstring().get_or_panic() == "hi");
+    assert(reader.remaining() == 0);
+}
+
+@Test
+fn truncated_input() {
+    let reader = ByteReader::new(Array[UInt8]::zero(0));
+    assert(reader.read_uint8().is_err());
+    assert(reader.position() == 0);
+
+    assert(ByteReader::new(Array[UInt8]::zero(1)).read_int16_be().is_err());
+    assert(ByteReader::new(Array[UInt8]::zero(3)).read_int32_be().is_err());
+    assert(ByteReader::new(Array[UInt8]::zero(1)).read_bytes(2).is_err());
+    assert(ByteReader::new(Array[UInt8]::zero(0)).read_bytes(-1).is_err());
+}
+
+@Test
+fn invalid_cstrings() {
+    assert(ByteReader::new("missing terminator".as_bytes()).read_cstring().is_err());
+
+    let invalid_utf8 = Array[UInt8]::zero(2);
+    invalid_utf8(0) = 0x80u8;
+    assert(ByteReader::new(invalid_utf8).read_cstring().is_err());
+
+    assert(ByteWriter::new().write_cstring("embedded\0null").is_err());
+}
