@@ -1,13 +1,15 @@
 //= ignore
 
+use std::io::{Read, Write};
+
 fn main() {
     let socket = std::io::TcpStream::connect("127.0.0.1:12345").get_or_panic();
     let buffer = Array[UInt8]::new_default(1024);
-    let bytes = socket.read(buffer);
+    let bytes = socket.read(buffer, 1, buffer.size() - 1).get_or_panic();
     assert(bytes > 0);
-    let text = String::from_bytes_part(buffer, 0, bytes).get_or_default();
+    let text = String::from_bytes_part(buffer, 1, bytes).get_or_default();
     println("received: -->${text}<--");
-    let written = socket.write("exit".as_bytes());
-    assert(written == 4);
+    let message = "_exit_".as_bytes();
+    socket.write_all(message, 1, 4).get_or_panic();
     socket.close();
 }

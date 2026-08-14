@@ -1,5 +1,7 @@
 //= ignore
 
+use std::io::{Read, Write};
+
 fn main() {
     let listener = std::io::TcpListener::bind("127.0.0.1:12345").get_or_panic();
 
@@ -8,11 +10,12 @@ fn main() {
         match stream {
             Ok(stream) => {
                 println("CLIENT CONNECTED");
-                let bytes = stream.write("das ist ein test".as_bytes());
-                println("${bytes} bytes written.");
+                let message = "das ist ein test".as_bytes();
+                stream.write_all(message, 0, message.size()).get_or_panic();
+                println("${message.size()} bytes written.");
 
                 let buffer = Array[UInt8]::new_default(1024);
-                let bytes = stream.read(buffer);
+                let bytes = stream.read(buffer, 0, buffer.size()).get_or_panic();
                 assert(bytes > 0);
                 let text = String::from_bytes_part(buffer, 0, bytes).get_or_default();
                 println("received -->${text}<--");

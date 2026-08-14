@@ -332,12 +332,32 @@ impl TcpStream {
             self.fd = -1;
         }
     }
+}
 
-    pub fn read(array: Array[UInt8]): Int64 {
-        socket_read(self.fd, array, 0, array.size())
+impl Read for TcpStream {
+    fn read(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
+        let read = socket_read(self.fd, array, offset, len);
+
+        if read >= 0 {
+            Ok[Int64, IOError](read)
+        } else {
+            Err[Int64, IOError](IOError())
+        }
+    }
+}
+
+impl Write for TcpStream {
+    fn write(array: Array[UInt8], offset: Int64, len: Int64): Result[Int64, IOError] {
+        let written = socket_write(self.fd, array, offset, len);
+
+        if written >= 0 {
+            Ok[Int64, IOError](written)
+        } else {
+            Err[Int64, IOError](IOError())
+        }
     }
 
-    pub fn write(array: Array[UInt8]): Int64 {
-        socket_write(self.fd, array, 0, array.size())
+    fn flush(): Result[(), IOError] {
+        Ok(())
     }
 }
