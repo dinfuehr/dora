@@ -7,6 +7,7 @@ mod compile;
 pub mod flags;
 mod init;
 pub mod start;
+mod test;
 
 fn append_exe_suffix(mut path: PathBuf) -> PathBuf {
     let exe_suffix = std::env::consts::EXE_SUFFIX;

@@ -43,6 +43,30 @@ def compile_boots_compiler(release_mode: bool) -> None:
     run(["uv", "run", "--script", *cmd])
 
 
+def run_boots_unit_tests(release_mode: bool) -> None:
+    if not is_aot_supported():
+        return
+
+    profile = "release" if release_mode else "debug"
+    executable_suffix = ".exe" if sys.platform == "win32" else ""
+    dora = f"target/{profile}/dora{executable_suffix}"
+    output = f"target/{profile}/dora-boots-tests{executable_suffix}"
+
+    run(
+        [
+            dora,
+            "compile",
+            "--internal-compile-boots",
+            "--cannon",
+            "--test",
+            "pkgs/boots/boots.dora",
+            "-o",
+            output,
+        ]
+    )
+    run([output])
+
+
 def run_package_unit_tests(release_mode: bool, package_name: str) -> None:
     if not is_aot_supported():
         return
@@ -50,27 +74,7 @@ def run_package_unit_tests(release_mode: bool, package_name: str) -> None:
     profile = "release" if release_mode else "debug"
     executable_suffix = ".exe" if sys.platform == "win32" else ""
     dora = f"target/{profile}/dora{executable_suffix}"
-    output = f"target/{profile}/dora-{package_name}-tests{executable_suffix}"
-
-    if package_name == "boots":
-        compile_args = ["--internal-compile-boots", "--cannon"]
-        source = "pkgs/boots/boots.dora"
-    else:
-        compile_args = []
-        source = f"pkgs/{package_name}/src/lib.dora"
-
-    run(
-        [
-            dora,
-            "compile",
-            *compile_args,
-            "--test",
-            source,
-            "-o",
-            output,
-        ]
-    )
-    run([output])
+    run([dora, "test", f"pkgs/{package_name}"])
 
 
 def parse_args(argv: list[str]) -> tuple[bool, list[str]]:
@@ -137,7 +141,7 @@ def main(argv: list[str]) -> int:
         run(["cargo", "build", "-p", "dora-language-server", *release_args])
         run(["cargo", "build", "-p", "dora-startup", *release_args])
         compile_boots_compiler(release_mode)
-        run_package_unit_tests(release_mode, "boots")
+        run_boots_unit_tests(release_mode)
         run_package_unit_tests(release_mode, "postgres")
         run(["cargo", "test", *release_args])
 

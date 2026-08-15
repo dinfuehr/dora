@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
-use crate::driver::flags::{BuildArgs, CommonFlags, CompileArgs};
+use clap::Args;
+
+use crate::driver::flags::{CommonFlags, CompileArgs};
 use crate::driver::start::Result;
 use crate::driver::{append_exe_suffix, compile::command_compile};
 
@@ -12,8 +14,17 @@ mod manifest;
 
 const DORA_PACKAGE_FILE: &str = "dora-package.toml";
 
+#[derive(Args)]
+pub struct BuildArgs {
+    /// Package directory to build
+    pub path: PathBuf,
+}
+
 pub fn command_build(args: BuildArgs) -> Result<()> {
-    let package_dir = args.path;
+    build_package(args.path, false).map(|_| ())
+}
+
+pub(super) fn build_package(package_dir: PathBuf, test: bool) -> Result<PathBuf> {
     let PackageManifest {
         name,
         main,
@@ -24,12 +35,16 @@ pub fn command_build(args: BuildArgs) -> Result<()> {
     let target_dir = package_dir.join("target");
     fs::create_dir_all(&target_dir)?;
 
-    let (output_file, compile_to_package_only) = match package_target.kind {
-        PackageKind::Binary => (
+    let (output_file, compile_to_package_only) = match (test, package_target.kind) {
+        (true, _) => (
+            target_dir.join(append_exe_suffix(PathBuf::from(format!("{name}-tests")))),
+            false,
+        ),
+        (false, PackageKind::Binary) => (
             target_dir.join(append_exe_suffix(PathBuf::from(&name))),
             false,
         ),
-        PackageKind::Library => (target_dir.join("lib.dora-package"), true),
+        (false, PackageKind::Library) => (target_dir.join("lib.dora-package"), true),
     };
     let compile_args = CompileArgs {
         file: path_to_string(&package_target.source_file)?,
@@ -40,7 +55,7 @@ pub fn command_build(args: BuildArgs) -> Result<()> {
         gc: None,
         emit_graph: None,
         emit_graph_after_each_pass: false,
-        test: false,
+        test,
         verbose: false,
         emit_timings: false,
         internal_compile_stdlib: false,
@@ -50,7 +65,9 @@ pub fn command_build(args: BuildArgs) -> Result<()> {
         common: common_flags_for_dependencies(dependencies)?,
     };
 
-    command_compile(compile_args)
+    command_compile(compile_args)?;
+
+    Ok(output_file)
 }
 
 enum PackageKind {

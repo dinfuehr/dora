@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use clap::{ArgGroup, Args, Parser, Subcommand};
 
+use crate::driver::build::BuildArgs;
+use crate::driver::test::TestArgs;
 use dora_runtime::{CollectorName, TargetArch, parse_collector, parse_target_arch};
 
 fn version_string() -> &'static str {
@@ -34,12 +36,9 @@ pub enum Command {
 
     /// Create a new Dora package
     Init(InitArgs),
-}
 
-#[derive(Args)]
-pub struct BuildArgs {
-    /// Package directory to build
-    pub path: PathBuf,
+    /// Build and run tests for a Dora package
+    Test(TestArgs),
 }
 
 #[derive(Args)]

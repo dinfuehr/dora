@@ -4,26 +4,26 @@ use crate::driver::build::command_build;
 use crate::driver::compile::command_compile;
 use crate::driver::flags::{Cli, Command, CommonFlags};
 use crate::driver::init::command_init;
+use crate::driver::test::command_test;
 use dora_bytecode::Program;
 use dora_frontend as language;
 use dora_frontend::sema::{Sema, SemaCreationParams};
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-pub fn start() -> Result<()> {
+pub fn start() {
     let cli = Cli::parse();
 
-    match cli.command {
-        Command::Build(args) => {
-            if let Err(err) = command_build(args) {
-                eprintln!("Error: {err}");
-                std::process::exit(1);
-            }
-
-            Ok(())
-        }
+    let result = match cli.command {
+        Command::Build(args) => command_build(args),
         Command::Compile(args) => command_compile(args),
         Command::Init(args) => command_init(args),
+        Command::Test(args) => command_test(args),
+    };
+
+    if let Err(err) = result {
+        eprintln!("Error: {err}");
+        std::process::exit(1);
     }
 }
 
