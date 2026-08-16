@@ -49,7 +49,6 @@ fn loops(iterations: Int32, depth: Int32) {
 fn createTree(depth: Int32): TreeNode {
   let mut depth = depth;
   let node = TreeNode(
-    item = 0i32,
     left = Option[TreeNode]::None,
     right = Option[TreeNode]::None
   );
@@ -73,7 +72,6 @@ fn checkTree(node: TreeNode): Int32 {
 }
 
 class TreeNode {
-  item: Int32,
   left: Option[TreeNode],
   right: Option[TreeNode],
 }
