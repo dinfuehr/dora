@@ -115,13 +115,18 @@ impl Gc {
             return address;
         }
 
-        for retry in 0..3 {
-            let reason = if retry > 0 {
-                GcReason::LastResort
-            } else {
-                GcReason::AllocationFailure
-            };
-            self.collect_garbage(rt, reason, size);
+        // A full young generation can require one collection to age survivors and
+        // another to promote them.
+        for _ in 0..2 {
+            self.collect_garbage(rt, GcReason::AllocationFailure, size);
+
+            if let Some(address) = self.allocate_raw(rt, size) {
+                return address;
+            }
+        }
+
+        for _ in 0..2 {
+            self.collect_garbage(rt, GcReason::LastResort, size);
 
             if let Some(address) = self.allocate_raw(rt, size) {
                 return address;
