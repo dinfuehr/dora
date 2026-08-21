@@ -1,64 +1,91 @@
+use parking_lot::{Condvar, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::thread;
-use std::time::Duration;
 
 pub struct Terminator {
-    const_nworkers: usize,
-    nworkers: AtomicUsize,
+    // Total number of workers participating in termination detection.
+    total: usize,
+    // Both counters are modified only while holding `lock`; atomics allow
+    // `wake_up` to read them without locking on its fast path.
+    working: AtomicUsize,
+    // Number of notified workers that have not resumed working yet. Incremented
+    // before notify and decremented after wait.
+    awakening: AtomicUsize,
+    lock: Mutex<()>,
+    condvar: Condvar,
 }
 
 impl Terminator {
     pub fn new(number_workers: usize) -> Terminator {
+        assert!(number_workers > 0);
+
         Terminator {
-            const_nworkers: number_workers,
-            nworkers: AtomicUsize::new(number_workers),
+            total: number_workers,
+            working: AtomicUsize::new(number_workers),
+            awakening: AtomicUsize::new(0),
+            lock: Mutex::new(()),
+            condvar: Condvar::new(),
         }
     }
 
     pub fn try_terminate(&self) -> bool {
-        if self.const_nworkers == 1 {
+        if self.total == 1 {
             return true;
         }
 
-        if self.decrease_workers() {
-            // reached 0, no need to wait
+        let mut guard = self.lock.lock();
+        let working = self.working.load(Ordering::Relaxed);
+        assert!(working > 0);
+        let working = working - 1;
+        self.working.store(working, Ordering::Relaxed);
+        let awakening = self.awakening.load(Ordering::Relaxed);
+        debug_assert!(working + awakening <= self.total);
+
+        if working == 0 && awakening == 0 {
+            self.condvar.notify_all();
             return true;
         }
-
-        thread::sleep(Duration::from_micros(1));
-        self.zero_or_increase_workers()
-    }
-
-    fn decrease_workers(&self) -> bool {
-        self.nworkers.fetch_sub(1, Ordering::Relaxed) == 1
-    }
-
-    fn zero_or_increase_workers(&self) -> bool {
-        let mut nworkers = self.nworkers.load(Ordering::Relaxed);
 
         loop {
-            if nworkers == 0 {
+            self.condvar.wait(&mut guard);
+
+            let working = self.working.load(Ordering::Relaxed);
+            let awakening = self.awakening.load(Ordering::Relaxed);
+            debug_assert!(working + awakening <= self.total);
+
+            if working == 0 && awakening == 0 {
                 return true;
             }
 
-            let result = self.nworkers.compare_exchange(
-                nworkers,
-                nworkers + 1,
-                Ordering::Relaxed,
-                Ordering::Relaxed,
-            );
-
-            match result {
-                Ok(_) => {
-                    // Value was successfully increased again, workers didn't terminate in
-                    // time. There is still work left.
-                    return false;
-                }
-
-                Err(prev_nworkers) => {
-                    nworkers = prev_nworkers;
-                }
+            if awakening > 0 {
+                self.awakening.store(awakening - 1, Ordering::Relaxed);
+                self.working.store(working + 1, Ordering::Relaxed);
+                return false;
             }
+        }
+    }
+
+    pub fn wake_up(&self) {
+        if self.total == 1 {
+            return;
+        }
+
+        let working = self.working.load(Ordering::Relaxed);
+        let awakening = self.awakening.load(Ordering::Relaxed);
+        debug_assert!(working > 0);
+
+        if working + awakening == self.total {
+            return;
+        }
+
+        let _guard = self.lock.lock();
+        let working = self.working.load(Ordering::Relaxed);
+        let awakening = self.awakening.load(Ordering::Relaxed);
+        debug_assert!(working > 0);
+        debug_assert!(working + awakening <= self.total);
+
+        if working + awakening != self.total {
+            self.awakening.store(awakening + 1, Ordering::Relaxed);
+            self.condvar.notify_one();
         }
     }
 }

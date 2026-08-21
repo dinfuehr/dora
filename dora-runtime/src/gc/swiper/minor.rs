@@ -672,6 +672,7 @@ impl<'a> CopyTask<'a> {
             self.defensive_push();
         } else {
             self.worker.push(item);
+            self.terminator.wake_up();
         }
     }
 
@@ -686,6 +687,8 @@ impl<'a> CopyTask<'a> {
                     let val = self.local.pop().unwrap();
                     self.injector.push(val);
                 }
+
+                self.terminator.wake_up();
             }
 
             self.traced = 0;

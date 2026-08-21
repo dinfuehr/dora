@@ -232,6 +232,7 @@ impl<'a> MarkingTask<'a> {
                 self.defensive_push();
             } else {
                 self.worker.push(field_addr);
+                self.terminator.wake_up();
             }
         }
     }
@@ -247,6 +248,8 @@ impl<'a> MarkingTask<'a> {
                     let val = self.local.pop().unwrap();
                     self.injector.push(val);
                 }
+
+                self.terminator.wake_up();
             }
 
             self.marked_since_share = 0;
