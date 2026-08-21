@@ -1,0 +1,210 @@
+use super::{
+    BackendMessage,
+    ProtocolError,
+    TransactionStatus,
+    decode_backend_frame,
+    decode_backend_message,
+    encode_startup_message,
+};
+
+use package::codec::ByteWriter;
+
+@Test
+fn encode_startup() {
+    let bytes = encode_startup_message("alice", "app").get_or_panic();
+    let expected = Array[UInt8]::new(
+        0u8,
+        0u8,
+        0u8,
+        33u8,
+        0u8,
+        3u8,
+        0u8,
+        0u8,
+        117u8,
+        115u8,
+        101u8,
+        114u8,
+        0u8,
+        97u8,
+        108u8,
+        105u8,
+        99u8,
+        101u8,
+        0u8,
+        100u8,
+        97u8,
+        116u8,
+        97u8,
+        98u8,
+        97u8,
+        115u8,
+        101u8,
+        0u8,
+        97u8,
+        112u8,
+        112u8,
+        0u8,
+        0u8,
+    );
+
+    assert(bytes == expected);
+    assert(encode_startup_message("embedded\0null", "app").is_err());
+    assert(encode_startup_message("alice", "embedded\0null").is_err());
+}
+
+@Test
+fn decode_authentication_ok() {
+    let bytes = Array[UInt8]::new(82u8, 0u8, 0u8, 0u8, 8u8, 0u8, 0u8, 0u8, 0u8);
+
+    match decode_backend_message(bytes).get_or_panic() {
+        BackendMessage::AuthenticationOk => (),
+        _ => unreachable(),
+    }
+}
+
+@Test
+fn decode_parameter_status() {
+    let bytes = Array[UInt8]::new(
+        83u8,
+        0u8,
+        0u8,
+        0u8,
+        25u8,
+        99u8,
+        108u8,
+        105u8,
+        101u8,
+        110u8,
+        116u8,
+        95u8,
+        101u8,
+        110u8,
+        99u8,
+        111u8,
+        100u8,
+        105u8,
+        110u8,
+        103u8,
+        0u8,
+        85u8,
+        84u8,
+        70u8,
+        56u8,
+        0u8,
+    );
+
+    match decode_backend_message(bytes).get_or_panic() {
+        BackendMessage::ParameterStatus(name, value) => {
+            assert(name == "client_encoding");
+            assert(value == "UTF8");
+        }
+        _ => unreachable(),
+    }
+}
+
+@Test
+fn decode_backend_key_data() {
+    let bytes = Array[UInt8]::new(
+        75u8,
+        0u8,
+        0u8,
+        0u8,
+        12u8,
+        0u8,
+        0u8,
+        4u8,
+        210u8,
+        1u8,
+        2u8,
+        3u8,
+        4u8,
+    );
+
+    match decode_backend_message(bytes).get_or_panic() {
+        BackendMessage::BackendKeyData(process_id, secret_key) => {
+            assert(process_id == 1234i32);
+            assert(secret_key == 0x01020304i32);
+        }
+        _ => unreachable(),
+    }
+}
+
+@Test
+fn decode_ready_for_query() {
+    for (
+        status,
+        expected,
+    ) in Array[(UInt8, TransactionStatus)]::new(
+        (73u8, TransactionStatus::Idle),
+        (84u8, TransactionStatus::InTransaction),
+        (69u8, TransactionStatus::FailedTransaction),
+    ) {
+        let bytes = Array[UInt8]::new(90u8, 0u8, 0u8, 0u8, 5u8, status);
+
+        match decode_backend_message(bytes).get_or_panic() {
+            BackendMessage::ReadyForQuery(actual) => assert(actual == expected),
+            _ => unreachable(),
+        }
+    }
+}
+
+@Test
+fn decode_error_response() {
+    let payload = ByteWriter::new();
+    write_error_field(payload, 83u8, "ERROR");
+    write_error_field(payload, 67u8, "28000");
+    write_error_field(payload, 77u8, "authentication failed");
+    payload.write_uint8(0u8);
+
+    match decode_backend_message(frame(69u8, payload.to_array())).get_or_panic() {
+        BackendMessage::ErrorResponse(fields) => {
+            assert(fields.size() == 3);
+            assert(fields(0).code == 83u8 && fields(0).value == "ERROR");
+            assert(fields(1).code == 67u8 && fields(1).value == "28000");
+            assert(fields(2).code == 77u8 && fields(2).value == "authentication failed");
+        }
+        _ => unreachable(),
+    }
+}
+
+@Test
+fn reject_invalid_frames_and_messages() {
+    assert(decode_backend_frame(Array[UInt8]::new()).is_err());
+    assert(decode_backend_frame(Array[UInt8]::new(82u8, 0u8, 0u8, 0u8, 3u8)).is_err());
+    assert(
+        decode_backend_frame(
+            Array[UInt8]::new(82u8, 0u8, 0u8, 0u8, 8u8, 0u8, 0u8, 0u8)
+        ).is_err()
+    );
+
+    let unsupported_message = decode_backend_message(frame(1u8, Array[UInt8]::new()));
+    assert(
+        unsupported_message.get_err_or_panic() == ProtocolError::UnsupportedMessage(1u8)
+    );
+
+    let unsupported_authentication = decode_backend_message(
+        frame(82u8, Array[UInt8]::new(0u8, 0u8, 0u8, 3u8))
+    );
+    assert(
+        unsupported_authentication.get_err_or_panic() ==
+        ProtocolError::UnsupportedAuthentication(3i32)
+    );
+
+    assert(decode_backend_message(frame(83u8, "name\0value".as_bytes())).is_err());
+    assert(decode_backend_message(frame(69u8, "Mmessage\0".as_bytes())).is_err());
+    assert(decode_backend_message(frame(90u8, Array[UInt8]::new(0u8))).is_err());
+}
+
+fn frame(tag: UInt8, payload: Array[UInt8]): Array[UInt8] {
+    let writer = ByteWriter::new();
+    writer.write_uint8(tag);
+    writer.write_int32_be((payload.size() + 4).to_int32());
+    writer.write_bytes(payload);
+    writer.to_array()
+}
+
+fn write_error_field(writer: ByteWriter, code: UInt8, value: String) {
+    writer.write_uint8(code);
+    writer.write_cstring(value).get_or_panic();
+}

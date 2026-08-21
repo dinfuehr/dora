@@ -1,0 +1,219 @@
+use package::codec::{ByteReader, ByteWriter};
+
+const PROTOCOL_VERSION_3_0: Int32 = 196608i32;
+
+const AUTHENTICATION_TAG: UInt8 = 82u8;
+const ERROR_RESPONSE_TAG: UInt8 = 69u8;
+const PARAMETER_STATUS_TAG: UInt8 = 83u8;
+const BACKEND_KEY_DATA_TAG: UInt8 = 75u8;
+const READY_FOR_QUERY_TAG: UInt8 = 90u8;
+
+@Equals
+pub enum ProtocolError {
+    InvalidStartupParameter,
+    MessageTooLarge,
+    InvalidFrame,
+    MalformedMessage,
+    UnsupportedMessage(UInt8),
+    UnsupportedAuthentication(Int32),
+}
+
+pub class BackendFrame {
+    pub tag: UInt8,
+    pub payload: Array[UInt8],
+}
+
+@Equals
+pub class ErrorField {
+    pub code: UInt8,
+    pub value: String,
+}
+
+@Equals
+pub enum TransactionStatus {
+    Idle,
+    InTransaction,
+    FailedTransaction,
+}
+
+pub enum BackendMessage {
+    AuthenticationOk,
+    ErrorResponse(Array[ErrorField]),
+    ParameterStatus(String, String),
+    BackendKeyData(Int32, Int32),
+    ReadyForQuery(TransactionStatus),
+}
+
+pub fn encode_startup_message(
+    user: String,
+    database: String,
+): Result[Array[UInt8], ProtocolError] {
+    if contains_zero(user) || contains_zero(database) {
+        return Err(ProtocolError::InvalidStartupParameter);
+    }
+
+    let length = 25 + user.as_bytes().size() + database.as_bytes().size();
+    if length > 2147483647i64 {
+        return Err(ProtocolError::MessageTooLarge);
+    }
+
+    let writer = ByteWriter::new();
+    writer.write_int32_be(length.to_int32());
+    writer.write_int32_be(PROTOCOL_VERSION_3_0);
+    write_cstring(writer, "user");
+    write_cstring(writer, user);
+    write_cstring(writer, "database");
+    write_cstring(writer, database);
+    writer.write_uint8(0u8);
+    Ok[Array[UInt8], ProtocolError](writer.to_array())
+}
+
+pub fn decode_backend_frame(bytes: Array[UInt8]): Result[BackendFrame, ProtocolError] {
+    if bytes.size() < 5 {
+        return Err(ProtocolError::InvalidFrame);
+    }
+
+    let reader = ByteReader::new(bytes);
+    let tag = reader.read_uint8().get_or_panic();
+    let length = reader.read_int32_be().get_or_panic();
+
+    if length < 4i32 || length.to_int64() + 1 != bytes.size() {
+        return Err(ProtocolError::InvalidFrame);
+    }
+
+    let payload = reader.read_bytes(length.to_int64() - 4).get_or_panic();
+    Ok[BackendFrame, ProtocolError](BackendFrame(tag = tag, payload = payload))
+}
+
+pub fn parse_backend_message(frame: BackendFrame): Result[BackendMessage, ProtocolError] {
+    if frame.tag == AUTHENTICATION_TAG {
+        parse_authentication(frame.payload)
+    } else if frame.tag == ERROR_RESPONSE_TAG {
+        parse_error_response(frame.payload)
+    } else if frame.tag == PARAMETER_STATUS_TAG {
+        parse_parameter_status(frame.payload)
+    } else if frame.tag == BACKEND_KEY_DATA_TAG {
+        parse_backend_key_data(frame.payload)
+    } else if frame.tag == READY_FOR_QUERY_TAG {
+        parse_ready_for_query(frame.payload)
+    } else {
+        Err[BackendMessage, ProtocolError](ProtocolError::UnsupportedMessage(frame.tag))
+    }
+}
+
+pub fn decode_backend_message(
+    bytes: Array[UInt8]
+): Result[BackendMessage, ProtocolError] {
+    let frame = decode_backend_frame(bytes);
+    if frame.is_err() {
+        return Err(frame.get_err_or_panic());
+    }
+
+    parse_backend_message(frame.get_or_panic())
+}
+
+fn parse_authentication(payload: Array[UInt8]): Result[BackendMessage, ProtocolError] {
+    if payload.size() != 4 {
+        return Err(ProtocolError::MalformedMessage);
+    }
+
+    let kind = ByteReader::new(payload).read_int32_be().get_or_panic();
+    if kind == 0i32 {
+        Ok[BackendMessage, ProtocolError](BackendMessage::AuthenticationOk)
+    } else {
+        Err[BackendMessage, ProtocolError](ProtocolError::UnsupportedAuthentication(kind))
+    }
+}
+
+fn parse_error_response(payload: Array[UInt8]): Result[BackendMessage, ProtocolError] {
+    let reader = ByteReader::new(payload);
+    let fields = Vec[ErrorField]::new();
+
+    while reader.remaining() > 0 {
+        let code = reader.read_uint8().get_or_panic();
+        if code == 0u8 {
+            if reader.remaining() == 0 {
+                return Ok[BackendMessage, ProtocolError](
+                    BackendMessage::ErrorResponse(fields.to_array())
+                );
+            }
+
+            return Err(ProtocolError::MalformedMessage);
+        }
+
+        let value = reader.read_cstring();
+        if value.is_err() {
+            return Err(ProtocolError::MalformedMessage);
+        }
+
+        fields.push(ErrorField(code = code, value = value.get_or_panic()));
+    }
+
+    Err[BackendMessage, ProtocolError](ProtocolError::MalformedMessage)
+}
+
+fn parse_parameter_status(payload: Array[UInt8]): Result[BackendMessage, ProtocolError] {
+    let reader = ByteReader::new(payload);
+    let name = reader.read_cstring();
+    if name.is_err() {
+        return Err(ProtocolError::MalformedMessage);
+    }
+
+    let value = reader.read_cstring();
+    if value.is_err() || reader.remaining() != 0 {
+        return Err(ProtocolError::MalformedMessage);
+    }
+
+    Ok[BackendMessage, ProtocolError](
+        BackendMessage::ParameterStatus(name.get_or_panic(), value.get_or_panic())
+    )
+}
+
+fn parse_backend_key_data(payload: Array[UInt8]): Result[BackendMessage, ProtocolError] {
+    if payload.size() != 8 {
+        return Err(ProtocolError::MalformedMessage);
+    }
+
+    let reader = ByteReader::new(payload);
+    let process_id = reader.read_int32_be().get_or_panic();
+    let secret_key = reader.read_int32_be().get_or_panic();
+    Ok[BackendMessage, ProtocolError](
+        BackendMessage::BackendKeyData(process_id, secret_key)
+    )
+}
+
+fn parse_ready_for_query(payload: Array[UInt8]): Result[BackendMessage, ProtocolError] {
+    if payload.size() != 1 {
+        return Err(ProtocolError::MalformedMessage);
+    }
+
+    let status = payload(0);
+    let status = if status == 73u8 {
+        TransactionStatus::Idle
+    } else if status == 84u8 {
+        TransactionStatus::InTransaction
+    } else if status == 69u8 {
+        TransactionStatus::FailedTransaction
+    } else {
+        return Err(ProtocolError::MalformedMessage);
+    };
+
+    Ok[BackendMessage, ProtocolError](BackendMessage::ReadyForQuery(status))
+}
+
+fn contains_zero(value: String): Bool {
+    for byte in value.as_bytes() {
+        if byte == 0u8 {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn write_cstring(writer: ByteWriter, value: String) {
+    writer.write_bytes(value.as_bytes());
+    writer.write_uint8(0u8);
+}
+
+mod tests;
