@@ -64,7 +64,8 @@ pub(super) fn write_relocation(
             ));
         }
         (
-            AotRelocationTarget::ShapeAddress(_)
+            AotRelocationTarget::StringSlot(_)
+            | AotRelocationTarget::ShapeAddress(_)
             | AotRelocationTarget::ShapeBase
             | AotRelocationTarget::Global(_)
             | AotRelocationTarget::JumpTable { .. },
