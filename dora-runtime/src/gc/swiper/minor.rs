@@ -2,11 +2,11 @@ use parking_lot::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Barrier};
 
-use crate::gc::pmarking::Terminator;
 use crate::gc::root::Slot;
 use crate::gc::swiper::controller::{MinorCollectorPhases, SharedHeapConfig};
 use crate::gc::swiper::large::LargeSpace;
 use crate::gc::swiper::old::OldGen;
+use crate::gc::swiper::terminator::Terminator;
 use crate::gc::swiper::young::YoungGen;
 use crate::gc::swiper::{BasePage, LARGE_OBJECT_SIZE, Swiper};
 use crate::gc::tlab::{MAX_TLAB_OBJECT_SIZE, MAX_TLAB_SIZE, MIN_TLAB_SIZE};

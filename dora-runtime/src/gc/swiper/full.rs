@@ -4,11 +4,10 @@ use std::time::Instant;
 use fixedbitset::FixedBitSet;
 
 use crate::gc::swiper::controller::FullCollectorPhases;
+use crate::gc::swiper::marking;
 use crate::gc::swiper::{
-    BasePage, LargeSpace, OldGen, PAGE_SIZE, RegularPage, SharedHeapConfig, Swiper, YoungGen,
-    walk_region,
+    LargeSpace, OldGen, PAGE_SIZE, RegularPage, SharedHeapConfig, Swiper, YoungGen, walk_region,
 };
-use crate::gc::worklist::{Worklist, WorklistSegment};
 use crate::gc::{Address, GcReason, Region, Slot, iterate_weak_roots};
 use crate::runtime::Runtime;
 use crate::threads::DoraThread;
@@ -99,10 +98,19 @@ impl<'a> FullCollector<'a> {
     }
 
     fn mark_live(&mut self) {
-        let (marked_bytes, live_pages) =
-            MarkingTask::new().mark(self.rt, self.swiper, self.rootset);
-        self.config.lock().marked_bytes = marked_bytes;
-        self.live_pages = live_pages;
+        let result = {
+            let mut threadpool = self.swiper.threadpool.lock();
+            marking::run(
+                self.rt,
+                self.rootset,
+                self.swiper.heap.total(),
+                self.swiper.readonly.total(),
+                PAGE_SIZE,
+                &mut threadpool,
+            )
+        };
+        self.config.lock().marked_bytes = result.marked_bytes;
+        self.live_pages = result.live_pages;
 
         iterate_weak_roots(self.rt, |object_address| {
             let obj = object_address.to_obj();
@@ -165,89 +173,6 @@ impl<'a> FullCollector<'a> {
 
         assert_eq!(computed_old_committed_size, committed_sizes.old);
         assert_eq!(computed_large_committed_size, committed_sizes.large);
-    }
-}
-
-struct MarkingTask {
-    global_worklist: Worklist,
-    segment: WorklistSegment,
-}
-
-impl MarkingTask {
-    fn new() -> MarkingTask {
-        MarkingTask {
-            global_worklist: Worklist::new(),
-            segment: WorklistSegment::new(),
-        }
-    }
-
-    fn mark(mut self, rt: &Runtime, swiper: &Swiper, rootset: &[Slot]) -> (usize, FixedBitSet) {
-        let shape_base = rt.shape_base();
-        let pages = swiper.heap.pages();
-        let heap_start = swiper.heap.start_address();
-        let mut live_pages = FixedBitSet::with_capacity(pages);
-        let mut marked_bytes = 0;
-
-        for root in rootset {
-            let object = root.get();
-
-            if object.is_null() {
-                continue;
-            }
-
-            let root_obj = object.to_obj();
-
-            if root_obj.header().try_mark() {
-                self.push(object);
-            }
-        }
-
-        while let Some(address) = self.pop() {
-            debug_assert!(!BasePage::from_address(address).is_readonly());
-            let object = address.to_obj();
-
-            let page_id = address.offset_from(heap_start) / PAGE_SIZE;
-            live_pages.set(page_id, true);
-
-            marked_bytes += object.size(shape_base);
-
-            object.visit_reference_fields(shape_base, |field| {
-                let referenced = field.get();
-
-                if referenced.is_null() {
-                    return;
-                }
-
-                let field_obj = referenced.to_obj();
-
-                if field_obj.header().try_mark() {
-                    self.push(referenced);
-                }
-            });
-        }
-
-        (marked_bytes, live_pages)
-    }
-
-    fn push(&mut self, address: Address) {
-        if !self.segment.push(address) {
-            let segment = std::mem::replace(&mut self.segment, WorklistSegment::new());
-            self.global_worklist.push_segment(segment);
-            assert!(self.segment.push(address));
-        }
-    }
-
-    fn pop(&mut self) -> Option<Address> {
-        if let Some(object) = self.segment.pop() {
-            Some(object)
-        } else {
-            if let Some(segment) = self.global_worklist.pop_segment() {
-                self.segment = segment;
-                self.segment.pop()
-            } else {
-                None
-            }
-        }
     }
 }
 

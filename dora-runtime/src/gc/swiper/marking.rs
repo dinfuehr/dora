@@ -1,20 +1,53 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::thread;
-use std::time::Duration;
+use fixedbitset::FixedBitSet;
+use parking_lot::Mutex;
 
 use crossbeam_deque::{Injector, Steal, Stealer, Worker};
 use rand::distr::uniform::{UniformSampler, UniformUsize};
 use scoped_threadpool::Pool;
 
 use crate::gc::root::Slot;
+use crate::gc::swiper::terminator::Terminator;
 use crate::gc::{Address, Region};
 use crate::runtime::Runtime;
 
-pub fn start(rt: &Runtime, rootset: &[Slot], heap: Region, perm: Region, threadpool: &mut Pool) {
+pub struct MarkingResult {
+    pub marked_bytes: usize,
+    pub live_pages: FixedBitSet,
+}
+
+impl MarkingResult {
+    fn new(pages: usize) -> MarkingResult {
+        MarkingResult {
+            marked_bytes: 0,
+            live_pages: FixedBitSet::with_capacity(pages),
+        }
+    }
+
+    fn add(&mut self, other: MarkingResult) {
+        self.marked_bytes += other.marked_bytes;
+        self.live_pages.union_with(&other.live_pages);
+    }
+}
+
+pub fn run(
+    rt: &Runtime,
+    rootset: &[Slot],
+    heap: Region,
+    perm: Region,
+    page_size: usize,
+    threadpool: &mut Pool,
+) -> MarkingResult {
+    assert!(page_size.is_power_of_two());
+    assert_eq!(heap.size() % page_size, 0);
+
     let number_workers = threadpool.thread_count() as usize;
+    let page_size_bits = page_size.trailing_zeros();
+
+    let pages = heap.size() >> page_size_bits;
     let mut workers = Vec::with_capacity(number_workers);
     let mut stealers = Vec::with_capacity(number_workers);
     let injector = Injector::new();
+    let results = Mutex::new(Vec::with_capacity(number_workers));
 
     for _ in 0..number_workers {
         let w = Worker::new_lifo();
@@ -26,14 +59,14 @@ pub fn start(rt: &Runtime, rootset: &[Slot], heap: Region, perm: Region, threadp
     for root in rootset {
         let root_ptr = root.get();
 
-        if heap.contains(root_ptr) {
-            let root_obj = root_ptr.to_obj();
+        if root_ptr.is_null() {
+            continue;
+        }
 
-            if root_obj.header().try_mark() {
-                injector.push(root_ptr);
-            }
-        } else {
-            debug_assert!(root_ptr.is_null() || perm.contains(root_ptr));
+        debug_assert!(heap.contains(root_ptr) || perm.contains(root_ptr));
+
+        if root_ptr.to_obj().header().try_mark() {
+            injector.push(root_ptr);
         }
     }
 
@@ -47,6 +80,7 @@ pub fn start(rt: &Runtime, rootset: &[Slot], heap: Region, perm: Region, threadp
             let injector = &injector;
             let stealers = &stealers;
             let terminator = &terminator;
+            let results = &results;
             let shape_base = rt.shape_base();
 
             scoped.execute(move || {
@@ -59,75 +93,23 @@ pub fn start(rt: &Runtime, rootset: &[Slot], heap: Region, perm: Region, threadp
                     terminator,
                     heap_region,
                     perm_region,
-                    marked: 0,
+                    page_size_bits,
+                    marked_since_share: 0,
                     shape_base,
+                    result: MarkingResult::new(pages),
                 };
 
                 task.run();
+                results.lock().push(task.result);
             });
         }
     });
-}
 
-pub struct Terminator {
-    const_nworkers: usize,
-    nworkers: AtomicUsize,
-}
-
-impl Terminator {
-    pub fn new(number_workers: usize) -> Terminator {
-        Terminator {
-            const_nworkers: number_workers,
-            nworkers: AtomicUsize::new(number_workers),
-        }
+    let mut result = MarkingResult::new(pages);
+    for worker_result in results.into_inner() {
+        result.add(worker_result);
     }
-
-    pub fn try_terminate(&self) -> bool {
-        if self.const_nworkers == 1 {
-            return true;
-        }
-
-        if self.decrease_workers() {
-            // reached 0, no need to wait
-            return true;
-        }
-
-        thread::sleep(Duration::from_micros(1));
-        self.zero_or_increase_workers()
-    }
-
-    fn decrease_workers(&self) -> bool {
-        self.nworkers.fetch_sub(1, Ordering::Relaxed) == 1
-    }
-
-    fn zero_or_increase_workers(&self) -> bool {
-        let mut nworkers = self.nworkers.load(Ordering::Relaxed);
-
-        loop {
-            if nworkers == 0 {
-                return true;
-            }
-
-            let result = self.nworkers.compare_exchange(
-                nworkers,
-                nworkers + 1,
-                Ordering::Relaxed,
-                Ordering::Relaxed,
-            );
-
-            match result {
-                Ok(_) => {
-                    // Value was successfully increased again, workers didn't terminate in
-                    // time. There is still work left.
-                    return false;
-                }
-
-                Err(prev_nworkers) => {
-                    nworkers = prev_nworkers;
-                }
-            }
-        }
-    }
+    result
 }
 
 struct MarkingTask<'a> {
@@ -139,8 +121,10 @@ struct MarkingTask<'a> {
     terminator: &'a Terminator,
     heap_region: Region,
     perm_region: Region,
-    marked: usize,
+    page_size_bits: u32,
+    marked_since_share: usize,
     shape_base: Address,
+    result: MarkingResult,
 }
 
 impl<'a> MarkingTask<'a> {
@@ -219,6 +203,9 @@ impl<'a> MarkingTask<'a> {
             };
 
             let object = object_addr.to_obj();
+            let page_id = object_addr.offset_from(self.heap_region.start()) >> self.page_size_bits;
+            self.result.live_pages.set(page_id, true);
+            self.result.marked_bytes += object.size(self.shape_base);
 
             object.visit_reference_fields(self.shape_base, |field| {
                 self.trace(field);
@@ -229,26 +216,30 @@ impl<'a> MarkingTask<'a> {
     fn trace(&mut self, slot: Slot) {
         let field_addr = slot.get();
 
-        if self.heap_region.contains(field_addr) {
-            let field_obj = field_addr.to_obj();
+        if field_addr.is_null() {
+            return;
+        }
 
-            if field_obj.header().try_mark() {
-                if self.local.has_capacity() {
-                    self.local.push(field_addr);
-                    self.defensive_push();
-                } else {
-                    self.worker.push(field_addr);
-                }
+        debug_assert!(
+            self.heap_region.contains(field_addr) || self.perm_region.contains(field_addr)
+        );
+
+        let field_obj = field_addr.to_obj();
+
+        if field_obj.header().try_mark() {
+            if self.local.has_capacity() {
+                self.local.push(field_addr);
+                self.defensive_push();
+            } else {
+                self.worker.push(field_addr);
             }
-        } else {
-            debug_assert!(field_addr.is_null() || self.perm_region.contains(field_addr));
         }
     }
 
     fn defensive_push(&mut self) {
-        self.marked += 1;
+        self.marked_since_share += 1;
 
-        if self.marked > 256 {
+        if self.marked_since_share > 256 {
             if self.local.len() > 4 {
                 let target_len = self.local.len() / 2;
 
@@ -258,7 +249,7 @@ impl<'a> MarkingTask<'a> {
                 }
             }
 
-            self.marked = 0;
+            self.marked_since_share = 0;
         }
     }
 }

@@ -29,10 +29,12 @@ mod controller;
 mod full;
 mod heap;
 mod large;
+mod marking;
 mod minor;
 pub mod old;
 mod readonly;
 mod sweeper;
+mod terminator;
 mod verify;
 pub mod young;
 

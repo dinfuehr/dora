@@ -31,7 +31,6 @@ pub mod bump;
 pub mod copy;
 pub mod freelist;
 pub mod marking;
-pub mod pmarking;
 pub mod root;
 pub mod space;
 pub mod sweep;

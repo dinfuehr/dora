@@ -45,6 +45,10 @@ impl Heap {
         self.total.start()
     }
 
+    pub fn total(&self) -> Region {
+        self.total
+    }
+
     pub fn alloc_large_page(&self, object_size: usize) -> Option<LargePage> {
         let (committed_size, _) = LargePage::compute_sizes(object_size);
 

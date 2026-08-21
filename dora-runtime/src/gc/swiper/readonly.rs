@@ -52,6 +52,10 @@ impl ReadOnlySpace {
 
         pages
     }
+
+    pub fn total(&self) -> Region {
+        self.total
+    }
 }
 
 struct ReadOnlySpaceProtected {
