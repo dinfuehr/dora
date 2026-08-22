@@ -142,7 +142,6 @@ impl<'a> FullCollector<'a> {
             }
         }
 
-        self.swiper.heap.merge_free_regions();
         self.swiper.sweeper.start(pages_to_sweep, self.rt);
 
         if self.rt.flags.gc_verify {

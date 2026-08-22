@@ -80,15 +80,12 @@ impl LargeSpaceProtected {
     {
         let mut current_page_iter = self.head;
         let mut prev: Option<LargePage> = None;
-        let mut freed = false;
-
         while current_page_iter.is_some() {
             let page = current_page_iter.expect("missing page");
             let next = page.next_page();
             let remove = f(page);
 
             if remove {
-                freed = true;
                 heap.free_large_page(page);
             } else {
                 if let Some(prev) = prev {
@@ -110,10 +107,6 @@ impl LargeSpaceProtected {
         } else {
             // No large objects left.
             self.head = None;
-        }
-
-        if freed {
-            heap.merge_free_regions();
         }
     }
 }
