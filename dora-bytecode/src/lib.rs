@@ -1,3 +1,4 @@
+pub mod artifact;
 pub mod data;
 pub mod display;
 pub mod dumper;
@@ -13,6 +14,10 @@ pub mod writer;
 #[cfg(test)]
 mod tests;
 
+pub use artifact::{
+    ARTIFACT_FORMAT_VERSION, ARTIFACT_MAGIC, ArtifactFingerprint, ArtifactKind, DecodedArtifact,
+    calculate_artifact_fingerprint, decode_artifact, encode_artifact,
+};
 pub use data::*;
 pub use display::{
     TypeParamMode, display_fct, display_fct_specialized, display_ty, display_ty_array,
@@ -30,7 +35,7 @@ pub use program::{
     StructData, StructField, StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
 pub use reader::*;
-pub use serializer::{decode_program_from_bytes, read_program_from_file};
+pub use serializer::{decode_program_from_bytes, encode_program_to_vec, read_program_from_file};
 pub use ty::{BytecodeTraitType, BytecodeType, BytecodeTypeArray};
 pub use verifier::verify as verify_program;
 pub use writer::*;

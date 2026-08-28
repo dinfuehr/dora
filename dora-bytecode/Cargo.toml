@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 bincode = "2.0.0-rc.3"
+blake3 = "1"
 fixedbitset = "*"

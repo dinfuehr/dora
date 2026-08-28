@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use crate::driver::append_exe_suffix;
 use crate::driver::flags::CompileArgs;
 use crate::driver::start::{Result, compile_program};
+use dora_bytecode::encode_program_to_vec;
 use dora_frontend::sema::SemaCreationParams;
 use dora_runtime::{AotCompileArgs, CollectorName, TargetArch};
 use tempfile::TempPath;
@@ -191,8 +192,7 @@ fn compile_to_package(args: &CompileArgs, package_file: &Path) -> Result<()> {
 
     let prog = compile_program(sema_params, &args.common)?;
 
-    let encoded_program = bincode::encode_to_vec(prog, bincode::config::standard())
-        .expect("program serialization failed");
+    let encoded_program = encode_program_to_vec(&prog);
     fs::write(package_file, encoded_program)?;
 
     Ok(())
