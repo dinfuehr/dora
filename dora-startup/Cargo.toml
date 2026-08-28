@@ -13,7 +13,6 @@ crate-type = ["staticlib"]
 test = false
 
 [dependencies]
-bincode = "2.0.0-rc.3"
 clap = { version = "4", features = ["derive"] }
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
 dora-boots-compiler = { path = "../dora-boots-compiler", version = "0.0.2" }

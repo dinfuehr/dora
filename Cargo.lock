@@ -290,7 +290,6 @@ dependencies = [
 name = "dora"
 version = "0.0.2"
 dependencies = [
- "bincode",
  "clap",
  "dora-bytecode",
  "dora-cannon-compiler",
@@ -458,7 +457,6 @@ dependencies = [
 name = "dora-startup"
 version = "0.0.2"
 dependencies = [
- "bincode",
  "clap",
  "dora-boots-compiler",
  "dora-bytecode",

@@ -11,7 +11,6 @@ default-run = "dora"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-bincode = "2.0.0-rc.3"
 dora-frontend = { path = "../dora-frontend", version = "0.0.2" }
 dora-bytecode = { path = "../dora-bytecode", version = "0.0.2" }
 dora-cannon-compiler = { path = "../dora-cannon-compiler", version = "0.0.2" }

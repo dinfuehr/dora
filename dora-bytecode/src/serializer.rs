@@ -2,9 +2,27 @@ use std::path::Path;
 
 use crate::{ArtifactKind, Program, decode_artifact, encode_artifact};
 
+/// Encodes a program without an artifact envelope for embedding in AOT binaries.
+pub fn encode_program_payload_to_vec(program: &Program) -> Vec<u8> {
+    bincode::encode_to_vec(program, bincode::config::standard())
+        .expect("program serialization failed")
+}
+
+/// Decodes a program payload embedded in an AOT binary.
+pub fn decode_program_payload_from_bytes(bytes: &[u8]) -> Result<Program, String> {
+    let config = bincode::config::standard();
+    let (program, decoded_len): (Program, usize) = bincode::decode_from_slice(bytes, config)
+        .map_err(|err| format!("failed to decode Dora program payload: {err}"))?;
+
+    if decoded_len != bytes.len() {
+        return Err("encoded Dora program payload has trailing bytes".to_string());
+    }
+
+    Ok(program)
+}
+
 pub fn encode_program_to_vec(program: &Program) -> Vec<u8> {
-    let payload = bincode::encode_to_vec(program, bincode::config::standard())
-        .expect("program serialization failed");
+    let payload = encode_program_payload_to_vec(program);
     encode_artifact(ArtifactKind::PROGRAM, &payload)
 }
 
@@ -17,16 +35,7 @@ pub fn decode_program_from_bytes(bytes: &[u8]) -> Result<Program, String> {
         ));
     }
 
-    let config = bincode::config::standard();
-    let (program, decoded_len): (Program, usize) =
-        bincode::decode_from_slice(artifact.payload, config)
-            .map_err(|err| format!("failed to decode AOT program: {err}"))?;
-
-    if decoded_len != artifact.payload.len() {
-        return Err("encoded AOT program has trailing bytes".to_string());
-    }
-
-    Ok(program)
+    decode_program_payload_from_bytes(artifact.payload)
 }
 
 pub fn read_program_from_file(path: &Path) -> Result<Program, String> {
@@ -65,8 +74,7 @@ mod tests {
 
     #[test]
     fn rejects_wrong_artifact_kind() {
-        let payload = bincode::encode_to_vec(empty_program(), bincode::config::standard())
-            .expect("program serialization failed");
+        let payload = encode_program_payload_to_vec(&empty_program());
         let bytes = encode_artifact(ArtifactKind::from_u16(17), &payload);
         let error = decode_program_from_bytes(&bytes).expect_err("artifact should be rejected");
 

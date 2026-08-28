@@ -1,5 +1,5 @@
 use clap::Parser;
-use dora_bytecode::{lookup::lookup_fct, read_program_from_file};
+use dora_bytecode::{encode_program_payload_to_vec, lookup::lookup_fct, read_program_from_file};
 use dora_runtime::startup::{
     initialize_code_map, initialize_global_memory, initialize_shapes, patch_string_slots,
 };
@@ -158,8 +158,7 @@ pub fn dora_boots_compiler_main(
     } else {
         execute_on_main(|| compile_program_aot(&input_program, aot_inputs))
     };
-    let encoded_program = bincode::encode_to_vec(&input_program, bincode::config::standard())
-        .expect("program serialization failed");
+    let encoded_program = encode_program_payload_to_vec(&input_program);
     let trampoline = dora_entry_trampoline_codegen::generate_aot(target_arch);
     let assembly_kind = if args.internal_compile_boots && !args.test {
         AotAssemblyKind::CompilerImage

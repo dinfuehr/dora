@@ -116,7 +116,7 @@
 //                               +----------------------+
 
 use clap::Parser;
-use dora_bytecode::{FunctionId, Program, display_fct};
+use dora_bytecode::{FunctionId, Program, decode_program_payload_from_bytes, display_fct};
 use dora_runtime::startup::{
     AotTestEntry, current_thread_tld_address, initialize_code_map, initialize_global_memory,
     initialize_shapes, patch_string_slots,
@@ -138,15 +138,7 @@ unsafe extern "C" {
 
 fn decode_program() -> Program {
     let bytes = metadata::program_bytes();
-    let config = bincode::config::standard();
-    let (program, decoded_len): (Program, usize) =
-        bincode::decode_from_slice(bytes, config).expect("failed to decode embedded AOT program");
-    assert_eq!(
-        decoded_len,
-        bytes.len(),
-        "embedded AOT program has trailing bytes"
-    );
-    program
+    decode_program_payload_from_bytes(bytes).expect("failed to decode embedded AOT program")
 }
 
 #[derive(Parser)]

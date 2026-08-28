@@ -35,7 +35,10 @@ pub use program::{
     StructData, StructField, StructId, TraitData, TraitId, TypeParamBound, TypeParamData,
 };
 pub use reader::*;
-pub use serializer::{decode_program_from_bytes, encode_program_to_vec, read_program_from_file};
+pub use serializer::{
+    decode_program_from_bytes, decode_program_payload_from_bytes, encode_program_payload_to_vec,
+    encode_program_to_vec, read_program_from_file,
+};
 pub use ty::{BytecodeTraitType, BytecodeType, BytecodeTypeArray};
 pub use verifier::verify as verify_program;
 pub use writer::*;

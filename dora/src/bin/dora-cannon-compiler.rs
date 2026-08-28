@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use dora_bytecode::{Program, lookup::lookup_fct, read_program_from_file};
+use dora_bytecode::{
+    Program, encode_program_payload_to_vec, lookup::lookup_fct, read_program_from_file,
+};
 use dora_runtime::{
     AotAssemblyKind, AotCompileArgs, AotCompileInputs, CollectorName, CompilerInvocation,
     TargetArch, compile_boots_compiler_aot, compile_program_aot, compile_test_runner,
@@ -97,8 +99,7 @@ fn compile_package_with_cannon(program: Program, args: &Args) -> Result<(), Stri
     } else {
         compile_program_aot(&program, aot_inputs)
     };
-    let encoded_program = bincode::encode_to_vec(&program, bincode::config::standard())
-        .expect("program serialization failed");
+    let encoded_program = encode_program_payload_to_vec(&program);
     let trampoline = dora_entry_trampoline::generate_aot(target_arch);
     let assembly_kind = if args.internal_compile_boots && !args.test {
         AotAssemblyKind::CompilerImage
