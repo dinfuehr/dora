@@ -415,6 +415,7 @@ impl Emitter {
                     container_bound_count: 0,
                     bounds: Vec::new(),
                 },
+                bounds: Vec::new(),
                 is_public: false,
                 ty: None,
                 idx_in_trait: None,
@@ -1197,10 +1198,19 @@ impl Emitter {
             let ty = alias.parsed_ty().map(|pty| self.convert_ty(sa, pty.ty()));
             let module_id = self.convert_module_id(sa, alias.module_id);
             let type_params = self.create_type_params(sa, alias.type_param_definition(sa));
+            let bounds = alias
+                .bounds()
+                .iter()
+                .map(|bound| {
+                    let trait_ty = bound.ty().expect("missing alias bound");
+                    self.convert_trait_ty(sa, &trait_ty)
+                })
+                .collect();
             self.aliases.push(AliasData {
                 module_id,
                 name: sa.interner.str(alias.name).to_string(),
                 type_params,
+                bounds,
                 is_public: alias.visibility.is_public(),
                 ty,
                 idx_in_trait: alias.idx_in_trait,

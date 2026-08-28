@@ -284,6 +284,7 @@ pub struct AliasData {
     pub module_id: ModuleId,
     pub name: String,
     pub type_params: TypeParamData,
+    pub bounds: Vec<BytecodeTraitType>,
     pub is_public: bool,
     pub ty: Option<BytecodeType>,
     pub idx_in_trait: Option<usize>,
