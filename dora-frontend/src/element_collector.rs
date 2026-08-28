@@ -153,9 +153,16 @@ impl<'a> ElementCollector<'a> {
 
     fn add_dependency_packages(&mut self) {
         let packages = std::mem::replace(&mut self.packages, HashMap::new());
+        let mut package_ids_by_path = HashMap::new();
 
         for (name, path) in packages {
             if self.sa.package_names.contains_key(&name) {
+                continue;
+            }
+
+            let package_path = fs::canonicalize(&path).unwrap_or_else(|_| path.clone());
+            if let Some(&package_id) = package_ids_by_path.get(&package_path) {
+                self.sa.package_names.insert(name, package_id);
                 continue;
             }
 
@@ -163,6 +170,7 @@ impl<'a> ElementCollector<'a> {
             let package_name = PackageName::External(name.clone());
             let (package_id, module_id) = add_package(self.sa, package_name, Some(iname));
             self.sa.package_names.insert(name.clone(), package_id);
+            package_ids_by_path.insert(package_path, package_id);
 
             self.add_file(package_id, module_id, path.clone(), None);
         }
@@ -358,7 +366,7 @@ impl<'x> ast::Visitor for ElementVisitor<'x> {
 
                 let iname = self.sa.interner.intern(name_as_str);
 
-                if !self.sa.packages[package_id].add_dependency(
+                if !self.sa.packages[self.package_id].add_dependency(
                     iname,
                     package_id,
                     top_level_module_id,

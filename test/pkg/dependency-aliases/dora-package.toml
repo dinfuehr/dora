@@ -1,0 +1,6 @@
+[package]
+name = "dependency-aliases"
+
+[dependencies]
+dep1 = { path = "dependency" }
+dep2 = { path = "dependency" }

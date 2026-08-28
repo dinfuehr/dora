@@ -1,0 +1,9 @@
+pub struct Value { value: Int32 }
+
+pub fn create(): Value {
+    Value(value = 42i32)
+}
+
+pub fn consume(value: Value): Int32 {
+    value.value
+}

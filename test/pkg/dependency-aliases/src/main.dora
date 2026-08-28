@@ -1,0 +1,6 @@
+extern package dep1;
+extern package dep2;
+
+fn main() {
+    println("${dep2::consume(dep1::create())}");
+}
