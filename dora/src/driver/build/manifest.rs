@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 
 use crate::driver::start::Result;
 
+const PACKAGE_NAME_EXPECTATION: &str = "expected only ASCII letters, digits, '_' or '-'";
+
 pub(super) struct PackageManifest {
     pub(super) name: String,
     pub(super) main: Option<String>,
@@ -25,8 +27,16 @@ pub(super) fn read_package_manifest(path: &Path) -> Result<PackageManifest> {
     let name = package
         .get("name")
         .and_then(toml::Value::as_str)
-        .ok_or_else(|| format!("missing package.name in '{}'", path.display()))?
-        .to_string();
+        .ok_or_else(|| format!("missing package.name in '{}'", path.display()))?;
+    if !is_valid_package_name(name) {
+        return Err(format!(
+            "invalid package name '{}' in '{}': {PACKAGE_NAME_EXPECTATION}",
+            name,
+            path.display(),
+        )
+        .into());
+    }
+    let name = name.to_string();
     let main = package
         .get("main")
         .and_then(toml::Value::as_str)
@@ -51,16 +61,38 @@ fn read_dependencies(table: &toml::Table, manifest_path: &Path) -> Result<Vec<Pa
         )
     })?;
 
-    let mut result = Vec::new();
+    let mut result: Vec<PackageDependency> = Vec::new();
     for (name, dependency) in dependencies {
+        if !is_valid_package_name(name) {
+            return Err(format!(
+                "invalid dependency name '{}' in '{}': {PACKAGE_NAME_EXPECTATION}",
+                name,
+                manifest_path.display(),
+            )
+            .into());
+        }
+
         let path = dependency_path(dependency, manifest_path, name)?;
-        result.push(PackageDependency {
-            name: name.clone(),
-            path,
-        });
+        let name = name.replace('-', "_");
+        if result.iter().any(|dependency| dependency.name == name) {
+            return Err(format!(
+                "duplicate dependency name '{}' after replacing '-' with '_' in '{}'",
+                name,
+                manifest_path.display(),
+            )
+            .into());
+        }
+        result.push(PackageDependency { name, path });
     }
 
     Ok(result)
+}
+
+fn is_valid_package_name(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .bytes()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == b'_' || ch == b'-')
 }
 
 fn dependency_path(
@@ -91,4 +123,21 @@ fn dependency_path(
         })?;
 
     Ok(PathBuf::from(path))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_valid_package_name;
+
+    #[test]
+    fn valid_package_name() {
+        assert!(is_valid_package_name("dependency"));
+        assert!(is_valid_package_name("dependency-2"));
+        assert!(is_valid_package_name("2dependency"));
+        assert!(is_valid_package_name("_"));
+
+        assert!(!is_valid_package_name(""));
+        assert!(!is_valid_package_name("dependency/path"));
+        assert!(!is_valid_package_name("dependency\\path"));
+    }
 }

@@ -1,0 +1,5 @@
+[package]
+name = "dependency-name-with-dash"
+
+[dependencies]
+helper-library = { path = "helper" }

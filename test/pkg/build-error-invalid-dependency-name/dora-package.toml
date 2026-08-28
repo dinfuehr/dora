@@ -1,0 +1,5 @@
+[package]
+name = "build-error-invalid-dependency-name"
+
+[dependencies]
+"../escaped" = { path = "dependency" }

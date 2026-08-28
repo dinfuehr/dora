@@ -1,0 +1,1 @@
+Error: invalid dependency name '../escaped' in 'test/pkg/build-error-invalid-dependency-name/dora-package.toml': expected only ASCII letters, digits, '_' or '-'
